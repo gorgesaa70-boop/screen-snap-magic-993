@@ -21,6 +21,24 @@ export const Route = createFileRoute("/properties/$id")({
   component: PropertyPage,
 });
 
+function PropertyMap({ lat, lng }: { lat: number; lng: number }) {
+  const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
+  if (!key) return null;
+  return (
+    <div className="mt-6">
+      <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />الموقع على الخريطة</h2>
+      <iframe
+        title="موقع العقار على الخريطة"
+        src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${lat},${lng}&zoom=15&language=ar&region=EG`}
+        className="h-64 w-full rounded-2xl border bg-muted md:h-80"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        allowFullScreen
+      />
+    </div>
+  );
+}
+
 function PropertyPage() {
   const { id } = Route.useParams();
   const q = useQuery({
