@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, Search, X, Plus } from "lucide-react";
+import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
 
 const links = [
   { label: "الرئيسية", href: "#top" },
@@ -38,15 +38,15 @@ export function Navbar() {
           <a href="#request" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> أضف عقارك
           </a>
-          <button onClick={() => setOpen(!open)} aria-label="القائمة" className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
+          <button onClick={() => setOpen(!open)} aria-label="القائمة" aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
       {open && (
-        <nav className="border-t bg-background px-4 pb-4 lg:hidden">
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card lg:hidden">
           {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b py-3.5 font-semibold text-foreground/80">
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
               {l.label}
             </a>
           ))}
@@ -56,5 +56,25 @@ export function Navbar() {
         </nav>
       )}
     </header>
+  );
+}
+
+export function MobileBar() {
+  const items = [
+    { label: "الرئيسية", href: "#top", icon: Home },
+    { label: "بحث", href: "#search", icon: Search },
+    { label: "العقارات", href: "#properties", icon: Building2 },
+    { label: "اطلب عقارك", href: "#request", icon: FileSearch },
+  ];
+  return (
+    <nav aria-label="تنقل سريع" className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+      <div className="grid grid-cols-4">
+        {items.map(({ label, href, icon: Icon }) => (
+          <a key={href} href={href} className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold text-foreground/70 transition hover:text-primary active:bg-secondary">
+            <Icon className="size-5 shrink-0" />{label}
+          </a>
+        ))}
+      </div>
+    </nav>
   );
 }
