@@ -351,12 +351,46 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_otps: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string | null
+          phone: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_hash?: string | null
+          phone: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       admin_exists: { Args: never; Returns: boolean }
+      auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       claim_first_admin: { Args: never; Returns: boolean }
       current_broker_id: { Args: never; Returns: string }
       has_role: {
