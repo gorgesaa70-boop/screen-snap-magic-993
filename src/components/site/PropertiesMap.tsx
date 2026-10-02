@@ -5,7 +5,7 @@ import { formatPrice, type Property } from "./data";
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c);
 
 /** One map showing every property that has coordinates; marker opens a card linking to the property page. */
-export function PropertiesMap({ properties }: { properties: Property[] }) {
+export function PropertiesMap({ properties, showError = false }: { properties: Property[]; showError?: boolean }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [failed, setFailed] = useState(false);
@@ -45,7 +45,8 @@ export function PropertiesMap({ properties }: { properties: Property[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [located.map((p) => p.id).join(",")]);
 
-  if (failed || located.length === 0) return null;
+  if (failed) return showError ? <p className="rounded-2xl bg-destructive/10 p-4 text-center text-sm font-semibold text-destructive">تعذّر تحميل الخريطة حاليًا. تأكد من الاتصال أو من إعداد مفتاح الخرائط.</p> : null;
+  if (located.length === 0) return null;
   return (
     <div className="mb-6">
       <div ref={boxRef} className="h-72 w-full overflow-hidden rounded-2xl border bg-muted md:h-[500px]" />
