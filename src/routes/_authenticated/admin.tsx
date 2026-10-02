@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -166,7 +167,7 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
   const [filter, setFilter] = useState("pending");
   const brokerName = (id: string | null) => d.brokers.find((b) => b.id === id)?.name ?? "—";
   const list = d.properties.filter((p) => !filter || p.review_status === filter);
-  const upd = async (id: string, patch: Record<string, unknown>, msg: string) => {
+  const upd = async (id: string, patch: TablesUpdate<"properties">, msg: string) => {
     const { error } = await supabase.from("properties").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success(msg); reload(); }
   };
@@ -198,7 +199,7 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
 function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
   const [filter, setFilter] = useState<"unassigned" | "all">("unassigned");
   const list = d.leads.filter((l) => filter === "all" || !l.assigned_broker_id);
-  const upd = async (id: string, patch: Record<string, unknown>) => {
+  const upd = async (id: string, patch: TablesUpdate<"leads">) => {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
   };
@@ -224,7 +225,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
               <select aria-label="إسناد لوسيط" className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd(l.id, { assigned_broker_id: e.target.value || null })}>
                 <option value="">غير مُسند</option>{d.brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value })}>
+              <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value as TablesUpdate<"leads">["stage"] })}>
                 {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
