@@ -31,7 +31,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
+export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string | undefined }) {
   return (
     <div className="rounded-2xl border bg-card p-4 md:p-5">
       <p className="text-xs font-bold text-muted-foreground md:text-sm">{label}</p>

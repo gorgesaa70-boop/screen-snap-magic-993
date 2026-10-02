@@ -17,8 +17,8 @@ export type Property = {
   type: string;
   area: string;
   size: number;
-  rooms?: number;
-  baths?: number;
+  rooms?: number | undefined;
+  baths?: number | undefined;
   status: "بيع" | "إيجار";
   updated: string;
   isDemo: boolean;
@@ -73,7 +73,7 @@ export const STAGES: Record<string, string> = {
   lost: "لم يكتمل",
 };
 
-export const REVIEW: Record<string, { label: string; cls: string }> = {
+export const REVIEW: Record<"draft" | "pending" | "approved" | "rejected", { label: string; cls: string }> = {
   draft: { label: "مسودة", cls: "bg-secondary text-primary" },
   pending: { label: "قيد المراجعة", cls: "bg-teal-soft text-primary" },
   approved: { label: "معتمد", cls: "bg-primary text-primary-foreground" },
