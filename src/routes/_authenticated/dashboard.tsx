@@ -39,7 +39,7 @@ function Dashboard() {
               }}>تفعيل صلاحية المدير</button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">حسابك غير مرتبط بملف وسيط نشط. تواصل مع إدارة المنصة.</p>
+            <><p className="text-sm text-muted-foreground">حسابك غير مرتبط بملف وسيط نشط بعد.</p><Link to="/join" className={`${btnPrimary} mt-5`}>طلب الانضمام كوسيط</Link></>
           )}
         </div>
       </DashShell>

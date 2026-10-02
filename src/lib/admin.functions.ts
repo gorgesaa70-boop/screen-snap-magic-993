@@ -70,6 +70,7 @@ export const setBrokerActive = createServerFn({ method: "POST" })
     const { data: b, error } = await supabaseAdmin.from("brokers").update({ is_active: data.active }).eq("id", data.brokerId).select("user_id").single();
     if (error) return { ok: false as const, error: error.message };
     if (b.user_id) {
+      if (data.active) await supabaseAdmin.from("user_roles").upsert({ user_id: b.user_id, role: "broker" }, { onConflict: "user_id,role" });
       await supabaseAdmin.auth.admin.updateUserById(b.user_id, { ban_duration: data.active ? "none" : "876000h" });
     }
     return { ok: true as const };
