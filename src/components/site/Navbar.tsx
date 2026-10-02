@@ -2,16 +2,16 @@ import { useState } from "react";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
 
 const links = [
-  { label: "الرئيسية", href: "#top" },
-  { label: "العقارات", href: "#properties" },
-  { label: "الوسطاء", href: "#brokers" },
-  { label: "اطلب عقارك", href: "#request" },
-  { label: "خدمات الوسطاء", href: "#broker-services" },
+  { label: "الرئيسية", href: "/#top" },
+  { label: "العقارات", href: "/#properties" },
+  { label: "الوسطاء العقاريون", href: "/brokers" },
+  { label: "اطلب عقارك", href: "/#request" },
+  { label: "دخول الوسطاء", href: "/auth" },
 ];
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
-    <a href="#top" className="flex items-baseline gap-1.5" dir="ltr">
+    <a href="/" className="flex items-baseline gap-1.5" dir="ltr">
       <span className={`text-xl font-extrabold tracking-[0.18em] ${light ? "text-primary-foreground" : "text-primary"}`}>VALUE</span>
       <span className="text-xl font-semibold text-teal">Aqar</span>
     </a>
@@ -32,10 +32,10 @@ export function Navbar() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <a href="#search" aria-label="البحث" className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
+          <a href="/#search" aria-label="البحث" className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <Search className="size-5" />
           </a>
-          <a href="#request" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
+          <a href="/#request" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> أضف عقارك
           </a>
           <button onClick={() => setOpen(!open)} aria-label="القائمة" aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
@@ -50,7 +50,7 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
-          <a href="#request" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
+          <a href="/#request" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
             <Plus className="size-4" /> أضف عقارك
           </a>
         </nav>
@@ -61,10 +61,10 @@ export function Navbar() {
 
 export function MobileBar() {
   const items = [
-    { label: "الرئيسية", href: "#top", icon: Home },
-    { label: "بحث", href: "#search", icon: Search },
-    { label: "العقارات", href: "#properties", icon: Building2 },
-    { label: "اطلب عقارك", href: "#request", icon: FileSearch },
+    { label: "الرئيسية", href: "/#top", icon: Home },
+    { label: "بحث", href: "/#search", icon: Search },
+    { label: "الوسطاء", href: "/brokers", icon: Building2 },
+    { label: "اطلب عقارك", href: "/#request", icon: FileSearch },
   ];
   return (
     <nav aria-label="تنقل سريع" className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
