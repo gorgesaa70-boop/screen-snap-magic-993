@@ -3,8 +3,9 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AREAS, TYPES, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 
-type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
+type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: void | (() => void) };
 
 export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   const [f, setF] = useState({
@@ -19,6 +20,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     status: initial?.status ?? "بيع",
     image_url: initial?.image_url ?? "",
   });
+  const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const num = (v: string) => (v === "" ? null : Number(v));
