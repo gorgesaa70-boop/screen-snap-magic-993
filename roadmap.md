@@ -14,3 +14,4 @@
 - [x] Inquiries: CSV export of filtered list, follow-up date + due reminders, AI WhatsApp reply drafting
 - [x] Maps integration: connected Google Maps (managed); map picker + property map verified. NOTE: managed key only works on *.lovable.app — custom domain needs user-owned API key
 - [x] Lead activity timeline (calls, WhatsApp, status, notes) + AI intent/urgency/next-action analysis
+- [x] صفحة خريطة العقارات (/map) بمفتاح VITE_GOOGLE_MAPS_API_KEY مع بديل المفتاح الحالي

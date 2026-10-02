@@ -39,7 +39,7 @@ let loaderPromise: Promise<void> | null = null;
 
 export function loadMapsApi(): Promise<void> {
   if (loaderPromise) return loaderPromise;
-  const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
+  const key = ((import.meta.env["VITE_GOOGLE_MAPS_API_KEY"] as string | undefined) || (import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined));
   if (!key) return Promise.reject(new Error("maps_key_missing"));
   loaderPromise = new Promise((resolve, reject) => {
     const w = window as unknown as Record<string, unknown>;
