@@ -4,6 +4,7 @@ import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react
 const links = [
   { label: "الرئيسية", href: "/#top" },
   { label: "العقارات", href: "/#properties" },
+  { label: "خريطة العقارات", href: "/map" },
   { label: "الوسطاء العقاريون", href: "/brokers" },
   { label: "اطلب عقارك", href: "/#request" },
   { label: "دخول الوسطاء", href: "/auth" },
