@@ -218,11 +218,9 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
         <button className={btnOutline} onClick={() => onFollowUp(fu ? new Date(fu).toISOString() : null)}>حفظ الموعد</button>
         {l.follow_up_at && <button className={btnOutline} onClick={() => { setFu(""); onFollowUp(null); }}>إلغاء</button>}
         <button className={btnOutline} onClick={() => setAi((v) => !v)} aria-expanded={ai}><Sparkles className="size-4" />رد ذكي</button>
-      </div>
         <button className={btnOutline} onClick={() => setAn((v) => !v)} aria-expanded={an}><Brain className="size-4" />تحليل ذكي</button>
         <button className={btnOutline} onClick={() => setTl((v) => !v)} aria-expanded={tl}><History className="size-4" />سجل النشاط</button>
       </div>
-      <div>
       {ai && <AiReply l={l} />}
       {an && <AiAnalysis l={l} onFollowUp={(iso) => { setFu(toLocalInput(iso)); onFollowUp(iso); }} />}
       {tl && <Timeline leadId={l.id} />}
