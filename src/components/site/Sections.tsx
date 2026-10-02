@@ -244,7 +244,7 @@ export function Footer() {
               { I: Instagram, href: "https://www.instagram.com/value._.square", label: "حسابنا على إنستاجرام" },
               { I: MessageCircle, href: "https://wa.me/qr/CQI5TYBJEJNTM1?s=r", label: "تواصل معنا على واتساب" },
             ].map(({ I, href, label }, i) => (
-              <a key={i} href={href} aria-label={label} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground"><I className="size-4" /></a>
+              <a key={i} href={href} aria-label={label} title={label} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy-deep"><I className="size-4" aria-hidden="true" /><span className="sr-only">{label}</span></a>
             ))}
           </div>
         </div>
