@@ -25,8 +25,8 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers }: {
   l: LeadWithProp;
   onStage: (s: string) => void;
   onNotes?: (n: string) => void;
-  onAssign?: (brokerId: string | null) => void;
-  brokers?: BrokerRow[];
+  onAssign?: ((brokerId: string | null) => void) | undefined;
+  brokers?: BrokerRow[] | undefined;
 }) {
   const [notes, setNotes] = useState(l.notes ?? "");
   return (
@@ -70,7 +70,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers }: {
   );
 }
 
-export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; brokers?: BrokerRow[]; reload: () => void }) {
+export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; brokers?: BrokerRow[] | undefined; reload: () => void }) {
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState<"all" | "request" | "inquiry">("all");
   const [stage, setStage] = useState<string>("all");
