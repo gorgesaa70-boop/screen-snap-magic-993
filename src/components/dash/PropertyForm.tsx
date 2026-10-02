@@ -73,6 +73,11 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
           <Field label="صورة العقار"><input type="file" accept="image/*" onChange={onFile} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" /></Field>
           {f.image_url && <img src={f.image_url} alt="" className="mt-3 h-32 rounded-xl object-cover" />}
         </div>
+        <div className="sm:col-span-2">
+          <Field label="موقع العقار على الخريطة (اختياري)">
+            <MapPicker value={loc} onChange={setLoc} />
+          </Field>
+        </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>إرسال للمراجعة</button>
