@@ -59,6 +59,7 @@ function PropertyPage() {
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{p.baths} حمام</span>}
           </div>
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || "لا يوجد وصف إضافي."}</p>
+          {p.lat != null && p.lng != null && <PropertyMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">آخر تحديث: {formatDate(p.updated)}</p>
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">
