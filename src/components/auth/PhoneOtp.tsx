@@ -110,7 +110,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
       setBusy(true);
       const r = await waSend({ data: { phone: full } }).catch(() => ({ ok: false as const, error: "server" }));
       setBusy(false);
-      if (!r.ok) { toast.error(WA_ERRORS[r.error] ?? WA_ERRORS.server); return; }
+      if (!r.ok) { toast.error(WA_ERRORS[r.error] ?? WA_ERRORS["server"]); return; }
       quota.record();
       setPhone(full); setStep("code"); setCode(""); setAttempts(0);
       setResendIn(RESEND_SECONDS); setExpiresIn(CODE_TTL_SECONDS);
@@ -152,12 +152,12 @@ export function PhoneOtp({ mode, onVerified }: Props) {
       if (!r.ok) {
         setBusy(false); setCode("");
         if ("remaining" in r && typeof r.remaining === "number") { setAttempts(MAX_ATTEMPTS - r.remaining); toast.error(`رمز غير صحيح (متبقٍ ${r.remaining} محاولات)`); }
-        else { if (r.error === "locked" || r.error === "expired") setExpiresIn(0); toast.error(WA_ERRORS[r.error] ?? WA_ERRORS.server); }
+        else { if (r.error === "locked" || r.error === "expired") setExpiresIn(0); toast.error(WA_ERRORS[r.error] ?? WA_ERRORS["server"]); }
         return;
       }
       const { error: sErr } = await supabase.auth.verifyOtp({ token_hash: r.tokenHash, type: "magiclink" });
       setBusy(false);
-      if (sErr) { toast.error(WA_ERRORS.server); return; }
+      if (sErr) { toast.error(WA_ERRORS["server"]); return; }
       onVerified();
       return;
     }
