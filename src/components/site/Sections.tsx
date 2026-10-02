@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, TYPES, AREAS, type Property } from "./data";
+import { PropertiesMap } from "./PropertiesMap";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
 
@@ -121,9 +122,12 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
           </div>
         </div>
       ) : (
+        <>
+        <PropertiesMap properties={results} />
         <div className="grid gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {results.map((p) => <PropertyCard key={p.id} p={p} />)}
         </div>
+        </>
       )}
       <p className="mt-4 text-xs text-muted-foreground">* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.</p>
     </section>
