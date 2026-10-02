@@ -220,6 +220,8 @@ export type Database = {
           image_url: string | null
           is_demo: boolean
           is_featured: boolean
+          lat: number | null
+          lng: number | null
           price: number
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
@@ -241,6 +243,8 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_featured?: boolean
+          lat?: number | null
+          lng?: number | null
           price: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
@@ -262,6 +266,8 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_featured?: boolean
+          lat?: number | null
+          lng?: number | null
           price?: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
