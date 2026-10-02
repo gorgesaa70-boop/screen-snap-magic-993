@@ -1,6 +1,12 @@
 import { Building2, Home, LandPlot, Store, Briefcase, KeyRound, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Facebook, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
-import { properties, brokers, formatPrice, formatDate, WHATSAPP_NUMBER, type Property } from "./data";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, TYPES, AREAS, type Property } from "./data";
+import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
 
 function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) {
@@ -43,8 +49,7 @@ export function Categories({ onPick }: { onPick: (f: Partial<Filters>) => void }
   );
 }
 
-function PropertyCard({ p }: { p: Property }) {
-  const msg = encodeURIComponent(`مرحبًا، أستفسر عن: ${p.title} (إعلان تجريبي)`);
+export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string | null }) {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
@@ -53,7 +58,8 @@ function PropertyCard({ p }: { p: Property }) {
         <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : "bg-teal text-accent-foreground"}`}>
           لل{p.status}
         </span>
-        <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">إعلان تجريبي</span>
+        {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">إعلان تجريبي</span>
+          : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">مميز</span> : null}
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">
@@ -70,12 +76,12 @@ function PropertyCard({ p }: { p: Property }) {
           {p.baths && <span className="flex items-center gap-1.5"><Bath className="size-4 shrink-0 text-teal" />{p.baths} حمام</span>}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />لم يتم التحقق بعد</span>
+          <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? "لم يتم التحقق بعد" : "تمت مراجعته"}</span>
           <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />تحديث: {formatDate(p.updated)}</span>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
-          <a href="#properties" className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]">تفاصيل العقار</a>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`} target="_blank" rel="noreferrer"
+          <Link to="/properties/$id" params={{ id: p.id }} className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]">تفاصيل العقار</Link>
+          <a href={waLink(whatsapp, `مرحبًا، أستفسر عن: ${p.title}`)} target="_blank" rel="noreferrer"
             className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
             <MessageCircle className="size-4 shrink-0" /> واتساب
           </a>
@@ -86,6 +92,7 @@ function PropertyCard({ p }: { p: Property }) {
 }
 
 export function FeaturedProperties({ filters, onClear }: { filters: Filters; onClear: () => void }) {
+  const { data: properties = [], isLoading, isError } = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
   const results = applyFilters(properties, filters);
   const filtered = !isEmpty(filters);
   return (
@@ -99,7 +106,11 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
           </button>
         </div>
       )}
-      {results.length === 0 ? (
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0,1,2].map((i) => <div key={i} className="h-96 animate-pulse rounded-2xl bg-muted" />)}</div>
+      ) : isError ? (
+        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">تعذّر تحميل العقارات، حاول تحديث الصفحة.</p>
+      ) : results.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card px-6 py-12 text-center">
           <SearchX className="mx-auto size-10 text-teal" />
           <h3 className="mt-4 text-lg font-bold text-primary">لا توجد عقارات تطابق بحثك</h3>
@@ -114,7 +125,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
           {results.map((p) => <PropertyCard key={p.id} p={p} />)}
         </div>
       )}
-      <p className="mt-4 text-xs text-muted-foreground">* جميع العقارات المعروضة بيانات توضيحية لأغراض العرض فقط وليست إعلانات حقيقية، ولم يتم التحقق منها.</p>
+      <p className="mt-4 text-xs text-muted-foreground">* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.</p>
     </section>
   );
 }
@@ -124,41 +135,67 @@ export function RequestCTA() {
     <section id="request" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
       <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 md:px-14 md:py-16">
         <div className="absolute -top-20 -left-20 size-64 rounded-full bg-teal/20 blur-3xl" />
-        <div className="relative flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="relative grid items-start gap-8 md:grid-cols-2 md:items-center">
           <div className="max-w-xl">
             <h2 className="text-2xl font-extrabold text-primary-foreground md:text-4xl">مش لاقي العقار اللي بتدور عليه؟</h2>
             <p className="mt-4 leading-relaxed text-primary-foreground/80">حدد مواصفات العقار وميزانيتك، وسيقوم فريق فاليو عقار بمساعدتك في الوصول إلى الخيارات المناسبة.</p>
           </div>
-          <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("مرحبًا، أريد طلب عقار بالمواصفات التالية:")}`} target="_blank" rel="noreferrer"
-            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-teal px-8 py-4 font-bold text-accent-foreground transition hover:brightness-95">
-            اطلب عقارك <ArrowLeft className="size-4" />
-          </a>
+          <RequestForm />
         </div>
       </div>
     </section>
   );
 }
 
+function RequestForm() {
+  const [f, setF] = useState({ name: "", phone: "", property_type: "", area: "", budget: "", details: "" });
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error("اكتب الاسم ورقم هاتف صحيح"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null });
+    setBusy(false);
+    if (error) { toast.error("تعذّر إرسال الطلب، حاول مرة أخرى"); return; }
+    setDone(true);
+  }
+  if (done) return <div className="rounded-2xl bg-card p-6 text-center"><p className="text-lg font-bold text-primary">تم استلام طلبك ✓</p><p className="mt-2 text-sm text-muted-foreground">سيتواصل معك أحد وسطائنا قريبًا.</p></div>;
+  return (
+    <form onSubmit={submit} className="grid gap-2.5 rounded-2xl bg-card p-4 sm:grid-cols-2 md:p-5">
+      <input className={inputCls} placeholder="الاسم" value={f.name} onChange={set("name")} maxLength={100} required />
+      <input className={inputCls} placeholder="رقم الهاتف" inputMode="tel" dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} required />
+      <select className={inputCls} value={f.property_type} onChange={set("property_type")}><option value="">نوع العقار</option>{TYPES.map((t) => <option key={t}>{t}</option>)}</select>
+      <select className={inputCls} value={f.area} onChange={set("area")}><option value="">المنطقة</option>{AREAS.map((t) => <option key={t}>{t}</option>)}</select>
+      <input className={`${inputCls} sm:col-span-2`} placeholder="الميزانية (ج.م)" inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} />
+      <textarea className={`${inputCls} h-20 py-2 sm:col-span-2`} placeholder="تفاصيل إضافية" value={f.details} onChange={set("details")} maxLength={1000} />
+      <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? "جارٍ الإرسال..." : "أرسل طلبك"} <ArrowLeft className="size-4" /></button>
+    </form>
+  );
+}
+
 export function Brokers() {
+  const { data: brokers = [] } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
   return (
     <section id="brokers" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
-      <SectionHead eyebrow="شركاء موثوقون" title="تواصل مع الوسيط المناسب" />
+      <SectionHead eyebrow="شركاء موثوقون" title="تواصل مع الوسيط المناسب"
+        action={<Link to="/brokers" className="shrink-0 text-sm font-bold text-primary hover:text-teal">كل الوسطاء ←</Link>} />
       <div className="grid gap-5 md:grid-cols-3">
-        {brokers.map((b) => (
-          <div key={b.name} className="rounded-2xl border bg-card p-6 transition hover:shadow-card">
+        {brokers.slice(0, 3).map((b) => (
+          <div key={b.id} className="rounded-2xl border bg-card p-6 transition hover:shadow-card">
             <div className="flex items-center gap-4">
-              <span className="grid size-14 place-items-center rounded-2xl bg-primary text-lg font-extrabold text-teal">{b.initials}</span>
+              <Avatar name={b.name} url={b.photo_url} />
               <div>
                 <h3 className="font-bold text-primary">{b.name}</h3>
                 <p className="text-sm text-muted-foreground">{b.specialty}</p>
               </div>
             </div>
-            <p className="mt-5 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas}</p>
-            <a href="#brokers" className="mt-5 block rounded-xl bg-secondary py-2.5 text-center text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">عرض الملف الشخصي</a>
+            <p className="mt-5 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.join("، ") || "—"}</p>
+            <Link to="/brokers/$slug" params={{ slug: b.slug }} className="mt-5 block rounded-xl bg-secondary py-2.5 text-center text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">عرض الملف الشخصي</Link>
           </div>
         ))}
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">* أسماء الوسطاء توضيحية.</p>
     </section>
   );
 }
@@ -176,9 +213,9 @@ export function BrokerServices() {
           <p className="text-sm font-bold text-primary/70">للوسطاء والمكاتب العقارية</p>
           <h2 className="mt-2 text-2xl font-extrabold text-primary md:text-4xl">كبّر نشاطك العقاري مع فاليو عقار</h2>
           <p className="mt-4 leading-relaxed text-foreground/75">أدوات تسويق وإدارة تساعدك في الوصول إلى عملاء جدد وتنظيم عقاراتك واستفساراتك.</p>
-          <a href="#broker-services" className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 font-bold text-primary-foreground transition hover:bg-navy-deep">
-            اكتشف خدمات الوسطاء <ArrowLeft className="size-4" />
-          </a>
+          <Link to="/auth" className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 font-bold text-primary-foreground transition hover:bg-navy-deep">
+            دخول الوسطاء <ArrowLeft className="size-4" />
+          </Link>
         </div>
         <div className="grid gap-3">
           {feats.map(({ icon: Icon, t }) => (
@@ -194,7 +231,7 @@ export function BrokerServices() {
 }
 
 export function Footer() {
-  const pages = [["الرئيسية", "#top"], ["العقارات", "#properties"], ["الوسطاء", "#brokers"], ["اطلب عقارك", "#request"], ["خدمات الوسطاء", "#broker-services"]];
+  const pages = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["دخول الوسطاء", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
