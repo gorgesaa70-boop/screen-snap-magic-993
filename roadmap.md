@@ -6,3 +6,4 @@
 - [x] Change phone number with verification
 - [x] Security event log (no plain OTP stored)
 - [ ] Real SMS provider connection — waiting on user to add provider credentials in Cloud auth settings
+- [ ] WhatsApp OTP live test — blocked: needs user's Meta credentials (token, phone number ID, approved Authentication template) entered via secure form
