@@ -109,6 +109,41 @@ export type Database = {
           },
         ]
       }
+      lead_activities: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          summary: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          lead_id: string
+          summary: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           area: string | null

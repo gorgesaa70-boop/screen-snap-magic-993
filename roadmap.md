@@ -13,3 +13,4 @@
 - [x] Dedicated inquiries dashboard (/inquiries): stats, search, kind/stage filters, assign (admin), stages & notes
 - [x] Inquiries: CSV export of filtered list, follow-up date + due reminders, AI WhatsApp reply drafting
 - [x] Maps integration: connected Google Maps (managed); map picker + property map verified. NOTE: managed key only works on *.lovable.app — custom domain needs user-owned API key
+- [x] Lead activity timeline (calls, WhatsApp, status, notes) + AI intent/urgency/next-action analysis
