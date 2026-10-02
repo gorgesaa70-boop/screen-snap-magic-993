@@ -239,8 +239,12 @@ export function Footer() {
           <Logo light />
           <p className="mt-4 max-w-sm text-sm leading-relaxed">منصة عقارية تربطك بالعقارات والوسطاء في برج العرب الجديدة.</p>
           <div className="mt-5 flex gap-2">
-            {[Facebook, Instagram, MessageCircle].map((I, i) => (
-              <a key={i} href="#top" aria-label="تواصل اجتماعي" className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground"><I className="size-4" /></a>
+            {[
+              { I: Facebook, href: "https://www.facebook.com/share/19VhkpxBhr/?mibextid=wwXIfr", label: "صفحتنا على فيسبوك" },
+              { I: Instagram, href: "#top", label: "إنستاجرام (قريبًا)" },
+              { I: MessageCircle, href: "#top", label: "واتساب (قريبًا)" },
+            ].map(({ I, href, label }, i) => (
+              <a key={i} href={href} aria-label={label} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground"><I className="size-4" /></a>
             ))}
           </div>
         </div>
