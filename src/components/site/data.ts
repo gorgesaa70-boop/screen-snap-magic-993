@@ -1,12 +1,17 @@
-import p1 from "@/assets/p1.jpg";
-import p2 from "@/assets/p2.jpg";
-import p3 from "@/assets/p3.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 export const WHATSAPP_NUMBER = "201000000000"; // رقم تجريبي
 
+export type PropertyRow = Tables<"properties">;
+export type BrokerRow = Tables<"brokers">;
+export type LeadRow = Tables<"leads">;
+export type PlanRow = Tables<"plans">;
+
 export type Property = {
-  id: number;
+  id: string;
   title: string;
+  description: string | null;
   image: string;
   price: number;
   type: string;
@@ -16,26 +21,83 @@ export type Property = {
   baths?: number;
   status: "بيع" | "إيجار";
   updated: string;
+  isDemo: boolean;
+  featured: boolean;
+  brokerId: string | null;
 };
 
 export const TYPES = ["شقة", "فيلا", "أرض", "محل", "مكتب", "دوبلكس"];
 export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس"];
 
-export const properties: Property[] = [
-  { id: 1, title: "شقة بإطلالة مفتوحة", image: p1, price: 1850000, type: "شقة", area: "الحي الأول", size: 135, rooms: 3, baths: 2, status: "بيع", updated: "2026-09-28" },
-  { id: 2, title: "فيلا مستقلة بحمام سباحة", image: p2, price: 7200000, type: "فيلا", area: "الحي الثالث", size: 420, rooms: 5, baths: 4, status: "بيع", updated: "2026-09-25" },
-  { id: 3, title: "دوبلكس بحديقة خاصة", image: p3, price: 12000, type: "دوبلكس", area: "الحي الخامس", size: 210, rooms: 4, baths: 3, status: "إيجار", updated: "2026-09-30" },
-  { id: 4, title: "شقة مفروشة قريبة من الخدمات", image: p1, price: 6500, type: "شقة", area: "الحي الثاني", size: 110, rooms: 2, baths: 1, status: "إيجار", updated: "2026-09-20" },
-  { id: 5, title: "محل تجاري على شارع رئيسي", image: p3, price: 950000, type: "محل", area: "الحي الرابع", size: 45, status: "بيع", updated: "2026-09-18" },
-  { id: 6, title: "مكتب إداري بتشطيب كامل", image: p1, price: 8000, type: "مكتب", area: "الحي الثالث", size: 80, baths: 1, status: "إيجار", updated: "2026-09-22" },
-];
+export const toProperty = (r: PropertyRow): Property => ({
+  id: r.id,
+  title: r.title,
+  description: r.description,
+  image: r.image_url || "/demo/p1.jpg",
+  price: Number(r.price),
+  type: r.type,
+  area: r.area,
+  size: Number(r.size),
+  rooms: r.rooms ?? undefined,
+  baths: r.baths ?? undefined,
+  status: r.status as Property["status"],
+  updated: r.updated_at,
+  isDemo: r.is_demo,
+  featured: r.is_featured,
+  brokerId: r.broker_id,
+});
 
-export const brokers = [
-  { name: "مكتب النخبة العقاري", initials: "ن", specialty: "شقق وفلل سكنية", areas: "الحي الأول، الحي الثاني" },
-  { name: "أحمد سامي", initials: "أس", specialty: "أراضٍ ومشروعات استثمارية", areas: "المنطقة الصناعية، الحي الرابع" },
-  { name: "دار الريادة للعقارات", initials: "ر", specialty: "محلات ومكاتب إدارية", areas: "المحور المركزي، الحي الثالث" },
-];
+export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,phone,whatsapp,email,facebook,is_demo";
+export type PublicBroker = Pick<BrokerRow, "id" | "slug" | "name" | "specialty" | "bio" | "photo_url" | "areas" | "phone" | "whatsapp" | "email" | "facebook" | "is_demo">;
+
+export async function fetchPublicProperties(brokerId?: string) {
+  let q = supabase.from("properties").select("*").eq("review_status", "approved");
+  if (brokerId) q = q.eq("broker_id", brokerId);
+  const { data, error } = await q.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map(toProperty);
+}
+
+export async function fetchPublicBrokers() {
+  const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("created_at");
+  if (error) throw error;
+  return data as PublicBroker[];
+}
+
+export const STAGES: Record<string, string> = {
+  new: "جديد",
+  contacted: "تم التواصل",
+  viewing: "معاينة",
+  negotiating: "تفاوض",
+  won: "تم الإغلاق",
+  lost: "لم يكتمل",
+};
+
+export const REVIEW: Record<string, { label: string; cls: string }> = {
+  draft: { label: "مسودة", cls: "bg-secondary text-primary" },
+  pending: { label: "قيد المراجعة", cls: "bg-teal-soft text-primary" },
+  approved: { label: "معتمد", cls: "bg-primary text-primary-foreground" },
+  rejected: { label: "مرفوض", cls: "bg-destructive/10 text-destructive" },
+};
+
+export const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("");
+export const waLink = (num: string | null | undefined, text: string) =>
+  `https://wa.me/${(num || WHATSAPP_NUMBER).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 
 export const formatPrice = (n: number) => new Intl.NumberFormat("ar-EG").format(n);
 export const formatDate = (d: string) =>
   new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "long", year: "numeric" }).format(new Date(d));
+
+/** Upload an image to the user's private folder and return a long-lived signed URL. */
+export async function uploadImage(file: File) {
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) throw new Error("يجب تسجيل الدخول");
+  if (file.size > 5 * 1024 * 1024) throw new Error("حجم الصورة أكبر من 5 ميجا");
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${u.user.id}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from("media").upload(path, file, { contentType: file.type });
+  if (error) throw error;
+  const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (e2) throw e2;
+  return data.signedUrl;
+}
