@@ -16,6 +16,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authenticated/inquiries'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
@@ -56,6 +57,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInquiriesRoute = AuthenticatedInquiriesRouteImport.update({
+  id: '/inquiries',
+  path: '/inquiries',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedJoinRoute = AuthenticatedJoinRouteImport.update({
   id: '/join',
   path: '/join',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/inquiries': typeof AuthenticatedInquiriesRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/inquiries'
     | '/join'
     | '/pending'
     | '/brokers/$slug'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/inquiries'
     | '/join'
     | '/pending'
     | '/brokers/$slug'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/_authenticated/inquiries'
     | '/_authenticated/join'
     | '/_authenticated/pending'
     | '/brokers/$slug'
@@ -227,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/inquiries': {
+      id: '/_authenticated/inquiries'
+      path: '/inquiries'
+      fullPath: '/inquiries'
+      preLoaderRoute: typeof AuthenticatedInquiriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/join': {
       id: '/_authenticated/join'
       path: '/join'
@@ -269,6 +288,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInquiriesRoute: typeof AuthenticatedInquiriesRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
 }
@@ -277,6 +297,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInquiriesRoute: AuthenticatedInquiriesRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
 }
