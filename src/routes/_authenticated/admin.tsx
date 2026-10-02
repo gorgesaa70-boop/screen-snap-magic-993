@@ -225,7 +225,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
               <select aria-label="إسناد لوسيط" className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd(l.id, { assigned_broker_id: e.target.value || null })}>
                 <option value="">غير مُسند</option>{d.brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value as TablesUpdate<"leads">["stage"] })}>
+              <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value as NonNullable<TablesUpdate<"leads">["stage"]> })}>
                 {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
