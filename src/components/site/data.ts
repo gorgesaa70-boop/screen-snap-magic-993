@@ -19,6 +19,8 @@ export type Property = {
   size: number;
   rooms?: number | undefined;
   baths?: number | undefined;
+  lat?: number | undefined;
+  lng?: number | undefined;
   status: "بيع" | "إيجار";
   updated: string;
   isDemo: boolean;
@@ -40,6 +42,8 @@ export const toProperty = (r: PropertyRow): Property => ({
   size: Number(r.size),
   rooms: r.rooms ?? undefined,
   baths: r.baths ?? undefined,
+  lat: r.lat ?? undefined,
+  lng: r.lng ?? undefined,
   status: r.status as Property["status"],
   updated: r.updated_at,
   isDemo: r.is_demo,

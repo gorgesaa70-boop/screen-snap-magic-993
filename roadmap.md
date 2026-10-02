@@ -9,3 +9,5 @@
 - [ ] WhatsApp OTP live test — user chose Lovable's built-in WhatsApp connection; connect card pending user completion, then adapt send code to gateway and test with 01021075553
 - [ ] Social platforms request — unclear: social login (Google/Facebook) vs social profile links on site; asked user to clarify
 - [ ] CRM انجاز (Injaz) integration — user asked how to connect it; check if a connector exists, else explain API-key route
+- [ ] TikTok icon in footer with account link @value.square8
+- [ ] Maps integration: property locations map + location picker system (full)

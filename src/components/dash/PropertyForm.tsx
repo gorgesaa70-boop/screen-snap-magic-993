@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AREAS, TYPES, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 
 type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
 
@@ -19,6 +20,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     status: initial?.status ?? "بيع",
     image_url: initial?.image_url ?? "",
   });
+  const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const num = (v: string) => (v === "" ? null : Number(v));
@@ -38,6 +40,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
       price: Number(f.price), type: f.type, area: f.area, size: Number(f.size || 0),
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null,
+      lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
     const res = initial
@@ -69,6 +72,11 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         <div className="sm:col-span-2">
           <Field label="صورة العقار"><input type="file" accept="image/*" onChange={onFile} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" /></Field>
           {f.image_url && <img src={f.image_url} alt="" className="mt-3 h-32 rounded-xl object-cover" />}
+        </div>
+        <div className="sm:col-span-2">
+          <Field label="موقع العقار على الخريطة (اختياري)">
+            <MapPicker value={loc} onChange={setLoc} />
+          </Field>
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
