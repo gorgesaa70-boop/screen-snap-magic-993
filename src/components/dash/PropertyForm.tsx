@@ -5,7 +5,7 @@ import { AREAS, TYPES, uploadImage, type PropertyRow } from "@/components/site/d
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 
-type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: void | (() => void) };
+type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
 
 export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   const [f, setF] = useState({
@@ -40,6 +40,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
       price: Number(f.price), type: f.type, area: f.area, size: Number(f.size || 0),
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null,
+      lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
     const res = initial
