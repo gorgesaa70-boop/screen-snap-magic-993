@@ -131,7 +131,7 @@ function MyProperties({ brokerId, list, reload }: { brokerId: string; list: Prop
 
 type LeadWithProp = { id: string; name: string; phone: string; kind: string; details: string | null; property_type: string | null; area: string | null; budget: number | null; stage: string; notes: string | null; created_at: string; properties: { title: string } | null };
 
-export function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s: string) => void; onNotes?: (n: string) => void; extra?: React.ReactNode }) {
+function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s: string) => void; onNotes?: (n: string) => void; extra?: React.ReactNode }) {
   const [notes, setNotes] = useState(l.notes ?? "");
   return (
     <div className="rounded-2xl border bg-card p-4">
