@@ -135,7 +135,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
             <LeadCard
               key={l.id}
               l={l}
-              onStage={(s) => upd(l.id, { stage: s as TablesUpdate<"leads">["stage"] })}
+              onStage={(s) => upd(l.id, { stage: s as NonNullable<TablesUpdate<"leads">["stage"]> })}
               onNotes={(n) => upd(l.id, { notes: n })}
               onAssign={brokers ? (bid) => upd(l.id, { assigned_broker_id: bid }) : undefined}
               brokers={brokers}
