@@ -45,6 +45,11 @@ function Dashboard() {
       </DashShell>
     );
   }
+  if (!me.broker.is_active) return (
+    <DashShell title="حسابك قيد المراجعة" isAdmin={me.isAdmin}>
+      <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">طلب انضمامك قيد المراجعة من الإدارة، أو تم إيقاف الحساب مؤقتًا.</p>
+    </DashShell>
+  );
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} />;
 }
 
