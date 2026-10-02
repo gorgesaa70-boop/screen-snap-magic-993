@@ -56,7 +56,7 @@ function AiReply({ l }: { l: LeadWithProp }) {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const run = async () => {
-    if (inquiry.trim().length < 3) return toast.error("اكتب نص استفسار العميل");
+    if (inquiry.trim().length < 3) { toast.error("اكتب نص استفسار العميل"); return; }
     setBusy(true);
     try {
       const r = await draft({ data: { inquiry, property: prop, customerName: l.name } });
