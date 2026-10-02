@@ -2,6 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
+import { useServerFn } from "@tanstack/react-start";
+import { sendWhatsappOtp, verifyWhatsappOtp } from "@/lib/whatsapp-otp.functions";
+
+const WA_ERRORS: Record<string, string> = {
+  not_configured: "الدخول عبر واتساب غير مفعّل بعد، استخدم الرسائل النصية أو البريد",
+  too_soon: "انتظر قليلًا قبل طلب رمز جديد",
+  rate_limited: "تجاوزت عدد مرات الإرسال المسموح، حاول لاحقًا",
+  send_failed: "تعذّر إرسال الرسالة عبر واتساب، تأكد أن الرقم مسجّل على واتساب",
+  expired: "انتهت صلاحية الرمز، اطلب رمزًا جديدًا",
+  locked: "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا",
+  banned: "هذا الحساب موقوف، تواصل مع الإدارة",
+  server: "حدث خطأ، حاول مرة أخرى",
+};
 
 export const COUNTRIES = [
   { code: "20", label: "مصر", flag: "🇪🇬", re: /^1[0125]\d{8}$/ },
@@ -63,6 +76,9 @@ export function PhoneOtp({ mode, onVerified }: Props) {
   const [expiresIn, setExpiresIn] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
+  const [channel, setChannel] = useState<"whatsapp" | "sms">(mode === "login" ? "whatsapp" : "sms");
+  const waSend = useServerFn(sendWhatsappOtp);
+  const waVerify = useServerFn(verifyWhatsappOtp);
 
   useEffect(() => {
     if (step !== "code") return;
@@ -90,6 +106,18 @@ export function PhoneOtp({ mode, onVerified }: Props) {
     const full = cc + local;
     const quota = sendsAllowed(full);
     if (!quota.ok) { toast.error("تجاوزت عدد مرات الإرسال المسموح، حاول بعد 30 دقيقة"); await logAuthEvent("otp_locked", full, "send limit"); return; }
+    if (channel === "whatsapp") {
+      setBusy(true);
+      const r = await waSend({ data: { phone: full } }).catch(() => ({ ok: false as const, error: "server" }));
+      setBusy(false);
+      if (!r.ok) { toast.error(WA_ERRORS[r.error] ?? WA_ERRORS.server); return; }
+      quota.record();
+      setPhone(full); setStep("code"); setCode(""); setAttempts(0);
+      setResendIn(RESEND_SECONDS); setExpiresIn(CODE_TTL_SECONDS);
+      toast.success("تم إرسال رمز التحقق عبر واتساب");
+      setTimeout(() => codeRef.current?.focus(), 50);
+      return;
+    }
     setBusy(true);
     const { error } = mode === "login"
       ? await supabase.auth.signInWithOtp({ phone: `+${full}`, options: { shouldCreateUser: true, channel: "sms" } })
@@ -118,6 +146,21 @@ export function PhoneOtp({ mode, onVerified }: Props) {
     if (!/^\d{6}$/.test(code)) { toast.error("أدخل الرمز المكوّن من 6 أرقام"); return; }
     if (expiresIn <= 0) { toast.error("انتهت صلاحية الرمز، اطلب رمزًا جديدًا"); return; }
     if (attempts >= MAX_ATTEMPTS) { toast.error("محاولات كثيرة، اطلب رمزًا جديدًا"); return; }
+    if (channel === "whatsapp") {
+      setBusy(true);
+      const r = await waVerify({ data: { phone, code } }).catch(() => ({ ok: false as const, error: "server" }));
+      if (!r.ok) {
+        setBusy(false); setCode("");
+        if ("remaining" in r && typeof r.remaining === "number") { setAttempts(MAX_ATTEMPTS - r.remaining); toast.error(`رمز غير صحيح (متبقٍ ${r.remaining} محاولات)`); }
+        else { if (r.error === "locked" || r.error === "expired") setExpiresIn(0); toast.error(WA_ERRORS[r.error] ?? WA_ERRORS.server); }
+        return;
+      }
+      const { error: sErr } = await supabase.auth.verifyOtp({ token_hash: r.tokenHash, type: "magiclink" });
+      setBusy(false);
+      if (sErr) { toast.error(WA_ERRORS.server); return; }
+      onVerified();
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.auth.verifyOtp({ phone: `+${phone}`, token: code, type: mode === "login" ? "sms" : "phone_change" });
     setBusy(false);
@@ -150,7 +193,17 @@ export function PhoneOtp({ mode, onVerified }: Props) {
               className={`${inputCls.replace("w-full", "")} w-auto min-w-0 flex-1`} value={raw} onChange={(e) => setRaw(e.target.value)} />
           </div>
         </Field>
-        <p className="text-xs text-muted-foreground">سنرسل رمز تحقق من 6 أرقام عبر رسالة نصية. الرمز صالح لمدة 5 دقائق.</p>
+        {mode === "login" && (
+          <div role="radiogroup" aria-label="طريقة الإرسال" className="grid grid-cols-2 gap-2">
+            {(["whatsapp", "sms"] as const).map((c) => (
+              <button key={c} type="button" role="radio" aria-checked={channel === c} onClick={() => setChannel(c)}
+                className={`h-11 rounded-xl border text-sm font-bold transition ${channel === c ? "border-teal bg-teal/10 text-primary" : "border-border text-muted-foreground hover:border-teal/50"}`}>
+                {c === "whatsapp" ? "واتساب" : "رسالة نصية"}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">سنرسل رمز تحقق من 6 أرقام عبر {channel === "whatsapp" ? "واتساب" : "رسالة نصية"}. الرمز صالح لمدة 5 دقائق.</p>
         <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "جارٍ الإرسال..." : "إرسال رمز التحقق"}</button>
       </form>
     );
