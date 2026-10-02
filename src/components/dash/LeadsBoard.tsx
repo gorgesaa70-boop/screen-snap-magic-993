@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Phone, MessageCircle, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
 import { STAGES, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
@@ -84,7 +85,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
     );
   }, [list, search, kind, stage]);
 
-  const upd = async (id: string, patch: Record<string, unknown>) => {
+  const upd = async (id: string, patch: TablesUpdate<"leads">) => {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
   };
