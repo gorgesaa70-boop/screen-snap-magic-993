@@ -116,6 +116,7 @@ export type Database = {
           budget: number | null
           created_at: string
           details: string | null
+          follow_up_at: string | null
           id: string
           kind: string
           name: string
@@ -132,6 +133,7 @@ export type Database = {
           budget?: number | null
           created_at?: string
           details?: string | null
+          follow_up_at?: string | null
           id?: string
           kind?: string
           name: string
@@ -148,6 +150,7 @@ export type Database = {
           budget?: number | null
           created_at?: string
           details?: string | null
+          follow_up_at?: string | null
           id?: string
           kind?: string
           name?: string
