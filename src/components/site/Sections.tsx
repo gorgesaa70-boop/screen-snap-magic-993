@@ -242,7 +242,7 @@ export function Footer() {
             {[
               { I: Facebook, href: "https://www.facebook.com/share/19VhkpxBhr/?mibextid=wwXIfr", label: "صفحتنا على فيسبوك" },
               { I: Instagram, href: "https://www.instagram.com/value._.square", label: "حسابنا على إنستاجرام" },
-              { I: MessageCircle, href: "#top", label: "واتساب (قريبًا)" },
+              { I: MessageCircle, href: "https://wa.me/qr/CQI5TYBJEJNTM1?s=r", label: "تواصل معنا على واتساب" },
             ].map(({ I, href, label }, i) => (
               <a key={i} href={href} aria-label={label} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground"><I className="size-4" /></a>
             ))}
