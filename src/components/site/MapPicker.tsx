@@ -96,7 +96,6 @@ export function MapPicker({ value, onChange }: Props) {
     if (markerRef.current) { markerRef.current.setPosition(pos); return; }
     markerRef.current = new g.maps.Marker({ position: pos, map: mapRef.current, draggable: true });
     markerRef.current.addListener("dragend", (e: any) => onChange({ lat: e.latLng.lat(), lng: e.latLng.lng() }));
-ec: void 0;
   }
 
   const setMarker = useCallback((pos: LatLng) => {
