@@ -142,12 +142,12 @@ export function PhoneOtp({ mode, onVerified }: Props) {
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="space-y-4">
         <Field label={mode === "login" ? "رقم الهاتف" : "رقم الهاتف الجديد"}>
           <div className="flex gap-2" dir="ltr">
-            <select aria-label="مفتاح الدولة" value={cc} onChange={(e) => setCc(e.target.value)} className={`${inputCls} w-32 shrink-0`}>
+            <div className="w-28 shrink-0"><select aria-label="مفتاح الدولة" value={cc} onChange={(e) => setCc(e.target.value)} className={inputCls}>
               {COUNTRIES.map((c) => <option key={c.label} value={c.code}>{c.flag} {c.code ? `+${c.code}` : "+…"}</option>)}
-            </select>
+            </select></div>
             <input type="tel" inputMode="tel" autoComplete="tel-national" required maxLength={18}
               placeholder={cc === "20" ? "10 1234 5678" : cc === "965" ? "5123 4567" : cc ? "" : "مفتاح الدولة + الرقم"}
-              className={inputCls} value={raw} onChange={(e) => setRaw(e.target.value)} />
+              className={`${inputCls} min-w-0 flex-1`} value={raw} onChange={(e) => setRaw(e.target.value)} />
           </div>
         </Field>
         <p className="text-xs text-muted-foreground">سنرسل رمز تحقق من 6 أرقام عبر رسالة نصية. الرمز صالح لمدة 5 دقائق.</p>
