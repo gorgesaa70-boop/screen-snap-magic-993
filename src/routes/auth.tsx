@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
+import { PhoneOtp, destinationFor } from "@/components/auth/PhoneOtp";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -21,7 +22,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const nav = useNavigate();
+  const [method, setMethod] = useState<"phone" | "email">("phone");
   const [mode, setMode] = useState<"login" | "forgot">("login");
+  const go = async () => { const { data } = await supabase.auth.getUser(); if (data.user) nav({ to: await destinationFor(data.user.id), replace: true }); };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,7 +36,7 @@ function AuthPage() {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       setBusy(false);
       if (error) { toast.error(error.message.includes("banned") ? "تم إيقاف هذا الحساب، تواصل مع الإدارة" : "البريد أو كلمة المرور غير صحيحة"); return; }
-      nav({ to: "/dashboard" });
+      await go();
     } else {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
       setBusy(false);
@@ -47,16 +50,27 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center bg-secondary px-4 py-10">
       <div className="w-full max-w-sm rounded-3xl border bg-card p-6 shadow-card md:p-8">
         <Logo />
-        <h1 className="mt-6 text-xl font-extrabold text-primary">{mode === "login" ? "دخول الوسطاء والإدارة" : "نسيت كلمة المرور"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">الحسابات تُنشأ بواسطة إدارة المنصة أو عبر دعوة.</p>
-        <form onSubmit={submit} className="mt-6 space-y-4">
-          <Field label="البريد الإلكتروني"><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
-          {mode === "login" && <Field label="كلمة المرور"><input type="password" dir="ltr" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>}
-          <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? "تسجيل الدخول" : "إرسال الرابط"}</button>
-        </form>
-        <button onClick={() => setMode(mode === "login" ? "forgot" : "login")} className="mt-4 text-sm font-bold text-primary hover:text-teal">
-          {mode === "login" ? "نسيت كلمة المرور؟" : "رجوع لتسجيل الدخول"}
-        </button>
+        <h1 className="mt-6 text-xl font-extrabold text-primary">تسجيل الدخول</h1>
+        <p className="mt-1 text-sm text-muted-foreground">للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.</p>
+        <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
+          {([["phone", "رقم الهاتف"], ["email", "البريد الإلكتروني"]] as const).map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setMethod(k)} className={`h-10 rounded-lg text-sm font-bold transition ${method === k ? "bg-card text-primary shadow-card" : "text-foreground/70"}`}>{l}</button>
+          ))}
+        </div>
+        <div className="mt-5">
+          {method === "phone" ? <PhoneOtp mode="login" onVerified={go} /> : (
+            <>
+              <form onSubmit={submit} className="space-y-4">
+                <Field label="البريد الإلكتروني"><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
+                {mode === "login" && <Field label="كلمة المرور"><input type="password" dir="ltr" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>}
+                <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? "تسجيل الدخول" : "إرسال رابط إعادة التعيين"}</button>
+              </form>
+              <button onClick={() => setMode(mode === "login" ? "forgot" : "login")} className="mt-4 text-sm font-bold text-primary hover:text-teal">
+                {mode === "login" ? "نسيت كلمة المرور؟" : "رجوع لتسجيل الدخول"}
+              </button>
+            </>
+          )}
+        </div>
         <AdminBootstrap />
       </div>
     </div>

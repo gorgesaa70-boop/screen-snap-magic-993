@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      auth_events: {
+        Row: {
+          created_at: string
+          detail: string | null
+          event: string
+          id: string
+          phone_masked: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          event: string
+          id?: string
+          phone_masked?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          event?: string
+          id?: string
+          phone_masked?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       brokers: {
         Row: {
           areas: string[]
