@@ -294,6 +294,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          updated_at: string
+          user_id: string
+          whatsapp_enabled: boolean
+          whatsapp_phone: string | null
+          whatsapp_types: string[]
+        }
+        Insert: {
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          whatsapp_enabled?: boolean
+          whatsapp_phone?: string | null
+          whatsapp_types?: string[]
+        }
+        Update: {
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_enabled?: boolean
+          whatsapp_phone?: string | null
+          whatsapp_types?: string[]
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -306,6 +333,10 @@ export type Database = {
           title: string
           type: string
           user_id: string
+          whatsapp_error: string | null
+          whatsapp_message_id: string | null
+          whatsapp_sent_at: string | null
+          whatsapp_status: string | null
         }
         Insert: {
           created_at?: string
@@ -318,6 +349,10 @@ export type Database = {
           title: string
           type: string
           user_id: string
+          whatsapp_error?: string | null
+          whatsapp_message_id?: string | null
+          whatsapp_sent_at?: string | null
+          whatsapp_status?: string | null
         }
         Update: {
           created_at?: string
@@ -330,6 +365,10 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+          whatsapp_error?: string | null
+          whatsapp_message_id?: string | null
+          whatsapp_sent_at?: string | null
+          whatsapp_status?: string | null
         }
         Relationships: []
       }
