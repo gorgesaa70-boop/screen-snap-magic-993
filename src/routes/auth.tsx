@@ -25,7 +25,14 @@ function AuthPage() {
   const nav = useNavigate();
   const [method, setMethod] = useState<"phone" | "email">("phone");
   const [mode, setMode] = useState<"login" | "forgot">("login");
-  const go = async () => { const { data } = await supabase.auth.getUser(); if (data.user) nav({ to: await destinationFor(data.user.id), replace: true }); };
+  const [help, setHelp] = useState(false);
+  const go = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return;
+    const to = await destinationFor(data.user.id);
+    if (to === "suspended") { await supabase.auth.signOut(); toast.error("هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة"); return; }
+    nav({ to, replace: true });
+  };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -59,7 +66,19 @@ function AuthPage() {
           ))}
         </div>
         <div className="mt-5">
-          {method === "phone" ? <PhoneOtp mode="login" onVerified={go} /> : (
+          {method === "phone" ? (
+            <>
+              <PhoneOtp mode="login" onVerified={go} />
+              <button type="button" onClick={() => setHelp(!help)} className="mt-4 text-sm font-bold text-primary hover:text-teal">نسيت رقم الهاتف أو تم تغييره؟</button>
+              {help && (
+                <div className="mt-2 space-y-1.5 rounded-xl bg-secondary p-3 text-xs leading-6 text-foreground/80">
+                  <p>1. سجّل الدخول بالبريد الإلكتروني المسجّل في حسابك (أو أعد تعيين كلمة المرور منه).</p>
+                  <p>2. من صفحة «حسابي» أضف الرقم الجديد وأكّده برمز يصل إليه.</p>
+                  <p>إذا لم يكن لديك بريد مسجّل، تتحقق الإدارة من هويتك وملكية الحساب قبل أي تعديل، ثم يجب تأكيد الرقم الجديد برمز تحقق. التواصل وحده لا يكفي لنقل الحساب.</p>
+                </div>
+              )}
+            </>
+          ) : (
             <>
               <form onSubmit={submit} className="space-y-4">
                 <Field label="البريد الإلكتروني"><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
