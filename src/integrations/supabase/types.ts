@@ -261,6 +261,39 @@ export type Database = {
           },
         ]
       }
+      malls: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          logo_url: string | null
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           code: string
@@ -306,6 +339,7 @@ export type Database = {
           created_at: string
           description: string | null
           featured_until: string | null
+          floor: string | null
           id: string
           image_url: string | null
           is_demo: boolean
@@ -313,6 +347,7 @@ export type Database = {
           land_size: number | null
           lat: number | null
           lng: number | null
+          mall_id: string | null
           price: number
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
@@ -337,6 +372,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured_until?: string | null
+          floor?: string | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
@@ -344,6 +380,7 @@ export type Database = {
           land_size?: number | null
           lat?: number | null
           lng?: number | null
+          mall_id?: string | null
           price: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
@@ -368,6 +405,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured_until?: string | null
+          floor?: string | null
           id?: string
           image_url?: string | null
           is_demo?: boolean
@@ -375,6 +413,7 @@ export type Database = {
           land_size?: number | null
           lat?: number | null
           lng?: number | null
+          mall_id?: string | null
           price?: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
@@ -401,6 +440,13 @@ export type Database = {
             columns: ["broker_id"]
             isOneToOne: false
             referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_mall_id_fkey"
+            columns: ["mall_id"]
+            isOneToOne: false
+            referencedRelation: "malls"
             referencedColumns: ["id"]
           },
           {
