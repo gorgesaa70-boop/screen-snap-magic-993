@@ -25,6 +25,8 @@ import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
 import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
 import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
+import { Route as MallsIndexRouteImport } from './routes/malls.index'
+import { Route as MallsIdRouteImport } from './routes/malls.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -106,6 +108,16 @@ const IndustrialIdRoute = IndustrialIdRouteImport.update({
   path: '/industrial/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MallsIndexRoute = MallsIndexRouteImport.update({
+  id: '/malls/',
+  path: '/malls/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MallsIdRoute = MallsIdRouteImport.update({
+  id: '/malls/$id',
+  path: '/malls/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
   path: '/properties/$id',
@@ -126,9 +138,11 @@ export interface FileRoutesByFullPath {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/malls/$id': typeof MallsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
+  '/malls/': typeof MallsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,9 +158,11 @@ export interface FileRoutesByTo {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/malls/$id': typeof MallsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/industrial': typeof IndustrialIndexRoute
+  '/malls': typeof MallsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -164,9 +180,11 @@ export interface FileRoutesById {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/malls/$id': typeof MallsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
+  '/malls/': typeof MallsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,9 +202,11 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/malls/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
+    | '/malls/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -202,9 +222,11 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/malls/$id'
     | '/properties/$id'
     | '/brokers'
     | '/industrial'
+    | '/malls'
   id:
     | '__root__'
     | '/'
@@ -221,9 +243,11 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/malls/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
+    | '/malls/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -235,9 +259,11 @@ export interface RootRouteChildren {
   BrokersSlugRoute: typeof BrokersSlugRoute
   DemoCentralPointRoute: typeof DemoCentralPointRoute
   IndustrialIdRoute: typeof IndustrialIdRoute
+  MallsIdRoute: typeof MallsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
+  MallsIndexRoute: typeof MallsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -354,6 +380,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndustrialIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/malls/': {
+      id: '/malls/'
+      path: '/malls'
+      fullPath: '/malls/'
+      preLoaderRoute: typeof MallsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/malls/$id': {
+      id: '/malls/$id'
+      path: '/malls/$id'
+      fullPath: '/malls/$id'
+      preLoaderRoute: typeof MallsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$id': {
       id: '/properties/$id'
       path: '/properties/$id'
@@ -394,9 +434,11 @@ const rootRouteChildren: RootRouteChildren = {
   BrokersSlugRoute: BrokersSlugRoute,
   DemoCentralPointRoute: DemoCentralPointRoute,
   IndustrialIdRoute: IndustrialIdRoute,
+  MallsIdRoute: MallsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
+  MallsIndexRoute: MallsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
