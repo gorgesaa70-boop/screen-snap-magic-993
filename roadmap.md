@@ -16,3 +16,4 @@
 - [x] Lead activity timeline (calls, WhatsApp, status, notes) + AI intent/urgency/next-action analysis
 - [x] صفحة خريطة العقارات (/map) بمفتاح VITE_GOOGLE_MAPS_API_KEY مع بديل المفتاح الحالي
 - [x] ENGAZ CRM test: demo listing page /demo/central-point (Central Point shop, static, no DB) — pending: real ENGAZ listing URL from user
+- [x] خانة رابط إنجاز في نموذج العقار + زر المصدر في صفحة العقار
