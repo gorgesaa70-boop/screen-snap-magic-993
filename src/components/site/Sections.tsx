@@ -1,4 +1,4 @@
-import { Building2, Home, LandPlot, Store, Briefcase, KeyRound, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Facebook, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Building2, Home, LandPlot, Store, Briefcase, KeyRound, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Facebook, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -35,7 +35,19 @@ export function Categories({ onPick }: { onPick: (f: Partial<Filters>) => void }
   return (
     <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
       <SectionHead eyebrow="تصفّح حسب النوع" title="التصنيفات الرئيسية" />
-      <div className="grid grid-cols-3 gap-2.5 md:grid-cols-6 md:gap-4">
+      <div className="grid grid-cols-3 gap-2.5 md:grid-cols-8 md:gap-4">
+        {[
+          { label: "المصانع والأراضي الصناعية", icon: Factory, to: "/industrial" as const },
+          { label: "المولات", icon: Landmark, to: "/malls" as const },
+        ].map(({ label, icon: Icon, to }) => (
+          <Link key={label} to={to}
+            className="group flex min-h-[104px] flex-col items-center justify-center gap-2.5 rounded-2xl border bg-card p-3 text-center transition hover:-translate-y-1 hover:border-teal hover:shadow-card focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.97] md:p-6">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-soft text-primary transition group-hover:bg-primary group-hover:text-primary-foreground md:size-14">
+              <Icon className="size-5 md:size-6" />
+            </span>
+            <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{label}</span>
+          </Link>
+        ))}
         {cats.map(({ label, icon: Icon, f }) => (
           <button key={label} type="button" onClick={() => onPick(f)}
             className="group flex min-h-[104px] flex-col items-center justify-center gap-2.5 rounded-2xl border bg-card p-3 text-center transition hover:-translate-y-1 hover:border-teal hover:shadow-card focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.97] md:p-6">
