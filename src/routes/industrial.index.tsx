@@ -8,10 +8,12 @@ import { IND_TYPES, applyInd, emptyInd, fetchActivities, fetchIndustrialProperti
 
 export const Route = createFileRoute("/industrial/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://valueaqar.com/industrial" }],
     meta: [
       { title: "المصانع والأراضي الصناعية | فاليو عقار" },
       { name: "description", content: "ابحث عن أراضٍ صناعية ومصانع للبيع والإيجار حسب المنطقة الصناعية والنشاط والمساحة والسعر." },
       { property: "og:title", content: "المصانع والأراضي الصناعية | فاليو عقار" },
+      { property: "og:url", content: "https://valueaqar.com/industrial" },
       { property: "og:description", content: "أراضٍ صناعية ومصانع ومبانٍ صناعية للبيع والإيجار." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

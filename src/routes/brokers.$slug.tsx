@@ -5,31 +5,42 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PropertyCard } from "@/components/site/Sections";
 import { PUBLIC_BROKER_COLS, fetchPublicProperties, waLink, type PublicBroker } from "@/components/site/data";
+import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+async function fetchBroker(slug: string) {
+  const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("slug", slug).eq("is_active", true).maybeSingle();
+  if (error) throw error;
+  return (data as PublicBroker | null) ?? null;
+}
 
 export const Route = createFileRoute("/brokers/$slug")({
-  head: () => ({
-    meta: [
-      { title: "ملف الوسيط العقاري | فاليو عقار" },
-      { name: "description", content: "نبذة الوسيط ووسائل التواصل والعقارات المسجلة باسمه على فاليو عقار." },
-      { property: "og:title", content: "ملف الوسيط العقاري | فاليو عقار" },
-      { property: "og:description", content: "تعرّف على الوسيط وعقاراته المعتمدة." },
-      { property: "og:type", content: "profile" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({ queryKey: ["broker", params.slug], queryFn: () => fetchBroker(params.slug) }),
+  head: ({ params, loaderData: b }) => {
+    const path = `/brokers/${params.slug}`;
+    if (!b) return unavailableHead(path, "الوسيط غير موجود");
+    const areas = (b.areas ?? []).join("، ");
+    const title = `${b.name}${b.specialty ? ` – ${b.specialty}` : ""} | وسيط عقاري على ${SITE_NAME}`;
+    const description = `${b.name} وسيط عقاري${areas ? ` في ${areas}` : ""}. ${b.bio ?? "تعرّف على عقاراته المعتمدة وتواصل معه مباشرة."}`;
+    return pageHead({
+      path, title, description, image: b.photo_url, type: "profile",
+      jsonLd: [
+        {
+          "@context": "https://schema.org", "@type": "RealEstateAgent", name: b.name, url: `${SITE_URL}${path}`,
+          description: b.bio || undefined, image: b.photo_url && /^https:/.test(b.photo_url) ? b.photo_url : undefined,
+          areaServed: b.areas?.length ? b.areas : undefined,
+        },
+        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "الوسطاء", path: "/brokers" }, { name: b.name, path }]),
+      ],
+    });
+  },
   component: BrokerProfile,
 });
 
 function BrokerProfile() {
   const { slug } = Route.useParams();
-  const broker = useQuery({
-    queryKey: ["broker", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("slug", slug).eq("is_active", true).maybeSingle();
-      if (error) throw error;
-      return data as PublicBroker | null;
-    },
-  });
+  const initial = Route.useLoaderData();
+  const broker = useQuery({ queryKey: ["broker", slug], queryFn: () => fetchBroker(slug), initialData: initial });
   const b = broker.data;
   const props = useQuery({ queryKey: ["broker-props", b?.id], enabled: !!b, queryFn: () => fetchPublicProperties(b!.id) });
 

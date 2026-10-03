@@ -4,34 +4,50 @@ import { Factory, MapPin, Maximize, MessageCircle, Briefcase } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, type PublicBroker } from "@/components/site/data";
+import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+async function fetchIndustrial(id: string) {
+  const { data: p, error } = await supabase.from("properties").select("*, industrial_activities(name)").eq("id", id).eq("category", "industrial").maybeSingle();
+  if (error) throw error;
+  if (!p) return null;
+  let broker: PublicBroker | null = null;
+  if (p.broker_id) broker = ((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", p.broker_id).maybeSingle()).data as PublicBroker | null) ?? null;
+  return { p, broker };
+}
 
 export const Route = createFileRoute("/industrial/$id")({
-  head: () => ({
-    meta: [
-      { title: "تفاصيل عقار صناعي | فاليو عقار" },
-      { name: "description", content: "مواصفات الأرض أو المصنع وموقعه وسعره ووسيلة التواصل مع الوسيط." },
-      { property: "og:title", content: "تفاصيل عقار صناعي | فاليو عقار" },
-      { property: "og:description", content: "تفاصيل عقار صناعي على فاليو عقار." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({ queryKey: ["industrial", params.id], queryFn: () => fetchIndustrial(params.id) }),
+  head: ({ params, loaderData }) => {
+    const path = `/industrial/${params.id}`;
+    if (!loaderData || loaderData.p.review_status !== "approved") return unavailableHead(path, "العقار الصناعي غير متاح");
+    const { p, broker } = loaderData;
+    const price = priceText(p.price, p.status);
+    const where = p.area ? ` في ${p.area}` : "";
+    const title = `${p.title} لل${p.status}${where}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
+    const description = `${p.type} صناعي لل${p.status}${where}${p.size ? ` بمساحة ${p.size} م²` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
+    return pageHead({
+      path, title, description, image: p.image_url, type: "article",
+      jsonLd: [
+        {
+          "@context": "https://schema.org", "@type": "RealEstateListing", name: p.title, url: `${SITE_URL}${path}`,
+          description: p.description || undefined, datePosted: p.created_at,
+          image: p.image_url && /^https:/.test(p.image_url) ? p.image_url : undefined,
+          offers: Number(p.price) ? { "@type": "Offer", price: Number(p.price), priceCurrency: "EGP" } : undefined,
+          address: p.area ? { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG" } : undefined,
+          ...(broker ? { provider: { "@type": "RealEstateAgent", name: broker.name, url: `${SITE_URL}/brokers/${broker.slug}` } } : {}),
+        },
+        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "العقارات الصناعية", path: "/industrial" }, { name: p.title, path }]),
+      ],
+    });
+  },
   component: Page,
 });
 
 function Page() {
   const { id } = Route.useParams();
-  const q = useQuery({
-    queryKey: ["industrial", id],
-    queryFn: async () => {
-      const { data: p, error } = await supabase.from("properties").select("*, industrial_activities(name)").eq("id", id).eq("category", "industrial").maybeSingle();
-      if (error) throw error;
-      if (!p) return null;
-      let broker: PublicBroker | null = null;
-      if (p.broker_id) broker = ((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", p.broker_id).maybeSingle()).data as PublicBroker | null) ?? null;
-      return { p, broker };
-    },
-  });
+  const initial = Route.useLoaderData();
+  const q = useQuery({ queryKey: ["industrial", id], queryFn: () => fetchIndustrial(id), initialData: initial });
   if (q.isLoading) return <PageShell><div className="mx-auto mt-6 h-80 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">العقار غير متاح</p><Link to="/industrial" className={`${btnOutline} mt-4`}>كل العقارات الصناعية</Link></div></PageShell>;
   const { p, broker } = q.data;

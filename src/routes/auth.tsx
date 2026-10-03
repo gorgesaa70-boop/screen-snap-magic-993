@@ -10,6 +10,7 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "دخول الوسطاء | فاليو عقار" },
+      { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "تسجيل دخول الوسطاء والإدارة إلى لوحة تحكم فاليو عقار." },
       { property: "og:title", content: "دخول الوسطاء | فاليو عقار" },
       { property: "og:description", content: "لوحة تحكم الوسطاء العقاريين على فاليو عقار." },

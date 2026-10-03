@@ -6,10 +6,12 @@ import { fetchMalls } from "@/components/site/malls";
 
 export const Route = createFileRoute("/malls/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://valueaqar.com/malls" }],
     meta: [
       { title: "المولات التجارية | فاليو عقار" },
       { name: "description", content: "تصفح المولات التجارية والوحدات المتاحة فيها للبيع والإيجار." },
       { property: "og:title", content: "المولات التجارية | فاليو عقار" },
+      { property: "og:url", content: "https://valueaqar.com/malls" },
       { property: "og:description", content: "محلات ومكاتب داخل المولات للبيع والإيجار." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

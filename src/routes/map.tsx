@@ -7,10 +7,12 @@ import { PropertiesMap } from "@/components/site/PropertiesMap";
 
 export const Route = createFileRoute("/map")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://valueaqar.com/map" }],
     meta: [
       { title: "خريطة العقارات | فاليو عقار" },
       { name: "description", content: "تصفح العقارات المتاحة على الخريطة واعرف موقع كل عقار وسعره." },
       { property: "og:title", content: "خريطة العقارات | فاليو عقار" },
+      { property: "og:url", content: "https://valueaqar.com/map" },
       { property: "og:description", content: "كل العقارات المعتمدة على خريطة واحدة." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

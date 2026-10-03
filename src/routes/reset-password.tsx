@@ -9,6 +9,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       { title: "تعيين كلمة المرور | فاليو عقار" },
+      { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "تعيين كلمة مرور جديدة لحساب الوسيط على فاليو عقار." },
       { property: "og:title", content: "تعيين كلمة المرور | فاليو عقار" },
       { property: "og:description", content: "تعيين كلمة مرور حساب فاليو عقار." },
