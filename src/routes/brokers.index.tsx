@@ -7,10 +7,12 @@ import { AREAS, fetchPublicBrokers } from "@/components/site/data";
 
 export const Route = createFileRoute("/brokers/")({
   head: () => ({
+    links: [{ rel: "canonical", href: "https://valueaqar.com/brokers" }],
     meta: [
       { title: "الوسطاء العقاريون | فاليو عقار" },
       { name: "description", content: "تصفح الوسطاء العقاريين في برج العرب الجديدة وابحث حسب المنطقة وتواصل مباشرة." },
       { property: "og:title", content: "الوسطاء العقاريون | فاليو عقار" },
+      { property: "og:url", content: "https://valueaqar.com/brokers" },
       { property: "og:description", content: "دليل الوسطاء العقاريين ومناطق عملهم على منصة فاليو عقار." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
