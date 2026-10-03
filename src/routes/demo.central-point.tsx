@@ -15,7 +15,7 @@ export const Route = createFileRoute("/demo/central-point")({
       { title: "بطاقة تجريبية — محل تجاري Central Point | فاليو عقار" },
       { name: "description", content: "بطاقة تجريبية لعرض عقار واحد من نظام ENGAZ CRM داخل موقع فاليو عقار." },
       { name: "robots", content: "noindex" },
-1      ],
+    ],
   }),
   component: DemoCentralPoint,
 });
