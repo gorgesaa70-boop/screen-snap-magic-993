@@ -23,7 +23,7 @@ export function NotificationItem({ n, onOpen, onRead, onDelete }: { n: Notificat
 
 export function openNotification(n: Notification, markRead: (id: string) => void) {
   if (!n.is_read) markRead(n.id);
-  if (n.related_url?.startsWith("/")) window.location.href = n.related_url;
+  window.location.href = `/notifications?open=${n.id}`;
 }
 
 export function NotificationBell() {
