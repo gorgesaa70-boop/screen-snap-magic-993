@@ -25,7 +25,7 @@ function NotificationsPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const list = filter === "unread" ? items.filter((n) => !n.is_read) : items;
   return (
-    <DashShell title="الإشعارات" isAdmin={me?.isAdmin}>
+    <DashShell title="الإشعارات" isAdmin={!!me?.isAdmin}>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(["all", "unread"] as const).map((f) => (
           <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-4 py-2 text-sm font-bold ${filter === f ? "bg-primary text-primary-foreground" : "bg-background text-foreground/75"}`}>
