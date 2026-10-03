@@ -43,6 +43,7 @@ export type Database = {
       }
       brokers: {
         Row: {
+          account_type: string
           areas: string[]
           bio: string | null
           created_at: string
@@ -57,11 +58,13 @@ export type Database = {
           plan_id: string | null
           slug: string
           specialty: string | null
+          suspended_at: string | null
           updated_at: string
           user_id: string | null
           whatsapp: string | null
         }
         Insert: {
+          account_type?: string
           areas?: string[]
           bio?: string | null
           created_at?: string
@@ -76,11 +79,13 @@ export type Database = {
           plan_id?: string | null
           slug: string
           specialty?: string | null
+          suspended_at?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
         }
         Update: {
+          account_type?: string
           areas?: string[]
           bio?: string | null
           created_at?: string
@@ -95,6 +100,7 @@ export type Database = {
           plan_id?: string | null
           slug?: string
           specialty?: string | null
+          suspended_at?: string | null
           updated_at?: string
           user_id?: string | null
           whatsapp?: string | null
@@ -645,6 +651,17 @@ export type Database = {
     Functions: {
       admin_exists: { Args: never; Returns: boolean }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
+      auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
+      brokers_by_phone: {
+        Args: { _phone: string }
+        Returns: {
+          account_type: string
+          id: string
+          is_active: boolean
+          suspended: boolean
+          user_id: string
+        }[]
+      }
       claim_first_admin: { Args: never; Returns: boolean }
       current_broker_id: { Args: never; Returns: string }
       has_role: {
@@ -654,6 +671,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
         Args: {
           _except?: string
