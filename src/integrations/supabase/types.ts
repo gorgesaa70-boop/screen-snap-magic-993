@@ -294,6 +294,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json
+          related_id: string | null
+          related_url: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json
+          related_id?: string | null
+          related_url?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json
+          related_id?: string | null
+          related_url?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           code: string
@@ -575,6 +614,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      notify_admins: {
+        Args: {
+          _except?: string
+          _msg: string
+          _related: string
+          _title: string
+          _type: string
+          _url: string
+        }
+        Returns: undefined
+      }
+      notify_user: {
+        Args: {
+          _msg: string
+          _related: string
+          _title: string
+          _type: string
+          _url: string
+          _user: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
