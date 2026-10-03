@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
+import { NotificationBell } from "@/components/site/NotificationBell";
 
 export function DashShell({ title, children, isAdmin }: { title: string; children: ReactNode; isAdmin?: boolean }) {
   const nav = useNavigate();

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
+import { NotificationBell } from "@/components/site/NotificationBell";
 
 const links = [
   { label: "الرئيسية", href: "/#top" },
@@ -35,6 +36,7 @@ export function Navbar() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <NotificationBell />
           <a href="/#search" aria-label="البحث" className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <Search className="size-5" />
           </a>
