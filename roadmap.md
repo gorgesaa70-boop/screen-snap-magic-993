@@ -18,5 +18,5 @@
 - [x] ENGAZ CRM test: demo listing page /demo/central-point (Central Point shop, static, no DB) — pending: real ENGAZ listing URL from user
 - [x] خانة رابط إنجاز في نموذج العقار + زر المصدر في صفحة العقار
 
-- [ ] قسم المصانع والأراضي الصناعية
+- [x] قسم المصانع والأراضي الصناعية
 - [ ] قسم المولات (بانتظار تفاصيل من المستخدم)
