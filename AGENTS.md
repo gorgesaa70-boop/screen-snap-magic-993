@@ -17,3 +17,4 @@
 - Images go to the private `media` bucket under `<user_id>/` and are stored as long-lived signed URLs (public buckets are blocked by workspace policy).
 - Industrial listings live in `properties` with `category` = industrial | mall (zone/activity/malls lookup tables are admin-editable); residential fetchers must filter `category = residential`. Why: reuses review, broker limits and RLS without touching existing rows.
 - Notifications are created only by SECURITY DEFINER DB triggers (notify_user/notify_admins); clients may only read, mark is_read, or delete their own rows. Why: prevents spoofed notifications.
+- WhatsApp copies of notifications are sent by the cron-authenticated /api/public/notifications/whatsapp-dispatch route from notifications.whatsapp_status='pending', honoring notification_preferences. Why: keeps DB triggers fast and retry-safe.

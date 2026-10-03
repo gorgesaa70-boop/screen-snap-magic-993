@@ -42,7 +42,7 @@ export function WhatsappPrefs({ isBroker }: { isBroker: boolean }) {
   return (
     <div className="mb-5 rounded-2xl border bg-background p-4">
       <label className="flex items-center gap-2 font-bold text-primary">
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="size-4 accent-[hsl(var(--teal))]" />
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="size-4 accent-teal" />
         <MessageCircle className="size-5 text-teal" /> استلام الإشعارات على واتساب
       </label>
       {enabled && (
