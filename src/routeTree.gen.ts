@@ -19,6 +19,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authenticated/inquiries'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
@@ -78,6 +79,12 @@ const AuthenticatedJoinRoute = AuthenticatedJoinRouteImport.update({
   path: '/join',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPendingRoute = AuthenticatedPendingRouteImport.update({
   id: '/pending',
   path: '/pending',
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
@@ -176,6 +185,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/inquiries': typeof AuthenticatedInquiriesRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/inquiries'
     | '/join'
+    | '/notifications'
     | '/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/inquiries'
     | '/join'
+    | '/notifications'
     | '/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
@@ -239,6 +251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/inquiries'
     | '/_authenticated/join'
+    | '/_authenticated/notifications'
     | '/_authenticated/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJoinRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pending': {
       id: '/_authenticated/pending'
       path: '/pending'
@@ -410,6 +430,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInquiriesRoute: typeof AuthenticatedInquiriesRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
 }
 
@@ -419,6 +440,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInquiriesRoute: AuthenticatedInquiriesRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
 }
 

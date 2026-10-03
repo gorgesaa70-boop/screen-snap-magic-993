@@ -27,6 +27,7 @@ export function DashShell({ title, children, isAdmin }: { title: string; childre
             {isAdmin && <Link to="/admin" className="rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الإدارة</Link>}
             <Link to="/inquiries" className="rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الطلبات</Link>
             <Link to="/account" className="rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>حسابي</Link>
+            <NotificationBell />
             <button onClick={signOut} aria-label="تسجيل الخروج" className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary"><LogOut className="size-5" /></button>
           </nav>
         </div>
