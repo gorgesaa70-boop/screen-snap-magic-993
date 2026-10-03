@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { decideLogin, type BrokerMatch } from "./broker-login";
 
 // Limits (server-enforced; the UI mirrors them only for display)
 const TTL_MS = 5 * 60 * 1000;
@@ -125,13 +127,20 @@ export const verifyWhatsappOtp = createServerFn({ method: "POST" })
       .eq("id", row.id).is("consumed_at", null).select("id");
     if (!consumed?.length) return { ok: false, error: "expired" };
 
-    // Link to existing auth user by verified phone, or create a plain user (no roles — roles are only granted by admin)
+    // Resolve the ORIGINAL account for this phone; never guess, never create a substitute for a broker
+    const [{ data: bm }, { data: au }] = await Promise.all([
+      db.rpc("brokers_by_phone", { _phone: phone }),
+      db.rpc("auth_user_ids_by_phone", { _phone: phone }),
+    ]);
+    const decision = decideLogin((bm ?? []) as BrokerMatch[], ((au ?? []) as unknown as string[]));
+    if (decision.kind === "conflict") { await log("wa_login_conflict", phone, decision.reason); return { ok: false, error: "conflict" }; }
+    if (decision.kind === "suspended") { await log("wa_login_suspended", phone); return { ok: false, error: "banned" }; }
+
     const syntheticEmail = `wa-${phone}@phone.valueaqar.invalid`;
-    const { data: existingId } = await db.rpc("auth_user_id_by_phone", { _phone: phone });
     let email: string;
     let userId: string;
-    if (existingId) {
-      const { data: u, error } = await db.auth.admin.getUserById(existingId);
+    if (decision.kind === "user") {
+      const { data: u, error } = await db.auth.admin.getUserById(decision.userId);
       if (error || !u.user) return { ok: false, error: "server" };
       userId = u.user.id;
       if (u.user.banned_until && new Date(u.user.banned_until).getTime() > Date.now()) return { ok: false, error: "banned" };
@@ -147,4 +156,46 @@ export const verifyWhatsappOtp = createServerFn({ method: "POST" })
     if (linkErr || !link.properties?.hashed_token) { console.error("generateLink", linkErr?.message); return { ok: false, error: "server" }; }
     await log("wa_otp_verified", phone, undefined, userId);
     return { ok: true, tokenHash: link.properties.hashed_token };
+  });
+
+/** Consume a valid code for `phone` (shared by login and phone change). */
+async function consumeCode(phone: string, code: string): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> {
+  const db = await admin();
+  const { data: row } = await db.from("whatsapp_otps").select("*")
+    .eq("phone", phone).is("consumed_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!row || new Date(row.expires_at).getTime() < Date.now()) return { ok: false, error: "expired" };
+  if (row.attempts >= MAX_ATTEMPTS) return { ok: false, error: "locked" };
+  if (!safeEqual(row.code_hash, await hmac(`${phone}:${code}`))) {
+    const attempts = row.attempts + 1;
+    await db.from("whatsapp_otps").update({ attempts, ...(attempts >= MAX_ATTEMPTS ? { consumed_at: new Date().toISOString() } : {}) }).eq("id", row.id);
+    await log(attempts >= MAX_ATTEMPTS ? "wa_otp_locked" : "wa_otp_failed", phone, "wrong code");
+    return { ok: false, error: attempts >= MAX_ATTEMPTS ? "locked" : "wrong", remaining: MAX_ATTEMPTS - attempts };
+  }
+  const { data: consumed } = await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() }).eq("id", row.id).is("consumed_at", null).select("id");
+  return consumed?.length ? { ok: true } : { ok: false, error: "expired" };
+}
+
+/**
+ * Change the signed-in user's login phone. Ownership proof = active session (old account)
+ * + valid WhatsApp code sent to the NEW number. Rejected if the number belongs to anyone else.
+ */
+export const changePhoneWithWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ phone: phoneSchema, code: z.string().regex(/^\d{6}$/) }).parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> => {
+    const userId = (context as { userId: string }).userId;
+    const r = await consumeCode(data.phone, data.code);
+    if (!r.ok) return r;
+    const db = await admin();
+    const [{ data: bm }, { data: au }] = await Promise.all([
+      db.rpc("brokers_by_phone", { _phone: data.phone }),
+      db.rpc("auth_user_ids_by_phone", { _phone: data.phone }),
+    ]);
+    const taken = ((bm ?? []) as BrokerMatch[]).some((b) => b.user_id !== userId) || ((au ?? []) as unknown as string[]).some((id) => id !== userId);
+    if (taken) { await log("wa_phone_change_conflict", data.phone, undefined, userId); return { ok: false, error: "phone_taken" }; }
+    const { error } = await db.auth.admin.updateUserById(userId, { phone: data.phone, phone_confirm: true });
+    if (error) { console.error("phone change", error.message); return { ok: false, error: "server" }; }
+    await db.from("brokers").update({ phone: data.phone }).eq("user_id", userId);
+    await log("wa_phone_changed", data.phone, undefined, userId);
+    return { ok: true };
   });
