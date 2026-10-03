@@ -6,18 +6,45 @@ import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
+import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+async function fetchProperty(id: string) {
+  const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  let broker: PublicBroker | null = null;
+  if (data.broker_id) {
+    const r = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.broker_id).maybeSingle();
+    broker = r.data as PublicBroker | null;
+  }
+  return { p: toProperty(data), broker, sourceUrl: data.source_url, approved: data.review_status === "approved", createdAt: data.created_at };
+}
 
 export const Route = createFileRoute("/properties/$id")({
-  head: () => ({
-    meta: [
-      { title: "تفاصيل العقار | فاليو عقار" },
-      { name: "description", content: "مواصفات العقار وسعره ووسيلة التواصل مع الوسيط على فاليو عقار." },
-      { property: "og:title", content: "تفاصيل العقار | فاليو عقار" },
-      { property: "og:description", content: "اعرف تفاصيل العقار وأرسل استفسارك للوسيط." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({ queryKey: ["property", params.id], queryFn: () => fetchProperty(params.id) }),
+  head: ({ params, loaderData }) => {
+    const path = `/properties/${params.id}`;
+    if (!loaderData || !loaderData.approved) return unavailableHead(path, "العقار غير متاح");
+    const { p, broker } = loaderData;
+    const price = priceText(p.price, p.status);
+    const title = `${p.title} لل${p.status} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
+    const description = `${p.type} لل${p.status} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
+    return pageHead({
+      path, title, description, image: p.image, type: "article",
+      jsonLd: [
+        {
+          "@context": "https://schema.org", "@type": "RealEstateListing", name: p.title, url: `${SITE_URL}${path}`,
+          description: p.description || undefined, datePosted: loaderData.createdAt,
+          image: /^https:/.test(p.image) ? p.image : undefined,
+          offers: p.price ? { "@type": "Offer", price: p.price, priceCurrency: "EGP" } : undefined,
+          address: { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG" },
+          ...(broker ? { provider: { "@type": "RealEstateAgent", name: broker.name, url: `${SITE_URL}/brokers/${broker.slug}` } } : {}),
+        },
+        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: p.title, path }]),
+      ],
+    });
+  },
   component: PropertyPage,
 });
 
@@ -41,20 +68,8 @@ function PropertyMap({ lat, lng }: { lat: number; lng: number }) {
 
 function PropertyPage() {
   const { id } = Route.useParams();
-  const q = useQuery({
-    queryKey: ["property", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      let broker: PublicBroker | null = null;
-      if (data.broker_id) {
-        const r = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.broker_id).maybeSingle();
-        broker = r.data as PublicBroker | null;
-      }
-      return { p: toProperty(data), broker, sourceUrl: data.source_url };
-    },
-  });
+  const initial = Route.useLoaderData();
+  const q = useQuery({ queryKey: ["property", id], queryFn: () => fetchProperty(id), initialData: initial });
   if (q.isLoading) return <PageShell><div className="mx-auto max-w-5xl p-6"><div className="aspect-video animate-pulse rounded-2xl bg-muted" /></div></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto max-w-md p-10 text-center"><h1 className="text-xl font-bold text-primary">العقار غير متاح</h1><Link to="/" className={`${btnOutline} mt-6`}>الرئيسية</Link></div></PageShell>;
   const { p, broker, sourceUrl } = q.data;
