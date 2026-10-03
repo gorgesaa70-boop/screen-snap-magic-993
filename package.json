@@ -19,6 +19,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.83",
     "@capacitor/android": "^7",
+    "@capacitor/app": "^7",
+    "@capacitor/browser": "^7",
     "@capacitor/core": "^7",
     "@capacitor/ios": "^7",
     "@hookform/resolvers": "^5.2.2",
