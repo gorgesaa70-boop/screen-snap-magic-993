@@ -20,7 +20,7 @@ export function WhatsappPrefs({ isBroker }: { isBroker: boolean }) {
   const types = isBroker ? BROKER_TYPES : CUSTOMER_TYPES;
   const [enabled, setEnabled] = useState(false);
   const [phone, setPhone] = useState("");
-  const [sel, setSel] = useState<string[]>(["new_inquiry", "broker_reply"]);
+  const [sel, setSel] = useState<string[]>(isBroker ? ["new_inquiry", "new_request"] : ["broker_reply", "request_status"]);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (!user) return;
