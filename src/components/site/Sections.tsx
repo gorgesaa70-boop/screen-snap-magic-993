@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, TYPES, AREAS, type Property } from "./data";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES, AREAS, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
