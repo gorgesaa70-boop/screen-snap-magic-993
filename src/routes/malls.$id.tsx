@@ -6,24 +6,42 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
+import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+async function fetchMall(id: string) {
+  const { data, error } = await supabase.from("malls").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
 
 export const Route = createFileRoute("/malls/$id")({
-  head: () => ({
-    meta: [
-      { title: "وحدات المول | فاليو عقار" },
-      { name: "description", content: "الوحدات المتاحة للبيع والإيجار داخل المول." },
-      { property: "og:title", content: "وحدات المول | فاليو عقار" },
-      { property: "og:description", content: "محلات ومكاتب متاحة داخل المول." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({ queryKey: ["mall", params.id], queryFn: () => fetchMall(params.id) }),
+  head: ({ params, loaderData: m }) => {
+    const path = `/malls/${params.id}`;
+    if (!m || !m.is_active) return unavailableHead(path, "المول غير متاح");
+    const where = m.location ? ` في ${m.location}` : "";
+    const title = `${m.name}${where} – محلات ومكاتب للبيع والإيجار | ${SITE_NAME}`;
+    const description = `الوحدات المتاحة للبيع والإيجار داخل ${m.name}${where}. ${m.description ?? ""}`;
+    return pageHead({
+      path, title, description, image: m.logo_url,
+      jsonLd: [
+        {
+          "@context": "https://schema.org", "@type": "ShoppingCenter", name: m.name, url: `${SITE_URL}${path}`,
+          description: m.description || undefined, logo: m.logo_url && /^https:/.test(m.logo_url) ? m.logo_url : undefined,
+          address: m.location ? { "@type": "PostalAddress", addressLocality: m.location, addressCountry: "EG" } : undefined,
+        },
+        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "المولات", path: "/malls" }, { name: m.name, path }]),
+      ],
+    });
+  },
   component: MallPage,
 });
 
 function MallPage() {
   const { id } = Route.useParams();
-  const mall = useQuery({ queryKey: ["mall", id], queryFn: async () => (await supabase.from("malls").select("*").eq("id", id).maybeSingle()).data });
+  const initial = Route.useLoaderData();
+  const mall = useQuery({ queryKey: ["mall", id], queryFn: () => fetchMall(id), initialData: initial });
   const units = useQuery({ queryKey: ["mall-units", id], queryFn: () => fetchMallUnits(id) });
   const brokerIds = [...new Set((units.data ?? []).map((u) => u.broker_id).filter(Boolean))] as string[];
   const brokers = useQuery({
