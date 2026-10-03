@@ -8,7 +8,8 @@ import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
-import { Factory } from "lucide-react";
+import { MallUnitForm } from "@/components/dash/MallUnitForm";
+import { Factory, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { AREAS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
 
@@ -107,13 +108,15 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
 }
 
 function MyProperties({ brokerId, list, reload }: { brokerId: string; list: PropertyRow[]; reload: () => void }) {
-  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind">(null);
-  if (editing === "new-ind" || (editing && editing !== "new" && editing.category === "industrial"))
+  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall">(null);
+  if (editing === "new-mall" || (editing && typeof editing !== "string" && editing.category === "mall"))
+    return <MallUnitForm brokerId={brokerId} initial={editing === "new-mall" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+  if (editing === "new-ind" || (editing && typeof editing !== "string" && editing.category === "industrial"))
     return <IndustrialForm brokerId={brokerId} initial={editing === "new-ind" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing) return <PropertyForm brokerId={brokerId} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button></div>
+      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button><button onClick={() => setEditing("new-mall")} className={btnOutline}><Store className="size-4" />إضافة وحدة في مول</button></div>
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لم تضف أي عقار بعد.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
