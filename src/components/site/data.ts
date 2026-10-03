@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-export const WHATSAPP_NUMBER = "201000000000"; // رقم تجريبي
+export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
 export type PropertyRow = Tables<"properties">;
 export type BrokerRow = Tables<"brokers">;
