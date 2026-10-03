@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BedDouble, Bath, Maximize, MapPin, MessageCircle } from "lucide-react";
+import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
@@ -52,12 +52,12 @@ function PropertyPage() {
         const r = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.broker_id).maybeSingle();
         broker = r.data as PublicBroker | null;
       }
-      return { p: toProperty(data), broker };
+      return { p: toProperty(data), broker, sourceUrl: data.source_url };
     },
   });
   if (q.isLoading) return <PageShell><div className="mx-auto max-w-5xl p-6"><div className="aspect-video animate-pulse rounded-2xl bg-muted" /></div></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto max-w-md p-10 text-center"><h1 className="text-xl font-bold text-primary">العقار غير متاح</h1><Link to="/" className={`${btnOutline} mt-6`}>الرئيسية</Link></div></PageShell>;
-  const { p, broker } = q.data;
+  const { p, broker, sourceUrl } = q.data;
   return (
     <PageShell>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
@@ -77,6 +77,7 @@ function PropertyPage() {
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{p.baths} حمام</span>}
           </div>
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || "لا يوجد وصف إضافي."}</p>
+          {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />عرض التفاصيل من المصدر</a>}
           {p.lat != null && p.lng != null && <PropertyMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">آخر تحديث: {formatDate(p.updated)}</p>
         </div>

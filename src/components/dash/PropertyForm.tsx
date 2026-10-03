@@ -19,6 +19,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     baths: initial?.baths != null ? String(initial.baths) : "",
     status: initial?.status ?? "بيع",
     image_url: initial?.image_url ?? "",
+    source_url: initial?.source_url ?? "",
   });
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
@@ -35,11 +36,13 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
 
   async function save(submit: boolean) {
     if (f.title.trim().length < 3 || !f.price) { toast.error("أدخل العنوان والسعر"); return; }
+    const src = f.source_url.trim();
+    if (src && !/^https:\/\/[a-z0-9-]+\.engazcrm\.net\//i.test(src)) { toast.error("رابط إنجاز غير صحيح — يجب أن يبدأ بـ https://…engazcrm.net/"); return; }
     setBusy(true);
     const payload = {
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
       price: Number(f.price), type: f.type, area: f.area, size: Number(f.size || 0),
-      rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null,
+      rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null, source_url: src || null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
@@ -68,6 +71,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
           <Field label="الغرف"><input className={inputCls} inputMode="numeric" value={f.rooms} onChange={(e) => setF({ ...f, rooms: e.target.value.replace(/\D/g, "") })} /></Field>
           <Field label="الحمامات"><input className={inputCls} inputMode="numeric" value={f.baths} onChange={(e) => setF({ ...f, baths: e.target.value.replace(/\D/g, "") })} /></Field>
         </div>
+        <div className="sm:col-span-2"><Field label="رابط العقار في إنجاز (اختياري)"><input className={inputCls} dir="ltr" inputMode="url" placeholder="https://valuegroup.engazcrm.net/consumer/unit/..." value={f.source_url} onChange={set("source_url")} maxLength={500} /></Field></div>
         <div className="sm:col-span-2"><Field label="الوصف"><textarea className={`${inputCls} h-28 py-2`} value={f.description} onChange={set("description")} maxLength={3000} /></Field></div>
         <div className="sm:col-span-2">
           <Field label="صورة العقار"><input type="file" accept="image/*" onChange={onFile} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" /></Field>
