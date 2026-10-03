@@ -1,0 +1,1 @@
+ALTER TABLE public.properties ADD COLUMN IF NOT EXISTS source_url text CHECK (source_url IS NULL OR (source_url ~ '^https://[a-z0-9-]+\.engazcrm\.net/' AND length(source_url) <= 500));

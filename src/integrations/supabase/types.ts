@@ -265,6 +265,7 @@ export type Database = {
           review_status: Database["public"]["Enums"]["review_status"]
           rooms: number | null
           size: number
+          source_url: string | null
           status: string
           title: string
           type: string
@@ -288,6 +289,7 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
           size?: number
+          source_url?: string | null
           status: string
           title: string
           type: string
@@ -311,6 +313,7 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
           size?: number
+          source_url?: string | null
           status?: string
           title?: string
           type?: string
