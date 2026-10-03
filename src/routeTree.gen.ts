@@ -29,6 +29,7 @@ import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
 import { Route as MallsIndexRouteImport } from './routes/malls.index'
 import { Route as MallsIdRouteImport } from './routes/malls.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -130,6 +131,12 @@ const PropertiesIdRoute = PropertiesIdRouteImport.update({
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicNotificationsWhatsappDispatchRoute =
+  ApiPublicNotificationsWhatsappDispatchRouteImport.update({
+    id: '/api/public/notifications/whatsapp-dispatch',
+    path: '/api/public/notifications/whatsapp-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -172,6 +180,7 @@ export interface FileRoutesByTo {
   '/brokers': typeof BrokersIndexRoute
   '/industrial': typeof IndustrialIndexRoute
   '/malls': typeof MallsIndexRoute
+  '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,6 +204,7 @@ export interface FileRoutesById {
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/api/public/notifications/whatsapp-dispatch'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/brokers'
     | '/industrial'
     | '/malls'
+    | '/api/public/notifications/whatsapp-dispatch'
   id:
     | '__root__'
     | '/'
@@ -261,6 +273,7 @@ export interface FileRouteTypes {
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/api/public/notifications/whatsapp-dispatch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -277,6 +290,7 @@ export interface RootRouteChildren {
   BrokersIndexRoute: typeof BrokersIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
+  ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -421,6 +435,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/notifications/whatsapp-dispatch': {
+      id: '/api/public/notifications/whatsapp-dispatch'
+      path: '/api/public/notifications/whatsapp-dispatch'
+      fullPath: '/api/public/notifications/whatsapp-dispatch'
+      preLoaderRoute: typeof ApiPublicNotificationsWhatsappDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -461,6 +482,8 @@ const rootRouteChildren: RootRouteChildren = {
   BrokersIndexRoute: BrokersIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
+  ApiPublicNotificationsWhatsappDispatchRoute:
+    ApiPublicNotificationsWhatsappDispatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
