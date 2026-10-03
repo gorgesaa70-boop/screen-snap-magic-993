@@ -109,6 +109,54 @@ export type Database = {
           },
         ]
       }
+      industrial_activities: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      industrial_zones: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -248,9 +296,13 @@ export type Database = {
       }
       properties: {
         Row: {
+          activity_id: string | null
+          address: string | null
           area: string
           baths: number | null
           broker_id: string | null
+          built_size: number | null
+          category: string
           created_at: string
           description: string | null
           featured_until: string | null
@@ -258,6 +310,7 @@ export type Database = {
           image_url: string | null
           is_demo: boolean
           is_featured: boolean
+          land_size: number | null
           lat: number | null
           lng: number | null
           price: number
@@ -270,11 +323,17 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+          video_urls: string[]
+          zone_id: string | null
         }
         Insert: {
+          activity_id?: string | null
+          address?: string | null
           area: string
           baths?: number | null
           broker_id?: string | null
+          built_size?: number | null
+          category?: string
           created_at?: string
           description?: string | null
           featured_until?: string | null
@@ -282,6 +341,7 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_featured?: boolean
+          land_size?: number | null
           lat?: number | null
           lng?: number | null
           price: number
@@ -294,11 +354,17 @@ export type Database = {
           title: string
           type: string
           updated_at?: string
+          video_urls?: string[]
+          zone_id?: string | null
         }
         Update: {
+          activity_id?: string | null
+          address?: string | null
           area?: string
           baths?: number | null
           broker_id?: string | null
+          built_size?: number | null
+          category?: string
           created_at?: string
           description?: string | null
           featured_until?: string | null
@@ -306,6 +372,7 @@ export type Database = {
           image_url?: string | null
           is_demo?: boolean
           is_featured?: boolean
+          land_size?: number | null
           lat?: number | null
           lng?: number | null
           price?: number
@@ -318,13 +385,29 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+          video_urls?: string[]
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "properties_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "industrial_activities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "properties_broker_id_fkey"
             columns: ["broker_id"]
             isOneToOne: false
             referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "industrial_zones"
             referencedColumns: ["id"]
           },
         ]

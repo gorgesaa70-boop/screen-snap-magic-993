@@ -55,7 +55,7 @@ export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,ph
 export type PublicBroker = Pick<BrokerRow, "id" | "slug" | "name" | "specialty" | "bio" | "photo_url" | "areas" | "phone" | "whatsapp" | "email" | "facebook" | "is_demo">;
 
 export async function fetchPublicProperties(brokerId?: string) {
-  let q = supabase.from("properties").select("*").eq("review_status", "approved");
+  let q = supabase.from("properties").select("*").eq("review_status", "approved").eq("category", "residential");
   if (brokerId) q = q.eq("broker_id", brokerId);
   const { data, error } = await q.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
   if (error) throw error;

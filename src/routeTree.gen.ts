@@ -23,6 +23,8 @@ import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticate
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
+import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
+import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -94,6 +96,16 @@ const DemoCentralPointRoute = DemoCentralPointRouteImport.update({
   path: '/demo/central-point',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndustrialIndexRoute = IndustrialIndexRouteImport.update({
+  id: '/industrial/',
+  path: '/industrial/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndustrialIdRoute = IndustrialIdRouteImport.update({
+  id: '/industrial/$id',
+  path: '/industrial/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
   path: '/properties/$id',
@@ -113,8 +125,10 @@ export interface FileRoutesByFullPath {
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
+  '/industrial/$id': typeof IndustrialIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
+  '/industrial/': typeof IndustrialIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -129,8 +143,10 @@ export interface FileRoutesByTo {
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
+  '/industrial/$id': typeof IndustrialIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
+  '/industrial': typeof IndustrialIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -147,8 +163,10 @@ export interface FileRoutesById {
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
+  '/industrial/$id': typeof IndustrialIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
+  '/industrial/': typeof IndustrialIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -165,8 +183,10 @@ export interface FileRouteTypes {
     | '/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
+    | '/industrial/$id'
     | '/properties/$id'
     | '/brokers/'
+    | '/industrial/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -181,8 +201,10 @@ export interface FileRouteTypes {
     | '/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
+    | '/industrial/$id'
     | '/properties/$id'
     | '/brokers'
+    | '/industrial'
   id:
     | '__root__'
     | '/'
@@ -198,8 +220,10 @@ export interface FileRouteTypes {
     | '/_authenticated/pending'
     | '/brokers/$slug'
     | '/demo/central-point'
+    | '/industrial/$id'
     | '/properties/$id'
     | '/brokers/'
+    | '/industrial/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,8 +234,10 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
   DemoCentralPointRoute: typeof DemoCentralPointRoute
+  IndustrialIdRoute: typeof IndustrialIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
+  IndustrialIndexRoute: typeof IndustrialIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -314,6 +340,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoCentralPointRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/industrial/': {
+      id: '/industrial/'
+      path: '/industrial'
+      fullPath: '/industrial/'
+      preLoaderRoute: typeof IndustrialIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/industrial/$id': {
+      id: '/industrial/$id'
+      path: '/industrial/$id'
+      fullPath: '/industrial/$id'
+      preLoaderRoute: typeof IndustrialIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$id': {
       id: '/properties/$id'
       path: '/properties/$id'
@@ -353,8 +393,10 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   BrokersSlugRoute: BrokersSlugRoute,
   DemoCentralPointRoute: DemoCentralPointRoute,
+  IndustrialIdRoute: IndustrialIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
+  IndustrialIndexRoute: IndustrialIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -10,6 +10,7 @@ import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { AREAS, REVIEW, STAGES, formatPrice, formatDate, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "brokers" | "review" | "leads" | "plans";
+type Tab = "reports" | "brokers" | "review" | "leads" | "plans" | "industrial";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -49,7 +50,7 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "brokers", label: "الوسطاء" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "industrial", label: "الصناعي" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
@@ -58,6 +59,7 @@ function AdminPage() {
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
           {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} />}
+          {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
       )}
     </DashShell>
