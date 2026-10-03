@@ -12,6 +12,7 @@ import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/c
 import { AREAS, REVIEW, STAGES, formatPrice, formatDate, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
+import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "brokers" | "review" | "leads" | "plans" | "industrial" | "malls";
+type Tab = "reports" | "alerts" | "brokers" | "review" | "leads" | "plans" | "industrial" | "malls";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -50,12 +51,13 @@ function AdminPage() {
   return (
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
-        { id: "reports", label: "التقارير" }, { id: "brokers", label: "الوسطاء" },
+        { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: "الوسطاء" },
         { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
           {tab === "reports" && <Reports d={d} />}
+          {tab === "alerts" && <AdminNotifications />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
