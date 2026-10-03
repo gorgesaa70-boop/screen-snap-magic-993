@@ -12,3 +12,13 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /account
+Disallow: /inquiries
+Disallow: /notifications
+Disallow: /pending
+Disallow: /join
+Disallow: /api/
+
+Sitemap: https://valueaqar.com/sitemap.xml
