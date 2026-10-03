@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { useServerFn } from "@tanstack/react-start";
-import { sendWhatsappOtp, verifyWhatsappOtp } from "@/lib/whatsapp-otp.functions";
+import { sendWhatsappOtp, verifyWhatsappOtp, changePhoneWithWhatsapp } from "@/lib/whatsapp-otp.functions";
 
 const WA_ERRORS: Record<string, string> = {
   not_configured: "الدخول عبر واتساب غير مفعّل بعد، استخدم الرسائل النصية أو البريد",
@@ -12,7 +12,10 @@ const WA_ERRORS: Record<string, string> = {
   send_failed: "تعذّر إرسال الرسالة عبر واتساب، تأكد أن الرقم مسجّل على واتساب",
   expired: "انتهت صلاحية الرمز، اطلب رمزًا جديدًا",
   locked: "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا",
-  banned: "هذا الحساب موقوف، تواصل مع الإدارة",
+  banned: "هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة",
+  conflict: "تعذّر تحديد الحساب المرتبط بهذا الرقم. تم تحويل الطلب لمراجعة الإدارة، أو سجّل الدخول بالبريد الإلكتروني",
+  phone_taken: "هذا الرقم مرتبط بحساب آخر ولا يمكن استخدامه",
+  wrong: "رمز غير صحيح",
   server: "حدث خطأ، حاول مرة أخرى",
 };
 
@@ -76,9 +79,10 @@ export function PhoneOtp({ mode, onVerified }: Props) {
   const [expiresIn, setExpiresIn] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
-  const [channel, setChannel] = useState<"whatsapp" | "sms">(mode === "login" ? "whatsapp" : "sms");
+  const [channel, setChannel] = useState<"whatsapp" | "sms">("whatsapp");
   const waSend = useServerFn(sendWhatsappOtp);
   const waVerify = useServerFn(verifyWhatsappOtp);
+  const waChange = useServerFn(changePhoneWithWhatsapp);
 
   useEffect(() => {
     if (step !== "code") return;
@@ -148,6 +152,13 @@ export function PhoneOtp({ mode, onVerified }: Props) {
     if (attempts >= MAX_ATTEMPTS) { toast.error("محاولات كثيرة، اطلب رمزًا جديدًا"); return; }
     if (channel === "whatsapp") {
       setBusy(true);
+      if (mode === "change") {
+        const c = await waChange({ data: { phone, code } }).catch(() => ({ ok: false as const, error: "server" }));
+        setBusy(false);
+        if (!c.ok) { setCode(""); if ("remaining" in c && typeof c.remaining === "number") { setAttempts(MAX_ATTEMPTS - c.remaining); toast.error(`رمز غير صحيح (متبقٍ ${c.remaining} محاولات)`); } else { if (c.error === "locked" || c.error === "expired") setExpiresIn(0); toast.error(WA_ERRORS[c.error] ?? WA_ERRORS["server"]); } return; }
+        onVerified();
+        return;
+      }
       const r = await waVerify({ data: { phone, code } }).catch(() => ({ ok: false as const, error: "server" }));
       if (!r.ok) {
         setBusy(false); setCode("");
@@ -193,7 +204,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
               className={`${inputCls.replace("w-full", "")} w-auto min-w-0 flex-1`} value={raw} onChange={(e) => setRaw(e.target.value)} />
           </div>
         </Field>
-        {mode === "login" && (
+        {(
           <div role="radiogroup" aria-label="طريقة الإرسال" className="grid grid-cols-2 gap-2">
             {(["whatsapp", "sms"] as const).map((c) => (
               <button key={c} type="button" role="radio" aria-checked={channel === c} onClick={() => setChannel(c)}
@@ -231,13 +242,14 @@ export function PhoneOtp({ mode, onVerified }: Props) {
 }
 
 /** Decide where a signed-in user should land based on their roles and broker status. */
-export async function destinationFor(userId: string): Promise<"/admin" | "/dashboard" | "/pending" | "/join"> {
+export async function destinationFor(userId: string): Promise<"/admin" | "/dashboard" | "/pending" | "/join" | "suspended"> {
   const [roles, broker] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", userId),
-    supabase.from("brokers").select("is_active").eq("user_id", userId).maybeSingle(),
+    supabase.from("brokers").select("is_active, suspended_at").eq("user_id", userId).maybeSingle(),
   ]);
   const list = (roles.data ?? []).map((r) => r.role);
   if (list.includes("admin")) return "/admin";
+  if (broker.data?.suspended_at) return "suspended";
   if (broker.data?.is_active) return "/dashboard";
   if (broker.data) return "/pending";
   return "/join";
