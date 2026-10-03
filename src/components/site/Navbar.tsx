@@ -6,6 +6,7 @@ const links = [
   { label: "العقارات", href: "/#properties" },
   { label: "خريطة العقارات", href: "/map" },
   { label: "المصانع والأراضي الصناعية", href: "/industrial" },
+  { label: "المولات", href: "/malls" },
   { label: "الوسطاء العقاريون", href: "/brokers" },
   { label: "اطلب عقارك", href: "/#request" },
   { label: "دخول الوسطاء", href: "/auth" },

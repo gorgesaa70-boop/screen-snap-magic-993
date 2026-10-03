@@ -15,4 +15,4 @@
 - Privileged admin actions (creating/inviting accounts, banning) go through `src/lib/admin.functions.ts` server functions that verify admin before using the service client.
 - Phone sign-in: SMS uses built-in phone OTP (provider set in Cloud auth settings); WhatsApp OTP uses server functions in `src/lib/whatsapp-otp.functions.ts` (hashed codes in service-only `whatsapp_otps`, Meta creds in env), which mint a session via admin magic-link token only after the code is verified.
 - Images go to the private `media` bucket under `<user_id>/` and are stored as long-lived signed URLs (public buckets are blocked by workspace policy).
-- Industrial listings live in `properties` with `category = industrial` (zone/activity lookup tables are admin-editable); residential fetchers must filter `category = residential`. Why: reuses review, broker limits and RLS without touching existing rows.
+- Industrial listings live in `properties` with `category` = industrial | mall (zone/activity/malls lookup tables are admin-editable); residential fetchers must filter `category = residential`. Why: reuses review, broker limits and RLS without touching existing rows.
