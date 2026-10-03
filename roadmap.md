@@ -15,3 +15,4 @@
 - [x] Maps integration: connected Google Maps (managed); map picker + property map verified. NOTE: managed key only works on *.lovable.app — custom domain needs user-owned API key
 - [x] Lead activity timeline (calls, WhatsApp, status, notes) + AI intent/urgency/next-action analysis
 - [x] صفحة خريطة العقارات (/map) بمفتاح VITE_GOOGLE_MAPS_API_KEY مع بديل المفتاح الحالي
+- [x] ENGAZ CRM test: demo listing page /demo/central-point (Central Point shop, static, no DB) — pending: real ENGAZ listing URL from user

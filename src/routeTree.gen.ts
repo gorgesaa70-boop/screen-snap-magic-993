@@ -22,6 +22,7 @@ import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/j
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
+import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -88,6 +89,11 @@ const BrokersSlugRoute = BrokersSlugRouteImport.update({
   path: '/brokers/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DemoCentralPointRoute = DemoCentralPointRouteImport.update({
+  id: '/demo/central-point',
+  path: '/demo/central-point',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
   path: '/properties/$id',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof AuthenticatedJoinRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/demo/central-point': typeof DemoCentralPointRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
 }
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/join': typeof AuthenticatedJoinRoute
   '/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/demo/central-point': typeof DemoCentralPointRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
 }
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/demo/central-point': typeof DemoCentralPointRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
 }
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/pending'
     | '/brokers/$slug'
+    | '/demo/central-point'
     | '/properties/$id'
     | '/brokers/'
   fileRoutesByTo: FileRoutesByTo
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/pending'
     | '/brokers/$slug'
+    | '/demo/central-point'
     | '/properties/$id'
     | '/brokers'
   id:
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_authenticated/join'
     | '/_authenticated/pending'
     | '/brokers/$slug'
+    | '/demo/central-point'
     | '/properties/$id'
     | '/brokers/'
   fileRoutesById: FileRoutesById
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
+  DemoCentralPointRoute: typeof DemoCentralPointRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
 }
@@ -294,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrokersSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/demo/central-point': {
+      id: '/demo/central-point'
+      path: '/demo/central-point'
+      fullPath: '/demo/central-point'
+      preLoaderRoute: typeof DemoCentralPointRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$id': {
       id: '/properties/$id'
       path: '/properties/$id'
@@ -332,6 +352,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   BrokersSlugRoute: BrokersSlugRoute,
+  DemoCentralPointRoute: DemoCentralPointRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
 }
