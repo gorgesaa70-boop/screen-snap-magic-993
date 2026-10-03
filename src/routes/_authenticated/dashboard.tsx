@@ -48,9 +48,14 @@ function Dashboard() {
       </DashShell>
     );
   }
+  if (me.broker.suspended_at) return (
+    <DashShell title="الحساب موقوف" isAdmin={me.isAdmin}>
+      <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">تم إيقاف هذا الحساب من الإدارة، ولا يمكن الوصول إلى لوحة التحكم. تواصل مع إدارة المنصة.</p>
+    </DashShell>
+  );
   if (!me.broker.is_active) return (
     <DashShell title="حسابك قيد المراجعة" isAdmin={me.isAdmin}>
-      <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">طلب انضمامك قيد المراجعة من الإدارة، أو تم إيقاف الحساب مؤقتًا.</p>
+      <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">طلب انضمامك قيد المراجعة من الإدارة، وستتمكن من الوصول إلى لوحة الوسيط فور الاعتماد.</p>
     </DashShell>
   );
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} />;
@@ -84,6 +89,7 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
 
   return (
     <DashShell title={`أهلًا، ${broker.name}`} isAdmin={isAdmin}>
+      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : "وسيط فرد"}</span>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "overview", label: "نظرة عامة" }, { id: "properties", label: "عقاراتي" }, { id: "leads", label: "العملاء والطلبات" }, { id: "profile", label: "الملف الشخصي" }]} />
       {tab === "overview" && (
         <div className="space-y-4">
@@ -193,7 +199,8 @@ function ProfileForm({ broker }: { broker: BrokerRow }) {
     if (f.name.trim().length < 2) { toast.error("الاسم مطلوب"); return; }
     if (f.facebook && !/^https?:\/\//.test(f.facebook)) { toast.error("رابط فيسبوك غير صحيح"); return; }
     setBusy(true);
-    const { error } = await supabase.from("brokers").update({ ...f, name: f.name.trim().slice(0, 100), bio: f.bio.slice(0, 2000) }).eq("id", broker.id);
+    const { phone: _p, ...rest } = f;
+    const { error } = await supabase.from("brokers").update({ ...rest, name: f.name.trim().slice(0, 100), bio: f.bio.slice(0, 2000) }).eq("id", broker.id);
     setBusy(false);
     if (error) toast.error(error.message); else toast.success("تم حفظ الملف الشخصي");
   }
@@ -206,7 +213,7 @@ function ProfileForm({ broker }: { broker: BrokerRow }) {
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="الاسم"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={100} /></Field>
         <Field label="التخصص"><input className={inputCls} value={f.specialty} onChange={set("specialty")} maxLength={120} /></Field>
-        <Field label="الهاتف"><input className={inputCls} dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} /></Field>
+        <Field label="هاتف تسجيل الدخول"><><input className={inputCls} dir="ltr" value={f.phone} readOnly disabled /><Link to="/account" className="mt-1 block text-xs font-bold text-primary hover:text-teal">تغيير الرقم بعد التحقق منه</Link></></Field>
         <Field label="واتساب"><input className={inputCls} dir="ltr" value={f.whatsapp} onChange={set("whatsapp")} maxLength={20} /></Field>
         <Field label="البريد"><input className={inputCls} dir="ltr" value={f.email} onChange={set("email")} maxLength={255} /></Field>
         <Field label="رابط فيسبوك"><input className={inputCls} dir="ltr" value={f.facebook} onChange={set("facebook")} maxLength={300} /></Field>
