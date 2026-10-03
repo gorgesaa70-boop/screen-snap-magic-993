@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, TYPES, AREAS, type Property } from "./data";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES, AREAS, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -267,7 +267,7 @@ export function Footer() {
               { I: Facebook, href: "https://www.facebook.com/share/19VhkpxBhr/?mibextid=wwXIfr", label: "صفحتنا على فيسبوك" },
               { I: Instagram, href: "https://www.instagram.com/value._.square", label: "حسابنا على إنستاجرام" },
               { I: TikTokIcon, href: "https://www.tiktok.com/@value.square8", label: "حسابنا على تيك توك" },
-              { I: MessageCircle, href: "https://wa.me/qr/CQI5TYBJEJNTM1?s=r", label: "تواصل معنا على واتساب" },
+              { I: MessageCircle, href: waLink(WHATSAPP_NUMBER, "مرحبًا، أريد الاستفسار عن أحد العقارات على منصة فاليو عقار."), label: "تواصل معنا على واتساب" },
             ].map(({ I, href, label }, i) => (
               <a key={i} href={href} aria-label={label} title={label} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="grid size-10 place-items-center rounded-full bg-primary-foreground/10 transition hover:bg-teal hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy-deep"><I className="size-4" aria-hidden="true" /><span className="sr-only">{label}</span></a>
             ))}
