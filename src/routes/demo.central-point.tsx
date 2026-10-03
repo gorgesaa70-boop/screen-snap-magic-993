@@ -7,7 +7,7 @@ import { Logo } from "@/components/site/Navbar";
  * مستقلة تمامًا عن بقية الموقع — بدون قاعدة بيانات أو ربط تلقائي.
  * ضع هنا رابط العقار الأصلي في ENGAZ CRM ليعمل زر "عرض التفاصيل من المصدر":
  */
-const ENGAZ_LISTING_URL = "";
+const ENGAZ_LISTING_URL = "https://valuegroup.engazcrm.net/consumer/unit/10/title";
 
 export const Route = createFileRoute("/demo/central-point")({
   head: () => ({
