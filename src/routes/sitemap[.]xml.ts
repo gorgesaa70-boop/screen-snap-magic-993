@@ -33,8 +33,11 @@ export const Route = createFileRoute("/sitemap.xml")({
             collect("malls", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}` })),
           ]);
           const entries: Entry[] = [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls];
-          const urls = entries.map((e) => `<url><loc>${esc(SITE_URL + (e.path === "/" ? "/" : e.path))}</loc>${e.lastmod ? `<lastmod>${esc(e.lastmod)}</lastmod>` : ""}</url>`);
-          const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+          const urls = entries.map(
+            (e) =>
+              `  <url>\n    <loc>${esc(SITE_URL + (e.path === "/" ? "/" : e.path))}</loc>${e.lastmod ? `\n    <lastmod>${esc(e.lastmod)}</lastmod>` : ""}\n  </url>`
+          );
+          const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
           return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
         } catch {
           return new Response("Sitemap temporarily unavailable", { status: 503, headers: { "Cache-Control": "no-store" } });
