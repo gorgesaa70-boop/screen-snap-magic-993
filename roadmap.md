@@ -31,3 +31,10 @@
 - [ ] إشعار "رد الوسيط" للعميل — محتاج ربط الطلب بحساب العميل
 - [x] تطبيق الموبايل: اكتشاف انقطاع الإنترنت أثناء التشغيل + مراجعة إعدادات Capacitor
 - [ ] إشعارات Push الأصلية — مستنية حساب Firebase وشهادة Apple
+## WhatsApp OTP + Webhook wiring (in progress)
+- [x] Save WHATSAPP_PHONE_NUMBER_ID + WHATSAPP_VERIFY_TOKEN (from user)
+- [ ] User provides real WHATSAPP_ACCESS_TOKEN (Meta API Setup, permanent token) — placeholder sent
+- [ ] User provides real WHATSAPP_TEMPLATE_NAME (approved Authentication template in Meta) — placeholder sent
+- [ ] User provides real WHATSAPP_APP_SECRET (Meta App Settings → Basic) — placeholder sent
+- [ ] Test real OTP send + broker sign-in (office + individual) after secrets complete
+- Do NOT publish until secrets complete; do not change existing settings.
