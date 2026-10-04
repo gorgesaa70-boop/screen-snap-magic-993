@@ -86,7 +86,7 @@ function PropertyPage() {
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(p.price)} <span className="text-sm text-muted-foreground">ج.م{p.status === "إيجار" ? " / شهريًا" : ""}</span></p>
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{p.type}</span>
-            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area}</span>
+            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? p.city : `${p.area}، ${p.city}`}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Maximize className="size-4 text-teal" />{p.size} م²</span>
             {p.rooms && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><BedDouble className="size-4 text-teal" />{p.rooms} غرف</span>}
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{p.baths} حمام</span>}
