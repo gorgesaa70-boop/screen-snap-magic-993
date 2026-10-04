@@ -36,3 +36,8 @@ export function decideLogin(brokers: BrokerMatch[], authUserIds: string[]): Logi
   if (authSet.length === 1) return { kind: "user", userId: authSet[0]! };
   return { kind: "new" };
 }
+
+/** A new login phone is taken if any broker row or auth user other than `userId` owns it. */
+export function isPhoneTaken(brokers: BrokerMatch[], authUserIds: string[], userId: string): boolean {
+  return brokers.some((b) => b.user_id !== userId) || authUserIds.some((id) => id !== userId);
+}

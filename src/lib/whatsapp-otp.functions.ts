@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { decideLogin, type BrokerMatch } from "./broker-login";
+import { decideLogin, isPhoneTaken, type BrokerMatch } from "./broker-login";
 
 // Limits (server-enforced; the UI mirrors them only for display)
 const TTL_MS = 5 * 60 * 1000;
@@ -110,29 +110,12 @@ export const verifyWhatsappOtp = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<VerifyResult> => {
     const db = await admin();
     const { phone, code } = data;
-    const { data: row } = await db.from("whatsapp_otps").select("*")
-      .eq("phone", phone).is("consumed_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!row || new Date(row.expires_at).getTime() < Date.now()) return { ok: false, error: "expired" };
-    if (row.attempts >= MAX_ATTEMPTS) return { ok: false, error: "locked" };
-
-    const match = safeEqual(row.code_hash, await hmac(`${phone}:${code}`));
-    if (!match) {
-      const attempts = row.attempts + 1;
-      await db.from("whatsapp_otps").update({ attempts, ...(attempts >= MAX_ATTEMPTS ? { consumed_at: new Date().toISOString() } : {}) }).eq("id", row.id);
-      await log(attempts >= MAX_ATTEMPTS ? "wa_otp_locked" : "wa_otp_failed", phone, "wrong code");
-      return { ok: false, error: attempts >= MAX_ATTEMPTS ? "locked" : "wrong", remaining: MAX_ATTEMPTS - attempts };
-    }
-    // single use: consume atomically (only one request can win)
-    const { data: consumed } = await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() })
-      .eq("id", row.id).is("consumed_at", null).select("id");
-    if (!consumed?.length) return { ok: false, error: "expired" };
+    const r = await consumeCode(phone, code);
+    if (!r.ok) return r;
 
     // Resolve the ORIGINAL account for this phone; never guess, never create a substitute for a broker
-    const [{ data: bm }, { data: au }] = await Promise.all([
-      db.rpc("brokers_by_phone", { _phone: phone }),
-      db.rpc("auth_user_ids_by_phone", { _phone: phone }),
-    ]);
-    const decision = decideLogin((bm ?? []) as BrokerMatch[], ((au ?? []) as unknown as string[]));
+    const { brokers, authUserIds } = await lookupBrokerByPhone(phone);
+    const decision = decideLogin(brokers, authUserIds);
     if (decision.kind === "conflict") { await log("wa_login_conflict", phone, decision.reason); return { ok: false, error: "conflict" }; }
     if (decision.kind === "suspended") { await log("wa_login_suspended", phone); return { ok: false, error: "banned" }; }
 
@@ -157,6 +140,20 @@ export const verifyWhatsappOtp = createServerFn({ method: "POST" })
     await log("wa_otp_verified", phone, undefined, userId);
     return { ok: true, tokenHash: link.properties.hashed_token };
   });
+
+/**
+ * Server-only lookup of broker rows and auth users owning a phone (normalized in DB).
+ * Uses service-only RPCs; results never leave the server (callers return only ok/error codes).
+ */
+async function lookupBrokerByPhone(phone: string): Promise<{ brokers: BrokerMatch[]; authUserIds: string[] }> {
+  const db = await admin();
+  const [{ data: bm, error: e1 }, { data: au, error: e2 }] = await Promise.all([
+    db.rpc("brokers_by_phone", { _phone: phone }),
+    db.rpc("auth_user_ids_by_phone", { _phone: phone }),
+  ]);
+  if (e1 || e2) throw new Error("lookup failed");
+  return { brokers: (bm ?? []) as BrokerMatch[], authUserIds: (au ?? []) as unknown as string[] };
+}
 
 /** Consume a valid code for `phone` (shared by login and phone change). */
 async function consumeCode(phone: string, code: string): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> {
@@ -187,11 +184,8 @@ export const changePhoneWithWhatsapp = createServerFn({ method: "POST" })
     const r = await consumeCode(data.phone, data.code);
     if (!r.ok) return r;
     const db = await admin();
-    const [{ data: bm }, { data: au }] = await Promise.all([
-      db.rpc("brokers_by_phone", { _phone: data.phone }),
-      db.rpc("auth_user_ids_by_phone", { _phone: data.phone }),
-    ]);
-    const taken = ((bm ?? []) as BrokerMatch[]).some((b) => b.user_id !== userId) || ((au ?? []) as unknown as string[]).some((id) => id !== userId);
+    const { brokers, authUserIds } = await lookupBrokerByPhone(data.phone);
+    const taken = isPhoneTaken(brokers, authUserIds, userId);
     if (taken) { await log("wa_phone_change_conflict", data.phone, undefined, userId); return { ok: false, error: "phone_taken" }; }
     const { error } = await db.auth.admin.updateUserById(userId, { phone: data.phone, phone_confirm: true });
     if (error) { console.error("phone change", error.message); return { ok: false, error: "server" }; }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { decideLogin, normalizePhone, type BrokerMatch } from "@/lib/broker-login";
+import { decideLogin, isPhoneTaken, normalizePhone, type BrokerMatch } from "@/lib/broker-login";
 
 const b = (o: Partial<BrokerMatch>): BrokerMatch => ({ id: "b1", user_id: "u1", is_active: true, suspended: false, account_type: "individual", ...o });
 
@@ -21,4 +21,12 @@ describe("decideLogin", () => {
   it("phone on a different auth user → conflict", () => expect(decideLogin([b({})], ["other"]).kind).toBe("conflict"));
   it("several auth users share phone → conflict", () => expect(decideLogin([], ["a", "b"]).kind).toBe("conflict"));
   it("existing customer by phone keeps own account", () => expect(decideLogin([], ["c"])).toEqual({ kind: "user", userId: "c" }));
+});
+
+describe("isPhoneTaken (phone change)", () => {
+  it("free number is allowed", () => expect(isPhoneTaken([], [], "me")).toBe(false));
+  it("own number is allowed", () => expect(isPhoneTaken([b({ user_id: "me" })], ["me"], "me")).toBe(false));
+  it("another broker's number is rejected", () => expect(isPhoneTaken([b({ user_id: "x" })], [], "me")).toBe(true));
+  it("unlinked broker row is rejected", () => expect(isPhoneTaken([b({ user_id: null })], [], "me")).toBe(true));
+  it("another customer's number is rejected", () => expect(isPhoneTaken([], ["x"], "me")).toBe(true));
 });
