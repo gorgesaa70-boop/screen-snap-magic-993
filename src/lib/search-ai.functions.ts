@@ -25,7 +25,7 @@ export const parseSearchQuery = createServerFn({ method: "POST" })
       "أنت محلل طلبات بحث عقاري لمنصة في برج العرب الجديدة. حوّل طلب المستخدم إلى JSON فقط بدون أي نص آخر، ولا تكتب SQL أو استعلامات أبدًا. الشكل: " +
       '{"category":"residential|industrial|unknown","type":string|null,"status":"بيع"|"إيجار"|null,"area":string|null,"min_price":number|null,"max_price":number|null,"size":number|null,"rooms":number|null}. ' +
       `type من هذه القيم فقط: ${TYPES.join("، ")}. area من هذه القيم فقط: ${AREAS.join("، ")}. ` +
-      "category=industrial للأراضي الصناعية والمصانع والمخازن. الأسعار بالجنيه كأرقام كاملة (مليون ونص = 1500000). «أقل من» تعني max_price و«أكثر من» تعني min_price. ضع null لأي قيمة غير مذكورة صراحة ولا تخمّن. «برج العرب» اسم المدينة وليس area.";
+      "category=industrial للأراضي الصناعية والمصانع والمخازن. الأسعار بالجنيه كأرقام كاملة (مليون ونص = 1500000). «أقل من» تعني max_price و«أكثر من» تعني min_price. ضع null لأي قيمة غير مذكورة صراحة ولا تخمّن. «برج العرب» اسم المدينة وليس area. الأحياء المذكورة تخص برج العرب الجديدة فقط.";
     try {
       const result = streamText({
         model: provider.responses("openai/gpt-6-astra"),

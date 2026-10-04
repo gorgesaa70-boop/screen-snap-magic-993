@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
+import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchProperty(id: string) {
@@ -86,7 +86,7 @@ function PropertyPage() {
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(p.price)} <span className="text-sm text-muted-foreground">ج.م{p.status === "إيجار" ? " / شهريًا" : ""}</span></p>
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{p.type}</span>
-            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area}</span>
+            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? p.city : `${p.area}، ${p.city}`}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Maximize className="size-4 text-teal" />{p.size} م²</span>
             {p.rooms && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><BedDouble className="size-4 text-teal" />{p.rooms} غرف</span>}
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{p.baths} حمام</span>}
@@ -101,7 +101,7 @@ function PropertyPage() {
             <div className="rounded-2xl border bg-card p-5">
               <div className="flex items-center gap-3">
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
-                <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">عرض الملف</Link></div>
+                <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><span className="text-xs font-bold text-muted-foreground">{ACCOUNT_LABEL[broker.account_type] ?? "وسيط عقاري"}</span><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">عرض الملف</Link></div>
               </div>
               <a href={waLink(broker.whatsapp || broker.phone, `مرحبًا، أستفسر عن: ${p.title}`)} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />تواصل واتساب</a>
             </div>

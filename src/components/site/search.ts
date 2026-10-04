@@ -1,7 +1,7 @@
 import type { Property } from "./data";
 
-export type Filters = { type: string; status: string; area: string; min: string; max: string };
-export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "" };
+export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string };
+export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "" };
 
 export const isEmpty = (f: Filters) => Object.values(f).every((v) => v === "");
 
@@ -12,6 +12,7 @@ export function applyFilters(list: Property[], f: Filters) {
     (p) =>
       (!f.type || p.type === f.type) &&
       (!f.status || p.status === f.status) &&
+      (!f.city || p.city === f.city) &&
       (!f.area || p.area === f.area) &&
       (min === null || p.price >= min) &&
       (max === null || p.price <= max),

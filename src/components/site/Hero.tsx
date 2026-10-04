@@ -1,6 +1,6 @@
 import { Search, RotateCcw } from "lucide-react";
 import hero from "@/assets/hero.jpg";
-import { AREAS, TYPES } from "./data";
+import { CITY_NAMES, CITIES, TYPES } from "./data";
 import { emptyFilters, isEmpty, type Filters } from "./search";
 
 const field =
@@ -34,7 +34,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
 
       <div id="search" className="relative z-10 mx-auto -mt-28 max-w-6xl scroll-mt-20 px-4 md:-mt-36 md:px-6">
         <form onSubmit={(e) => { e.preventDefault(); onSearch(); }}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-2xl bg-card p-4 shadow-float md:grid-cols-6 md:p-5">
+          className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-2xl bg-card p-4 shadow-float md:grid-cols-7 md:p-5">
           <label>
             <span className={lbl}>نوع العقار</span>
             <select value={draft.type} onChange={set("type")} className={field}>
@@ -48,11 +48,18 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
               <option value="">الكل</option><option>بيع</option><option>إيجار</option>
             </select>
           </label>
-          <label className="col-span-2 md:col-span-1">
-            <span className={lbl}>المنطقة</span>
-            <select value={draft.area} onChange={set("area")} className={field}>
+          <label>
+            <span className={lbl}>المدينة</span>
+            <select value={draft.city ?? ""} onChange={(e) => setDraft({ ...draft, city: e.target.value, area: "" })} className={field}>
+              <option value="">كل المدن</option>
+              {CITY_NAMES.map((t) => <option key={t}>{t}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className={lbl}>المنطقة / الحي</span>
+            <select value={draft.area} onChange={set("area")} className={field} disabled={!CITIES[draft.city ?? ""]?.length}>
               <option value="">كل المناطق</option>
-              {AREAS.map((t) => <option key={t}>{t}</option>)}
+              {(CITIES[draft.city ?? ""] ?? []).map((t) => <option key={t}>{t}</option>)}
             </select>
           </label>
           <label>

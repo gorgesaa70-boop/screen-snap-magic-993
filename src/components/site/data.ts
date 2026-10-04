@@ -15,6 +15,7 @@ export type Property = {
   image: string;
   price: number;
   type: string;
+  city: string;
   area: string;
   size: number;
   rooms?: number | undefined;
@@ -29,7 +30,18 @@ export type Property = {
 };
 
 export const TYPES = ["شقة", "فيلا", "أرض", "محل", "مكتب", "دوبلكس"];
-export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس"];
+export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس", "الحي السادس", "الحي السابع", "الحي الثامن", "الحي التاسع"];
+export const DEFAULT_CITY = "برج العرب الجديدة";
+/** City -> its areas. Cities with no areas store the city name as the area. */
+export const CITIES: Record<string, string[]> = {
+  "برج العرب الجديدة": AREAS,
+  "كينج مريوط": [],
+  "مدينة العلمين": ["العلمين الجديدة", "الحي اللاتيني", "داون تاون", "الأبراج الشاطئية", "الحي السكني"],
+  "الساحل الشمالي": [],
+};
+export const CITY_NAMES = Object.keys(CITIES);
+export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
+export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار" };
 
 export const toProperty = (r: PropertyRow): Property => ({
   id: r.id,
@@ -38,6 +50,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   image: r.image_url || "/demo/p1.jpg",
   price: Number(r.price),
   type: r.type,
+  city: r.city,
   area: r.area,
   size: Number(r.size),
   rooms: r.rooms ?? undefined,
@@ -51,8 +64,8 @@ export const toProperty = (r: PropertyRow): Property => ({
   brokerId: r.broker_id,
 });
 
-export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,phone,whatsapp,email,facebook,is_demo";
-export type PublicBroker = Pick<BrokerRow, "id" | "slug" | "name" | "specialty" | "bio" | "photo_url" | "areas" | "phone" | "whatsapp" | "email" | "facebook" | "is_demo">;
+export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,phone,whatsapp,email,facebook,is_demo,account_type";
+export type PublicBroker = Pick<BrokerRow, "id" | "slug" | "name" | "specialty" | "bio" | "photo_url" | "areas" | "phone" | "whatsapp" | "email" | "facebook" | "is_demo" | "account_type">;
 
 export async function fetchPublicProperties(brokerId?: string) {
   let q = supabase.from("properties").select("*").eq("review_status", "approved").eq("category", "residential");

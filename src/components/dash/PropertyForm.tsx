@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AREAS, TYPES, uploadImage, type PropertyRow } from "@/components/site/data";
+import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 
@@ -13,6 +13,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     description: initial?.description ?? "",
     price: initial ? String(initial.price) : "",
     type: initial?.type ?? TYPES[0]!,
+    city: initial?.city ?? DEFAULT_CITY,
     area: initial?.area ?? AREAS[0]!,
     size: initial ? String(initial.size) : "",
     rooms: initial?.rooms != null ? String(initial.rooms) : "",
@@ -41,7 +42,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     setBusy(true);
     const payload = {
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
-      price: Number(f.price), type: f.type, area: f.area, size: Number(f.size || 0),
+      price: Number(f.price), type: f.type, city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, size: Number(f.size || 0),
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null, source_url: src || null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
@@ -65,7 +66,8 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         <Field label="الغرض"><select className={inputCls} value={f.status} onChange={set("status")}><option>بيع</option><option>إيجار</option></select></Field>
         <Field label="السعر (ج.م)"><input className={inputCls} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(/\D/g, "") })} /></Field>
         <Field label="النوع"><select className={inputCls} value={f.type} onChange={set("type")}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="المنطقة"><select className={inputCls} value={f.area} onChange={set("area")}>{AREAS.map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="المساحة (م²)"><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(/\D/g, "") })} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="الغرف"><input className={inputCls} inputMode="numeric" value={f.rooms} onChange={(e) => setF({ ...f, rooms: e.target.value.replace(/\D/g, "") })} /></Field>

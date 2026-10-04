@@ -89,7 +89,7 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
 
   return (
     <DashShell title={`أهلًا، ${broker.name}`} isAdmin={isAdmin}>
-      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : "وسيط فرد"}</span>
+      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : broker.account_type === "owner" ? "مالك عقار" : "وسيط فرد"}</span>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "overview", label: "نظرة عامة" }, { id: "properties", label: "عقاراتي" }, { id: "leads", label: "العملاء والطلبات" }, { id: "profile", label: "الملف الشخصي" }]} />
       {tab === "overview" && (
         <div className="space-y-4">

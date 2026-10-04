@@ -420,6 +420,7 @@ export type Database = {
           broker_id: string | null
           built_size: number | null
           category: string
+          city: string
           created_at: string
           description: string | null
           featured_until: string | null
@@ -453,6 +454,7 @@ export type Database = {
           broker_id?: string | null
           built_size?: number | null
           category?: string
+          city?: string
           created_at?: string
           description?: string | null
           featured_until?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           broker_id?: string | null
           built_size?: number | null
           category?: string
+          city?: string
           created_at?: string
           description?: string | null
           featured_until?: string | null
