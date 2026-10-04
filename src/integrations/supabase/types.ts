@@ -644,6 +644,48 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_webhook_events: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          error_title: string | null
+          event_at: string | null
+          event_key: string
+          from_masked: string | null
+          id: string
+          kind: string
+          message_type: string | null
+          status: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          error_title?: string | null
+          event_at?: string | null
+          event_key: string
+          from_masked?: string | null
+          id?: string
+          kind: string
+          message_type?: string | null
+          status?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          error_title?: string | null
+          event_at?: string | null
+          event_key?: string
+          from_masked?: string | null
+          id?: string
+          kind?: string
+          message_type?: string | null
+          status?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
