@@ -82,6 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "author", content: "Value Aqar" },
       { name: "google-site-verification", content: "lOa3fWX64EeXcESQQpPaasWdric73CaGjOpcNTUKjFI" },
+      { name: "google-site-verification", content: "HVwysSnyE82fA-_xQNbPDBIq1FmYjIgFQ_Tmyi4213I" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
