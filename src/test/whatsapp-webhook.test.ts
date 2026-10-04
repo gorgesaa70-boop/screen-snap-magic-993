@@ -43,7 +43,7 @@ describe("POST parsing", () => {
     expect(new Set(keys).size).toBe(2);
   });
   it("different statuses of same message are distinct events", () => {
-    const p = structuredClone(payload); p.entry[0]!.changes[0]!.value.statuses[0]!.status = "delivered";
+    const p = structuredClone(payload); const s = p.entry[0]?.changes[0]?.value.statuses[0]; if (s) s.status = "delivered";
     expect(parseEvents(p)[1]?.event_key).toBe("st:wamid.B:delivered");
   });
   it("ignores unrelated payloads", () => expect(parseEvents({ object: "page" })).toEqual([]));
