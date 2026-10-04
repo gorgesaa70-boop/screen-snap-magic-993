@@ -67,7 +67,8 @@ export type ParsedSearch = {
 
 /** Validates raw model JSON into safe, platform-supported filters. */
 export function validateParsed(raw: unknown): ParsedSearch {
-  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  type Raw = { category?: unknown; type?: unknown; status?: unknown; area?: unknown; min_price?: unknown; max_price?: unknown; size?: unknown; rooms?: unknown };
+  const r = (raw && typeof raw === "object" ? raw : {}) as Raw;
   const category = r.category === "industrial" ? "industrial" : r.category === "residential" ? "residential" : "unknown";
   let min = parseAmount(r.min_price);
   let max = parseAmount(r.max_price);
