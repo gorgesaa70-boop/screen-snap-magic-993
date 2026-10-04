@@ -6,7 +6,7 @@
 - [x] Change phone number with verification
 - [x] Security event log (no plain OTP stored)
 - [ ] Real SMS provider connection — waiting on user to add provider credentials in Cloud auth settings
-- [ ] WhatsApp OTP live test — user chose Lovable's built-in WhatsApp connection; connect card pending user completion, then adapt send code to gateway and test with 01021075553
+- [ ] WhatsApp OTP live test — direct Meta Cloud API (permanent decision: never the built-in Lovable WhatsApp connector); saved WHATSAPP_PHONE_NUMBER_ID + WHATSAPP_VERIFY_TOKEN; missing WHATSAPP_ACCESS_TOKEN + WHATSAPP_TEMPLATE_NAME + WHATSAPP_APP_SECRET (user to add from Meta), then real send test
 - [ ] Social platforms request — unclear: social login (Google/Facebook) vs social profile links on site; asked user to clarify
 - [ ] CRM انجاز (Injaz) integration — user asked how to connect it; check if a connector exists, else explain API-key route
 - [x] TikTok icon in footer with account link @value.square8
