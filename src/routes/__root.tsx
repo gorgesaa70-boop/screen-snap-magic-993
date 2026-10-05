@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { LangProvider, useLang } from "@/lib/i18n";
 import {
   Outlet,
   Link,
@@ -135,9 +136,20 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <LangProvider>
+        <RootInner />
+      </LangProvider>
+    </QueryClientProvider>
+  );
+}
+
+function RootInner() {
+  const { dir } = useLang();
+  return (
+    <>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster position="top-center" dir="rtl" richColors />
-    </QueryClientProvider>
+      <Toaster position="top-center" dir={dir} richColors />
+    </>
   );
 }

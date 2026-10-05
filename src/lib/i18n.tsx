@@ -1,0 +1,302 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+
+export type Lang = "ar" | "en";
+
+/** Module-level current language so non-hook helpers (formatPrice, maps) can read it. */
+let currentLang: Lang = "ar";
+export const getLang = (): Lang => currentLang;
+
+/** English dictionary keyed by the Arabic source string. Untranslated strings fall back to the Arabic source. */
+const EN: Record<string, string> = {
+  // Navbar / general
+  "الرئيسية": "Home",
+  "العقارات": "Properties",
+  "خريطة العقارات": "Properties Map",
+  "المصانع والأراضي الصناعية": "Factories & Industrial Land",
+  "المولات": "Malls",
+  "الوسطاء العقاريون": "Real Estate Brokers",
+  "اطلب عقارك": "Request a Property",
+  "دخول الوسطاء": "Broker Login",
+  "أضف عقارك": "Add Your Property",
+  "البحث": "Search",
+  "القائمة": "Menu",
+  "بحث": "Search",
+  "الوسطاء": "Brokers",
+  "تنقل سريع": "Quick links",
+  "فاليو عقار": "Value Aqar",
+
+  // Hero / search form
+  "برج العرب الجديدة": "New Borg El Arab",
+  "عقارك المناسب،": "Your ideal property,",
+  "أقرب": "closer",
+  " مما تتخيل": " than you think",
+  "اكتشف العقارات المتاحة في برج العرب، وقارن الخيارات، وتواصل مع الوسيط المناسب بكل سهولة.":
+    "Explore available properties in Borg El Arab, compare your options, and easily reach the right broker.",
+  "مجمع سكني حديث في برج العرب الجديدة": "Modern residential compound in New Borg El Arab",
+  "نوع العقار": "Property type",
+  "الغرض": "Purpose",
+  "المدينة": "City",
+  "المنطقة / الحي": "Area / District",
+  "السعر من (ج.م)": "Min price (EGP)",
+  "إلى (ج.م)": "Max (EGP)",
+  "الكل": "All",
+  "كل المدن": "All cities",
+  "كل المناطق": "All areas",
+  "ابحث عن عقار": "Search properties",
+  "مسح": "Reset",
+  "بلا حد": "No limit",
+
+  // Property values
+  "شقة": "Apartment",
+  "فيلا": "Villa",
+  "أرض": "Land",
+  "محل": "Shop",
+  "مكتب": "Office",
+  "دوبلكس": "Duplex",
+  "بيع": "Sale",
+  "إيجار": "Rent",
+  "لل": "For ",
+  "ج.م": "EGP",
+  " / شهريًا": " / month",
+  "غرف": "rooms",
+  "حمام": "baths",
+  "م²": "sqm",
+
+  // Cities & areas
+  "كينج مريوط": "King Mariout",
+  "مدينة العلمين": "New Alamein",
+  "الساحل الشمالي": "North Coast",
+  "الحي الأول": "First District",
+  "الحي الثاني": "Second District",
+  "الحي الثالث": "Third District",
+  "الحي الرابع": "Fourth District",
+  "الحي الخامس": "Fifth District",
+  "الحي السادس": "Sixth District",
+  "الحي السابع": "Seventh District",
+  "الحي الثامن": "Eighth District",
+  "الحي التاسع": "Ninth District",
+  "العلمين الجديدة": "New Alamein",
+  "الحي اللاتيني": "Latin District",
+  "داون تاون": "Downtown",
+  "الأبراج الشاطئية": "Beach Towers",
+  "الحي السكني": "Residential District",
+
+  // Account labels
+  "وسيط عقاري": "Real estate broker",
+  "مكتب عقاري": "Real estate office",
+  "مالك العقار": "Property owner",
+
+  // Categories / featured
+  "تصفّح حسب النوع": "Browse by type",
+  "التصنيفات الرئيسية": "Main Categories",
+  "شقق": "Apartments",
+  "فلل": "Villas",
+  "أراضٍ": "Land",
+  "محلات تجارية": "Commercial Shops",
+  "مكاتب إدارية": "Administrative Offices",
+  "عقارات للإيجار": "Properties for Rent",
+  "مختارات فاليو عقار": "Value Aqar Picks",
+  "العقارات المميزة": "Featured Properties",
+  "نتائج البحث": "Search Results",
+  "العقارات المطابقة": "Matching Properties",
+  "تم العثور على": "Found",
+  "عقار": "property",
+  "عقارات": "properties",
+  "مسح الفلاتر": "Clear filters",
+  "تعذّر تحميل العقارات، حاول تحديث الصفحة.": "Couldn't load properties, try refreshing the page.",
+  "لا توجد عقارات تطابق بحثك": "No properties match your search",
+  "جرّب توسيع نطاق السعر أو اختيار منطقة أو نوع مختلف، أو اطلب عقارك وسنساعدك.":
+    "Try widening the price range or picking a different area or type, or request a property and we'll help you.",
+  "* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.": "* Listings marked 'demo' are sample data only.",
+  "إعلان تجريبي": "Demo listing",
+  "مميز": "Featured",
+  "لم يتم التحقق بعد": "Not verified yet",
+  "تمت مراجعته": "Reviewed",
+  "تحديث:": "Updated:",
+  "تفاصيل العقار": "View details",
+  "واتساب": "WhatsApp",
+  "مرحبًا، أستفسر عن:": "Hello, I'm inquiring about:",
+
+  // Request CTA
+  "مش لاقي العقار اللي بتدور عليه؟": "Can't find the property you're looking for?",
+  "حدد مواصفات العقار وميزانيتك، وسيقوم فريق فاليو عقار بمساعدتك في الوصول إلى الخيارات المناسبة.":
+    "Tell us the property specs and your budget, and the Value Aqar team will help you reach the right options.",
+  "تم استلام طلبك ✓": "Request received ✓",
+  "سيتواصل معك أحد وسطائنا قريبًا.": "One of our brokers will contact you soon.",
+  "الاسم": "Name",
+  "رقم الهاتف": "Phone number",
+  "المنطقة": "Area",
+  "الميزانية (ج.م)": "Budget (EGP)",
+  "تفاصيل إضافية": "Additional details",
+  "جارٍ الإرسال...": "Sending...",
+  "أرسل طلبك": "Send request",
+  "اكتب الاسم ورقم هاتف صحيح": "Enter a valid name and phone number",
+  "تعذّر إرسال الطلب، حاول مرة أخرى": "Couldn't send the request, please try again",
+
+  // Brokers
+  "شركاء موثوقون": "Trusted partners",
+  "تواصل مع الوسيط المناسب": "Reach the right broker",
+  "كل الوسطاء ←": "All brokers →",
+  "عرض الملف الشخصي": "View profile",
+  "دليل فاليو عقار": "Value Aqar Directory",
+  "اختر الوسيط المناسب حسب المنطقة والتخصص وتواصل معه مباشرة.":
+    "Pick the right broker by area and specialty and contact them directly.",
+  "ابحث بالاسم أو التخصص": "Search by name or specialty",
+  "وسيط": "broker",
+  "وسطاء": "brokers",
+  "لا يوجد وسطاء مطابقون": "No matching brokers",
+  "بيانات تجريبية": "Demo data",
+  "* بيانات تجريبية.": "* Demo data.",
+  "عرض الملف ←": "View profile →",
+  "عرض الملف": "View profile",
+  "الوسيط غير موجود": "Broker not found",
+  "كل الوسطاء ": "All brokers",
+  "نبذة تعريفية": "About",
+  "لم يضف الوسيط نبذة بعد.": "The broker hasn't added a bio yet.",
+  "فيسبوك": "Facebook",
+  "اتصال": "Call",
+  "العقارات المسجلة": "Registered properties",
+  "لا توجد عقارات معتمدة لهذا الوسيط حاليًا.": "No approved properties for this broker yet.",
+  "مرحبًا {name}، تواصلت معك عبر فاليو عقار": "Hello {name}, I contacted you via Value Aqar",
+
+  // For brokers / services
+  "للوسطاء والمكاتب العقارية": "For brokers and real estate offices",
+  "كبّر نشاطك العقاري مع فاليو عقار": "Grow your real estate business with Value Aqar",
+  "أدوات تسويق وإدارة تساعدك في الوصول إلى عملاء جدد وتنظيم عقاراتك واستفساراتك.":
+    "Marketing and management tools that help you reach new clients and organize your listings and inquiries.",
+  "تسويق عقاراتك": "Market your properties",
+  "إدارة الاستفسارات": "Manage inquiries",
+  "متابعة الأداء": "Track performance",
+
+  // Footer
+  "منصة عقارية تربطك بالعقارات والوسطاء في برج العرب الجديدة.":
+    "A real estate platform connecting you with properties and brokers in New Borg El Arab.",
+  "روابط": "Links",
+  "تواصل معنا": "Contact us",
+  "برج العرب الجديدة، الإسكندرية": "New Borg El Arab, Alexandria",
+  "صفحتنا على فيسبوك": "Our Facebook page",
+  "حسابنا على إنستاجرام": "Our Instagram account",
+  "حسابنا على تيك توك": "Our TikTok account",
+  "تواصل معنا على واتساب": "Chat with us on WhatsApp",
+  "مرحبًا، أريد الاستفسار عن أحد العقارات على منصة فاليو عقار.":
+    "Hello, I'd like to inquire about a property on the Value Aqar platform.",
+  "فاليو عقار. جميع الحقوق محفوظة.": "Value Aqar. All rights reserved.",
+  "سياسة الخصوصية": "Privacy Policy",
+  "الشروط والأحكام": "Terms & Conditions",
+
+  // Map page / map component
+  "اضغط على أي علامة لعرض السعر وفتح تفاصيل العقار.": "Tap any marker to see the price and open the property details.",
+  "لا توجد عقارات محدد موقعها على الخريطة بعد": "No properties with map locations yet",
+  "تصفح كل العقارات": "Browse all properties",
+  "عقار بدون موقع محدد لا يظهر على الخريطة.": "property without a location isn't shown on the map.",
+  "تعذّر تحميل الخريطة حاليًا. تأكد من الاتصال أو من إعداد مفتاح الخرائط.":
+    "Couldn't load the map right now. Check your connection or the Maps key setup.",
+  "عقار على الخريطة — اضغط على العلامة لعرض التفاصيل.": "properties on the map — tap a marker for details.",
+  "عرض التفاصيل": "View details",
+
+  // Industrial
+  "أراضٍ صناعية ومصانع ومبانٍ صناعية للبيع والإيجار في المناطق الصناعية.":
+    "Industrial land, factories and industrial buildings for sale and rent in industrial zones.",
+  "بحث سريع بالاسم أو الموقع...": "Quick search by name or location...",
+  "بحث سريع": "Quick search",
+  "كل الأنواع": "All types",
+  "كل الأنشطة": "All activities",
+  "بيع وإيجار": "Sale & rent",
+  "للبيع": "For Sale",
+  "للإيجار": "For Rent",
+  "أقل مساحة م²": "Min area (sqm)",
+  "أكبر مساحة م²": "Max area (sqm)",
+  "أقل سعر": "Min price",
+  "أعلى سعر": "Max price",
+  "جارٍ التحميل...": "Loading...",
+  "تعذّر تحميل العقارات.": "Couldn't load properties.",
+  "لا توجد نتائج مطابقة": "No matching results",
+  "لا توجد عقارات صناعية منشورة بعد": "No industrial properties published yet",
+  "أرض صناعية": "Industrial land",
+  "مصنع مبنى بالكامل": "Fully built factory",
+  "جزء من مصنع أو مبنى صناعي": "Part of a factory or industrial building",
+  "مباني": "Built-up",
+  "كل العقارات الصناعية": "All industrial properties",
+  "مساحة الأرض": "Land area",
+  "المساحة المبنية": "Built-up area",
+  "الموقع التفصيلي:": "Detailed location:",
+  "الوسيط المسؤول": "Listing broker",
+  "العقار غير متاح": "Property unavailable",
+  "العقار الصناعي غير متاح": "Industrial property unavailable",
+
+  // Malls
+  "المولات التجارية": "Commercial Malls",
+  "اختر المول لعرض الوحدات المتاحة للبيع أو الإيجار.": "Choose a mall to view its units for sale or rent.",
+  "لا توجد مولات بعد.": "No malls yet.",
+  "المول غير متاح": "Mall unavailable",
+  "كل المولات": "All malls",
+  "كل الوحدات": "All units",
+  "وحدة": "unit",
+  "وحدات": "units",
+  "متاحة": "available",
+  "نوع الوحدة": "Unit type",
+  "لا توجد وحدات متاحة حاليًا في هذا المول.": "No units available in this mall right now.",
+  "استفسر واتساب": "Inquire on WhatsApp",
+  "محل تجاري": "Commercial shop",
+  "عيادة": "Clinic",
+  "مطعم / كافيه": "Restaurant / Café",
+  "كشك": "Kiosk",
+
+  // Property detail
+  "الموقع على الخريطة": "Location on map",
+  "موقع العقار على الخريطة": "Property location on the map",
+  "لا يوجد وصف إضافي.": "No additional description.",
+  "عرض التفاصيل من المصدر": "View details at source",
+  "آخر تحديث:": "Last updated:",
+  "تواصل واتساب": "Contact via WhatsApp",
+  "أرسل استفسارًا": "Send an inquiry",
+  "رسالتك (اختياري)": "Your message (optional)",
+  "إرسال الاستفسار": "Send inquiry",
+  "تم إرسال استفسارك للوسيط ✓": "Your inquiry was sent to the broker ✓",
+  "تعذّر الإرسال": "Couldn't send",
+
+  // Notifications
+  "الإشعارات": "Notifications",
+  "غير مقروء": "unread",
+  "تحديد الكل كمقروء": "Mark all as read",
+  "لا توجد إشعارات": "No notifications",
+  "عرض كل الإشعارات": "View all notifications",
+  "تحديد كمقروء": "Mark as read",
+  "حذف الإشعار": "Delete notification",
+  "حذف": "Delete",
+};
+
+/** Translate a string (or data value like a property type) into the current language. */
+export function t(s: string, vars?: Record<string, string | number>): string {
+  let out = currentLang === "en" ? (EN[s] ?? s) : s;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) out = out.split(`{${k}}`).join(String(v));
+  }
+  return out;
+}
+
+const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({ lang: "ar", setLang: () => {} });
+export const useLang = () => useContext(LangCtx);
+
+const STORAGE_KEY = "va-lang";
+
+export function LangProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("ar");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === "en" || saved === "ar") setLangState(saved);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    currentLang = lang;
+    const html = document.documentElement;
+    html.lang = lang;
+    html.dir = lang === "ar" ? "rtl" : "ltr";
+    try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
+  }, [lang]);
+
+  return <LangCtx.Provider value={{ lang, setLang: setLangState }}>{children}</LangCtx.Provider>;
+}

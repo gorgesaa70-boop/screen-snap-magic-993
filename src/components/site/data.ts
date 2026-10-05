@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { getLang } from "@/lib/i18n";
 
 export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
@@ -101,9 +102,9 @@ export const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).m
 export const waLink = (num: string | null | undefined, text: string) =>
   `https://wa.me/${(num || WHATSAPP_NUMBER).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 
-export const formatPrice = (n: number) => new Intl.NumberFormat("ar-EG").format(n);
+export const formatPrice = (n: number) => new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ar-EG").format(n);
 export const formatDate = (d: string) =>
-  new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "long", year: "numeric" }).format(new Date(d));
+  new Intl.DateTimeFormat(getLang() === "en" ? "en-US" : "ar-EG", { day: "numeric", month: "long", year: "numeric" }).format(new Date(d));
 
 /** Upload an image to the user's private folder and return a long-lived signed URL. */
 export async function uploadImage(file: File) {
