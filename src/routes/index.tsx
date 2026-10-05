@@ -10,9 +10,9 @@ export const Route = createFileRoute("/")({
     links: [{ rel: "canonical", href: "https://valueaqar.com/" }],
     scripts: [{ type: "application/ld+json", children: JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"RealEstateAgent","@id":"https://valueaqar.com/#org","name":"فاليو عقار","alternateName":"Value Aqar","url":"https://valueaqar.com/","telephone":"+201031958820","areaServed":"برج العرب الجديدة","sameAs":["https://www.facebook.com/share/19VhkpxBhr/","https://www.instagram.com/value._.square","https://www.tiktok.com/@value.square8"]},{"@type":"WebSite","name":"فاليو عقار","url":"https://valueaqar.com/","inLanguage":"ar"}]}) }],
     meta: [
-      { title: "فاليو عقار | Value Aqar — عقارات برج العرب الجديدة" },
+      { title: "فاليو عقار | عقارات برج العرب الجديدة للبيع والإيجار" },
       { name: "description", content: "اكتشف شقق وفلل وأراضي ومحلات في برج العرب الجديدة، وتواصل مع الوسيط المناسب بسهولة." },
-      { property: "og:title", content: "فاليو عقار | Value Aqar" },
+      { property: "og:title", content: "فاليو عقار | عقارات برج العرب الجديدة للبيع والإيجار" },
       { property: "og:url", content: "https://valueaqar.com/" },
       { property: "og:description", content: "منصة عقارية لعرض العقارات وربط العملاء بالوسطاء في برج العرب الجديدة." },
       { property: "og:type", content: "website" },
