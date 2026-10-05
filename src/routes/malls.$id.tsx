@@ -7,6 +7,7 @@ import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { t, useLang } from "@/lib/i18n";
 
 async function fetchMall(id: string) {
   const { data, error } = await supabase.from("malls").select("*").eq("id", id).maybeSingle();
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/malls/$id")({
 });
 
 function MallPage() {
+  useLang();
   const { id } = Route.useParams();
   const initial = Route.useLoaderData();
   const mall = useQuery({ queryKey: ["mall", id], queryFn: () => fetchMall(id), initialData: initial });
@@ -54,7 +56,7 @@ function MallPage() {
 
   if (mall.isLoading) return <PageShell><div className="mx-auto mt-6 h-60 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
   const m = mall.data;
-  if (!m) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">المول غير متاح</p><Link to="/malls" className={`${btnOutline} mt-4`}>كل المولات</Link></div></PageShell>;
+  if (!m) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">{t("المول غير متاح")}</p><Link to="/malls" className={`${btnOutline} mt-4`}>{t("كل المولات")}</Link></div></PageShell>;
 
   return (
     <PageShell>
@@ -72,11 +74,11 @@ function MallPage() {
       </section>
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
         <div className="grid grid-cols-2 gap-2">
-          <select aria-label="نوع الوحدة" className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">كل الوحدات</option>{MALL_UNIT_TYPES.map((t) => <option key={t}>{t}</option>)}</select>
-          <select aria-label="الحالة" className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">بيع وإيجار</option><option value="بيع">للبيع</option><option value="إيجار">للإيجار</option></select>
+          <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x}>{t(x)}</option>)}</select>
+          <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
         </div>
-        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? "جارٍ التحميل..." : `${rows.length} وحدة متاحة`}</p>
-        {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">لا توجد وحدات متاحة حاليًا في هذا المول.</p>}
+        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("جارٍ التحميل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
+        {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("لا توجد وحدات متاحة حاليًا في هذا المول.")}</p>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((u) => {
             const b = brokers.data?.find((x) => x.id === u.broker_id);
@@ -84,18 +86,18 @@ function MallPage() {
               <div key={u.id} className="overflow-hidden rounded-2xl border bg-card shadow-card">
                 <div className="relative aspect-[4/3] bg-muted">
                   {u.image_url ? <img src={u.image_url} alt={u.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Store className="size-12 text-muted-foreground" /></div>}
-                  <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">لل{u.status}</span>
+                  <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(u.status)}</span>
                 </div>
                 <div className="p-4">
-                  <p className="text-xs font-bold text-teal">{u.type}</p>
+                  <p className="text-xs font-bold text-teal">{t(u.type)}</p>
                   <h2 className="mt-1 font-extrabold text-primary">{u.title}</h2>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-primary">
-                    <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><Maximize className="size-3.5" />{formatPrice(Number(u.size))} م²</span>
+                    <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><Maximize className="size-3.5" />{formatPrice(Number(u.size))} {t("م²")}</span>
                     {u.floor && <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><Layers className="size-3.5" />{u.floor}</span>}
                   </div>
                   {u.description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{u.description}</p>}
-                  <p className="mt-3 text-lg font-extrabold text-primary">{formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">ج.م{u.status === "إيجار" ? " / شهريًا" : ""}</span></p>
-                  <a href={waLink(b?.whatsapp || b?.phone, `مرحبًا، أستفسر عن وحدة "${u.title}" في ${m.name}`)} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />استفسر واتساب</a>
+                  <p className="mt-3 text-lg font-extrabold text-primary">{formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">{t("ج.م")}{u.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
+                  <a href={waLink(b?.whatsapp || b?.phone, `مرحبًا، أستفسر عن وحدة "${u.title}" في ${m.name}`)} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("استفسر واتساب")}</a>
                 </div>
               </div>
             );
