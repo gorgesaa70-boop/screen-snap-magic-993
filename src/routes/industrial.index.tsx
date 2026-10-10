@@ -42,14 +42,14 @@ function IndustrialPage() {
           <h1 className="flex items-center gap-2 text-2xl font-extrabold md:text-4xl"><Factory className="size-7 text-teal md:size-9" />{t("المصانع والأراضي الصناعية")}</h1>
           <p className="mt-2 text-sm text-primary-foreground/80 md:text-base">{t("أراضٍ صناعية ومصانع ومبانٍ صناعية للبيع والإيجار في المناطق الصناعية.")}</p>
           <div className="relative mt-5">
-            <Search className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input aria-label={t("بحث سريع")} className={`${inputCls} pr-9`} placeholder={t("بحث سريع بالاسم أو الموقع...")} value={f.q} onChange={set("q")} />
+            <Search className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input aria-label={t("بحث سريع")} className={`${inputCls} ps-9`} placeholder={t("بحث سريع بالاسم أو الموقع...")} value={f.q} onChange={set("q")} />
           </div>
         </div>
       </section>
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
         <div className="grid grid-cols-2 gap-2 rounded-2xl border bg-card p-3 md:grid-cols-4">
-          <select aria-label={t("نوع العقار")} className={`${inputCls} col-span-2 md:col-span-1`} value={f.type} onChange={set("type")}><option value="">{t("كل الأنواع")}</option>{IND_TYPES.map((x) => <option key={x.value}>{t(x.value)}</option>)}</select>
+          <select aria-label={t("نوع العقار")} className={`${inputCls} col-span-2 md:col-span-1`} value={f.type} onChange={set("type")}><option value="">{t("كل الأنواع")}</option>{IND_TYPES.map((x) => <option key={x.value} value={x.value}>{t(x.value)}</option>)}</select>
           <select aria-label={t("المنطقة / الحي")} className={inputCls} value={f.zone} onChange={set("zone")}><option value="">{t("كل المناطق")}</option>{zones.data?.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}</select>
           <select aria-label={t("النشاط")} className={inputCls} value={f.activity} onChange={set("activity")}><option value="">{t("كل الأنشطة")}</option>{acts.data?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={f.status} onChange={set("status")}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>

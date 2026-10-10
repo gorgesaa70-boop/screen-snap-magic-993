@@ -264,6 +264,19 @@ const EN: Record<string, string> = {
   "تحديد كمقروء": "Mark as read",
   "حذف الإشعار": "Delete notification",
   "حذف": "Delete",
+  "كل الوسطاء": "All brokers",
+  "النشاط": "Activity",
+  "عقار مطابق لبحثك": "Property matching your search",
+  "استفسار جديد": "New inquiry",
+  "طلب عقاري": "Property request",
+  "رد الوسيط": "Broker reply",
+  "تحديث حالة": "Status update",
+  "إداري": "Administrative",
+  "الآن": "Just now",
+  "منذ {n} دقيقة": "{n} min ago",
+  "منذ {n} ساعة": "{n} hr ago",
+  "لوجو {name}": "{name} logo",
+  "مرحبًا، أستفسر عن وحدة {title} في {name}": "Hello, I'm inquiring about unit {title} in {name}",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */
@@ -282,21 +295,24 @@ const STORAGE_KEY = "va-lang";
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
+  const setLang = (next: Lang) => {
+    currentLang = next;
+    setLangState(next);
+  };
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "en" || saved === "ar") setLangState(saved);
+      if (saved === "en" || saved === "ar") setLang(saved);
     } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
-    currentLang = lang;
     const html = document.documentElement;
     html.lang = lang;
     html.dir = lang === "ar" ? "rtl" : "ltr";
     try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, [lang]);
 
-  return <LangCtx.Provider value={{ lang, setLang: setLangState, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
+  return <LangCtx.Provider value={{ lang, setLang, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
 }

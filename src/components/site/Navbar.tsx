@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { t, useLang } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
@@ -15,18 +16,19 @@ export function Logo({ light = false }: { light?: boolean }) {
 export function LangToggle() {
   const { lang, setLang } = useLang();
   return (
-    <button
+    <Button variant="outline"
       onClick={() => setLang(lang === "ar" ? "en" : "ar")}
       aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
       title={lang === "ar" ? "English" : "العربية"}
       className="grid h-10 min-w-10 place-items-center rounded-full border border-primary/25 px-2 text-xs font-extrabold text-primary transition-colors hover:bg-secondary"
     >
       {lang === "ar" ? "EN" : "ع"}
-    </button>
+    </Button>
   );
 }
 
 export function Navbar() {
+  useLang();
   const [open, setOpen] = useState(false);
   const links = [
     { label: t("الرئيسية"), href: "/#top" },
@@ -42,7 +44,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <Logo />
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-4 xl:flex">
           {links.map((l) => (
             <a key={l.href} href={l.href} className="text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
               {l.label}
@@ -58,13 +60,13 @@ export function Navbar() {
           <a href="/#request" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> {t("أضف عقارك")}
           </a>
-          <button onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary xl:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          </Button>
         </div>
       </div>
       {open && (
-        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card lg:hidden">
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card xl:hidden">
           {links.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
               {l.label}
@@ -80,6 +82,7 @@ export function Navbar() {
 }
 
 export function MobileBar() {
+  useLang();
   const items = [
     { label: t("الرئيسية"), href: "/#top", icon: Home },
     { label: t("بحث"), href: "/#search", icon: Search },
