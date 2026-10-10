@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Architecture rules
+- Visitor UI translations use the shared language provider and Arabic-keyed dictionary; translated components subscribe to its context and option values remain canonical Arabic. Why: language switches update immediately without changing stored data or filtering behavior.
 - Access control is enforced in Postgres RLS + guard triggers (brokers_guard, properties_guard, leads_guard); UI checks are UX only.
 - Roles live in `user_roles` (admin, broker) checked via `has_role()`; brokers map to users through `brokers.user_id`.
 - Privileged admin actions (creating/inviting accounts, banning) go through `src/lib/admin.functions.ts` server functions that verify admin before using the service client.
