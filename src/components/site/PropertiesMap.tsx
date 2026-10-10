@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { loadMapsApi } from "./MapPicker";
 import { formatPrice, type Property } from "./data";
+import { t, useLang } from "@/lib/i18n";
 
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c);
 
 /** One map showing every property that has coordinates; marker opens a card linking to the property page. */
 export function PropertiesMap({ properties, showError = false }: { properties: Property[]; showError?: boolean }) {
+  useLang();
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const [failed, setFailed] = useState(false);
@@ -50,7 +52,7 @@ export function PropertiesMap({ properties, showError = false }: { properties: P
   return (
     <div className="mb-6">
       <div ref={boxRef} className="h-72 w-full overflow-hidden rounded-2xl border bg-muted md:h-[500px]" />
-      <p className="mt-1.5 text-xs text-muted-foreground">{formatPrice(located.length)} عقار على الخريطة — اضغط على العلامة لعرض التفاصيل.</p>
+      <p className="mt-1.5 text-xs text-muted-foreground">{t("{n} عقار على الخريطة — اضغط على العلامة لعرض التفاصيل.", { n: formatPrice(located.length) })}</p>
     </div>
   );
 }

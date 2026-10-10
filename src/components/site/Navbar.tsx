@@ -28,6 +28,7 @@ export function LangToggle() {
 }
 
 export function Navbar() {
+  useLang();
   const [open, setOpen] = useState(false);
   const links = [
     { label: t("الرئيسية"), href: "/#top" },
@@ -81,6 +82,7 @@ export function Navbar() {
 }
 
 export function MobileBar() {
+  useLang();
   const { pathname, hash } = useRouterState({ select: (s) => s.location });
   const items = [
     { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },

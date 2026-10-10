@@ -25,6 +25,38 @@ const EN: Record<string, string> = {
   "تنقل سريع": "Quick links",
   "فاليو عقار": "Value Aqar",
 
+  // Brokers, auth, map
+  "{n} وسيط": "{n} brokers",
+  "العقارات المسجلة ({n})": "Listed properties ({n})",
+  "{n} عقار على الخريطة — اضغط على العلامة لعرض التفاصيل.": "{n} properties on the map — tap a pin for details.",
+  "تسجيل الدخول": "Sign in",
+  "للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.": "For brokers and admins. New here? Sign up with your number and request to join.",
+  "البريد الإلكتروني": "Email",
+  "نسيت رقم الهاتف أو تم تغييره؟": "Lost or changed your phone number?",
+  "1. سجّل الدخول بالبريد الإلكتروني المسجّل في حسابك (أو أعد تعيين كلمة المرور منه).": "1. Sign in with the email on your account (or reset your password from it).",
+  "2. من صفحة «حسابي» أضف الرقم الجديد وأكّده برمز يصل إليه.": "2. From “My account”, add the new number and confirm it with the code sent to it.",
+  "إذا لم يكن لديك بريد مسجّل، تتحقق الإدارة من هويتك وملكية الحساب قبل أي تعديل، ثم يجب تأكيد الرقم الجديد برمز تحقق. التواصل وحده لا يكفي لنقل الحساب.": "Without an email on file, the admins verify your identity and account ownership first, and the new number must still be confirmed with a code. Contacting us alone is not enough to move an account.",
+  "كلمة المرور": "Password",
+  "إرسال رابط إعادة التعيين": "Send reset link",
+  "نسيت كلمة المرور؟": "Forgot password?",
+  "رجوع لتسجيل الدخول": "Back to sign in",
+  "إعداد حساب المدير لأول مرة": "First-time admin setup",
+  "رقم الهاتف الجديد": "New phone number",
+  "مفتاح الدولة + الرقم": "Country code + number",
+  "رسالة نصية": "SMS",
+  "سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.": "We'll send a 6-digit code via {c}. It's valid for 5 minutes.",
+  "إرسال رمز التحقق": "Send code",
+  "أدخل الرمز المرسل إلى": "Enter the code sent to",
+  "صلاحية الرمز:": "Code valid for:",
+  "انتهت صلاحية الرمز": "Code expired",
+  "المحاولات:": "Attempts:",
+  "جارٍ التحقق...": "Verifying...",
+  "تأكيد": "Confirm",
+  "تغيير الرقم": "Change number",
+
+  // Property page
+  "، ": ", ",
+
   // Sell your property (/sell)
   "بيع عقارك": "Sell your property",
   "عندك شقة أو أرض أو محل وعايز تبيعه أو تأجّره؟ ابعت البيانات، وفريق فاليو عقار هيتواصل معاك ويساعدك توصل للمشتري المناسب.": "Have an apartment, land or shop to sell or rent? Send us the details and the Value Aqar team will contact you and help you reach the right buyer.",
@@ -321,6 +353,8 @@ const STORAGE_KEY = "va-lang";
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
+  // Set during render (not in an effect) so t() returns the new language in this same render pass.
+  currentLang = lang;
 
   useEffect(() => {
     try {
@@ -330,12 +364,16 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    currentLang = lang;
     const html = document.documentElement;
     html.lang = lang;
     html.dir = lang === "ar" ? "rtl" : "ltr";
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, [lang]);
 
-  return <LangCtx.Provider value={{ lang, setLang: setLangState, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
+  // Persist only on an explicit switch: writing from the effect above could overwrite the saved choice before it is restored.
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* ignore */ }
+  };
+
+  return <LangCtx.Provider value={{ lang, setLang, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
 }

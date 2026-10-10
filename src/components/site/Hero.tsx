@@ -11,6 +11,7 @@ const lbl = "mb-1 block text-xs font-bold text-muted-foreground";
 type Props = { draft: Filters; setDraft: (f: Filters) => void; onSearch: () => void; onClear: () => void };
 
 export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
+  useLang();
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [k]: e.target.value });
 
