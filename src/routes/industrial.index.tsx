@@ -49,7 +49,7 @@ function IndustrialPage() {
       </section>
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
         <div className="grid grid-cols-2 gap-2 rounded-2xl border bg-card p-3 md:grid-cols-4">
-          <select aria-label={t("نوع العقار")} className={`${inputCls} col-span-2 md:col-span-1`} value={f.type} onChange={set("type")}><option value="">{t("كل الأنواع")}</option>{IND_TYPES.map((x) => <option key={x.value}>{t(x.value)}</option>)}</select>
+          <select aria-label={t("نوع العقار")} className={`${inputCls} col-span-2 md:col-span-1`} value={f.type} onChange={set("type")}><option value="">{t("كل الأنواع")}</option>{IND_TYPES.map((x) => <option key={x.value} value={x.value}>{t(x.value)}</option>)}</select>
           <select aria-label={t("المنطقة / الحي")} className={inputCls} value={f.zone} onChange={set("zone")}><option value="">{t("كل المناطق")}</option>{zones.data?.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}</select>
           <select aria-label={t("النشاط")} className={inputCls} value={f.activity} onChange={set("activity")}><option value="">{t("كل الأنشطة")}</option>{acts.data?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={f.status} onChange={set("status")}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
