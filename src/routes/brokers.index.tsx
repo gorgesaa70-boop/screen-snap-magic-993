@@ -41,7 +41,7 @@ function BrokersPage() {
           <p className="mt-3 max-w-xl text-sm text-primary-foreground/80 md:text-base">{t("اختر الوسيط المناسب حسب المنطقة والتخصص وتواصل معه مباشرة.")}</p>
           <div className="mt-6 grid gap-2.5 rounded-2xl bg-card p-3 sm:grid-cols-[1fr_220px]">
             <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 end-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <input className={`${inputCls} ps-9`} placeholder={t("ابحث بالاسم أو التخصص")} value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)} aria-label={t("المنطقة")}>
@@ -70,7 +70,7 @@ function BrokersPage() {
                     <p className="truncate text-sm text-muted-foreground">{b.specialty}</p>
                   </div>
                 </div>
-                <p className="mt-4 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map(t).join(" / ") || "—"}</p>
+                <p className="mt-4 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => t(area)).join(" / ") || "—"}</p>
                 <div className="mt-4 flex items-center justify-between">
                   {b.is_demo ? <span className="text-[11px] text-muted-foreground">{t("بيانات تجريبية")}</span> : <span />}
                   <span className="text-sm font-bold text-primary group-hover:text-teal">{t("عرض الملف ←")}</span>

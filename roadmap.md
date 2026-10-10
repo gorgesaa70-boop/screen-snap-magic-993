@@ -1,4 +1,5 @@
 # Roadmap
+- [x] توضيح أن تعديلات GitHub تتزامن مع Lovable والنشر عند طلب المستخدم فقط
 - [x] Borg El Arab: 9 neighborhoods in search + property form
 - [x] King Mariout as standalone location
 - [x] El Alamein city with areas (area names need confirmation from user)

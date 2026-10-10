@@ -58,7 +58,7 @@ function BrokerProfile() {
           <div className="flex-1">
             <h1 className="text-2xl font-extrabold text-primary-foreground md:text-3xl">{b.name}</h1>
             <p className="mt-1 text-primary-foreground/80">{b.specialty}</p>
-            <p className="mt-3 flex items-start gap-2 text-sm text-primary-foreground/80"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map(t).join(" / ") || "—"}</p>
+            <p className="mt-3 flex items-start gap-2 text-sm text-primary-foreground/80"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => t(area)).join(" / ") || "—"}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:flex">
             <a href={waLink(b.whatsapp || b.phone, t("مرحبًا {name}، تواصلت معك عبر فاليو عقار", { name: b.name }))} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp px-5 text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("واتساب")}</a>

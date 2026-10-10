@@ -214,7 +214,7 @@ export function Brokers() {
                 <p className="text-sm text-muted-foreground">{b.specialty}</p>
               </div>
             </div>
-            <p className="mt-5 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map(tr).join(" / ") || "—"}</p>
+            <p className="mt-5 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => tr(area)).join(" / ") || "—"}</p>
             <Link to="/brokers/$slug" params={{ slug: b.slug }} className="mt-5 block rounded-xl bg-secondary py-2.5 text-center text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">{tr("عرض الملف الشخصي")}</Link>
           </div>
         ))}
