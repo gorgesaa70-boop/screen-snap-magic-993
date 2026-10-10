@@ -7,7 +7,7 @@ import { Phone, MessageCircle, Search, X, Download, Bell, Sparkles, Copy, Histor
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
-import { STAGES, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
+import { STAGES, LEAD_KINDS, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
 export type LeadWithProp = {
   id: string;
@@ -18,6 +18,10 @@ export type LeadWithProp = {
   property_type: string | null;
   area: string | null;
   budget: number | null;
+  purpose?: string | null;
+  asking_price?: number | null;
+  size_m2?: number | null;
+  phone_verified?: boolean;
   stage: string;
   notes: string | null;
   created_at: string;
@@ -37,7 +41,7 @@ function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
   const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
   const head = ["الاسم", "الهاتف", "النوع", "المرحلة", "العقار", "نوع العقار", "المنطقة", "الميزانية", "التفاصيل", "الملاحظات", "موعد المتابعة", "الوسيط", "تاريخ الطلب"];
   const lines = rows.map((l) => [
-    l.name, l.phone, l.kind === "inquiry" ? "استفسار" : "طلب", STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
+    l.name, l.phone, LEAD_KINDS[l.kind] ?? l.kind, STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
     l.properties?.title, l.property_type, l.area, l.budget, l.details, l.notes,
     l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG") : "",
     brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? "", new Date(l.created_at).toLocaleString("ar-EG"),
@@ -187,8 +191,8 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
         <div>
           <p className="font-bold text-primary">
             {l.name}{" "}
-            <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${l.kind === "inquiry" ? "bg-teal-soft text-primary" : "bg-secondary text-primary"}`}>
-              {l.kind === "inquiry" ? "استفسار عقار" : "طلب عقار"}
+            <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${l.kind === "inquiry" ? "bg-teal-soft text-primary" : l.kind === "listing" ? "bg-primary text-primary-foreground" : "bg-secondary text-primary"}`}>
+              {LEAD_KINDS[l.kind] ?? l.kind}
             </span>
           </p>
           <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
@@ -199,6 +203,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
       </div>
       <div className="mt-2 space-y-1 text-sm text-foreground/80">
         {l.properties?.title && <p>العقار: {l.properties.title}</p>}
+        {l.kind === "listing" && <p className="font-semibold">{[l.purpose === "rent" ? "للإيجار" : "للبيع", l.size_m2 ? `${l.size_m2} م²` : null, l.asking_price ? `${formatPrice(Number(l.asking_price))} ج.م` : null, l.phone_verified ? "✓ رقم مؤكَّد" : "رقم غير مؤكَّد"].filter(Boolean).join(" · ")}</p>}
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
@@ -236,7 +241,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
 
 export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; brokers?: BrokerRow[] | undefined; reload: () => void }) {
   const [search, setSearch] = useState("");
-  const [kind, setKind] = useState<"all" | "request" | "inquiry">("all");
+  const [kind, setKind] = useState<"all" | "request" | "inquiry" | "listing">("all");
   const [stage, setStage] = useState<string>("all");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
@@ -268,10 +273,11 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="كل الطلبات والاستفسارات" value={list.length} />
-        <Stat label="طلبات عقار" value={list.filter((l) => l.kind !== "inquiry").length} />
+        <Stat label="طلبات عقار" value={list.filter((l) => l.kind === "request").length} />
         <Stat label="استفسارات" value={list.filter((l) => l.kind === "inquiry").length} />
+        <Stat label="عروض ملاك" value={list.filter((l) => l.kind === "listing").length} />
         <Stat label="قيد المتابعة" value={open} />
       </div>
 
@@ -284,6 +290,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
           <option value="all">الكل</option>
           <option value="request">طلبات عقار</option>
           <option value="inquiry">استفسارات</option>
+          <option value="listing">عروض ملاك</option>
         </select>
         <select aria-label="المرحلة" className={`${inputCls} sm:w-40`} value={stage} onChange={(e) => setStage(e.target.value)}>
           <option value="all">كل المراحل</option>
