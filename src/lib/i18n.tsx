@@ -275,7 +275,7 @@ export function t(s: string, vars?: Record<string, string | number>): string {
   return out;
 }
 
-const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({ lang: "ar", setLang: () => {} });
+const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void; dir: "rtl" | "ltr" }>({ lang: "ar", setLang: () => {}, dir: "rtl" });
 export const useLang = () => useContext(LangCtx);
 
 const STORAGE_KEY = "va-lang";
@@ -298,5 +298,5 @@ export function LangProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, [lang]);
 
-  return <LangCtx.Provider value={{ lang, setLang: setLangState }}>{children}</LangCtx.Provider>;
+  return <LangCtx.Provider value={{ lang, setLang: setLangState, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
 }
