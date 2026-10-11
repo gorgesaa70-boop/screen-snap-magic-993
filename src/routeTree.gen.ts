@@ -30,6 +30,8 @@ import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
 import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
 import { Route as MallsIndexRouteImport } from './routes/malls.index'
 import { Route as MallsIdRouteImport } from './routes/malls.$id'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
+import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -139,6 +141,16 @@ const MallsIdRoute = MallsIdRouteImport.update({
   path: '/malls/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdRoute = ProjectsIdRouteImport.update({
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
   path: '/properties/$id',
@@ -175,10 +187,12 @@ export interface FileRoutesByFullPath {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -200,10 +214,12 @@ export interface FileRoutesByTo {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/industrial': typeof IndustrialIndexRoute
   '/malls': typeof MallsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -227,10 +243,12 @@ export interface FileRoutesById {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -254,10 +272,12 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/projects/'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -279,10 +299,12 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers'
     | '/industrial'
     | '/malls'
+    | '/projects'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   id:
@@ -305,10 +327,12 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/projects/'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -325,10 +349,12 @@ export interface RootRouteChildren {
   DemoCentralPointRoute: typeof DemoCentralPointRoute
   IndustrialIdRoute: typeof IndustrialIdRoute
   MallsIdRoute: typeof MallsIdRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -482,6 +508,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MallsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id': {
+      id: '/projects/$id'
+      path: '/projects/$id'
+      fullPath: '/projects/$id'
+      preLoaderRoute: typeof ProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$id': {
       id: '/properties/$id'
       path: '/properties/$id'
@@ -541,10 +581,12 @@ const rootRouteChildren: RootRouteChildren = {
   DemoCentralPointRoute: DemoCentralPointRoute,
   IndustrialIdRoute: IndustrialIdRoute,
   MallsIdRoute: MallsIdRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:
     ApiPublicNotificationsWhatsappDispatchRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

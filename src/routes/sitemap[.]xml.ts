@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SITE_URL } from "@/lib/seo";
 
-const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/map"];
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/map"];
 
 type Entry = { path: string; lastmod?: string };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);
@@ -26,13 +26,14 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         try {
-          const [res, ind, brokers, malls] = await Promise.all([
+          const [res, ind, brokers, malls, projects] = await Promise.all([
             collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "residential"), (r) => ({ path: `/properties/${r.id}`, lastmod: r.updated_at })),
             collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "industrial"), (r) => ({ path: `/industrial/${r.id}`, lastmod: r.updated_at })),
             collect("brokers", "id,slug", (q) => q.eq("is_active", true), (r) => ({ path: `/brokers/${encodeURIComponent(r.slug)}` })),
             collect("malls", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}` })),
+            collect("projects", "id,updated_at", (q) => q.eq("review_status", "approved"), (r) => ({ path: `/projects/${r.id}`, lastmod: r.updated_at })),
           ]);
-          const entries: Entry[] = [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls];
+          const entries: Entry[] = [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...projects];
           const urls = entries.map(
             (e) =>
               `  <url>\n    <loc>${esc(SITE_URL + (e.path === "/" ? "/" : e.path))}</loc>${e.lastmod ? `\n    <lastmod>${esc(e.lastmod)}</lastmod>` : ""}\n  </url>`

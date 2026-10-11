@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/join")({
 function JoinPage() {
   const { user } = Route.useRouteContext();
   const nav = useNavigate();
-  const [f, setF] = useState({ name: "", specialty: "", email: user.email ?? "", areas: [] as string[], account_type: "individual" as "individual" | "owner" });
+  const [f, setF] = useState({ name: "", specialty: "", email: user.email ?? "", areas: [] as string[], account_type: "individual" as "individual" | "owner" | "developer" });
   const [busy, setBusy] = useState(false);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,11 +38,11 @@ function JoinPage() {
         <p className="text-sm text-muted-foreground">املأ بياناتك وسيتم مراجعة طلبك من إدارة المنصة قبل تفعيل حسابك.</p>
         <div>
           <p className="mb-2 text-sm font-bold text-primary">نوع الحساب</p>
-          <div className="flex gap-2">
-            {([["individual", "وسيط عقاري"], ["owner", "مالك عقار"]] as const).map(([v, l]) => <button key={v} type="button" onClick={() => setF({ ...f, account_type: v })} className={`h-10 flex-1 rounded-full border px-4 text-sm font-bold ${f.account_type === v ? "border-primary bg-primary text-primary-foreground" : "text-primary"}`}>{l}</button>)}
+          <div className="flex flex-wrap gap-2">
+            {([["individual", "وسيط عقاري"], ["owner", "مالك عقار"], ["developer", "شركة تطوير"]] as const).map(([v, l]) => <button key={v} type="button" onClick={() => setF({ ...f, account_type: v })} className={`h-10 flex-1 rounded-full border px-4 text-sm font-bold ${f.account_type === v ? "border-primary bg-primary text-primary-foreground" : "text-primary"}`}>{l}</button>)}
           </div>
         </div>
-        <Field label="الاسم أو اسم المكتب"><input required className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={100} /></Field>
+        <Field label={f.account_type === "developer" ? "اسم الشركة" : "الاسم أو اسم المكتب"}><input required className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={100} /></Field>
         <Field label="التخصص"><input className={inputCls} value={f.specialty} onChange={(e) => setF({ ...f, specialty: e.target.value })} maxLength={120} /></Field>
         <Field label="البريد الإلكتروني (اختياري)"><input type="email" dir="ltr" className={inputCls} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         <div>

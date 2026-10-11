@@ -9,6 +9,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
+import { MyProjects } from "@/components/dash/MyProjects";
 import { Factory, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
@@ -61,7 +62,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} />;
 }
 
-type Tab = "overview" | "properties" | "leads" | "profile";
+type Tab = "overview" | "projects" | "properties" | "leads" | "profile";
 
 function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -89,8 +90,8 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
 
   return (
     <DashShell title={`أهلًا، ${broker.name}`} isAdmin={isAdmin}>
-      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : broker.account_type === "owner" ? "مالك عقار" : "وسيط فرد"}</span>
-      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "overview", label: "نظرة عامة" }, { id: "properties", label: "عقاراتي" }, { id: "leads", label: "العملاء والطلبات" }, { id: "profile", label: "الملف الشخصي" }]} />
+      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : broker.account_type === "owner" ? "مالك عقار" : broker.account_type === "developer" ? "شركة تطوير" : "وسيط فرد"}</span>
+      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "overview", label: "نظرة عامة" }, ...(broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []), { id: "properties", label: "عقاراتي" }, { id: "leads", label: "العملاء والطلبات" }, { id: "profile", label: "الملف الشخصي" }]} />
       {tab === "overview" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -106,6 +107,7 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
           <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>عرض ملفي العام</Link>
         </div>
       )}
+      {tab === "projects" && <MyProjects developerId={broker.id} />}
       {tab === "properties" && <MyProperties brokerId={broker.id} list={P} reload={() => props.refetch()} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "profile" && <ProfileForm broker={broker} />}

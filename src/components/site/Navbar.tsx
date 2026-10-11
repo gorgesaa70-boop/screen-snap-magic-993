@@ -40,6 +40,7 @@ export function Navbar() {
     { label: t("إداري"), href: "/?cat=office#properties" },
     { label: t("أراضي"), href: "/?cat=land#properties" },
     { label: t("صناعي"), href: "/industrial" },
+    { label: t("المشروعات"), href: "/projects" },
     { label: t("الوسطاء"), href: "/brokers" },
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("دخول الوسطاء") };

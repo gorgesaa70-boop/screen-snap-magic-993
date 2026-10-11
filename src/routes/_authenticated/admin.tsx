@@ -9,8 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
+import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "alerts" | "brokers" | "review" | "leads" | "plans" | "industrial" | "malls";
+type Tab = "reports" | "alerts" | "brokers" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -52,7 +53,7 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: "الوسطاء" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
@@ -62,6 +63,7 @@ function AdminPage() {
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
           {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} />}
+          {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
@@ -120,6 +122,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
             <Avatar name={b.name} url={b.photo_url} size="size-12" />
             <div className="min-w-0">
               <p className="truncate font-bold text-primary">{b.name} {b.is_demo && <span className="text-xs text-muted-foreground">(تجريبي)</span>}</p>
+              <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${b.account_type === "developer" ? "bg-teal text-accent-foreground" : "bg-secondary text-primary"}`}>{ACCOUNT_LABEL[b.account_type] ?? b.account_type}</span>
               <p className="truncate text-xs text-muted-foreground" dir="ltr">{b.email || (b.user_id ? "" : "بدون حساب دخول")}</p>
             </div>
           </div>

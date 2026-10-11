@@ -4,7 +4,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
+import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
@@ -50,56 +51,6 @@ export const Route = createFileRoute("/properties/$id")({
   component: PropertyPage,
 });
 
-function PropertyMap({ lat, lng }: { lat: number; lng: number }) {
-  const { lang } = useLang();
-  const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
-  if (!key) return null;
-  return (
-    <div className="mt-6">
-      <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />{t("الموقع على الخريطة")}</h2>
-      <iframe
-        title={t("موقع العقار على الخريطة")}
-        src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${lat},${lng}&zoom=15&language=${lang}&region=EG`}
-        className="h-64 w-full rounded-2xl border bg-muted md:h-80"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        allowFullScreen
-      />
-    </div>
-  );
-}
-
-/** Main photo with thumbnails; swipeable strip on phones. */
-function Gallery({ images, title, children }: { images: string[]; title: string; children?: React.ReactNode }) {
-  const [i, setI] = useState(0);
-  const go = (d: number) => setI((x) => (x + d + images.length) % images.length);
-  return (
-    <>
-      <div className="relative overflow-hidden rounded-2xl bg-muted">
-      <img src={images[i]} alt={title} className="aspect-[4/3] w-full object-cover md:aspect-video" />
-      {children}
-      {images.length > 1 && (
-        <>
-          <button type="button" onClick={() => go(-1)} aria-label={t("الصورة السابقة")} className="absolute top-1/2 right-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background/85 text-primary shadow"><ChevronRight className="size-5" /></button>
-          <button type="button" onClick={() => go(1)} aria-label={t("الصورة التالية")} className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background/85 text-primary shadow"><ChevronLeft className="size-5" /></button>
-          <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-bold text-primary" dir="ltr">{i + 1} / {images.length}</span>
-        </>
-      )}
-      </div>
-      {images.length > 1 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-            {images.map((src, j) => (
-              <button key={src} type="button" onClick={() => setI(j)} aria-label={`${t("صورة")} ${j + 1}`}
-                className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${j === i ? "border-teal" : "border-transparent opacity-70"}`}>
-                <img src={src} alt="" loading="lazy" className="size-full object-cover" />
-              </button>
-            ))}
-          </div>
-      )}
-    </>
-  );
-}
-
 function PropertyPage() {
   useLang();
   const { id } = Route.useParams();
@@ -127,7 +78,7 @@ function PropertyPage() {
           </div>
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("لا يوجد وصف إضافي.")}</p>
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}
-          {p.lat != null && p.lng != null && <PropertyMap lat={p.lat} lng={p.lng} />}
+          {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">{t("آخر تحديث:")} {formatDate(p.updated)}</p>
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">
