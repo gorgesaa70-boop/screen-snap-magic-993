@@ -29,7 +29,7 @@ function useReportData(scope: Scope) {
     queryFn: async () => {
       const [leads, deals, comms, pays, units, projects, members, brokers, staff] = await Promise.all([
         supabase.from("leads").select("id, created_at, stage, source, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at"),
-        supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, sale_value, sale_date, review_status, reservation_date, contract_date, created_at"),
+        supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, deal_type, sale_value, sale_date, review_status, reservation_date, contract_date, created_at"),
         supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at"),
         supabase.from("commission_payments").select("commission_id, amount, paid_on"),
         supabase.from("project_units").select("id, project_id"),
@@ -129,7 +129,11 @@ export function Reports({ scope }: { scope: Scope }) {
 
   const L = view.leads;
   const sold = L.filter((l) => l.stage === "sold").length;
-  const salesValue = view.sales.reduce((s, x) => s + Number(x.sale_value ?? 0), 0);
+  // Sales and rentals are reported apart: property sale values vs. rent contract / booking values.
+  const saleDeals = view.sales.filter((x) => x.deal_type === "sale");
+  const rentDeals = view.sales.filter((x) => x.deal_type !== "sale");
+  const salesValue = saleDeals.reduce((s, x) => s + Number(x.sale_value ?? 0), 0);
+  const rentValue = rentDeals.reduce((s, x) => s + Number(x.sale_value ?? 0), 0);
   const collected = view.pays.reduce((s, p) => s + Number(p.amount), 0);
   const approvedComm = view.comms.filter((c) => view.inRange(c.approved_at)).reduce((s, c) => s + Number(c.expected_amount ?? 0), 0);
   const outstanding = view.comms.filter((c) => !["expected", "pending_review", "cancelled"].includes(c.status)).reduce((s, c) => s + remaining(c), 0);
@@ -141,7 +145,7 @@ export function Reports({ scope }: { scope: Scope }) {
   const bump = (k: string) => { if (!months.has(k)) months.set(k, { m: k, leads: 0, revenue: 0, sales: 0 }); return months.get(k)!; };
   L.forEach((l) => bump(month(l.created_at)).leads++);
   view.pays.forEach((p) => { bump(month(p.paid_on)).revenue += Number(p.amount); });
-  view.sales.forEach((x) => { bump(month(x.sale_date!)).sales += Number(x.sale_value ?? 0); });
+  saleDeals.forEach((x) => { bump(month(x.sale_date!)).sales += Number(x.sale_value ?? 0); });
   const series = [...months.values()].sort((a, b) => a.m.localeCompare(b.m));
   const funnel = ORDER.map((s) => ({ stage: STAGES[s], count: L.filter((l) => REACHED(l.stage, s)).length }));
 
@@ -172,8 +176,9 @@ export function Reports({ scope }: { scope: Scope }) {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="العملاء في الفترة" value={L.length} hint={`${L.filter((l) => l.stage === "new").length} جديد · ${L.filter((l) => !CLOSED_STAGES.includes(l.stage)).length} قيد المتابعة`} />
-        <Stat label="بيع مؤكد" value={sold} hint={`نسبة التحويل ${pct(sold, L.length)}`} />
-        <Stat label="قيمة المبيعات المعتمدة" value={money(salesValue)} hint={`${view.sales.length} صفقة — قيمة عقارات، مش إيراد`} />
+        <Stat label="بيع / إيجار مؤكد" value={sold} hint={`نسبة التحويل ${pct(sold, L.length)}`} />
+        <Stat label="قيمة المبيعات المعتمدة" value={money(salesValue)} hint={`${saleDeals.length} بيع — قيمة عقارات، مش إيراد`} />
+        <Stat label="عقود إيجار ومصيف مؤكدة" value={rentDeals.length} hint={`قيمتها ${money(rentValue)} — مش إيراد`} />
         <Stat label="صفقات بانتظار المراجعة" value={view.deals.filter((x) => x.review_status === "pending").length} />
         <Stat label="إيرادات فاليو عقار (محصّلة)" value={money(collected)} hint="دفعات العمولات في الفترة" />
         <Stat label="عمولات اتعتمدت" value={money(approvedComm)} />

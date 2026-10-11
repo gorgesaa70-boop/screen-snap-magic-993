@@ -10,7 +10,7 @@ import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { dealNo } from "@/components/dash/LeadPipeline";
 import { Stat, Tabs, Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
-import { formatPrice, leadNo } from "@/components/site/data";
+import { DEAL_TYPE_LABEL, formatPrice, leadNo } from "@/components/site/data";
 import {
   COMMISSION_STATUS, PAYMENT_METHODS, commissionNo, displayStatus, remaining,
   type AgreementRow, type CommissionRow, type DealRow, type PaymentRow,
@@ -237,7 +237,7 @@ function Agreements({ isAdmin }: { isAdmin: boolean }) {
       return { list: (a.data ?? []) as AgreementRow[], brokers: b.data ?? [] };
     },
   });
-  const [f, setF] = useState({ broker_id: "", kind: "rate", value: "", from: new Date().toISOString().slice(0, 10), notes: "" });
+  const [f, setF] = useState({ broker_id: "", deal_type: "sale", kind: "rate", value: "", from: new Date().toISOString().slice(0, 10), notes: "" });
   const [busy, setBusy] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const name = (id: string) => q.data?.brokers.find((b) => b.id === id)?.name ?? "—";
@@ -249,7 +249,7 @@ function Agreements({ isAdmin }: { isAdmin: boolean }) {
     if (f.kind === "rate" && v > 100) { toast.error("النسبة لازم تكون من 100 أو أقل"); return; }
     setBusy(true);
     const { error } = await dbx.from("company_agreements").insert({
-      broker_id: f.broker_id, rate: f.kind === "rate" ? v : null, fixed_amount: f.kind === "fixed" ? v : null, effective_from: f.from, notes: f.notes.trim() || null,
+      broker_id: f.broker_id, deal_type: f.deal_type, rate: f.kind === "rate" ? v : null, fixed_amount: f.kind === "fixed" ? v : null, effective_from: f.from, notes: f.notes.trim() || null,
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
@@ -264,26 +264,28 @@ function Agreements({ isAdmin }: { isAdmin: boolean }) {
   if (q.isLoading) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
   return (
     <div className="space-y-4">
-      <p className="max-w-3xl text-sm text-muted-foreground">نسبة العمولة حسب اتفاقية كل شركة. شروط الاتفاقية مابتتعدّلش بعد ما تتسجل — لو اتغيّرت، اقفل القديمة وأضف واحدة جديدة، فالعمولات القديمة تفضل بشروطها.</p>
+      <p className="max-w-3xl text-sm text-muted-foreground">نسبة العمولة حسب اتفاقية كل شركة، ولكل نوع صفقات اتفاقية (بيع، إيجار شهري، مصيف). الإيجار من غير اتفاقية = نص شهر. شروط الاتفاقية مابتتعدّلش بعد ما تتسجل — لو اتغيّرت، اقفل القديمة وأضف واحدة جديدة، فالعمولات القديمة تفضل بشروطها.</p>
       {isAdmin && (
-        <div className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
           <Field label="الشركة"><select className={inputCls} value={f.broker_id} onChange={(e) => setF({ ...f, broker_id: e.target.value })}><option value="">— اختار —</option>{q.data?.brokers.filter((b) => b.is_active && b.account_type !== "owner").map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></Field>
-          <Field label="النوع"><select className={inputCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="rate">نسبة من قيمة البيع</option><option value="fixed">مبلغ ثابت لكل صفقة</option></select></Field>
+          <Field label="الصفقات"><select className={inputCls} value={f.deal_type} onChange={(e) => setF({ ...f, deal_type: e.target.value, value: e.target.value === "rent" && f.kind === "rate" && !f.value ? "50" : f.value })}>{Object.entries(DEAL_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
+          <Field label="النوع"><select className={inputCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="rate">{f.deal_type === "rent" ? "نسبة من إيجار شهر" : f.deal_type === "summer" ? "نسبة من قيمة الحجز" : "نسبة من قيمة البيع"}</option><option value="fixed">مبلغ ثابت لكل صفقة</option></select></Field>
           <Field label={f.kind === "rate" ? "النسبة %" : "المبلغ (ج.م)"}><input className={inputCls} inputMode="decimal" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value.replace(/[^\d.]/g, "") })} /></Field>
           <Field label="ساري من"><input type="date" className={inputCls} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></Field>
           <Field label="ملاحظات"><input className={inputCls} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} maxLength={500} /></Field>
-          <button disabled={busy} onClick={add} className={`${btnPrimary} lg:col-span-5`}>إضافة الاتفاقية</button>
+          <button disabled={busy} onClick={add} className={`${btnPrimary} lg:col-span-6`}>إضافة الاتفاقية</button>
         </div>
       )}
       {q.data?.list.length === 0 ? <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش اتفاقيات لسه. من غير اتفاقية، العمولة بتستنى الإدارة تحدد قيمتها.</p> : (
         <div className="overflow-x-auto rounded-2xl border bg-card">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-secondary text-primary"><tr>{["الشركة", "العمولة", "ساري من", "لحد", "اتسجلت", "ملاحظات", ""].map((h, i) => <th key={i} className="p-3 text-start font-bold">{h}</th>)}</tr></thead>
+            <thead className="bg-secondary text-primary"><tr>{["الشركة", "الصفقات", "العمولة", "ساري من", "لحد", "اتسجلت", "ملاحظات", ""].map((h, i) => <th key={i} className="p-3 text-start font-bold">{h}</th>)}</tr></thead>
             <tbody>
               {q.data?.list.map((a) => (
                 <tr key={a.id} className={`border-t ${active(a) ? "" : "text-muted-foreground"}`}>
                   <td className="p-3 font-bold">{name(a.broker_id)} {active(a) && <span className="ms-1 rounded-full bg-teal-soft px-2 text-[10px] font-bold text-primary">سارية</span>}</td>
-                  <td className="p-3">{a.rate != null ? `${a.rate}%` : money(a.fixed_amount)}</td>
+                  <td className="p-3">{DEAL_TYPE_LABEL[a.deal_type] ?? a.deal_type}</td>
+                  <td className="p-3">{a.rate != null ? `${a.rate}%${a.deal_type === "rent" ? " من إيجار شهر" : ""}` : money(a.fixed_amount)}</td>
                   <td className="p-3">{day(a.effective_from)}</td>
                   <td className="p-3">{a.effective_to ? day(a.effective_to) : "مفتوحة"}</td>
                   <td className="p-3">{day(a.approved_at)}</td>

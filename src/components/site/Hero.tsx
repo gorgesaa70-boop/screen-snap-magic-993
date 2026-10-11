@@ -1,12 +1,16 @@
 import { Search, RotateCcw } from "lucide-react";
 import hero from "@/assets/hero.jpg";
-import { CITY_NAMES, CITIES, TYPES } from "./data";
+import { CITY_NAMES, CITIES, TYPES_FOR } from "./data";
 import { emptyFilters, isEmpty, type Filters } from "./search";
 import { t, useLang } from "@/lib/i18n";
 
 const field =
   "h-12 w-full rounded-xl border bg-background px-3.5 text-base font-medium text-foreground outline-none transition hover:border-primary/40 focus:border-teal focus:ring-2 focus:ring-teal/30 md:h-11 md:text-sm";
 const lbl = "mb-1 block text-xs font-bold text-muted-foreground";
+
+const TABS: [string, string][] = [["", "الكل"], ["بيع", "شراء"], ["إيجار", "إيجار"], ["مصيف", "مصيف"]];
+/** Price range label per purpose: rent is monthly; summer compares the lowest price (usually per night). */
+const PRICE_LABEL: Record<string, string> = { "إيجار": "الإيجار الشهري من (ج.م)", "مصيف": "السعر من (ج.م، لليلة غالبًا)" };
 
 type Props = { draft: Filters; setDraft: (f: Filters) => void; onSearch: () => void; onClear: () => void };
 
@@ -35,19 +39,22 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
       </div>
 
       <div id="search" className="relative z-10 mx-auto -mt-28 max-w-6xl scroll-mt-20 px-4 md:-mt-36 md:px-6">
+        <div role="tablist" aria-label={t("الغرض")} className="flex w-fit gap-1 rounded-t-2xl bg-card p-1.5 pb-0 shadow-float">
+          {TABS.map(([v, label]) => (
+            <button key={v || "all"} type="button" role="tab" aria-selected={draft.status === v}
+              onClick={() => setDraft({ ...draft, status: v, type: TYPES_FOR[v]!.includes(draft.type) ? draft.type : "", min: "", max: "" })}
+              className={`rounded-xl px-4 py-2 text-sm font-extrabold transition md:px-5 ${draft.status === v ? "bg-primary text-primary-foreground" : "text-primary hover:bg-secondary"}`}>
+              {t(label)}
+            </button>
+          ))}
+        </div>
         <form onSubmit={(e) => { e.preventDefault(); onSearch(); }}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-2xl bg-card p-4 shadow-float md:grid-cols-7 md:p-5">
+          className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-2xl bg-card p-4 shadow-float md:grid-cols-6 md:p-5 rtl:rounded-tr-none ltr:rounded-tl-none">
           <label>
             <span className={lbl}>{t("نوع العقار")}</span>
             <select value={draft.type} onChange={set("type")} className={field}>
               <option value="">{t("الكل")}</option>
-              {TYPES.map((v) => <option key={v} value={v}>{t(v)}</option>)}
-            </select>
-          </label>
-          <label>
-            <span className={lbl}>{t("الغرض")}</span>
-            <select value={draft.status} onChange={set("status")} className={field}>
-              <option value="">{t("الكل")}</option><option value="بيع">{t("بيع")}</option><option value="إيجار">{t("إيجار")}</option>
+              {TYPES_FOR[draft.status]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
             </select>
           </label>
           <label>
@@ -65,7 +72,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
             </select>
           </label>
           <label>
-            <span className={lbl}>{t("السعر من (ج.م)")}</span>
+            <span className={lbl}>{t(PRICE_LABEL[draft.status] ?? "السعر من (ج.م)")}</span>
             <input type="number" min={0} inputMode="numeric" placeholder="0" value={draft.min} onChange={set("min")} className={field} />
           </label>
           <label>

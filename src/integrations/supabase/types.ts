@@ -317,6 +317,7 @@ export type Database = {
       }
       company_agreements: {
         Row: {
+          deal_type: string
           approved_at: string
           approved_by: string | null
           broker_id: string
@@ -329,6 +330,7 @@ export type Database = {
           rate: number | null
         }
         Insert: {
+          deal_type?: string
           approved_at?: string
           approved_by?: string | null
           broker_id: string
@@ -341,6 +343,7 @@ export type Database = {
           rate?: number | null
         }
         Update: {
+          deal_type?: string
           approved_at?: string
           approved_by?: string | null
           broker_id?: string
@@ -446,6 +449,10 @@ export type Database = {
       }
       deals: {
         Row: {
+          deal_type: string
+          rent_end: string | null
+          rent_monthly: number | null
+          rent_start: string | null
           broker_id: string | null
           contract_date: string | null
           contract_value: number | null
@@ -469,6 +476,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          deal_type?: string
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           broker_id?: string | null
           contract_date?: string | null
           contract_value?: number | null
@@ -491,6 +502,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          deal_type?: string
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           broker_id?: string | null
           contract_date?: string | null
           contract_value?: number | null
@@ -1078,6 +1093,17 @@ export type Database = {
       }
       properties: {
         Row: {
+          available_from: string | null
+          available_to: string | null
+          deposit: number | null
+          furnished: string | null
+          guests: number | null
+          min_months: number | null
+          price_month: number | null
+          price_night: number | null
+          price_season: number | null
+          price_unit: string | null
+          price_week: number | null
           activity_id: string | null
           address: string | null
           area: string
@@ -1114,6 +1140,17 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          available_from?: string | null
+          available_to?: string | null
+          deposit?: number | null
+          furnished?: string | null
+          guests?: number | null
+          min_months?: number | null
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           activity_id?: string | null
           address?: string | null
           area: string
@@ -1150,6 +1187,17 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          available_from?: string | null
+          available_to?: string | null
+          deposit?: number | null
+          furnished?: string | null
+          guests?: number | null
+          min_months?: number | null
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           activity_id?: string | null
           address?: string | null
           area?: string

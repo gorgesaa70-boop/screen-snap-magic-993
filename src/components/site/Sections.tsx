@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES, AREAS, type Property } from "./data";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, AREAS, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -30,16 +30,16 @@ const cats = [
   { label: "إداري", icon: Briefcase, f: { group: "office" } },
 ];
 
-export function Categories({ onPick }: { onPick: (f: Partial<Filters>) => void }) {
+export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filters>) => void; status?: string }) {
   useLang();
   const card = "group flex min-h-[104px] flex-col items-center justify-center gap-2.5 rounded-2xl border bg-card p-3 text-center transition hover:-translate-y-1 hover:border-teal hover:shadow-card focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.97] md:p-6";
   const icon = "grid size-11 shrink-0 place-items-center rounded-xl bg-teal-soft text-primary transition group-hover:bg-primary group-hover:text-primary-foreground md:size-14";
   return (
     <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
-      <SectionHead eyebrow={tr("تصفّح حسب النوع")} title={tr("التصنيفات الرئيسية")} />
+      <SectionHead eyebrow={tr("تصفّح حسب النوع")} title={status ? `${tr("التصنيفات الرئيسية")} — ${tr(PURPOSE_LABEL[status] ?? status)}` : tr("التصنيفات الرئيسية")} />
       <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 md:gap-4">
-        {cats.map(({ label, icon: Icon, f }) => (
-          <button key={label} type="button" onClick={() => onPick(f)} className={card}>
+        {cats.filter(({ f }) => !(status && status !== "بيع" && f.group === "land")).map(({ label, icon: Icon, f }) => (
+          <button key={label} type="button" onClick={() => onPick({ ...f, status })} className={card}>
             <span className={icon}><Icon className="size-5 md:size-6" /></span>
             <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr(label)}</span>
           </button>
@@ -60,15 +60,15 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
         <img src={p.image} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
           className="size-full object-cover transition duration-500 group-hover:scale-105" />
-        <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : "bg-teal text-accent-foreground"}`}>
-          {tr("لل")}{tr(p.status)}
+        <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : p.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>
+          {tr(PURPOSE_LABEL[p.status] ?? p.status)}
         </span>
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">
-          {formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.status === "إيجار" ? tr(" / شهريًا") : ""}</span>
+          {p.status === "مصيف" && <span className="text-sm font-semibold text-muted-foreground">{tr("من")} </span>}{formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.priceUnit ? tr(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span>
         </p>
         <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{p.title}</h3>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -145,6 +145,24 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   );
 }
 
+/** Latest listings for one purpose (rent / summer) with a "see all" that filters the main list. */
+export function PurposeStrip({ status, eyebrow, title, onAll }: { status: "إيجار" | "مصيف"; eyebrow: string; title: string; onAll: () => void }) {
+  useLang();
+  const { data: properties = [] } = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
+  const list = properties.filter((p) => p.status === status).slice(0, 6);
+  if (list.length === 0) return null;
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
+      <SectionHead eyebrow={tr(eyebrow)} title={tr(title)} action={
+        <button type="button" onClick={onAll} className="flex shrink-0 items-center gap-1 text-sm font-bold text-primary hover:text-teal">{tr("عرض الكل")} <ArrowLeft className="size-4" /></button>
+      } />
+      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+        {list.map((p) => <div key={p.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><PropertyCard p={p} /></div>)}
+      </div>
+    </section>
+  );
+}
+
 export function RequestCTA() {
   useLang();
   return (
@@ -165,7 +183,7 @@ export function RequestCTA() {
 
 function RequestForm() {
   useLang();
-  const [f, setF] = useState({ name: "", phone: "", property_type: "", area: "", budget: "", details: "" });
+  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", property_type: "", area: "", budget: "", details: "" });
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
@@ -173,7 +191,7 @@ function RequestForm() {
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null });
     setBusy(false);
     if (error) { toast.error(tr("تعذّر إرسال الطلب، حاول مرة أخرى")); return; }
     setDone(true);
@@ -183,9 +201,15 @@ function RequestForm() {
     <form onSubmit={submit} className="grid gap-2.5 rounded-2xl bg-card p-4 sm:grid-cols-2 md:p-5">
       <input className={inputCls} placeholder={tr("الاسم")} value={f.name} onChange={set("name")} maxLength={100} required />
       <input className={inputCls} placeholder={tr("رقم الهاتف")} inputMode="tel" dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} required />
-      <select className={inputCls} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
+      <div role="radiogroup" aria-label={tr("الغرض")} className="grid grid-cols-3 gap-1.5 sm:col-span-2">
+        {([["sale", "شراء"], ["rent", "إيجار"], ["summer", "مصيف"]] as const).map(([v, l]) => (
+          <button key={v} type="button" role="radio" aria-checked={f.purpose === v} onClick={() => setF({ ...f, purpose: v })}
+            className={`h-10 rounded-xl border text-sm font-bold transition ${f.purpose === v ? "border-teal bg-teal/10 text-primary" : "text-muted-foreground hover:border-teal/50"}`}>{tr(l)}</button>
+        ))}
+      </div>
+      <select className={inputCls} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
       <select className={inputCls} value={f.area} onChange={set("area")}><option value="">{tr("المنطقة")}</option>{AREAS.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
-      <input className={`${inputCls} sm:col-span-2`} placeholder={tr("الميزانية (ج.م)")} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} />
+      <input className={`${inputCls} sm:col-span-2`} placeholder={tr(f.purpose === "rent" ? "الميزانية الشهرية (ج.م)" : f.purpose === "summer" ? "الميزانية لليلة (ج.م)" : "الميزانية (ج.م)")} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} />
       <textarea className={`${inputCls} h-20 py-2 sm:col-span-2`} placeholder={tr("تفاصيل إضافية")} value={f.details} onChange={set("details")} maxLength={1000} />
       <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? tr("جارٍ الإرسال...") : tr("أرسل طلبك")} <ArrowLeft className="size-4" /></button>
     </form>
