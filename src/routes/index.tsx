@@ -39,10 +39,10 @@ function Index() {
       <main>
         {/* A hero search by type replaces any category group picked before. */}
         <Hero draft={draft} setDraft={setDraft} onSearch={() => { setFilters(draft.type ? { ...draft, group: "" } : draft); go(); }} onClear={clear} />
+        <Categories onPick={pick} status={draft.status} />
         <FeaturedProperties filters={filters} onClear={clear} />
         <HighlightsStrip />
         <InvestmentsStrip />
-        <Categories onPick={pick} status={draft.status} />
         <PurposeStrip status="إيجار" eyebrow="شهري" title="أحدث عقارات للإيجار" onAll={() => pick({ status: "إيجار" })} />
         <PurposeStrip status="مصيف" eyebrow="الساحل الشمالي" title="مصيف الساحل — شاليهات وفيلات" onAll={() => pick({ status: "مصيف" })} />
         <RequestCTA />

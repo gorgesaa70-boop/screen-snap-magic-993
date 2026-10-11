@@ -109,6 +109,14 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   const { data: properties = [], isLoading, isError } = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
   const results = applyFilters(properties, filters);
   const filtered = !isEmpty(filters);
+  // Show a few first (the home page was very long on phones); more on request. Reset when the search changes.
+  const step = filtered ? 12 : 6;
+  const [shown, setShown] = useState(step);
+  const [showMap, setShowMap] = useState(false);
+  const searchKey = JSON.stringify(filters);
+  const [lastKey, setLastKey] = useState(searchKey);
+  if (searchKey !== lastKey) { setLastKey(searchKey); setShown(step); }
+  const located = results.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).length;
   return (
     <section id="properties" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-12 md:px-6 md:pt-24">
       <SectionHead eyebrow={filtered ? tr("نتائج البحث") : tr("مختارات فاليو عقار")} title={filtered ? tr("العقارات المطابقة") : tr("العقارات المميزة")} />
@@ -144,10 +152,24 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
         </div>
       ) : (
         <>
-        <PropertiesMap properties={results} />
+        {located > 0 && (
+          <div className="mb-4">
+            <button type="button" onClick={() => setShowMap(!showMap)} aria-expanded={showMap} className="inline-flex h-10 items-center gap-1.5 rounded-xl border bg-card px-4 text-sm font-bold text-primary transition hover:border-teal">
+              <MapPin className="size-4 text-teal" />{showMap ? tr("إخفاء الخريطة") : `${tr("اعرض على الخريطة")} (${formatPrice(located)})`}
+            </button>
+            {showMap && <div className="mt-3"><PropertiesMap properties={results} /></div>}
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
-          {results.map((p) => <PropertyCard key={p.id} p={p} />)}
+          {results.slice(0, shown).map((p) => <PropertyCard key={p.id} p={p} />)}
         </div>
+        {results.length > shown && (
+          <div className="mt-6 text-center">
+            <button type="button" onClick={() => setShown(shown + step)} className="inline-flex h-11 items-center justify-center rounded-xl border border-primary px-6 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">
+              {tr("عرض المزيد")} ({formatPrice(results.length - shown)})
+            </button>
+          </div>
+        )}
         </>
       )}
       <p className="mt-4 text-xs text-muted-foreground">{tr("* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.")}</p>
@@ -301,7 +323,7 @@ export function BrokerServices() {
           <h2 className="mt-2 text-2xl font-extrabold text-primary md:text-4xl">{tr("كبّر نشاطك العقاري مع فاليو عقار")}</h2>
           <p className="mt-4 leading-relaxed text-foreground/75">{tr("أدوات تسويق وإدارة تساعدك في الوصول إلى عملاء جدد وتنظيم عقاراتك واستفساراتك.")}</p>
           <Link to="/auth" className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 font-bold text-primary-foreground transition hover:bg-navy-deep">
-            {tr("دخول الوسطاء")} <ArrowLeft className="size-4" />
+            {tr("انضم لفاليو عقار")} <ArrowLeft className="size-4" />
           </Link>
         </div>
         <div className="grid gap-3">
@@ -345,7 +367,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   useLang();
-  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["دخول الوسطاء", "/auth"]];
+  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">

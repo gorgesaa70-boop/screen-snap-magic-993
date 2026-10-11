@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
@@ -12,10 +12,10 @@ import { t, useLang } from "@/lib/i18n";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "دخول الوسطاء | فاليو عقار" },
+      { title: "تسجيل الدخول | فاليو عقار" },
       { name: "robots", content: "noindex, nofollow" },
-      { name: "description", content: "تسجيل دخول الوسطاء والإدارة إلى لوحة تحكم فاليو عقار." },
-      { property: "og:title", content: "دخول الوسطاء | فاليو عقار" },
+      { name: "description", content: "سجّل دخولك على فاليو عقار: العملاء (المفضلة والطلبات)، والوسطاء والشركات (لوحة التحكم)." },
+      { property: "og:title", content: "تسجيل الدخول | فاليو عقار" },
       { property: "og:description", content: "لوحة تحكم الوسطاء العقاريين على فاليو عقار." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -30,6 +30,9 @@ function AuthPage() {
   const [method, setMethod] = useState<"phone" | "email">("phone");
   const [mode, setMode] = useState<"login" | "forgot">("login");
   const [help, setHelp] = useState(false);
+  // First-admin setup is a one-time step: shown only at /auth?setup=1 (read after load to match the server render).
+  const [setup, setSetup] = useState(false);
+  useEffect(() => { setSetup(new URLSearchParams(window.location.search).has("setup")); }, []);
   const go = async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
@@ -70,7 +73,7 @@ function AuthPage() {
           <a href="/" className="text-xs font-bold text-muted-foreground hover:text-primary">{t("الرجوع للموقع")}</a>
         </div>
         <h1 className="mt-6 text-2xl font-extrabold text-primary">{t("تسجيل الدخول")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.")}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("ادخل برقم موبايلك — للعملاء والوسطاء والشركات. أول مرة؟ هيتعملك حساب على طول.")}</p>
         <div className="mt-5">
           <GoogleButton onSignedIn={go} />
           <div className="my-4 flex items-center gap-3 text-xs font-semibold text-muted-foreground"><span className="h-px flex-1 bg-border" />{t("أو")}<span className="h-px flex-1 bg-border" /></div>
@@ -106,7 +109,7 @@ function AuthPage() {
             </>
           )}
         </div>
-        <AdminBootstrap />
+        {setup && <AdminBootstrap />}
       </div>
       <AppDownload />
       </div>
