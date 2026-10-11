@@ -8,7 +8,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
-import { STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
+import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
 export type LeadWithProp = {
   id: string;
@@ -422,7 +422,7 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
                 <td className="p-3 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind}</span></td>
                 <td className="p-3" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive" title="الرقم مكرر">×{dups + 1}</span>}</td>
                 <td className="p-3">{LEAD_SOURCES[l.source ?? ""] ?? l.source}</td>
-                <td className="p-3">{STAGES[l.stage as keyof typeof STAGES] ?? l.stage}</td>
+                <td className="p-3">{stageLabel(l.stage, l.purpose)}</td>
                 <td className="p-3">{brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? (l.assigned_broker_id ? "—" : "غير مُسند")}</td>
                 <td className={`p-3 ${l.follow_up_at && new Date(l.follow_up_at).getTime() < Date.now() ? "font-bold text-destructive" : ""}`}>{l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
                 <td className="p-3 text-muted-foreground">{formatDate(l.created_at)}</td>

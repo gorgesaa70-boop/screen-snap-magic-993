@@ -5,7 +5,7 @@ import { Check, FileText, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
 import type { Tables } from "@/integrations/supabase/types";
-import { STAGES, formatDate, formatPrice } from "@/components/site/data";
+import { STAGES, DEAL_TYPE_LABEL, stageLabel, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 
 type Lead = Tables<"leads">;
@@ -21,18 +21,18 @@ export const DEAL_STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: "مرفوضة", cls: "bg-destructive/10 text-destructive" },
   needs_info: { label: "محتاجة بيانات", cls: "bg-destructive/10 text-destructive" },
 };
-const DOC_KINDS: Record<string, string> = { reservation: "مستند الحجز", contract: "العقد", sale: "مستند البيع (عقد نهائي / إيصال سداد)", payment: "إثبات دفع", other: "مستند آخر" };
+const DOC_KINDS: Record<string, string> = { reservation: "مستند الحجز", contract: "العقد", sale: "المستند النهائي (عقد البيع أو الإيجار / إيصال السداد)", payment: "إثبات دفع", other: "مستند آخر" };
 export const dealNo = (n: number | null | undefined) => (n ? `D-${String(n).padStart(6, "0")}` : "D-—");
 
 /** Progress bar over the main flow; lost / postponed shown as a side state. */
-export function PipelineSteps({ stage }: { stage: string }) {
+export function PipelineSteps({ stage, purpose }: { stage: string; purpose?: string | null }) {
   const at = FLOW.indexOf(stage);
   return (
     <div>
       <ol className="flex gap-1 overflow-x-auto pb-1">
         {FLOW.map((s, i) => (
           <li key={s} className={`min-w-[78px] flex-1 rounded-lg px-2 py-1.5 text-center text-[11px] font-bold ${i < at ? "bg-teal-soft text-primary" : i === at ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-            {i < at && <Check className="mx-auto mb-0.5 size-3" />}{STAGES[s]}
+            {i < at && <Check className="mx-auto mb-0.5 size-3" />}{stageLabel(s, purpose)}
           </li>
         ))}
       </ol>
@@ -139,7 +139,9 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
     unit_desc: deal.unit_desc ?? "", reservation_date: deal.reservation_date ?? "", reservation_amount: deal.reservation_amount?.toString() ?? "",
     contract_date: deal.contract_date ?? "", contract_value: deal.contract_value?.toString() ?? "", sale_date: deal.sale_date ?? "", sale_value: deal.sale_value?.toString() ?? "",
     project_unit_id: deal.project_unit_id ?? "",
+    deal_type: deal.deal_type, rent_monthly: deal.rent_monthly?.toString() ?? "", rent_start: deal.rent_start ?? "", rent_end: deal.rent_end ?? "",
   });
+  const isRent = f.deal_type !== "sale";
   const [kind, setKind] = useState("reservation");
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
@@ -149,6 +151,8 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
     unit_desc: f.unit_desc.trim().slice(0, 300) || null, reservation_date: f.reservation_date || null, reservation_amount: num(f.reservation_amount),
     contract_date: f.contract_date || null, contract_value: num(f.contract_value), sale_date: f.sale_date || null, sale_value: num(f.sale_value),
     project_unit_id: f.project_unit_id || null,
+    deal_type: f.deal_type, rent_monthly: f.deal_type === "rent" ? num(f.rent_monthly) : null,
+    rent_start: isRent ? f.rent_start || null : null, rent_end: isRent ? f.rent_end || null : null,
   });
 
   async function save(extra?: Record<string, unknown>, msg = "تم حفظ بيانات الصفقة") {
@@ -189,6 +193,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-bold text-primary" dir="ltr">{dealNo(deal.deal_no)}</span>
+        <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{DEAL_TYPE_LABEL[deal.deal_type] ?? deal.deal_type}</span>
         <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${st.cls}`}>{st.label}</span>
         {deal.sale_requested_at && <span className="text-xs text-muted-foreground">اتبعت للمراجعة {formatDate(deal.sale_requested_at)}</span>}
       </div>
@@ -197,12 +202,20 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
       <fieldset disabled={locked} className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><UnitPicker value={f.project_unit_id} onPick={(id, desc) => setF((x) => ({ ...x, project_unit_id: id, unit_desc: desc ?? x.unit_desc }))} /></div>
         <div className="sm:col-span-2"><Field label="الوحدة / العقار"><input className={inputCls} value={f.unit_desc} onChange={set("unit_desc")} maxLength={300} placeholder="مثال: شقة 120م — الحي الأول — عمارة 5" /></Field></div>
+        <Field label="نوع الصفقة"><select className={inputCls} value={f.deal_type} onChange={(e) => setF({ ...f, deal_type: e.target.value })}>{Object.entries(DEAL_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
+        {f.deal_type === "rent"
+          ? <Field label="الإيجار الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.rent_monthly} onChange={money("rent_monthly")} /></Field>
+          : <div className="hidden sm:block" />}
+        {isRent && <>
+          <Field label={f.deal_type === "summer" ? "الإقامة من" : "بداية العقد"}><input type="date" className={inputCls} value={f.rent_start} onChange={set("rent_start")} /></Field>
+          <Field label={f.deal_type === "summer" ? "الإقامة لحد" : "نهاية العقد"}><input type="date" className={inputCls} value={f.rent_end} onChange={set("rent_end")} /></Field>
+        </>}
         <Field label="تاريخ الحجز"><input type="date" className={inputCls} value={f.reservation_date} onChange={set("reservation_date")} /></Field>
         <Field label="مبلغ الحجز (ج.م)"><input className={inputCls} inputMode="numeric" value={f.reservation_amount} onChange={money("reservation_amount")} /></Field>
         <Field label="تاريخ العقد"><input type="date" className={inputCls} value={f.contract_date} onChange={set("contract_date")} /></Field>
         <Field label="قيمة العقد (ج.م)"><input className={inputCls} inputMode="numeric" value={f.contract_value} onChange={money("contract_value")} /></Field>
-        <Field label="تاريخ البيع"><input type="date" className={inputCls} value={f.sale_date} onChange={set("sale_date")} /></Field>
-        <Field label="قيمة البيع (ج.م)"><input className={inputCls} inputMode="numeric" value={f.sale_value} onChange={money("sale_value")} /></Field>
+        <Field label={isRent ? "تاريخ تأكيد الإيجار" : "تاريخ البيع"}><input type="date" className={inputCls} value={f.sale_date} onChange={set("sale_date")} /></Field>
+        <Field label={f.deal_type === "rent" ? "إجمالي قيمة العقد (ج.م)" : f.deal_type === "summer" ? "إجمالي قيمة الحجز (ج.م)" : "قيمة البيع (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.sale_value} onChange={money("sale_value")} /></Field>
       </fieldset>
       {!locked && <button disabled={busy} onClick={() => save()} className={btnOutline}>حفظ البيانات</button>}
 
@@ -231,8 +244,10 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
 
       {["draft", "rejected", "needs_info"].includes(deal.review_status) && (
         <div className="rounded-xl bg-secondary/60 p-3">
-          <p className="text-xs text-muted-foreground">لما البيع يتم: اكتب تاريخ وقيمة البيع، وارفع «مستند البيع»، وابعت الصفقة للإدارة. البيع بيتأكد بعد الاعتماد.</p>
-          <button disabled={busy} onClick={() => save({ review_status: "pending" }, "اتبعتت الصفقة لمراجعة الإدارة")} className={`${btnPrimary} mt-2`}>إرسال البيع للمراجعة</button>
+          <p className="text-xs text-muted-foreground">{isRent
+            ? "لما الإيجار يتم: اكتب تاريخ التأكيد وإجمالي القيمة" + (f.deal_type === "rent" ? " والإيجار الشهري" : "") + "، وارفع «المستند النهائي» (عقد الإيجار)، وابعت الصفقة للإدارة. الإيجار بيتأكد بعد الاعتماد."
+            : "لما البيع يتم: اكتب تاريخ وقيمة البيع، وارفع «المستند النهائي»، وابعت الصفقة للإدارة. البيع بيتأكد بعد الاعتماد."}</p>
+          <button disabled={busy} onClick={() => save({ review_status: "pending" }, "اتبعتت الصفقة لمراجعة الإدارة")} className={`${btnPrimary} mt-2`}>{isRent ? "إرسال الإيجار للمراجعة" : "إرسال البيع للمراجعة"}</button>
         </div>
       )}
       {isAdmin && deal.review_status === "pending" && (

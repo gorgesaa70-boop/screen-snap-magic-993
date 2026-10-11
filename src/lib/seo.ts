@@ -57,5 +57,5 @@ export const unavailableHead = (path: string, title: string) =>
 export const priceText = (price: unknown, status?: string | null) => {
   const n = Number(price);
   if (!n) return "";
-  return `${n.toLocaleString("en-US")} ج.م${status === "إيجار" ? " شهريًا" : ""}`;
+  return `${status === "مصيف" ? "من " : ""}${n.toLocaleString("en-US")} ج.م${status === "إيجار" ? " شهريًا" : ""}`;
 };

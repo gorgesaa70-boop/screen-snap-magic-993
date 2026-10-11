@@ -12,11 +12,12 @@ import { DashShell } from "@/components/dash/DashShell";
 import { Timeline, logActivity } from "@/components/dash/LeadsBoard";
 import { MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
-import { LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
+import { stageLabel, LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
 import { staffDirectory } from "@/lib/admin.functions";
 import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
 import { ReferralProof } from "@/components/dash/ReferralProof";
 import { LeadTasks } from "@/components/dash/Tasks";
+import { ResponseStatus } from "@/components/dash/ResponseStatus";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -102,9 +103,9 @@ function LeadPage() {
                   <span dir="ltr">{leadNo(l.lead_no)}</span> · {LEAD_KINDS[l.kind] ?? l.kind} · {formatDate(l.created_at)}
                 </p>
               </div>
-              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{STAGES[l.stage] ?? l.stage}</span>
+              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{stageLabel(l.stage, l.purpose)}</span>
             </div>
-            <div className="mt-3"><PipelineSteps stage={l.stage} /></div>
+            <div className="mt-3"><PipelineSteps stage={l.stage} purpose={l.purpose} /></div>
             <div className="mt-3 flex flex-wrap gap-2">
               <a onClick={() => logActivity(l.id, "call", "اتصال بالعميل")} href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
               <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك فريق فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
@@ -198,10 +199,11 @@ function LeadPage() {
 
           <section className={card}>
             <h2 className={h2}>المسؤول</h2>
+            <ResponseStatus lead={l} seeAll={seeAll} assignSelectId="assign-broker" />
             {seeAll ? (
               <div className="space-y-3">
                 <Field label="الشركة / الوسيط">
-                  <select className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd({ assigned_broker_id: e.target.value || null }, "تم الإسناد")}>
+                  <select id="assign-broker" className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd({ assigned_broker_id: e.target.value || null }, "تم الإسناد")}>
                     <option value="">غير مُسند</option>
                     {(brokers.data ?? []).filter((b) => b.is_active || b.id === l.assigned_broker_id).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>

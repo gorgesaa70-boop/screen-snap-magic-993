@@ -8,7 +8,7 @@ import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchProperty(id: string) {
@@ -31,8 +31,9 @@ export const Route = createFileRoute("/properties/$id")({
     if (!loaderData || !loaderData.approved) return unavailableHead(path, "العقار غير متاح");
     const { p, broker } = loaderData;
     const price = priceText(p.price, p.status);
-    const title = `${p.title} لل${p.status} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
-    const description = `${p.type} لل${p.status} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
+    const purpose = p.status === "مصيف" ? "للإيجار المصيفي" : `لل${p.status}`;
+    const title = `${p.title} ${purpose} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
+    const description = `${p.type} ${purpose} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
     return pageHead({
       path, title, description, image: p.image, type: "article",
       jsonLd: [
@@ -64,11 +65,12 @@ function PropertyPage() {
       <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div>
           <Gallery images={p.images} title={p.title}>
-            <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(p.status)}</span>
+            <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t(PURPOSE_LABEL[p.status] ?? p.status)}</span>
             {p.isDemo && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("إعلان تجريبي")}</span>}
           </Gallery>
           <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
-          <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
+          <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
+          {p.rent && <RentDetails p={p} />}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{t(p.type)}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)} / ${t(p.city)}`}</span>
@@ -123,5 +125,36 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={1000} />
       <Button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال الاستفسار")}</Button>
     </form>
+  );
+}
+
+/** Rent terms; summer listings show every price the owner set. */
+function RentDetails({ p }: { p: Property }) {
+  useLang();
+  const r = p.rent!;
+  const day = (d?: string) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "long" }) : "");
+  const prices = p.status === "مصيف" ? ([["night", r.night], ["week", r.week], ["month", r.month], ["season", r.season]] as const).filter(([, v]) => v) : [];
+  const facts = [
+    r.furnished && t(FURNISHED_LABEL[r.furnished] ?? r.furnished),
+    r.minMonths && `${t("أقل مدة:")} ${formatPrice(r.minMonths)} ${t("شهور")}`,
+    r.deposit && `${t("التأمين:")} ${formatPrice(r.deposit)} ${t("ج.م")}`,
+    r.guests && `${t("يكفي")} ${formatPrice(r.guests)} ${t("أفراد")}`,
+    (r.from || r.to) && `${t("متاح")} ${r.from ? `${t("من")} ${day(r.from)}` : ""} ${r.to ? `${t("لحد")} ${day(r.to)}` : ""}`,
+  ].filter(Boolean) as string[];
+  if (!prices.length && !facts.length) return null;
+  return (
+    <div className="mt-4 space-y-3 rounded-2xl border bg-card p-4">
+      {prices.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {prices.map(([unit, v]) => (
+            <div key={unit} className="rounded-xl bg-secondary p-3 text-center">
+              <p className="text-lg font-extrabold text-primary">{formatPrice(v!)}</p>
+              <p className="text-xs font-semibold text-muted-foreground">{t("ج.م")}{t(PRICE_UNIT_LABEL[unit] ?? "")}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {facts.length > 0 && <ul className="flex flex-wrap gap-2 text-sm font-semibold text-primary">{facts.map((f) => <li key={f} className="rounded-lg bg-teal-soft px-3 py-1.5">{f}</li>)}</ul>}
+    </div>
   );
 }

@@ -274,4 +274,122 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("approved sale marks the unit sold (and logs unit history)", async () => { await as(U.admin, `update public.deals set review_status='approved', sale_date=current_date, sale_value=950000 where lead_id='${moved}'`); return [await unitStatus(), Number((await sys(`select count(*) c from public.project_unit_history where unit_id='${unit}'`))[0].c)]; }, (r) => r[0] === "sold" && r[1] === 2);
   await expectErr("a sold unit can't be put on another deal", () => as(U.manager, `insert into public.deals (lead_id, project_unit_id) values ('${quick}', '${unit}')`));
 
+
+  console.log("\nRentals (item 39)");
+  const prop = (sql) => as(U.manager, `insert into public.properties (broker_id, title, type, area, review_status, ${sql.cols}) values ('${CO}', '${sql.title}', 'شاليه', 'الساحل الشمالي', 'pending', ${sql.vals}) returning price, price_unit, price_month, price_night, min_months`);
+  await expectErr("summer listing needs at least one price", () => prop({ title: "شاليه بدون سعر", cols: "status, price", vals: "'مصيف', 0" }));
+  await expectOk("summer listing: lowest price shown per night", () => prop({ title: "شاليه بحري", cols: "status, price, price_night, price_week, guests, min_months", vals: "'مصيف', 0, 1500, 9000, 6, 3" }), (r) => Number(r[0].price) === 1500 && r[0].price_unit === "night" && r[0].min_months === null);
+  await expectOk("monthly rent listing: price is per month", () => prop({ title: "شقة إيجار", cols: "status, price, price_night, min_months", vals: "'إيجار', 7000, 999, 6" }), (r) => r[0].price_unit === "month" && Number(r[0].price_month) === 7000 && r[0].price_night === null && r[0].min_months === 6);
+  await expectOk("sale listing drops rent fields", () => prop({ title: "شاليه للبيع", cols: "status, price, price_night, min_months", vals: "'بيع', 900000, 1500, 6" }), (r) => r[0].price_unit === null && r[0].price_night === null && r[0].min_months === null);
+  await expectErr("existing statuses still validated", () => prop({ title: "غلط", cols: "status, price", vals: "'تأجير', 1" }));
+
+  const summerId = (await sys(`select id from public.properties where title='شاليه بحري'`))[0].id;
+  await as(null, `insert into public.leads (name, phone, property_id) values ('مصطاف', '01044445555', '${summerId}')`);
+  await expectOk("inquiry on a summer listing is a summer lead for that company", () => sys(`select purpose, assigned_broker_id from public.leads where name='مصطاف'`), (r) => r[0].purpose === "summer" && r[0].assigned_broker_id === CO);
+
+  await as(U.staff, `insert into public.leads (name, phone, purpose, assigned_broker_id) values ('مستأجر', '01055554444', 'rent', '${CO}')`);
+  const renter = (await sys(`select id from public.leads where name='مستأجر'`))[0].id;
+  await expectOk("rent deal: type from the lead, commission defaults to half a month", async () => {
+    await as(U.manager, `insert into public.deals (lead_id, rent_monthly, rent_start, rent_end, contract_date, contract_value) values ('${renter}', 8000, '2026-11-01', '2027-10-31', '2026-10-20', 96000)`);
+    return sys(`select d.deal_type, c.rate, c.basis_value, c.expected_amount from public.deals d join public.commissions c on c.deal_id = d.id where d.lead_id='${renter}'`);
+  }, (r) => r[0].deal_type === "rent" && Number(r[0].rate) === 50 && Number(r[0].basis_value) === 8000 && Number(r[0].expected_amount) === 4000);
+  await expectErr("rent deal can't go to review without the monthly rent", async () => {
+    await as(U.staff, `insert into public.leads (name, phone, purpose, assigned_broker_id) values ('مستأجر٢', '01055554443', 'rent', '${CO}')`);
+    const l2 = (await sys(`select id from public.leads where name='مستأجر٢'`))[0].id;
+    await as(U.manager, `insert into public.deals (lead_id) values ('${l2}')`);
+    return as(U.manager, `update public.deals set review_status='pending', sale_date=current_date, sale_value=1 where lead_id='${l2}'`);
+  });
+  await expectOk("a company rent agreement replaces the default", async () => {
+    await as(U.admin, `insert into public.company_agreements (broker_id, deal_type, rate, effective_from) values ('${CO}', 'rent', 100, '2026-01-01')`);
+    await as(U.manager, `update public.deals set rent_monthly = 9000 where lead_id='${renter}'`);
+    return sys(`select c.rate, c.expected_amount from public.deals d join public.commissions c on c.deal_id = d.id where d.lead_id='${renter}'`);
+  }, (r) => Number(r[0].rate) === 100 && Number(r[0].expected_amount) === 9000);
+  await expectErr("agreement type can't be changed later", () => as(U.admin, `update public.company_agreements set deal_type='sale' where deal_type='rent'`));
+  await expectOk("sale agreements still apply to sale deals only", () => sys(`select count(*) c from public.company_agreements where broker_id='${CO}' and deal_type='sale'`), (r) => Number(r[0].c) === 1);
+
+  console.log("\nAutomatic routing and response time (item 28)");
+  const leadBy = (name) => sys(`select * from public.leads where name='${name}'`).then((r) => r[0]);
+  await expectErr("only admins create routing rules", () => as(U.owner, `insert into public.routing_rules (name, broker_ids) values ('x', array['${CO}'::uuid])`));
+  await as(U.admin, `insert into public.routing_rules (name, priority, areas, property_types, broker_ids) values ('شقق الحي الأول', 10, array['الحي الأول'], array['شقة'], array['${CO}'::uuid])`);
+  await as(U.admin, `insert into public.routing_rules (name, priority, kinds, sources, broker_ids) values ('طلبات الموقع بالدور', 20, array['request'], array['website'], array['${CO}'::uuid, '${DEV}'::uuid])`);
+  const rules = await sys(`select id, name from public.routing_rules`);
+  const ruleId = (n) => rules.find((r) => r.name === n).id;
+  await expectOk("staff can read the rules", () => as(U.staff, `select id from public.routing_rules`), (r) => r.length === 2);
+  await expectOk("matching area + type → that company (rule recorded)", async () => {
+    await as(null, `insert into public.leads (name, phone, area, property_type) values ('توزيع 1','01040000001','الحي الأول','شقة')`);
+    return [await leadBy("توزيع 1")];
+  }, (r) => r[0].assigned_broker_id === CO && r[0].routed_rule_id === ruleId("شقق الحي الأول") && r[0].first_broker_id === CO);
+  await expectOk("rotation: two requests in a row go to different companies", async () => {
+    await as(null, `insert into public.leads (name, phone, area, property_type) values ('دور 1','01040000002','الحي الثاني','فيلا')`);
+    await as(null, `insert into public.leads (name, phone, area, property_type) values ('دور 2','01040000003','الحي الثاني','فيلا')`);
+    const a = await leadBy("دور 1"); const b = await leadBy("دور 2");
+    return [a.assigned_broker_id, b.assigned_broker_id, a.routed_rule_id];
+  }, (r) => r[0] && r[1] && r[0] !== r[1] && [CO, DEV].includes(r[0]) && [CO, DEV].includes(r[1]) && r[2] === ruleId("طلبات الموقع بالدور"));
+  await expectOk("no matching rule → stays with the admins", async () => {
+    await as(U.staff, `insert into public.leads (name, phone, source, area) values ('بلا قاعدة','01040000004','phone_call','الحي التاسع')`);
+    return [await leadBy("بلا قاعدة")];
+  }, (r) => r[0].assigned_broker_id === null && r[0].routed_rule_id === null);
+  const propId = (await sys(`select id from public.properties where broker_id='${CO}' and review_status='approved' limit 1`))[0].id;
+  await expectOk("property inquiries still go to the listing's owner", async () => {
+    await as(null, `insert into public.leads (name, phone, property_id) values ('استفسار عقار','01040000005','${propId}')`);
+    return [await leadBy("استفسار عقار")];
+  }, (r) => r[0].assigned_broker_id === CO && r[0].routed_rule_id === null);
+  await expectOk("broker-page inquiries go to that broker, not a rule", async () => {
+    await as(null, `insert into public.leads (name, phone, via_broker_id) values ('صفحة مطور','01040000006','${DEV}')`);
+    return [await leadBy("صفحة مطور")];
+  }, (r) => r[0].assigned_broker_id === DEV && r[0].routed_rule_id === null);
+  await expectOk("leads staff assign by hand are left alone", async () => {
+    await as(U.staff, `insert into public.leads (name, phone, assigned_staff_id) values ('عند موظف','01040000007','${U.staff}')`);
+    await as(U.staff, `insert into public.leads (name, phone, assigned_broker_id) values ('يدوي لمطور','01040000008','${DEV}')`);
+    return [await leadBy("عند موظف"), await leadBy("يدوي لمطور")];
+  }, (r) => r[0].assigned_broker_id === null && r[1].assigned_broker_id === DEV && r[1].routed_rule_id === null);
+
+  const r1 = (await leadBy("توزيع 1")).id;
+  await expectOk("a call by the company = first response", async () => {
+    await as(U.manager, `insert into public.lead_activities (lead_id, kind, summary, actor_id) values ('${r1}', 'call', 'اتصال', '${U.manager}')`);
+    return [(await leadBy("توزيع 1")).first_response_at];
+  }, (r) => !!r[0]);
+  await expectOk("moving to another company resets the response clock; the 'assign' log isn't a response", async () => {
+    await as(U.staff, `update public.leads set assigned_broker_id='${DEV}' where id='${r1}'`);
+    const l = await leadBy("توزيع 1");
+    return [l.first_response_at, l.sla_alerted_at, l.referred_at];
+  }, (r) => r[0] === null && r[1] === null && !!r[2]);
+  const d2 = (await leadBy("دور 2"));
+  await expectOk("a stage change also counts as a response", async () => {
+    const who = d2.assigned_broker_id === CO ? U.manager : U.dev;
+    await as(who, `update public.leads set stage='contacted' where id='${d2.id}'`);
+    return [(await leadBy("دور 2")).first_response_at];
+  }, (r) => !!r[0]);
+
+  await expectOk("working minutes count only 9:00–21:00 Cairo", () => sys(`select
+      public.work_minutes('2026-10-12 06:00'::timestamp at time zone 'Africa/Cairo', '2026-10-12 10:30'::timestamp at time zone 'Africa/Cairo') a,
+      public.work_minutes('2026-10-12 20:30'::timestamp at time zone 'Africa/Cairo', '2026-10-13 09:30'::timestamp at time zone 'Africa/Cairo') b,
+      public.work_minutes('2026-10-12 22:00'::timestamp at time zone 'Africa/Cairo', '2026-10-13 08:00'::timestamp at time zone 'Africa/Cairo') c`),
+    (r) => Number(r[0].a) === 90 && Number(r[0].b) === 60 && Number(r[0].c) === 0);
+  await expectOk("companies can't change the response settings", () => as(U.owner, `update public.app_settings set response_sla_minutes=5 returning id`), (r) => r.length === 0);
+
+  // Make the clock deterministic for the alert run: count all 24 hours.
+  await as(U.admin, `update public.app_settings set work_start_hour=0, work_end_hour=24`);
+  const slow = (await leadBy("دور 1"));
+  const late = async (mins) => {
+    await sys(`set session_replication_role = replica`);
+    await sys(`update public.leads set referred_at = now() - interval '${mins} minutes', first_response_at = null where id='${slow.id}'`);
+    await sys(`set session_replication_role = origin`);
+  };
+  await late(90);
+  const res1 = await run();
+  await expectOk("run_reminders includes the response alerts", async () => [res1], (r) => "response_alerts" in r[0] && "response_escalations" in r[0]);
+  await expectOk("after the SLA (60 min): the company is reminded, admins not yet", async () => {
+    const l = await leadBy("دور 1");
+    const owner = slow.assigned_broker_id === CO ? U.owner : U.dev;
+    return [await notes(owner, "عميل مستني رد"), !!l.sla_alerted_at, !!l.sla_escalated_at];
+  }, (r) => r[0] >= 1 && r[1] && !r[2]);
+  await late(150);
+  await run();
+  const escalations = (user) => sys(`select count(*) c from public.notifications where user_id='${user}' and related_id='${slow.id}' and title='تأخير رد على عميل'`).then((r) => Number(r[0].c));
+  await expectOk("after twice the SLA: admins and staff are alerted", async () => [await escalations(U.admin), await escalations(U.staff)], (r) => r[0] === 1 && r[1] === 1);
+  const res3 = await run();
+  await expectOk("each alert is sent once", async () => [res3.response_alerts, res3.response_escalations], (r) => r[0] === 0 && r[1] === 0);
+  await expectOk("review report lists the lead waiting for a response", () => as(U.staff, `select kind from public.lead_alerts() where lead_id='${slow.id}'`), (r) => r.some((x) => x.kind === "slow_response"));
+  await as(U.admin, `update public.app_settings set work_start_hour=9, work_end_hour=21`);
 }

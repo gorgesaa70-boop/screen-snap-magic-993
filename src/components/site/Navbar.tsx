@@ -62,7 +62,7 @@ export function Navbar() {
             <UserRound className="size-5" />
           </a>
           <a href="/sell" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
-            <Plus className="size-4" /> {t("بيع عقارك")}
+            <Plus className="size-4" /> {t("اعرض عقارك")}
           </a>
           <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -80,7 +80,7 @@ export function Navbar() {
             <UserRound className="size-4" /> {account.label}
           </a>
           <a href="/sell" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
-            <Plus className="size-4" /> {t("بيع عقارك")}
+            <Plus className="size-4" /> {t("اعرض عقارك")}
           </a>
         </nav>
       )}
@@ -94,7 +94,7 @@ export function MobileBar() {
   const items = [
     { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },
     { id: "search", label: t("بحث"), href: "/#search", icon: Search },
-    { id: "sell", label: t("بيع عقارك"), href: "/sell", icon: Plus },
+    { id: "sell", label: t("اعرض عقارك"), href: "/sell", icon: Plus },
     { id: "brokers", label: t("الوسطاء"), href: "/brokers", icon: Building2 },
     { id: "request", label: t("اطلب عقارك"), href: "/#request", icon: FileSearch },
   ];
