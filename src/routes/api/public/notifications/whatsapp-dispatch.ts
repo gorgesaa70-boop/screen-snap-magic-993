@@ -36,6 +36,13 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           await db.rpc("log_app_error", { _kind: "server", _message: `run_lead_transfers: ${transfersError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
         }
 
+        // Payments: renewal reminders, expiry after the grace period, featured listings ending, stale checkouts.
+        const { error: expiryError } = await db.rpc("run_subscription_expiry");
+        if (expiryError) {
+          console.error("run_subscription_expiry", expiryError.message);
+          await db.rpc("log_app_error", { _kind: "server", _message: `run_subscription_expiry: ${expiryError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
+        }
+
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 
