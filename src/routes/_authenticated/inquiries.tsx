@@ -6,6 +6,7 @@ import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { LeadsBoard } from "@/components/dash/LeadsBoard";
 import { NewLeadForm } from "@/components/dash/NewLeadForm";
+import { LeadsImport } from "@/components/dash/LeadsImport";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { InvestmentsAdmin } from "@/components/dash/InvestmentsAdmin";
 import { useState } from "react";
@@ -69,6 +70,7 @@ function InquiriesPage() {
         {seeAll && (
           <div className="flex flex-wrap gap-2">
             <NewLeadForm brokers={brokers.data ?? []} onDone={() => leads.refetch()} />
+            <LeadsImport existingPhones={(leads.data ?? []).map((l) => l.phone_norm).filter((x): x is string => !!x)} onDone={() => leads.refetch()} />
             <button onClick={() => setShowAlerts(!showAlerts)} className="inline-flex h-11 items-center rounded-xl border px-4 text-sm font-bold text-primary hover:bg-secondary">{showAlerts ? "إخفاء تنبيهات المراجعة" : "تنبيهات المراجعة"}</button>
             <button onClick={() => setShowInvest(!showInvest)} className="inline-flex h-11 items-center rounded-xl border px-4 text-sm font-bold text-primary hover:bg-secondary">{showInvest ? "إخفاء الفرص الاستثمارية" : "الفرص الاستثمارية"}</button>
           </div>

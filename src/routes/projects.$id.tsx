@@ -127,7 +127,7 @@ function ProjectPage() {
               <div className="min-w-0"><p className="truncate font-bold text-primary">{developer.name}</p><span className="text-xs font-bold text-muted-foreground">{t("شركة تطوير")}</span></div>
             </div>
           )}
-          <ProjectInquiry project={p.name} unit={picked} onClearUnit={() => setPicked(null)} />
+          <ProjectInquiry project={p.name} projectId={p.id} unit={picked} onClearUnit={() => setPicked(null)} />
         </aside>
       </div>
     </PageShell>
@@ -135,7 +135,7 @@ function ProjectPage() {
 }
 
 /** Inquiries go to Value Aqar as a lead — the developer's contact details are not shown. */
-function ProjectInquiry({ project, unit, onClearUnit }: { project: string; unit: UnitRow | null; onClearUnit: () => void }) {
+function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: string; projectId: string; unit: UnitRow | null; onClearUnit: () => void }) {
   useLang();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -149,6 +149,8 @@ function ProjectInquiry({ project, unit, onClearUnit }: { project: string; unit:
     const about = `مشروع: ${project}${unit ? ` — وحدة: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
     const { error } = await supabase.from("leads").insert({
       name: name.trim(), phone: phone.trim(), kind: "request",
+      // Linked to the project (and unit) so the request is traceable, not only written in the details.
+      project_id: projectId, project_unit_id: unit?.id ?? null,
       property_type: unit?.unit_type ?? null, budget: unit?.price ?? null,
       details: [about, details.trim()].filter(Boolean).join("\n").slice(0, 1000), utm: getAttribution(),
     });

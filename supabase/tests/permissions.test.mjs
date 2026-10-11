@@ -345,10 +345,16 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   }, (r) => r[0].assigned_broker_id === null && r[1].assigned_broker_id === DEV && r[1].routed_rule_id === null);
 
   const r1 = (await leadBy("توزيع 1")).id;
-  await expectOk("a call by the company = first response", async () => {
+  await expectOk("pressing call / no answer is NOT a first response (CRM spec)", async () => {
     await as(U.manager, `insert into public.lead_activities (lead_id, kind, summary, actor_id) values ('${r1}', 'call', 'اتصال', '${U.manager}')`);
+    await as(U.manager, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${r1}', 'call', 'ما ردش', '${U.manager}', 'no_answer')`);
     return [(await leadBy("توزيع 1")).first_response_at];
-  }, (r) => !!r[0]);
+  }, (r) => r[0] === null);
+  await expectOk("a call with outcome 'reached' = first response, with who and how", async () => {
+    await as(U.manager, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${r1}', 'call', 'اتكلمنا', '${U.manager}', 'reached')`);
+    const l = await leadBy("توزيع 1");
+    return [l.first_response_at, (await sys(`select first_response_by, first_response_outcome from public.leads where id='${r1}'`))[0]];
+  }, (r) => !!r[0] && r[1].first_response_by === U.manager && r[1].first_response_outcome === "reached");
   await expectOk("moving to another company resets the response clock; the 'assign' log isn't a response", async () => {
     await as(U.staff, `update public.leads set assigned_broker_id='${DEV}' where id='${r1}'`);
     const l = await leadBy("توزيع 1");
@@ -609,4 +615,51 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   }, (r) => r[0].is_active === false && r[0].user_id === null && r[0].phone === null && r[0].email === null && r[1] === 0 && r[2] >= 2);
   await sys(`select set_config('request.jwt.claim.role','',false)`);
   await expectOk("the deleted broker no longer shows publicly", () => as(null, `select id from public.brokers where id='${dbBroker}'`), (r) => r.length === 0);
+
+  console.log("\nCRM phase 3: contact outcomes, project link, assignment history, isolation");
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  const cl = (await sys(`insert into public.leads (name, phone, assigned_broker_id) values ('عميل CRM','01000000501','${CO}') returning id`))[0].id;
+  const pubProj = (await sys(`insert into public.projects (developer_id, name, city, area, review_status) values ('${DEV}','مشروع منشور','برج العرب الجديدة','الحي الأول','approved') returning id`))[0].id;
+  const hidProj = (await sys(`insert into public.projects (developer_id, name, city, area, review_status) values ('${DEV}','مشروع مخفي','برج العرب الجديدة','الحي الأول','pending') returning id`))[0].id;
+  const pubUnit = (await sys(`insert into public.project_units (project_id, unit_type, size, price) values ('${pubProj}','شقة',100,900000) returning id`))[0].id;
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  const crm = () => sys(`select assigned_broker_id, first_response_at, project_id, project_unit_id from public.leads where id='${cl}'`).then((r) => r[0]);
+
+  await expectErr("an outcome only goes on a call or WhatsApp", () => as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${cl}','note','x','${U.owner}','reached')`));
+  await expectErr("unknown outcomes are refused", () => as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${cl}','call','x','${U.owner}','maybe')`));
+  await expectOk("a wrong number alerts Value Aqar (admins and staff) and doesn't count as contact", async () => {
+    await as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${cl}','call','الرقم غلط','${U.owner}','wrong_number')`);
+    return [await notes(U.admin, "رقم عميل غلط"), await notes(U.staff, "رقم عميل غلط"), (await crm()).first_response_at];
+  }, (r) => r[0] >= 1 && r[1] >= 1 && r[2] === null);
+  await expectOk("'callback' (customer asked to be called back) counts as contact", async () => {
+    await as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${cl}','call','كلمني بكرة','${U.owner}','callback')`);
+    return (await crm()).first_response_at;
+  }, (r) => !!r);
+
+  await expectOk("a visitor's project inquiry is linked to the project through the unit", async () => {
+    await as(null, `insert into public.leads (name, phone, kind, project_unit_id) values ('مهتم بوحدة','01000000502','request','${pubUnit}')`);
+    return sys(`select project_id, project_unit_id from public.leads where name='مهتم بوحدة'`).then((r) => r[0]);
+  }, (r) => r.project_id === pubProj && r.project_unit_id === pubUnit);
+  await expectOk("a visitor can't point a lead at an unpublished project", async () => {
+    await as(null, `insert into public.leads (name, phone, kind, project_id) values ('مشروع مخفي','01000000503','request','${hidProj}')`);
+    return sys(`select project_id from public.leads where name='مشروع مخفي'`).then((r) => r[0].project_id);
+  }, (r) => r === null);
+  await expectOk("a company can't move a lead to another project", async () => {
+    await as(U.admin, `update public.leads set project_id='${pubProj}' where id='${cl}'`);
+    await as(U.owner, `update public.leads set project_id=null, project_unit_id='${pubUnit}' where id='${cl}'`);
+    return crm();
+  }, (r) => r.project_id === pubProj && r.project_unit_id === null);
+
+  await expectOk("reassignment closes the previous period (reason + outcome) and opens a new one marked manual", async () => {
+    await as(U.staff, `update public.leads set assigned_broker_id='${DEV}' where id='${cl}'`);
+    return sys(`select broker_id, source, ended_at is not null ended, end_reason, outcome from public.lead_assignments where lead_id='${cl}' order by created_at, ended_at nulls last`);
+  }, (r) => r.length === 2 && r[0].broker_id === CO && r[0].ended && r[0].end_reason === "reassigned" && r[0].outcome === "callback" && r[1].broker_id === DEV && !r[1].ended && r[1].source === "manual");
+  await expectOk("the previous company no longer sees the lead or its history", async () => [
+    (await as(U.owner, `select id from public.leads where id='${cl}'`)).length,
+    (await as(U.owner, `select id from public.lead_activities where lead_id='${cl}'`)).length,
+  ], (r) => r[0] === 0 && r[1] === 0);
+  await expectErr("…and can't add activity to it", () => as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id) values ('${cl}','note','x','${U.owner}')`));
+  await expectOk("…and can't change it", async () => (await as(U.owner, `update public.leads set stage='lost' where id='${cl}' returning id`)).length, (r) => r === 0);
+  await expectOk("the new company sees it", async () => (await as(U.dev, `select id from public.leads where id='${cl}'`)).length, (r) => r === 1);
+  await expectOk("companies can't read the assignment history", async () => (await as(U.dev, `select id from public.lead_assignments where lead_id='${cl}'`)).length, (r) => r === 0);
 }

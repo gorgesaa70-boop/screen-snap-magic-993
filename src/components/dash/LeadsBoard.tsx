@@ -28,6 +28,7 @@ export type LeadWithProp = {
   created_at: string;
   assigned_broker_id: string | null;
   follow_up_at?: string | null;
+  first_response_at?: string | null;
   properties: { title: string } | null;
   lead_no?: number;
   source?: string;
@@ -104,10 +105,41 @@ const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتس�
 const LEGACY_STAGES: Record<string, string> = { viewing: "معاينة", negotiating: "تفاوض", won: "تم الإغلاق" };
 const REVIEW_WORDS: Record<string, string> = { draft: "مسودة", pending: "بانتظار المراجعة", approved: "معتمدة", rejected: "مرفوضة", needs_info: "محتاجة بيانات" };
 const stageName = (k: string) => STAGES[k] ?? LEGACY_STAGES[k] ?? k;
-export const logActivity = async (lead_id: string, kind: "call" | "whatsapp" | "note", summary: string) => {
+export type Outcome = "no_answer" | "reached" | "callback" | "wrong_number" | "other";
+export const logActivity = async (lead_id: string, kind: "call" | "whatsapp" | "note", summary: string, outcome?: Outcome) => {
   const { data: u } = await supabase.auth.getUser();
-  await supabase.from("lead_activities").insert({ lead_id, kind, summary, actor_id: u.user?.id ?? null });
+  return supabase.from("lead_activities").insert({ lead_id, kind, summary, actor_id: u.user?.id ?? null, ...(outcome ? { outcome } : {}) });
 };
+
+/** Contact result after a call or WhatsApp. Only "reached" / "callback" count as real contact (they stop the response timer). */
+export const OUTCOMES: { id: Outcome; label: string; cls: string }[] = [
+  { id: "reached", label: "رد واتكلمنا", cls: "bg-teal text-accent-foreground" },
+  { id: "callback", label: "طلب نكلمه تاني", cls: "bg-teal-soft text-primary" },
+  { id: "no_answer", label: "ما ردش", cls: "bg-secondary text-primary" },
+  { id: "wrong_number", label: "الرقم غلط", cls: "bg-destructive/10 text-destructive" },
+  { id: "other", label: "سبب تاني", cls: "bg-secondary text-muted-foreground" },
+];
+export const OUTCOME_LABEL: Record<string, string> = Object.fromEntries(OUTCOMES.map((o) => [o.id, o.label]));
+
+export function ContactOutcome({ leadId, onDone }: { leadId: string; onDone?: (() => void) | undefined }) {
+  const [busy, setBusy] = useState(false);
+  async function pick(o: (typeof OUTCOMES)[number]) {
+    setBusy(true);
+    const { error } = await logActivity(leadId, "call", `نتيجة التواصل: ${o.label}`, o.id);
+    setBusy(false);
+    if (error) { toast.error("ماتسجلتش، جرّب تاني"); return; }
+    toast.success(o.id === "reached" || o.id === "callback" ? "اتسجل التواصل ✓" : "اتسجلت النتيجة");
+    onDone?.();
+  }
+  return (
+    <div className="rounded-xl border border-dashed p-2.5">
+      <p className="mb-2 text-xs font-bold text-muted-foreground">نتيجة التواصل؟ (الضغط على اتصال لوحده مش بيتحسب تواصل)</p>
+      <div className="flex flex-wrap gap-1.5">
+        {OUTCOMES.map((o) => <button key={o.id} type="button" disabled={busy} onClick={() => pick(o)} className={`h-9 rounded-lg px-3 text-xs font-bold disabled:opacity-50 ${o.cls}`}>{o.label}</button>)}
+      </div>
+    </div>
+  );
+}
 
 export function Timeline({ leadId }: { leadId: string }) {
   const q = useQuery({
@@ -186,8 +218,9 @@ function AiAnalysis({ l, onFollowUp }: { l: LeadWithProp; onFollowUp: (iso: stri
   );
 }
 
-function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dups }: {
+function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dups, onChanged }: {
   l: LeadWithProp;
+  onChanged?: () => void;
   due: boolean;
   dups: number;
   onFollowUp: (iso: string | null) => void;
@@ -228,6 +261,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
+      {!l.first_response_at && <div className="mt-3"><ContactOutcome leadId={l.id} onDone={onChanged} /></div>}
       <div className="mt-3 flex flex-wrap gap-2">
         <a onClick={() => logActivity(l.id, "call", "اتصال بالعميل")} href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
         <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك وسيط فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
@@ -374,6 +408,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
               due={isDue(l, now)}
               dups={dupOf(counts, l)}
               onFollowUp={(iso) => upd(l.id, { follow_up_at: iso })}
+              onChanged={reload}
             />
           ))}
         </div>
