@@ -392,4 +392,45 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("each alert is sent once", async () => [res3.response_alerts, res3.response_escalations], (r) => r[0] === 0 && r[1] === 0);
   await expectOk("review report lists the lead waiting for a response", () => as(U.staff, `select kind from public.lead_alerts() where lead_id='${slow.id}'`), (r) => r.some((x) => x.kind === "slow_response"));
   await as(U.admin, `update public.app_settings set work_start_hour=9, work_end_hour=21`);
+
+  console.log("\nInvestment opportunities (item 40)");
+  await expectOk("investor registers interests", () => as(U.outsider, `insert into public.investor_profiles (name, budget_min, budget_max, kinds, areas) values ('مستثمر', 10000000, 80000000, array['development_land'], array['برج العرب الجديدة']) returning user_id`), (r) => r[0].user_id === U.outsider);
+  await expectOk("company submits an opportunity → pending, admins and staff notified", async () => {
+    await as(U.owner, `insert into public.investment_opportunities (title, kind, activity, deal_kind, city, area, land_area, investment_min, investment_max, teaser, details, location_note, licenses) values ('أرض لمول طبي على الطريق الرئيسي', 'development_land', 'مول طبي', 'full_sale', 'برج العرب الجديدة', 'الحي الأول', 4200, 30000000, 45000000, 'أرض بموقع ممتاز تصلح لمول طبي أو تجاري، تخصيص سليم.', 'رقم القطعة 15 بلوك 3 — المالك جاهز للتفاوض', 'بجوار المستشفى العام', 'تخصيص من جهاز المدينة')`);
+    return sys(`select o.review_status, o.broker_id, (select count(*) from public.notifications n where n.user_id in ('${U.admin}','${U.staff}') and n.title='فرصة استثمارية مستنية مراجعة') n from public.investment_opportunities o`);
+  }, (r) => r[0].review_status === "pending" && r[0].broker_id === CO && Number(r[0].n) === 2);
+  const opp = (await sys(`select id from public.investment_opportunities limit 1`))[0].id;
+  await expectOk("pending opportunity isn't public", () => as(null, `select id from public.investment_opportunities`), (r) => r.length === 0);
+  await expectErr("submitter can't approve their own opportunity", async () => { await as(U.owner, `update public.investment_opportunities set review_status='approved' where id='${opp}'`); const r = await sys(`select review_status from public.investment_opportunities where id='${opp}'`); if (r[0].review_status === "pending") throw new Error("stayed pending"); return r; });
+  await expectErr("admin rejection needs a reason", () => as(U.admin, `update public.investment_opportunities set review_status='rejected' where id='${opp}'`));
+  await expectOk("admin approves → submitter told, matching investor notified", async () => {
+    await as(U.admin, `update public.investment_opportunities set review_status='approved', is_featured=true where id='${opp}'`);
+    return [await notes(U.owner, "فرصتك الاستثمارية اتنشرت"), await notes(U.outsider, "فرصة استثمارية جديدة تناسبك")];
+  }, (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("public sees the teaser", () => as(null, `select title, teaser, investment_min from public.investment_opportunities`), (r) => r.length === 1 && Number(r[0].investment_min) === 30000000);
+  await expectErr("public can't read the confidential details", () => as(null, `select details from public.investment_opportunities`));
+  await expectErr("signed-in users can't read them either", () => as(U.outsider, `select location_note from public.investment_opportunities`));
+  await expectOk("investor has no access before approval", () => as(U.outsider, `select * from public.opportunity_private('${opp}')`), (r) => r.length === 0);
+  await expectOk("investor asks for details → investment lead for Value Aqar (not routed), team notified", async () => {
+    await as(U.outsider, `insert into public.investment_requests (opportunity_id, name, budget, message) values ('${opp}', 'مستثمر', 40000000, 'مهتم بالشراء الكامل')`);
+    return sys(`select l.kind, l.assigned_broker_id, l.opportunity_id, l.source, r.lead_id is not null linked, (select count(*) from public.notifications where title='مستثمر طالب تفاصيل فرصة') n from public.investment_requests r join public.leads l on l.id = r.lead_id`);
+  }, (r) => r[0].kind === "investment" && r[0].assigned_broker_id === null && r[0].opportunity_id === opp && r[0].source === "website" && r[0].linked && Number(r[0].n) >= 2);
+  await expectErr("investor can't grant themselves access", async () => { await as(U.outsider, `update public.investment_requests set status='approved'`); const r = await sys(`select status from public.investment_requests`); if (r[0].status === "pending") throw new Error("still pending"); return r; });
+  await expectOk("staff grants access → investor notified and sees details", async () => {
+    await as(U.staff, `update public.investment_requests set status='approved' where opportunity_id='${opp}'`);
+    return [await notes(U.outsider, "اتفتحت لك تفاصيل الفرصة"), (await as(U.outsider, `select details from public.opportunity_private('${opp}')`))[0]?.details];
+  }, (r) => r[0] === 1 && r[1]?.includes("القطعة 15"));
+  await expectOk("submitter sees own full row with review data", () => as(U.owner, `select review_status, details from public.my_opportunities()`), (r) => r[0].review_status === "approved" && r[0].details);
+  await expectErr("companies can't list all opportunities with private data", () => as(U.owner, `select * from public.admin_opportunities()`));
+  await expectOk("submitter edit sends it back to review", async () => { await as(U.owner, `update public.investment_opportunities set teaser='أرض بموقع ممتاز تصلح لمول طبي، تخصيص سليم ومساحة كبيرة.' where id='${opp}'`); return sys(`select review_status from public.investment_opportunities where id='${opp}'`); }, (r) => r[0].review_status === "pending");
+
+  console.log("\nSpecial-price listings (item 41) and medical malls (item 42)");
+  const cprop = (await sys(`select id from public.properties where broker_id='${CO}' limit 1`))[0].id;
+  await expectOk("company can't mark its own listing as a special deal", async () => { await as(U.manager, `update public.properties set is_highlight=true, highlight_reason='أرخص من السوق' where id='${cprop}'`); return sys(`select is_highlight from public.properties where id='${cprop}'`); }, (r) => r[0].is_highlight === false);
+  await expectOk("company asks for it → admins notified", async () => { await as(U.manager, `update public.properties set highlight_requested_at=now() where id='${cprop}'`); return [await notes(U.admin, "طلب ترشيح عرض بسعر مميز")]; }, (r) => r[0] === 1);
+  await expectErr("admin must write the reason", () => as(U.admin, `update public.properties set is_highlight=true where id='${cprop}'`));
+  await expectOk("admin highlights with a reason and yield; request cleared", async () => { await as(U.admin, `update public.properties set is_highlight=true, highlight_reason='أقل من متوسط سعر المتر في الحي بـ 15%', highlight_yield=9 where id='${cprop}'`); return sys(`select is_highlight, highlight_requested_at from public.properties where id='${cprop}'`); }, (r) => r[0].is_highlight === true && r[0].highlight_requested_at === null);
+  await expectOk("malls can be medical", async () => { await as(U.admin, `insert into public.malls (name, kind) values ('مول طبي تجريبي', 'medical')`); return as(null, `select kind from public.malls where name='مول طبي تجريبي'`); }, (r) => r[0].kind === "medical");
+  await expectErr("unknown mall kind refused", () => as(U.admin, `insert into public.malls (name, kind) values ('مول غلط', 'other')`));
+
 }
