@@ -3,11 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { draftWhatsappReply, analyzeInquiry, type LeadAnalysis } from "@/lib/ai-reply.functions";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Phone, MessageCircle, Search, X, Download, Bell, Sparkles, Copy, History, Brain } from "lucide-react";
+import { Phone, MessageCircle, Search, X, Download, Bell, Sparkles, Copy, History, Brain, LayoutGrid, Table2, ArrowUpDown, Users } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
-import { STAGES, LEAD_KINDS, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
+import { STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
 export type LeadWithProp = {
   id: string;
@@ -28,20 +29,32 @@ export type LeadWithProp = {
   assigned_broker_id: string | null;
   follow_up_at?: string | null;
   properties: { title: string } | null;
+  lead_no?: number;
+  source?: string;
+  phone_norm?: string | null;
+  assigned_member_id?: string | null;
 };
+
+/** How many visible leads share each normalized phone number (duplicate warning, no merging). */
+const phoneCounts = (list: LeadWithProp[]) => {
+  const m = new Map<string, number>();
+  for (const l of list) { const k = l.phone_norm || l.phone; m.set(k, (m.get(k) ?? 0) + 1); }
+  return m;
+};
+const dupOf = (counts: Map<string, number>, l: LeadWithProp) => (counts.get(l.phone_norm || l.phone) ?? 1) - 1;
 
 const toLocalInput = (iso?: string | null) => {
   if (!iso) return "";
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
-const isDue = (l: LeadWithProp, now: number) => !!l.follow_up_at && new Date(l.follow_up_at).getTime() <= now && !["won", "lost"].includes(l.stage);
+const isDue = (l: LeadWithProp, now: number) => !!l.follow_up_at && new Date(l.follow_up_at).getTime() <= now && !CLOSED_STAGES.includes(l.stage);
 
 function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
   const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  const head = ["الاسم", "الهاتف", "النوع", "المرحلة", "العقار", "نوع العقار", "المنطقة", "الميزانية", "التفاصيل", "الملاحظات", "موعد المتابعة", "الوسيط", "تاريخ الطلب"];
+  const head = ["رقم العميل", "المصدر", "الاسم", "الهاتف", "النوع", "المرحلة", "العقار", "نوع العقار", "المنطقة", "الميزانية", "التفاصيل", "الملاحظات", "موعد المتابعة", "الوسيط", "تاريخ الطلب"];
   const lines = rows.map((l) => [
-    l.name, l.phone, LEAD_KINDS[l.kind] ?? l.kind, STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
+    leadNo(l.lead_no), LEAD_SOURCES[l.source ?? ""] ?? l.source ?? "", l.name, l.phone, LEAD_KINDS[l.kind] ?? l.kind, STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
     l.properties?.title, l.property_type, l.area, l.budget, l.details, l.notes,
     l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG") : "",
     brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? "", new Date(l.created_at).toLocaleString("ar-EG"),
@@ -86,14 +99,17 @@ function AiReply({ l }: { l: LeadWithProp }) {
   );
 }
 
-const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتساب", status: "تغيير المرحلة", note: "ملاحظة", follow_up: "موعد متابعة", assign: "إسناد" };
-const stageName = (k: string) => STAGES[k as keyof typeof STAGES] ?? k;
-const logActivity = async (lead_id: string, kind: "call" | "whatsapp" | "note", summary: string) => {
+const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتساب", status: "تغيير المرحلة", note: "ملاحظة", follow_up: "موعد متابعة", assign: "إسناد", source: "تغيير المصدر", deal: "الصفقة" };
+// Older history entries use the stages from before the 10-stage pipeline.
+const LEGACY_STAGES: Record<string, string> = { viewing: "معاينة", negotiating: "تفاوض", won: "تم الإغلاق" };
+const REVIEW_WORDS: Record<string, string> = { draft: "مسودة", pending: "بانتظار المراجعة", approved: "معتمدة", rejected: "مرفوضة", needs_info: "محتاجة بيانات" };
+const stageName = (k: string) => STAGES[k] ?? LEGACY_STAGES[k] ?? k;
+export const logActivity = async (lead_id: string, kind: "call" | "whatsapp" | "note", summary: string) => {
   const { data: u } = await supabase.auth.getUser();
   await supabase.from("lead_activities").insert({ lead_id, kind, summary, actor_id: u.user?.id ?? null });
 };
 
-function Timeline({ leadId }: { leadId: string }) {
+export function Timeline({ leadId }: { leadId: string }) {
   const q = useQuery({
     queryKey: ["lead_activities", leadId],
     queryFn: async () => {
@@ -121,7 +137,7 @@ function Timeline({ leadId }: { leadId: string }) {
           {q.data.map((a) => (
             <li key={a.id} className="text-sm">
               <span className="font-bold text-primary">{ACT[a.kind] ?? a.kind}</span>{" — "}
-              <span className="text-foreground/80">{a.kind === "status" ? a.summary.split(" → ").map(stageName).join(" ← ") : a.summary}</span>
+              <span className="text-foreground/80">{a.kind === "status" ? a.summary.split(" → ").map(stageName).join(" ← ") : a.kind === "source" ? a.summary.replace(/[a-z_]+/g, (k) => LEAD_SOURCES[k] ?? k) : a.kind === "deal" ? a.summary.replace(/[a-z_]+/g, (k) => REVIEW_WORDS[k] ?? k) : a.summary}</span>
               <span className="block text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString("ar-EG")}</span>
             </li>
           ))}
@@ -170,9 +186,10 @@ function AiAnalysis({ l, onFollowUp }: { l: LeadWithProp; onFollowUp: (iso: stri
   );
 }
 
-function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
+function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dups }: {
   l: LeadWithProp;
   due: boolean;
+  dups: number;
   onFollowUp: (iso: string | null) => void;
   onStage: (s: string) => void;
   onNotes?: (n: string) => void;
@@ -195,7 +212,11 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
               {LEAD_KINDS[l.kind] ?? l.kind}
             </span>
           </p>
-          <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
+          <p className="text-xs text-muted-foreground">
+            <Link to="/leads/$id" params={{ id: l.id }} className="font-bold text-primary hover:text-teal" dir="ltr">{leadNo(l.lead_no)}</Link>
+            {" · "}{LEAD_SOURCES[l.source ?? ""] ?? l.source}{" · "}{formatDate(l.created_at)}
+          </p>
+          {dups > 0 && <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-bold text-destructive"><Users className="size-3" />الرقم ده موجود في {dups} طلب تاني</p>}
         </div>
         <select aria-label="مرحلة المتابعة" value={l.stage} onChange={(e) => onStage(e.target.value)} className={`${inputCls} h-10 w-auto`}>
           {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -225,6 +246,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due }: {
         <button className={btnOutline} onClick={() => setAi((v) => !v)} aria-expanded={ai}><Sparkles className="size-4" />رد ذكي</button>
         <button className={btnOutline} onClick={() => setAn((v) => !v)} aria-expanded={an}><Brain className="size-4" />تحليل ذكي</button>
         <button className={btnOutline} onClick={() => setTl((v) => !v)} aria-expanded={tl}><History className="size-4" />سجل النشاط</button>
+        <Link to="/leads/$id" params={{ id: l.id }} className={btnOutline}>التفاصيل</Link>
       </div>
       {ai && <AiReply l={l} />}
       {an && <AiAnalysis l={l} onFollowUp={(iso) => { setFu(toLocalInput(iso)); onFollowUp(iso); }} />}
@@ -243,6 +265,10 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState<"all" | "request" | "inquiry" | "listing">("all");
   const [stage, setStage] = useState<string>("all");
+  const [source, setSource] = useState<string>("all");
+  const nav = useNavigate();
+  const [view, setView] = useState<"cards" | "table">("cards");
+  const counts = useMemo(() => phoneCounts(list), [list]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(t); }, []);
   const dueList = useMemo(() => list.filter((l) => isDue(l, now)), [list, now]);
@@ -256,20 +282,22 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
 
   const filtered = useMemo(() => {
     const s = search.trim();
+    const no = Number(s.replace(/^va-?/i, "").replace(/^0+/, ""));
     return list.filter((l) =>
       (kind === "all" || l.kind === kind) &&
       (stage === "all" || l.stage === stage) &&
-      (!s || l.name.includes(s) || l.phone.includes(s) || (l.details ?? "").includes(s) || (l.properties?.title ?? "").includes(s))
+      (source === "all" || l.source === source) &&
+      (!s || l.name.includes(s) || l.phone.includes(s) || (l.details ?? "").includes(s) || (l.properties?.title ?? "").includes(s) || (!!no && l.lead_no === no))
     );
-  }, [list, search, kind, stage]);
+  }, [list, search, kind, stage, source]);
 
   const upd = async (id: string, patch: TablesUpdate<"leads">) => {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
   };
 
-  const hasFilter = search || kind !== "all" || stage !== "all";
-  const open = list.filter((l) => !["won", "lost"].includes(l.stage)).length;
+  const hasFilter = search || kind !== "all" || stage !== "all" || source !== "all";
+  const open = list.filter((l) => !CLOSED_STAGES.includes(l.stage)).length;
 
   return (
     <div className="space-y-4">
@@ -284,7 +312,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <div className="relative flex-1 sm:min-w-56">
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input aria-label="بحث بالاسم أو الهاتف" className={`${inputCls} ps-9`} placeholder="بحث بالاسم أو الهاتف أو العقار…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input aria-label="بحث بالاسم أو الهاتف" className={`${inputCls} ps-9`} placeholder="بحث بالاسم أو الهاتف أو رقم العميل (VA-…)" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select aria-label="نوع الطلب" className={`${inputCls} sm:w-40`} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
           <option value="all">الكل</option>
@@ -296,8 +324,12 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
           <option value="all">كل المراحل</option>
           {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select aria-label="المصدر" className={`${inputCls} sm:w-40`} value={source} onChange={(e) => setSource(e.target.value)}>
+          <option value="all">كل المصادر</option>
+          {Object.entries(LEAD_SOURCES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
         {hasFilter && (
-          <button className={btnOutline} onClick={() => { setSearch(""); setKind("all"); setStage("all"); }}>
+          <button className={btnOutline} onClick={() => { setSearch(""); setKind("all"); setStage("all"); setSource("all"); }}>
             <X className="size-4" />مسح الفلاتر
           </button>
         )}
@@ -311,29 +343,94 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-bold text-muted-foreground">{filtered.length} نتيجة</p>
-        <button className={btnOutline} disabled={!filtered.length} onClick={() => exportCsv(filtered, brokers)}><Download className="size-4" />تصدير CSV</button>
+        <div className="flex gap-2">
+          <div className="flex rounded-xl border p-0.5" role="group" aria-label="طريقة العرض">
+            <button aria-pressed={view === "cards"} onClick={() => setView("cards")} className={`flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-bold ${view === "cards" ? "bg-primary text-primary-foreground" : "text-primary"}`}><LayoutGrid className="size-4" />كروت</button>
+            <button aria-pressed={view === "table"} onClick={() => setView("table")} className={`flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-bold ${view === "table" ? "bg-primary text-primary-foreground" : "text-primary"}`}><Table2 className="size-4" />جدول</button>
+          </div>
+          <button className={btnOutline} disabled={!filtered.length} onClick={() => exportCsv(filtered, brokers)}><Download className="size-4" />تصدير CSV</button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
           {hasFilter ? "لا توجد نتائج مطابقة — جرّب مسح الفلاتر." : "لا توجد طلبات أو استفسارات حاليًا."}
         </p>
+      ) : view === "table" ? (
+        <LeadsTable list={filtered} brokers={brokers} counts={counts} />
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {filtered.map((l) => (
             <LeadCard
               key={l.id}
               l={l}
-              onStage={(s) => upd(l.id, { stage: s as NonNullable<TablesUpdate<"leads">["stage"]> })}
+              onStage={(s) => {
+                if (STAGES_WITH_DATA.includes(s)) { toast.info(`مرحلة «${STAGES[s]}» محتاجة بيانات — كمّلها من صفحة العميل`); void nav({ to: "/leads/$id", params: { id: l.id }, search: { stage: s } }); return; }
+                upd(l.id, { stage: s });
+              }}
               onNotes={(n) => upd(l.id, { notes: n })}
               onAssign={brokers ? (bid) => upd(l.id, { assigned_broker_id: bid }) : undefined}
               brokers={brokers}
               due={isDue(l, now)}
+              dups={dupOf(counts, l)}
               onFollowUp={(iso) => upd(l.id, { follow_up_at: iso })}
             />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+type SortKey = "lead_no" | "name" | "source" | "stage" | "created_at" | "follow_up_at";
+
+/** Sortable table of leads; each row opens the lead's details page. */
+function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?: BrokerRow[] | undefined; counts: Map<string, number> }) {
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "created_at", dir: -1 });
+  const rows = useMemo(() => {
+    const val = (l: LeadWithProp): string | number => {
+      switch (sort.key) {
+        case "lead_no": return l.lead_no ?? 0;
+        case "name": return l.name;
+        case "source": return LEAD_SOURCES[l.source ?? ""] ?? "";
+        case "stage": return Object.keys(STAGES).indexOf(l.stage);
+        case "follow_up_at": return l.follow_up_at ?? "9999";
+        default: return l.created_at;
+      }
+    };
+    return [...list].sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });
+  }, [list, sort]);
+  const th = (key: SortKey, label: string) => (
+    <th className="p-3 text-start font-bold">
+      <button onClick={() => setSort((s) => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 }))} className="inline-flex items-center gap-1 hover:text-teal">
+        {label}<ArrowUpDown className={`size-3.5 ${sort.key === key ? "text-teal" : "opacity-40"}`} />
+      </button>
+    </th>
+  );
+  return (
+    <div className="overflow-x-auto rounded-2xl border bg-card">
+      <table className="w-full min-w-[820px] text-sm">
+        <thead className="bg-secondary text-primary">
+          <tr>{th("lead_no", "الرقم")}{th("name", "العميل")}<th className="p-3 text-start font-bold">الهاتف</th>{th("source", "المصدر")}{th("stage", "المرحلة")}<th className="p-3 text-start font-bold">المسؤول</th>{th("follow_up_at", "المتابعة")}{th("created_at", "التاريخ")}</tr>
+        </thead>
+        <tbody>
+          {rows.map((l) => {
+            const dups = dupOf(counts, l);
+            return (
+              <tr key={l.id} className="border-t hover:bg-secondary/40">
+                <td className="p-3"><Link to="/leads/$id" params={{ id: l.id }} className="font-bold text-primary hover:text-teal" dir="ltr">{leadNo(l.lead_no)}</Link></td>
+                <td className="p-3 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind}</span></td>
+                <td className="p-3" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive" title="الرقم مكرر">×{dups + 1}</span>}</td>
+                <td className="p-3">{LEAD_SOURCES[l.source ?? ""] ?? l.source}</td>
+                <td className="p-3">{STAGES[l.stage as keyof typeof STAGES] ?? l.stage}</td>
+                <td className="p-3">{brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? (l.assigned_broker_id ? "—" : "غير مُسند")}</td>
+                <td className={`p-3 ${l.follow_up_at && new Date(l.follow_up_at).getTime() < Date.now() ? "font-bold text-destructive" : ""}`}>{l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
+                <td className="p-3 text-muted-foreground">{formatDate(l.created_at)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

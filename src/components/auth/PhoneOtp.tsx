@@ -244,7 +244,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
 }
 
 /** Decide where a signed-in user should land based on their roles and broker status. */
-export async function destinationFor(userId: string): Promise<"/admin" | "/dashboard" | "/pending" | "/join" | "suspended"> {
+export async function destinationFor(userId: string): Promise<"/admin" | "/dashboard" | "/inquiries" | "/pending" | "/join" | "suspended"> {
   const [roles, broker] = await Promise.all([
     supabase.from("user_roles").select("role").eq("user_id", userId),
     supabase.from("brokers").select("is_active, suspended_at").eq("user_id", userId).maybeSingle(),
@@ -254,5 +254,9 @@ export async function destinationFor(userId: string): Promise<"/admin" | "/dashb
   if (broker.data?.suspended_at) return "suspended";
   if (broker.data?.is_active) return "/dashboard";
   if (broker.data) return "/pending";
+  // Company team members work inside their company's account; Value Aqar staff work the requests list.
+  const membership = await supabase.rpc("my_membership");
+  if (membership.data?.length) return "/dashboard";
+  if (list.includes("staff")) return "/inquiries";
   return "/join";
 }

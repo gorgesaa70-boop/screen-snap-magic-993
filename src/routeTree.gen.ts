@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -30,7 +31,10 @@ import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
 import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
 import { Route as MallsIndexRouteImport } from './routes/malls.index'
 import { Route as MallsIdRouteImport } from './routes/malls.$id'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
+import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -41,6 +45,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -139,10 +148,25 @@ const MallsIdRoute = MallsIdRouteImport.update({
   path: '/malls/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdRoute = ProjectsIdRouteImport.update({
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropertiesIdRoute = PropertiesIdRouteImport.update({
   id: '/properties/$id',
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiPublicNotificationsWhatsappDispatchRoute =
   ApiPublicNotificationsWhatsappDispatchRouteImport.update({
@@ -159,6 +183,7 @@ const ApiPublicWhatsappWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/map': typeof MapRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -175,15 +200,19 @@ export interface FileRoutesByFullPath {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/map': typeof MapRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -200,10 +229,13 @@ export interface FileRoutesByTo {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/industrial': typeof IndustrialIndexRoute
   '/malls': typeof MallsIndexRoute
+  '/projects': typeof ProjectsIndexRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -211,6 +243,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/app': typeof AppRoute
   '/auth': typeof AuthRoute
   '/map': typeof MapRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -227,10 +260,13 @@ export interface FileRoutesById {
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/malls/$id': typeof MallsIdRoute
+  '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/projects/': typeof ProjectsIndexRoute
+  '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -238,6 +274,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/app'
     | '/auth'
     | '/map'
     | '/reset-password'
@@ -254,15 +291,19 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/projects/'
+    | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/app'
     | '/auth'
     | '/map'
     | '/reset-password'
@@ -279,16 +320,20 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers'
     | '/industrial'
     | '/malls'
+    | '/projects'
+    | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/app'
     | '/auth'
     | '/map'
     | '/reset-password'
@@ -305,10 +350,13 @@ export interface FileRouteTypes {
     | '/demo/central-point'
     | '/industrial/$id'
     | '/malls/$id'
+    | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
     | '/malls/'
+    | '/projects/'
+    | '/_authenticated/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -316,6 +364,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRoute
   MapRoute: typeof MapRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -325,10 +374,12 @@ export interface RootRouteChildren {
   DemoCentralPointRoute: typeof DemoCentralPointRoute
   IndustrialIdRoute: typeof IndustrialIdRoute
   MallsIdRoute: typeof MallsIdRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -347,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -482,12 +540,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MallsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/': {
+      id: '/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id': {
+      id: '/projects/$id'
+      path: '/projects/$id'
+      fullPath: '/projects/$id'
+      preLoaderRoute: typeof ProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/properties/$id': {
       id: '/properties/$id'
       path: '/properties/$id'
       fullPath: '/properties/$id'
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/leads/$id': {
+      id: '/_authenticated/leads/$id'
+      path: '/leads/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/notifications/whatsapp-dispatch': {
       id: '/api/public/notifications/whatsapp-dispatch'
@@ -514,6 +593,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
+  AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -524,6 +604,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
+  AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -532,6 +613,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AppRoute: AppRoute,
   AuthRoute: AuthRoute,
   MapRoute: MapRoute,
   ResetPasswordRoute: ResetPasswordRoute,
@@ -541,10 +623,12 @@ const rootRouteChildren: RootRouteChildren = {
   DemoCentralPointRoute: DemoCentralPointRoute,
   IndustrialIdRoute: IndustrialIdRoute,
   MallsIdRoute: MallsIdRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:
     ApiPublicNotificationsWhatsappDispatchRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

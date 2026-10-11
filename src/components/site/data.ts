@@ -14,6 +14,7 @@ export type Property = {
   title: string;
   description: string | null;
   image: string;
+  images: string[];
   price: number;
   type: string;
   city: string;
@@ -42,13 +43,14 @@ export const CITIES: Record<string, string[]> = {
 };
 export const CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
-export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار" };
+export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", company: "شركة تسويق / وساطة", developer: "شركة تطوير" };
 
 export const toProperty = (r: PropertyRow): Property => ({
   id: r.id,
   title: r.title,
   description: r.description,
-  image: r.image_url || "/demo/p1.jpg",
+  image: r.images?.[0] || r.image_url || "/demo/p1.jpg",
+  images: r.images?.length ? r.images : [r.image_url || "/demo/p1.jpg"],
   price: Number(r.price),
   type: r.type,
   city: r.city,
@@ -85,14 +87,23 @@ export async function fetchPublicBrokers() {
 /** Lead kind -> Arabic label. listing = owner offering a property via /sell. */
 export const LEAD_KINDS: Record<string, string> = { request: "طلب عقار", inquiry: "استفسار عقار", listing: "عرض مالك" };
 
+/** The 10-stage customer pipeline, in order. */
 export const STAGES: Record<string, string> = {
   new: "جديد",
   contacted: "تم التواصل",
-  viewing: "معاينة",
-  negotiating: "تفاوض",
-  won: "تم الإغلاق",
+  qualified: "مؤهل",
+  visit_scheduled: "تم تحديد زيارة",
+  visited: "تمت الزيارة",
+  reserved: "حجز",
+  contracted: "عقد",
+  sold: "بيع مؤكد",
   lost: "لم يكتمل",
+  postponed: "مؤجل",
 };
+/** Stages that need extra data (and documents) before a lead can enter them — set from the lead's page. */
+export const STAGES_WITH_DATA = ["visit_scheduled", "reserved", "contracted", "sold", "lost", "postponed"];
+/** Finished leads: no follow-up reminders. */
+export const CLOSED_STAGES = ["sold", "lost"];
 
 export const REVIEW: Record<"draft" | "pending" | "approved" | "rejected", { label: string; cls: string }> = {
   draft: { label: "مسودة", cls: "bg-secondary text-primary" },
@@ -122,3 +133,22 @@ export async function uploadImage(file: File) {
   if (e2) throw e2;
   return data.signedUrl;
 }
+
+/** Where a lead came from. The original source is fixed; changes are logged on the lead. */
+export const LEAD_SOURCES: Record<string, string> = {
+  website: "الموقع",
+  whatsapp: "واتساب",
+  facebook: "فيسبوك",
+  instagram: "إنستجرام",
+  tiktok: "تيك توك",
+  google_ads: "إعلانات جوجل",
+  referral: "ترشيح / إحالة",
+  phone_call: "مكالمة",
+  walk_in: "زيارة المكتب",
+  manual: "إدخال يدوي",
+  excel: "ملف Excel",
+  other: "أخرى",
+};
+
+/** Customer-facing lead number, e.g. VA-000123. */
+export const leadNo = (n: number | null | undefined) => (n ? `VA-${String(n).padStart(6, "0")}` : "VA-—");

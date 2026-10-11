@@ -23,13 +23,13 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
         <div className="absolute inset-0 bg-hero-overlay" />
         <div className="relative mx-auto max-w-7xl px-4 pt-8 md:px-6 md:pt-28">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/25 bg-primary-foreground/10 px-3 py-1 text-xs font-semibold text-primary-foreground backdrop-blur">
-            <span className="size-1.5 rounded-full bg-teal" /> {t("برج العرب الجديدة")}
+            <span className="size-1.5 rounded-full bg-teal" /> {t("برج العرب والساحل الشمالي")}
           </span>
           <h1 className="mt-3 max-w-2xl text-[1.75rem] leading-snug font-extrabold text-primary-foreground [text-shadow:0_2px_12px_rgb(0_0_0/0.35)] md:mt-5 md:text-6xl md:leading-[1.15]">
             {t("عقارك المناسب،")} <span className="text-teal">{t("أقرب")}</span>{t(" مما تتخيل")}
           </h1>
           <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-primary-foreground/90 md:mt-5 md:text-lg">
-            {t("اكتشف العقارات المتاحة في برج العرب، وقارن الخيارات، وتواصل مع الوسيط المناسب بكل سهولة.")}
+            {t("اكتشف العقارات المتاحة في برج العرب والساحل الشمالي، وقارن الخيارات، وتواصل مع الوسيط المناسب بكل سهولة.")}
           </p>
         </div>
       </div>

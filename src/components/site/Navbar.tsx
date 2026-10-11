@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
+import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { useSessionUser } from "@/hooks/useAuth";
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
@@ -31,21 +32,23 @@ export function LangToggle() {
 export function Navbar() {
   useLang();
   const [open, setOpen] = useState(false);
+  const { user } = useSessionUser();
   const links = [
     { label: t("الرئيسية"), href: "/#top" },
-    { label: t("العقارات"), href: "/#properties" },
-    { label: t("خريطة العقارات"), href: "/map" },
-    { label: t("المصانع والأراضي الصناعية"), href: "/industrial" },
-    { label: t("المولات"), href: "/malls" },
-    { label: t("الوسطاء العقاريون"), href: "/brokers" },
-    { label: t("اطلب عقارك"), href: "/#request" },
-    { label: t("دخول الوسطاء"), href: "/auth" },
+    { label: t("سكني"), href: "/?cat=residential#properties" },
+    { label: t("تجاري"), href: "/?cat=commercial#properties" },
+    { label: t("إداري"), href: "/?cat=office#properties" },
+    { label: t("أراضي"), href: "/?cat=land#properties" },
+    { label: t("صناعي"), href: "/industrial" },
+    { label: t("المشروعات"), href: "/projects" },
+    { label: t("الوسطاء"), href: "/brokers" },
   ];
+  const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("دخول الوسطاء") };
   return (
     <header className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <Logo />
-        <nav className="hidden items-center gap-4 xl:flex">
+        <nav className="hidden items-center gap-5 lg:flex">
           {links.map((l) => (
             <a key={l.href} href={l.href} className="text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
               {l.label}
@@ -55,24 +58,27 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <LangToggle />
           <NotificationBell />
-          <a href="/#search" aria-label={t("البحث")} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
-            <Search className="size-5" />
+          <a href={account.href} aria-label={account.label} title={account.label} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
+            <UserRound className="size-5" />
           </a>
           <a href="/sell" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> {t("بيع عقارك")}
           </a>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary xl:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </Button>
         </div>
       </div>
       {open && (
-        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card xl:hidden">
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card lg:hidden">
           {links.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
               {l.label}
             </a>
           ))}
+          <a href={account.href} onClick={() => setOpen(false)} className="flex items-center gap-2 border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
+            <UserRound className="size-4" /> {account.label}
+          </a>
           <a href="/sell" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
             <Plus className="size-4" /> {t("بيع عقارك")}
           </a>
