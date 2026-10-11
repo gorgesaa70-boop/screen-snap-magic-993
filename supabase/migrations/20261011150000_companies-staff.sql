@@ -23,11 +23,6 @@ alter table public.brokers
   add column if not exists review_note text check (review_note is null or char_length(review_note) <= 500),
   add column if not exists rejected_at timestamptz;
 
-drop policy if exists "user requests to join" on public.brokers;
-create policy "user requests to join" on public.brokers for insert to authenticated
-  with check (user_id = auth.uid() and is_active = false and is_demo = false and plan_id is null
-    and rejected_at is null and review_note is null
-    and account_type in ('individual','owner','developer','company'));
 
 create or replace function public.brokers_guard()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -135,6 +130,14 @@ returns uuid language sql stable security definer set search_path = public as $$
     (select company_id from public.my_membership())
   )
 $$;
+
+-- Join requests: not for people who already work inside a company team.
+drop policy if exists "user requests to join" on public.brokers;
+create policy "user requests to join" on public.brokers for insert to authenticated
+  with check (user_id = auth.uid() and is_active = false and is_demo = false and plan_id is null
+    and rejected_at is null and review_note is null
+    and account_type in ('individual','owner','developer','company')
+    and not exists (select 1 from public.my_membership()));
 
 -- 'owner' for the account holder, otherwise the team role (manager / sales / broker), null for neither.
 create or replace function public.current_member_role()

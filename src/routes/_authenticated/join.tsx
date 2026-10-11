@@ -6,6 +6,8 @@ import { DashShell } from "@/components/dash/DashShell";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { AREAS } from "@/components/site/data";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
+import { useMe } from "@/hooks/useAuth";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/join")({
   head: () => ({ meta: [{ title: "طلب الانضمام | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -20,6 +22,7 @@ function JoinPage() {
   const [f, setF] = useState({ name: "", specialty: "", email: user.email ?? "", areas: [] as string[], account_type: "individual" as AccountType, contact_person: "", commercial_register: "", address: "" });
   const isCompany = f.account_type === "company" || f.account_type === "developer";
   const [busy, setBusy] = useState(false);
+  const { me } = useMe();
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (f.name.trim().length < 2) { toast.error("اكتب اسمك أو اسم المكتب"); return; }
@@ -37,6 +40,14 @@ function JoinPage() {
     await logAuthEvent("join_requested");
     nav({ to: "/pending", replace: true });
   }
+  if (me && ((me.memberRole && me.memberRole !== "owner") || me.isStaff)) return (
+    <DashShell title="طلب الانضمام لفاليو عقار">
+      <p className="max-w-xl rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+        {me.isStaff ? "حسابك ضمن فريق فاليو عقار." : `حسابك ضمن فريق ${me.broker?.name ?? "شركة"} على المنصة.`}{" "}
+        <Link to={me.isStaff ? "/inquiries" : "/dashboard"} className="font-bold text-primary underline">{me.isStaff ? "طلبات العملاء" : "لوحة الشركة"}</Link>
+      </p>
+    </DashShell>
+  );
   return (
     <DashShell title="طلب الانضمام لفاليو عقار">
       <form onSubmit={submit} className="max-w-xl space-y-4 rounded-2xl border bg-card p-5 md:p-6">
