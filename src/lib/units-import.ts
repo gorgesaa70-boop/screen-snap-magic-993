@@ -36,11 +36,11 @@ const STATUS: Record<string, UnitInput["status"]> = {
 export const MAX_ROWS = 1000;
 export const TEMPLATE_HEADERS = ["الكود", "النوع", "المساحة", "الغرف", "الحمامات", "الدور", "السعر", "الحالة", "ملاحظات"];
 
-const norm = (v: unknown) => String(v ?? "").replace(/[‏‎]/g, "").trim();
-const key = (v: unknown) => norm(v).toLowerCase().replace(/\s+/g, " ");
+export const norm = (v: unknown) => String(v ?? "").replace(/[‏‎]/g, "").trim();
+export const key = (v: unknown) => norm(v).toLowerCase().replace(/\s+/g, " ");
 const toLatinDigits = (s: string) => s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[,،٬\s]/g, "").replace(/٫/g, ".");
 
-function num(v: unknown): number | null | "bad" {
+export function num(v: unknown): number | null | "bad" {
   if (v === null || v === undefined || norm(v) === "") return null;
   if (typeof v === "number") return Number.isFinite(v) ? v : "bad";
   const n = Number(toLatinDigits(norm(v)));

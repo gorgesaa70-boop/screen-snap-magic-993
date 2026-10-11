@@ -559,4 +559,26 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     await as(null, `select public.log_app_error('client', 'one more', null, '/', null)`);
     return sys(`select count(*) c from public.app_errors`);
   }, (r) => Number(r[0].c) === 300);
+
+  console.log("\nDemo data switch (item 32)");
+  const demoCounts = async (uid) => [
+    (await as(uid, `select count(*) c from public.properties where is_demo`))[0].c,
+    (await as(uid, `select count(*) c from public.brokers where is_demo`))[0].c,
+  ].map(Number);
+  const before = await demoCounts(null);
+  await expectOk("demo rows are public while the switch is on", async () => before, (r) => r[0] > 0 && r[1] > 0);
+  await expectOk("a company can't turn the switch off", async () => { await as(U.owner, `update public.app_settings set show_demo=false`); return sys(`select show_demo from public.app_settings`); }, (r) => r[0].show_demo === true);
+  await expectOk("admin turns it off → visitors and signed-in users stop seeing demo rows; real rows stay", async () => {
+    await as(U.admin, `update public.app_settings set show_demo=false`);
+    return [...await demoCounts(null), ...await demoCounts(U.outsider), Number((await as(null, `select count(*) c from public.properties where not is_demo and review_status='approved'`))[0].c)];
+  }, (r) => r[0] === 0 && r[1] === 0 && r[2] === 0 && r[3] === 0 && r[4] > 0);
+  await expectOk("admins still see them", () => demoCounts(U.admin), (r) => r[0] === before[0]);
+  await expectOk("turning it back on brings them back", async () => { await as(U.admin, `update public.app_settings set show_demo=true`); return demoCounts(null); }, (r) => r[0] === before[0] && r[1] === before[1]);
+  await expectErr("only admins can delete demo data", () => as(U.owner, `select public.delete_demo_data()`));
+  await expectErr("visitors can't either", () => as(null, `select public.delete_demo_data()`));
+  await expectOk("admin deletes demo data for good; switch goes off; real data untouched", async () => {
+    const realBefore = Number((await sys(`select count(*) c from public.properties where not is_demo`))[0].c);
+    const r = (await as(U.admin, `select public.delete_demo_data() r`))[0].r;
+    return [r.properties, Number((await sys(`select count(*) c from public.properties where is_demo`))[0].c), Number((await sys(`select count(*) c from public.properties where not is_demo`))[0].c) === realBefore, (await sys(`select show_demo from public.app_settings`))[0].show_demo];
+  }, (r) => r[0] === before[0] && r[1] === 0 && r[2] === true && r[3] === false);
 }
