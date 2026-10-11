@@ -133,7 +133,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
             <Stat label="عملاء جدد" value={L.filter((l) => l.stage === "new").length} />
             <Stat label="مبيعات مؤكدة" value={L.filter((l) => l.stage === "sold").length} />
           </div>
-          <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
+            <Link to="/reports" className={btnOutline}>التقارير</Link>
+            <Link to="/tasks" className={btnOutline}>متابعاتي</Link>
+          </div>
         </div>
       )}
       {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
@@ -247,6 +251,7 @@ function ProfileForm({ broker }: { broker: BrokerRow }) {
         <Field label="الاسم"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={100} /></Field>
         <Field label="التخصص"><input className={inputCls} value={f.specialty} onChange={set("specialty")} maxLength={120} /></Field>
         <Field label="هاتف تسجيل الدخول"><><input className={inputCls} dir="ltr" value={f.phone} readOnly disabled /><Link to="/account" className="mt-1 block text-xs font-bold text-primary hover:text-teal">تغيير الرقم بعد التحقق منه</Link></></Field>
+        <p className="text-xs text-muted-foreground sm:col-span-2">{broker.show_contact ? "بيانات التواصل دي ظاهرة للعملاء حسب اتفاقيتك مع فاليو عقار." : "بيانات التواصل دي مش ظاهرة للعملاء — العملاء بيتواصلوا عن طريق فاليو عقار، والاستفسار بيوصلك كعميل في لوحتك."}</p>
         <Field label="واتساب"><input className={inputCls} dir="ltr" value={f.whatsapp} onChange={set("whatsapp")} maxLength={20} /></Field>
         <Field label="البريد"><input className={inputCls} dir="ltr" value={f.email} onChange={set("email")} maxLength={255} /></Field>
         <Field label="رابط فيسبوك"><input className={inputCls} dir="ltr" value={f.facebook} onChange={set("facebook")} maxLength={300} /></Field>

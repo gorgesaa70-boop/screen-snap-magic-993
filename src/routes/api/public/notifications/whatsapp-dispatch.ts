@@ -27,12 +27,17 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
         const lang = process.env["WHATSAPP_TEMPLATE_LANG"] || "ar";
         const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
 
+        // Scheduled reminders (follow-ups, visits, overdue tasks, due commissions, stale reviews, missing documents)
+        // become notifications first, so this same run can also send their WhatsApp copies.
+        const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
+        if (remindersError) console.error("run_reminders", remindersError.message);
+
         // Expire stale items so a late activation doesn't flood users.
         await db.from("notifications").update({ whatsapp_status: "skipped", whatsapp_error: "expired" })
           .eq("whatsapp_status", "pending").lt("created_at", new Date(Date.now() - 864e5).toISOString());
 
         if (!token || !phoneId || !template) {
-          return Response.json({ configured: false, sent: 0 });
+          return Response.json({ configured: false, sent: 0, reminders });
         }
 
         const { data: pending, error } = await db.from("notifications")
@@ -73,7 +78,7 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
             failed++;
           }
         }
-        return Response.json({ configured: true, sent, skipped, failed });
+        return Response.json({ configured: true, sent, skipped, failed, reminders });
       },
     },
   },

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, History } from "lucide-react";
+import { Plus, Pencil, Trash2, History, FileSpreadsheet } from "lucide-react";
+import { UnitsImport } from "@/components/dash/UnitsImport";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
 import { formatPrice, formatDate } from "@/components/site/data";
@@ -19,6 +20,7 @@ export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack:
   });
   const [editing, setEditing] = useState<UnitRow | "new" | null>(null);
   const [historyOf, setHistoryOf] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const U = q.data ?? [];
   const count = (s: string) => U.filter((u) => u.status === s).length;
 
@@ -35,8 +37,12 @@ export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack:
           <h3 className="text-lg font-extrabold text-primary">وحدات {project.name}</h3>
           <p className="text-xs text-muted-foreground">{Object.entries(UNIT_STATUS).map(([k, v]) => `${v.label}: ${count(k)}`).join(" · ")}</p>
         </div>
-        <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة</button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setImporting(!importing)} className={btnOutline}><FileSpreadsheet className="size-4" />رفع من Excel</button>
+          <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة</button>
+        </div>
       </div>
+      {importing && <UnitsImport projectId={project.id} existingCodes={U.map((u) => u.code).filter((c): c is string => !!c)} onDone={() => { setImporting(false); q.refetch(); }} />}
       {editing && <UnitForm projectId={project.id} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); q.refetch(); }} />}
       {!q.isLoading && U.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه مفيش وحدات في المشروع ده.</p>}
       {U.length > 0 && (

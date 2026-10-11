@@ -442,6 +442,11 @@ const EN: Record<string, string> = {
   "الكود بيفتح الصفحة المناسبة لموبايلك تلقائيًا (آيفون أو أندرويد).": "It opens the right store for your phone automatically (iPhone or Android).",
   "رمز QR لتنزيل تطبيق Value Aqar": "QR code to download the Value Aqar app",
   "جارٍ فتح المتجر...": "Opening the store...",
+  // Contact through the platform
+  "مرحبًا فاليو عقار، أستفسر عن الوسيط {name}": "Hello Value Aqar, I'm asking about {name}",
+  "تم إرسال استفسارك ✓ وهيتواصلوا معاك قريب": "Your inquiry was sent ✓ — they'll contact you soon",
+  "تواصل مع {name}": "Contact {name}",
+  "إرسال": "Send",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */

@@ -19,11 +19,15 @@ import { Route as SellRouteImport } from './routes/sell'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDealsRouteImport } from './routes/_authenticated/deals'
 import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authenticated/inquiries'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
@@ -87,9 +91,20 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommissionsRoute =
+  AuthenticatedCommissionsRouteImport.update({
+    id: '/commissions',
+    path: '/commissions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDealsRoute = AuthenticatedDealsRouteImport.update({
+  id: '/deals',
+  path: '/deals',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedInquiriesRoute = AuthenticatedInquiriesRouteImport.update({
@@ -111,6 +126,16 @@ const AuthenticatedNotificationsRoute =
 const AuthenticatedPendingRoute = AuthenticatedPendingRouteImport.update({
   id: '/pending',
   path: '/pending',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const BrokersIndexRoute = BrokersIndexRouteImport.update({
@@ -191,11 +216,15 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/commissions': typeof AuthenticatedCommissionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deals': typeof AuthenticatedDealsRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -220,11 +249,15 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/commissions': typeof AuthenticatedCommissionsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/deals': typeof AuthenticatedDealsRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -251,11 +284,15 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/commissions': typeof AuthenticatedCommissionsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/deals': typeof AuthenticatedDealsRoute
   '/_authenticated/inquiries': typeof AuthenticatedInquiriesRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -282,11 +319,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/account'
     | '/admin'
+    | '/commissions'
     | '/dashboard'
+    | '/deals'
     | '/inquiries'
     | '/join'
     | '/notifications'
     | '/pending'
+    | '/reports'
+    | '/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -311,11 +352,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/account'
     | '/admin'
+    | '/commissions'
     | '/dashboard'
+    | '/deals'
     | '/inquiries'
     | '/join'
     | '/notifications'
     | '/pending'
+    | '/reports'
+    | '/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -341,11 +386,15 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/_authenticated/commissions'
     | '/_authenticated/dashboard'
+    | '/_authenticated/deals'
     | '/_authenticated/inquiries'
     | '/_authenticated/join'
     | '/_authenticated/notifications'
     | '/_authenticated/pending'
+    | '/_authenticated/reports'
+    | '/_authenticated/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -456,11 +505,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/commissions': {
+      id: '/_authenticated/commissions'
+      path: '/commissions'
+      fullPath: '/commissions'
+      preLoaderRoute: typeof AuthenticatedCommissionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/deals': {
+      id: '/_authenticated/deals'
+      path: '/deals'
+      fullPath: '/deals'
+      preLoaderRoute: typeof AuthenticatedDealsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inquiries': {
@@ -489,6 +552,20 @@ declare module '@tanstack/react-router' {
       path: '/pending'
       fullPath: '/pending'
       preLoaderRoute: typeof AuthenticatedPendingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/brokers/': {
@@ -588,22 +665,30 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedCommissionsRoute: typeof AuthenticatedCommissionsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDealsRoute: typeof AuthenticatedDealsRoute
   AuthenticatedInquiriesRoute: typeof AuthenticatedInquiriesRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedCommissionsRoute: AuthenticatedCommissionsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDealsRoute: AuthenticatedDealsRoute,
   AuthenticatedInquiriesRoute: AuthenticatedInquiriesRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
 }
 

@@ -18,7 +18,7 @@ await db.exec(`
   grant usage on schema public to anon, authenticated, service_role;
   create schema auth; create schema storage;
   grant usage on schema auth, storage to anon, authenticated, service_role;
-  create table auth.users (id uuid primary key, phone text, email text, created_at timestamptz default now());
+  create table auth.users (id uuid primary key, phone text, email text, raw_user_meta_data jsonb default '{}'::jsonb, created_at timestamptz default now());
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create function auth.role() returns text language sql stable as $$ select nullif(current_setting('request.jwt.claim.role', true), '') $$;
   create table storage.buckets (id text primary key, name text, public boolean default false);

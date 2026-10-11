@@ -5,13 +5,14 @@ import { MapPin, MessageCircle, Phone, Mail, Facebook } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PropertyCard } from "@/components/site/Sections";
-import { PUBLIC_BROKER_COLS, fetchPublicProperties, waLink, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, fetchPublicProperties, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { BrokerInquiry } from "@/components/site/BrokerInquiry";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchBroker(slug: string) {
   const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("slug", slug).eq("is_active", true).maybeSingle();
   if (error) throw error;
-  return (data as PublicBroker | null) ?? null;
+  return data ? ((await withContacts([data]))[0] as PublicBroker) : null;
 }
 
 export const Route = createFileRoute("/brokers/$slug")({
@@ -61,7 +62,7 @@ function BrokerProfile() {
             <p className="mt-3 flex items-start gap-2 text-sm text-primary-foreground/80"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => t(area)).join(" / ") || "—"}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:flex">
-            <a href={waLink(b.whatsapp || b.phone, t("مرحبًا {name}، تواصلت معك عبر فاليو عقار", { name: b.name }))} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp px-5 text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("واتساب")}</a>
+            <a href={waLink(b.whatsapp || b.phone, b.whatsapp || b.phone ? t("مرحبًا {name}، تواصلت معك عبر فاليو عقار", { name: b.name }) : t("مرحبًا فاليو عقار، أستفسر عن الوسيط {name}", { name: b.name }))} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp px-5 text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("واتساب")}</a>
             {b.phone && <a href={`tel:${b.phone}`} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-teal px-5 text-sm font-bold text-accent-foreground hover:brightness-95"><Phone className="size-4" />{t("اتصال")}</a>}
           </div>
         </div>
@@ -76,6 +77,7 @@ function BrokerProfile() {
             {b.facebook && <li><a href={b.facebook} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-teal"><Facebook className="size-4 text-teal" />{t("فيسبوك")}</a></li>}
           </ul>
           {b.is_demo && <p className="text-[11px] text-muted-foreground">{t("* بيانات تجريبية.")}</p>}
+          {!b.phone && <BrokerInquiry brokerId={b.id} brokerName={b.name} />}
         </aside>
         <section>
           <h2 className="mb-4 text-xl font-extrabold text-primary">{t("العقارات المسجلة")} ({props.data?.length ?? 0})</h2>

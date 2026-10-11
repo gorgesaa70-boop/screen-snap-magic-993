@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Store, MapPin, Maximize, Layers, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
-import { PUBLIC_BROKER_COLS, formatPrice, waLink, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
@@ -48,7 +48,7 @@ function MallPage() {
   const brokerIds = [...new Set((units.data ?? []).map((u) => u.broker_id).filter(Boolean))] as string[];
   const brokers = useQuery({
     queryKey: ["mall-brokers", brokerIds], enabled: brokerIds.length > 0,
-    queryFn: async () => ((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).in("id", brokerIds)).data ?? []) as PublicBroker[],
+    queryFn: async () => (await withContacts((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).in("id", brokerIds)).data ?? [])) as PublicBroker[],
   });
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");

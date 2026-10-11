@@ -61,9 +61,11 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   console.log("\nJoin requests and review");
   await expectOk("applicant requests a company account", () => as(U.applicant, `insert into public.brokers (user_id, slug, name, is_active, account_type, contact_person) values ('${U.applicant}','ap','شركة جديدة',false,'company','أحمد') returning id`));
   await expectErr("applicant can't pre-fill rejection fields", () => as(U.outsider, `insert into public.brokers (user_id, slug, name, is_active, account_type, rejected_at) values ('${U.outsider}','o','x',false,'company', now())`));
-  await expectOk("admin rejects with a note", () => as(U.admin, `update public.brokers set rejected_at=now(), review_note='بيانات ناقصة' where slug='ap' returning rejected_at`), (r) => r[0].rejected_at);
-  await expectOk("owner can't clear own review fields", () => as(U.owner, `update public.brokers set review_note='x' where id='${CO}' returning review_note`), (r) => r[0].review_note === null);
-  await expectOk("activating clears rejection", () => as(U.admin, `update public.brokers set is_active=true where slug='ap' returning rejected_at`), (r) => r[0].rejected_at === null);
+  // (brokers private columns are read through admin_brokers() / my_account(); checked here with sys)
+  const acct = (where) => sys(`select rejected_at, review_note from public.brokers where ${where}`).then((r) => r[0]);
+  await expectOk("admin rejects with a note", async () => { await as(U.admin, `update public.brokers set rejected_at=now(), review_note='بيانات ناقصة' where slug='ap'`); return acct(`slug='ap'`); }, (r) => r.rejected_at && r.review_note === "بيانات ناقصة");
+  await expectOk("owner can't clear own review fields", async () => { await as(U.owner, `update public.brokers set review_note='x' where id='${CO}'`); return acct(`id='${CO}'`); }, (r) => r.review_note === null);
+  await expectOk("activating clears rejection", async () => { await as(U.admin, `update public.brokers set is_active=true where slug='ap'`); return acct(`slug='ap'`); }, (r) => r.rejected_at === null);
 
   console.log("\nDeveloper projects");
   const pid = await expectOk("developer creates a project", () => as(U.dev, `insert into public.projects (developer_id, name, city, area, review_status, is_featured) values ('${DEV}','كمبوند','برج العرب الجديدة','الحي الأول','rejected', true) returning review_status, is_featured`), (r) => r[0].review_status === "approved" && r[0].is_featured === false);
@@ -184,4 +186,92 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("assigned to a Value Aqar employee → employee notified", async () => { await as(U.admin, `update public.leads set assigned_staff_id='${U.staff}' where id='${nl}'`); return sys(`select count(*) c from public.notifications where user_id='${U.staff}' and related_id='${nl}' and title='تم إسناد عميل لك'`); }, (r) => Number(r[0].c) === 1);
   await expectOk("quick 'lost' → admins and staff alerted", async () => [await notes(U.admin, "تنبيه: عميل اتقفل بسرعة"), await notes(U.staff, "تنبيه: عميل اتقفل بسرعة")], (r) => r[0] >= 1 && r[1] >= 1);
   await expectOk("nobody is notified about their own action", () => sys(`select count(*) c from public.notifications where user_id='${U.manager}' and related_id='${nl}' and title='تم إسناد عميل لك'`), (r) => Number(r[0].c) === 0);
+
+  console.log("\nCommissions (item 15)");
+  const com = () => sys(`select * from public.commissions where deal_id='${dealId}'`).then((r) => r[0]);
+  await expectOk("approved deal already has a commission waiting for review", com, (r) => r && r.status === "pending_review" && r.expected_amount === null);
+  await expectOk("admin adds a 2.5% agreement for the company", () => as(U.admin, `insert into public.company_agreements (broker_id, rate, effective_from) values ('${CO}', 2.5, '2026-01-01') returning approved_by`), (r) => r[0].approved_by === U.admin);
+  await expectErr("agreement terms can't be edited", () => as(U.admin, `update public.company_agreements set rate=1 where broker_id='${CO}'`));
+  await expectErr("agreement needs a rate or a fixed amount (not both)", () => as(U.admin, `insert into public.company_agreements (broker_id, rate, fixed_amount) values ('${CO}', 1, 1000)`));
+  await expectOk("owner sees the company agreement, sales doesn't", async () => [(await as(U.owner, `select id from public.company_agreements`)).length, (await as(U.sales, `select id from public.company_agreements`)).length], (r) => r[0] === 1 && r[1] === 0);
+  await expectOk("admin applies the rate → amount computed (1,500,000 × 2.5%)", () => as(U.admin, `update public.commissions set basis_value=1500000, rate=2.5 where deal_id='${dealId}' returning expected_amount`), (r) => Number(r[0].expected_amount) === 37500);
+  await expectErr("approval needs a due date", () => as(U.admin, `update public.commissions set status='approved' where deal_id='${dealId}'`));
+  await expectOk("admin approves with a due date → company notified", async () => { await as(U.admin, `update public.commissions set status='approved', due_date='2026-11-10' where deal_id='${dealId}'`); return [(await com()).status, await notes(U.owner, "عمولة مستحقة")]; }, (r) => r[0] === "approved" && r[1] === 1);
+  await expectOk("company can't touch the commission", () => as(U.owner, `update public.commissions set expected_amount=1 where deal_id='${dealId}' returning id`), (r) => r.length === 0);
+  await expectErr("approved amount is locked even for admin", () => as(U.admin, `update public.commissions set rate=1 where deal_id='${dealId}'`));
+  await expectErr("admin can't fake the paid amount directly", async () => { const r = await as(U.admin, `update public.commissions set paid_amount=37500, status='paid' where deal_id='${dealId}' returning status`); return r; });
+  const cid = (await com()).id;
+  await expectErr("company can't record payments", () => as(U.owner, `insert into public.commission_payments (commission_id, amount, recorded_by) values ('${cid}', 1000, '${U.owner}')`));
+  await expectOk("partial payment → partially paid, company notified", async () => { await as(U.admin, `insert into public.commission_payments (commission_id, amount, recorded_by) values ('${cid}', 10000, '${U.admin}')`); const c = await com(); return [c.status, Number(c.paid_amount), await notes(U.owner, "اتسجلت دفعة عمولة")]; }, (r) => r[0] === "partially_paid" && r[1] === 10000 && r[2] === 1);
+  await expectErr("can't pay more than what's left", () => as(U.admin, `insert into public.commission_payments (commission_id, amount, recorded_by) values ('${cid}', 30000, '${U.admin}')`));
+  await expectOk("final payment → paid", async () => { await as(U.admin, `insert into public.commission_payments (commission_id, amount, recorded_by) values ('${cid}', 27500, '${U.admin}')`); return [(await com()).status]; }, (r) => r[0] === "paid");
+  await expectErr("a paid commission is closed", () => as(U.admin, `update public.commissions set due_date='2027-01-01' where id='${cid}'`));
+  await expectErr("payments can't be deleted", () => as(U.admin, `delete from public.commission_payments`));
+  await expectOk("owner sees payments, outsider doesn't", async () => [(await as(U.owner, `select id from public.commission_payments`)).length, (await as(U.outsider, `select id from public.commission_payments`)).length], (r) => r[0] === 2 && r[1] === 0);
+  await expectOk("a new deal starts an expected commission from the agreement", async () => {
+    await as(U.manager, `insert into public.deals (lead_id, contract_value, contract_date) values ('${nl}', 2000000, '2026-10-01')`);
+    return sys(`select c.status, c.expected_amount from public.commissions c join public.deals d on d.id=c.deal_id where d.lead_id='${nl}'`);
+  }, (r) => r[0].status === "expected" && Number(r[0].expected_amount) === 50000);
+  await expectErr("cancelling needs a reason", () => as(U.admin, `update public.commissions c set status='cancelled' from public.deals d where d.id=c.deal_id and d.lead_id='${nl}'`));
+
+  console.log("\nAudit log (item 20)");
+  await expectOk("source change recorded with old and new value", () => as(U.admin, `select changes->'source' s, actor_label from public.audit_log where table_name='leads' and row_id='${fb}' and action='update' and changes ? 'source' order by at limit 1`), (r) => r[0] && r[0].s[0] === "facebook" && r[0].s[1] === "referral" && r[0].actor_label === "أدمن");
+  await expectOk("team member actions carry their name and company", () => as(U.admin, `select actor_label from public.audit_log where actor='${U.manager}' limit 1`), (r) => r[0]?.actor_label.startsWith("فريق: مدير"));
+  await expectOk("payments and commission approvals are in the log", () => as(U.admin, `select (select count(*) from public.audit_log where table_name='commission_payments') p, (select count(*) from public.audit_log where table_name='commissions' and changes ? 'approved_at') a`), (r) => Number(r[0].p) === 2 && Number(r[0].a) >= 1);
+  await expectOk("unchanged updates add nothing", async () => { const before = (await sys(`select count(*) c from public.audit_log`))[0].c; await as(U.admin, `update public.plans set name=name`); return [(await sys(`select count(*) c from public.audit_log`))[0].c === before]; }, (r) => r[0]);
+  await expectOk("companies and staff can't read the log", async () => [(await as(U.owner, `select id from public.audit_log`)).length, (await as(U.staff, `select id from public.audit_log`)).length], (r) => r[0] === 0 && r[1] === 0);
+  await expectErr("even admin can't edit the log", () => as(U.admin, `update public.audit_log set actor_label='x'`));
+  await expectErr("even admin can't delete the log", () => as(U.admin, `delete from public.audit_log`));
+  await expectErr("nobody can write to the log directly", () => as(U.admin, `insert into public.audit_log (table_name, action) values ('x','insert')`));
+
+  console.log("\nTasks and reminders (item 18)");
+  await expectOk("manager can assign to the team, not to outsiders", () => as(U.manager, `select user_id from public.assignable_users()`), (r) => r.some((x) => x.user_id === U.sales) && r.some((x) => x.user_id === U.owner) && !r.some((x) => x.user_id === U.outsider));
+  await expectOk("staff can assign to staff and admins", () => as(U.staff, `select label from public.assignable_users()`), (r) => r.some((x) => x.label.startsWith("أدمن")));
+  await expectOk("manager gives a task to the sales member → notified", async () => { await as(U.manager, `insert into public.tasks (lead_id, title, due_at, assigned_to) values ('${nl}', 'كلّم العميل بخصوص التمويل', now() - interval '1 hour', '${U.sales}')`); return [await notes(U.sales, "مهمة جديدة ليك")]; }, (r) => r[0] === 1);
+  await expectErr("an outsider can't hand tasks to the company team", () => as(U.outsider, `insert into public.tasks (title, assigned_to) values ('x', '${U.sales}')`));
+  const task = (await sys(`select id from public.tasks limit 1`))[0].id;
+  await expectOk("assignee can't rewrite the task, only tick it done", () => as(U.sales, `update public.tasks set title='تغيير', done_at=now() where id='${task}' returning title, done_by`), (r) => r[0].title === "كلّم العميل بخصوص التمويل" && r[0].done_by === U.sales);
+  await expectOk("owner sees team tasks; outsider doesn't", async () => [(await as(U.owner, `select id from public.tasks`)).length, (await as(U.outsider, `select id from public.tasks`)).length], (r) => r[0] === 1 && r[1] === 0);
+  await as(U.sales, `update public.tasks set done_at=null where id='${task}'`);
+
+  const run = async () => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); const r = await sys(`select public.run_reminders() r`); await sys(`select set_config('request.jwt.claim.role','',false)`); return r[0].r; };
+  await expectErr("reminders can only be run by the scheduler", () => as(U.admin, `select public.run_reminders()`));
+  await as(U.manager, `update public.leads set follow_up_at = now() - interval '5 minutes' where id='${nl}'`);
+  await as(U.manager, `update public.leads set stage='visit_scheduled', visit_at = now() + interval '3 hours' where id='${quick}'`).catch(() => {});
+  await sys(`set session_replication_role = replica`);
+  await sys(`update public.deals set updated_at = now() - interval '3 days' where lead_id='${nl}'`);
+  await sys(`set session_replication_role = origin`);
+  const first = await run();
+  await expectOk("first run: follow-up, visit tomorrow, overdue task, missing contract document", async () => [first], (r) => r[0].follow_ups >= 1 && r[0].visits === 1 && r[0].tasks === 1 && r[0].documents === 1);
+  await expectOk("the assigned team member gets the follow-up and the overdue task", async () => [await notes(U.sales, "حان ميعاد متابعة عميل"), await notes(U.sales, "مهمة متأخرة"), await notes(U.sales, "مستند ناقص")], (r) => r[0] === 1 && r[1] === 1 && r[2] === 1);
+  const second = await run();
+  await expectOk("second run sends nothing again", async () => [second], (r) => Object.values(r[0]).every((v) => v === 0));
+  await expectOk("reminder markers don't flood the audit log", () => sys(`select count(*) c from public.audit_log where changes ? 'reminded_follow_up_at' or changes ? 'docs_reminded_at'`), (r) => Number(r[0].c) === 0);
+
+  console.log("\nContact policy (item 17)");
+  await expectErr("visitors can't read broker phone numbers", () => as(null, `select phone from public.brokers`));
+  await expectErr("signed-in customers can't read WhatsApp numbers", () => as(U.outsider, `select whatsapp from public.brokers`));
+  await expectOk("public profile columns still readable", () => as(null, `select name, slug, account_type from public.brokers where id='${CO}'`), (r) => r.length === 1);
+  await expectOk("contacts hidden by default", () => as(null, `select * from public.broker_contacts(array['${CO}'::uuid])`), (r) => r.length === 0);
+  await expectOk("a company can't open its own contacts", async () => { await as(U.owner, `update public.brokers set show_contact=true where id='${CO}'`); return as(null, `select * from public.broker_contacts(array['${CO}'::uuid])`); }, (r) => r.length === 0);
+  await expectOk("admin opens contacts for an account → visible publicly", async () => { await as(U.admin, `update public.brokers set show_contact=true where id='${DEV}'`); return as(null, `select phone from public.broker_contacts(array['${DEV}'::uuid, '${CO}'::uuid])`); }, (r) => r.length === 1 && r[0].phone === "201000000006");
+  await expectOk("the account itself and its team see their contacts", () => as(U.sales, `select phone from public.broker_contacts(array['${CO}'::uuid])`), (r) => r[0]?.phone === "201000000001");
+  await expectOk("my_account gives the team member the full company row", () => as(U.sales, `select id, phone, plan_id from public.my_account()`), (r) => r.length === 1 && r[0].id === CO && r[0].phone === "201000000001");
+  await expectOk("pending applicant still gets their own row", () => as(U.applicant, `select name from public.my_account()`), (r) => r[0]?.name === "شركة جديدة");
+  await expectOk("admin and staff get full rows", async () => [(await as(U.admin, `select phone from public.admin_brokers()`)).length, (await as(U.staff, `select phone from public.admin_brokers()`)).length], (r) => r[0] >= 4 && r[0] === r[1]);
+  await expectErr("companies can't list all accounts", () => as(U.owner, `select * from public.admin_brokers()`));
+  await expectOk("inquiry from a broker page → lead for that broker, source website", async () => {
+    await as(null, `insert into public.leads (name, phone, via_broker_id, assigned_broker_id, source) values ('من صفحة الوسيط','01033334444','${CO}','${DEV}','referral')`);
+    return sys(`select assigned_broker_id, source, source_note, kind, first_broker_id from public.leads where name='من صفحة الوسيط'`);
+  }, (r) => r[0].assigned_broker_id === CO && r[0].source === "website" && r[0].source_note === "صفحة الوسيط" && r[0].kind === "inquiry" && r[0].first_broker_id === CO);
+
+  console.log("\nDeals linked to project units");
+  await as(U.admin, `update public.projects set review_status='approved' where id='${proj}'`);
+  await as(U.dev, `insert into public.project_units (project_id, code, unit_type, size, price) values ('${proj}', 'U-7', 'شقة', 110, 900000)`);
+  const unit = (await sys(`select id from public.project_units where code='U-7'`))[0].id;
+  const unitStatus = () => sys(`select status from public.project_units where id='${unit}'`).then((r) => r[0].status);
+  await expectOk("reservation on a deal marks the unit reserved", async () => { await as(U.manager, `insert into public.deals (lead_id, project_unit_id, reservation_date, reservation_amount) values ('${moved}', '${unit}', current_date, 20000)`); return [await unitStatus()]; }, (r) => r[0] === "reserved");
+  await expectOk("approved sale marks the unit sold (and logs unit history)", async () => { await as(U.admin, `update public.deals set review_status='approved', sale_date=current_date, sale_value=950000 where lead_id='${moved}'`); return [await unitStatus(), Number((await sys(`select count(*) c from public.project_unit_history where unit_id='${unit}'`))[0].c)]; }, (r) => r[0] === "sold" && r[1] === 2);
+  await expectErr("a sold unit can't be put on another deal", () => as(U.manager, `insert into public.deals (lead_id, project_unit_id) values ('${quick}', '${unit}')`));
+
 }

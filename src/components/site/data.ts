@@ -67,8 +67,20 @@ export const toProperty = (r: PropertyRow): Property => ({
   brokerId: r.broker_id,
 });
 
-export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,phone,whatsapp,email,facebook,is_demo,account_type";
+/** Columns the public may read. Phone / WhatsApp / e-mail come only from broker_contacts() (see withContacts). */
+export const PUBLIC_BROKER_COLS = "id,slug,name,specialty,bio,photo_url,areas,facebook,is_demo,account_type,show_contact";
 export type PublicBroker = Pick<BrokerRow, "id" | "slug" | "name" | "specialty" | "bio" | "photo_url" | "areas" | "phone" | "whatsapp" | "email" | "facebook" | "is_demo" | "account_type">;
+
+/**
+ * Adds contact details where the database allows them (account opened by an admin, or the viewer's own
+ * account / admin / staff). Otherwise they stay null, and WhatsApp buttons fall back to Value Aqar's number.
+ */
+export async function withContacts<T extends { id: string }>(rows: T[]): Promise<(T & Pick<BrokerRow, "phone" | "whatsapp" | "email">)[]> {
+  const ids = rows.map((r) => r.id);
+  const { data } = ids.length ? await supabase.rpc("broker_contacts", { _ids: ids }) : { data: [] };
+  const byId = new Map((data ?? []).map((c) => [c.id, c]));
+  return rows.map((r) => { const c = byId.get(r.id); return { ...r, phone: c?.phone ?? null, whatsapp: c?.whatsapp ?? null, email: c?.email ?? null }; });
+}
 
 export async function fetchPublicProperties(brokerId?: string) {
   let q = supabase.from("properties").select("*").eq("review_status", "approved").eq("category", "residential");
@@ -81,7 +93,7 @@ export async function fetchPublicProperties(brokerId?: string) {
 export async function fetchPublicBrokers() {
   const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("created_at");
   if (error) throw error;
-  return data as PublicBroker[];
+  return (await withContacts(data ?? [])) as PublicBroker[];
 }
 
 /** Lead kind -> Arabic label. listing = owner offering a property via /sell. */

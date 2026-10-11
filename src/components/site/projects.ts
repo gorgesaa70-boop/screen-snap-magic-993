@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
 import type { Tables } from "@/integrations/supabase/types";
-import { PUBLIC_BROKER_COLS, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, withContacts, type PublicBroker } from "@/components/site/data";
 
 export type ProjectRow = Tables<"projects">;
 export type UnitRow = Tables<"project_units">;
@@ -37,5 +37,5 @@ export async function fetchProject(id: string) {
     supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.developer_id).maybeSingle(),
   ]);
   if (u.error) throw u.error;
-  return { project: data, units: u.data, developer: d.data as PublicBroker | null };
+  return { project: data, units: u.data, developer: d.data ? ((await withContacts([d.data]))[0] as PublicBroker) : null };
 }
