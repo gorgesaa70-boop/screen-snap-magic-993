@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { LeadsBoard } from "@/components/dash/LeadsBoard";
@@ -27,11 +28,11 @@ function InquiriesPage() {
     queryKey: ["inquiries", seeAll ? "all" : brokerId],
     enabled: seeAll || !!brokerId,
     queryFn: async () => {
-      let q = supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false });
-      if (!seeAll) q = q.eq("assigned_broker_id", brokerId!);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
+      return fetchAll((a, b) => {
+        let q = supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }).order("id");
+        if (!seeAll) q = q.eq("assigned_broker_id", brokerId!);
+        return q.range(a, b);
+      });
     },
   });
 

@@ -6,6 +6,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, X, Star, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
+
+/** fetchAll result in the { data, error } shape the admin loader already checks. */
+const paged = <T,>(load: () => Promise<T[]>) => load().then((data) => ({ data, error: null }), (error: Error) => ({ data: null, error }));
 import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
@@ -39,8 +43,8 @@ function useAdminData(enabled: boolean) {
     queryFn: async () => {
       const [b, p, l, pl] = await Promise.all([
         supabase.rpc("admin_brokers"),
-        supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }),
-        supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }),
+        paged(() => fetchAll((a, b) => supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }).order("id").range(a, b))),
+        paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
         supabase.from("plans").select("*").order("max_properties"),
       ]);
       const err = b.error || p.error || l.error || pl.error;
