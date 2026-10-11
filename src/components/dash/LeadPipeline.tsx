@@ -8,13 +8,9 @@ import type { Tables } from "@/integrations/supabase/types";
 import { STAGES, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 
-// The 10-stage pipeline and its columns land with the 2026-10-11 release migration;
-// until the generated types regenerate, widen the lead row and keep deals untyped.
-type Lead = Omit<Tables<"leads">, "stage"> & { stage: string; lost_reason?: string | null; visit_at?: string | null };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Deal = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DealDoc = any;
+type Lead = Tables<"leads">;
+type Deal = Tables<"deals">;
+type DealDoc = Tables<"deal_documents">;
 
 const FLOW = ["new", "contacted", "qualified", "visit_scheduled", "visited", "reserved", "contracted", "sold"];
 const LOST_REASONS = ["السعر مش مناسب", "اشترى من مكان تاني", "مش جاد / بيستفسر بس", "مش بيرد", "المنطقة مش مناسبة", "التمويل / التقسيط"];
@@ -142,6 +138,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
   const [f, setF] = useState({
     unit_desc: deal.unit_desc ?? "", reservation_date: deal.reservation_date ?? "", reservation_amount: deal.reservation_amount?.toString() ?? "",
     contract_date: deal.contract_date ?? "", contract_value: deal.contract_value?.toString() ?? "", sale_date: deal.sale_date ?? "", sale_value: deal.sale_value?.toString() ?? "",
+    project_unit_id: deal.project_unit_id ?? "",
   });
   const [kind, setKind] = useState("reservation");
   const [busy, setBusy] = useState(false);
@@ -151,6 +148,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
   const payload = () => ({
     unit_desc: f.unit_desc.trim().slice(0, 300) || null, reservation_date: f.reservation_date || null, reservation_amount: num(f.reservation_amount),
     contract_date: f.contract_date || null, contract_value: num(f.contract_value), sale_date: f.sale_date || null, sale_value: num(f.sale_value),
+    project_unit_id: f.project_unit_id || null,
   });
 
   async function save(extra?: Record<string, unknown>, msg = "تم حفظ بيانات الصفقة") {
@@ -197,6 +195,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
       {deal.review_note && deal.review_status !== "approved" && <p className="rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">ملاحظة الإدارة: {deal.review_note}</p>}
 
       <fieldset disabled={locked} className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2"><UnitPicker value={f.project_unit_id} onPick={(id, desc) => setF((x) => ({ ...x, project_unit_id: id, unit_desc: desc ?? x.unit_desc }))} /></div>
         <div className="sm:col-span-2"><Field label="الوحدة / العقار"><input className={inputCls} value={f.unit_desc} onChange={set("unit_desc")} maxLength={300} placeholder="مثال: شقة 120م — الحي الأول — عمارة 5" /></Field></div>
         <Field label="تاريخ الحجز"><input type="date" className={inputCls} value={f.reservation_date} onChange={set("reservation_date")} /></Field>
         <Field label="مبلغ الحجز (ج.م)"><input className={inputCls} inputMode="numeric" value={f.reservation_amount} onChange={money("reservation_amount")} /></Field>
@@ -243,6 +242,47 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
           <button onClick={() => review("needs_info")} className={btnOutline}>محتاجة بيانات</button>
           <button onClick={() => review("rejected")} className={btnOutline}>رفض</button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Optional link to a unit in a developer project: the unit becomes reserved / sold with the deal. */
+function UnitPicker({ value, onPick }: { value: string; onPick: (unitId: string, desc?: string) => void }) {
+  const current = useQuery({
+    queryKey: ["deal-unit", value], enabled: !!value,
+    queryFn: async () => (await supabase.from("project_units").select("project_id").eq("id", value).maybeSingle()).data,
+  });
+  const [project, setProject] = useState("");
+  const pid = project || current.data?.project_id || "";
+  const projects = useQuery({
+    queryKey: ["deal-projects"],
+    queryFn: async () => (await supabase.from("projects").select("id, name").eq("review_status", "approved").order("name")).data ?? [],
+  });
+  const units = useQuery({
+    queryKey: ["deal-project-units", pid], enabled: !!pid,
+    queryFn: async () => (await supabase.from("project_units").select("id, code, unit_type, size, status").eq("project_id", pid).order("code")).data ?? [],
+  });
+  if (!projects.data?.length) return null;
+  const pname = projects.data.find((p) => p.id === pid)?.name ?? "";
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Field label="مشروع (اختياري)">
+        <select className={inputCls} value={pid} onChange={(e) => { setProject(e.target.value); onPick(""); }}>
+          <option value="">— مش وحدة في مشروع —</option>
+          {projects.data.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      {pid && (
+        <Field label="الوحدة">
+          <select className={inputCls} value={value} onChange={(e) => {
+            const u = units.data?.find((x) => x.id === e.target.value);
+            onPick(e.target.value, u ? `${pname} — ${u.unit_type}${u.code ? ` ${u.code}` : ""} — ${u.size}م` : undefined);
+          }}>
+            <option value="">— اختار —</option>
+            {(units.data ?? []).filter((u) => u.status === "available" || u.id === value).map((u) => <option key={u.id} value={u.id}>{u.code ?? "—"} · {u.unit_type} · {u.size}م</option>)}
+          </select>
+        </Field>
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { AuditLog } from "@/components/dash/AuditLog";
+import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -63,7 +64,7 @@ function AdminPage() {
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
-          {tab === "reports" && <Reports d={d} />}
+          {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: true, companyId: null }} />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}
@@ -83,41 +84,6 @@ function AdminPage() {
 }
 
 type D = NonNullable<ReturnType<typeof useAdminData>["data"]>;
-
-function Reports({ d }: { d: D }) {
-  const by = (s: string) => d.properties.filter((p) => p.review_status === s).length;
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="الوسطاء النشطون" value={d.brokers.filter((b) => b.is_active).length} hint={`من ${d.brokers.length}`} />
-        <Stat label="العقارات المعتمدة" value={by("approved")} hint={`إجمالي ${d.properties.length}`} />
-        <Stat label="بانتظار المراجعة" value={by("pending")} />
-        <Stat label="العقارات المميزة" value={d.properties.filter((p) => p.is_featured).length} />
-        <Stat label="كل الطلبات" value={d.leads.length} />
-        <Stat label="طلبات غير موزعة" value={d.leads.filter((l) => !l.assigned_broker_id).length} />
-        <Stat label="مبيعات مؤكدة" value={d.leads.filter((l) => l.stage === "sold").length} />
-        <Stat label="نسبة الإغلاق" value={`${d.leads.length ? Math.round((d.leads.filter((l) => l.stage === "sold").length / d.leads.length) * 100) : 0}%`} />
-      </div>
-      <div className="overflow-x-auto rounded-2xl border bg-card">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-secondary text-primary"><tr>{["الوسيط", "العقارات", "معتمدة", "العملاء", "قيد المتابعة", "مغلقة"].map((h) => <th key={h} className="p-3 text-start font-bold">{h}</th>)}</tr></thead>
-          <tbody>
-            {d.brokers.map((b) => {
-              const P = d.properties.filter((p) => p.broker_id === b.id); const L = d.leads.filter((l) => l.assigned_broker_id === b.id);
-              return (
-                <tr key={b.id} className="border-t">
-                  <td className="p-3 font-bold text-primary">{b.name}{!b.is_active && <span className="ms-2 text-xs text-destructive">موقوف</span>}</td>
-                  <td className="p-3">{P.length}</td><td className="p-3">{P.filter((p) => p.review_status === "approved").length}</td>
-                  <td className="p-3">{L.length}</td><td className="p-3">{L.filter((l) => !["sold", "lost"].includes(l.stage)).length}</td><td className="p-3">{L.filter((l) => l.stage === "sold").length}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
 
 const ACCOUNT_STATUS = {
   pending: { label: "بانتظار المراجعة", cls: "bg-teal-soft text-primary" },

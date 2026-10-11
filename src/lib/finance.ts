@@ -83,10 +83,10 @@ export const COMMISSION_STATUS: Record<CommissionStatus | "due", { label: string
 export const PAYMENT_METHODS: Record<string, string> = { transfer: "تحويل بنكي", instapay: "إنستاباي", cash: "نقدي", cheque: "شيك", other: "أخرى" };
 
 /** Approved / partly paid commissions whose due date has passed show as "due". */
-export function displayStatus(c: Pick<CommissionRow, "status" | "due_date">, today = new Date().toISOString().slice(0, 10)): CommissionStatus | "due" {
+export function displayStatus(c: { status: string; due_date: string | null }, today = new Date().toISOString().slice(0, 10)): CommissionStatus | "due" {
   if ((c.status === "approved" || c.status === "partially_paid") && c.due_date && c.due_date <= today) return "due";
-  return c.status;
+  return c.status as CommissionStatus;
 }
 
-export const remaining = (c: Pick<CommissionRow, "expected_amount" | "paid_amount" | "status">) =>
+export const remaining = (c: { expected_amount: number | null; paid_amount: number; status: string }) =>
   c.status === "cancelled" ? 0 : Math.max(0, Number(c.expected_amount ?? 0) - Number(c.paid_amount ?? 0));

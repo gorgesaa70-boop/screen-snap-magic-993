@@ -133,7 +133,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
             <Stat label="عملاء جدد" value={L.filter((l) => l.stage === "new").length} />
             <Stat label="مبيعات مؤكدة" value={L.filter((l) => l.stage === "sold").length} />
           </div>
-          <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
+            <Link to="/reports" className={btnOutline}>التقارير</Link>
+            <Link to="/tasks" className={btnOutline}>متابعاتي</Link>
+          </div>
         </div>
       )}
       {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
