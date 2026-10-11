@@ -749,6 +749,13 @@ export type Database = {
         | "negotiating"
         | "won"
         | "lost"
+        | "qualified"
+        | "visit_scheduled"
+        | "visited"
+        | "reserved"
+        | "contracted"
+        | "sold"
+        | "postponed"
       review_status: "draft" | "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -878,7 +885,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "broker"],
-      lead_stage: ["new", "contacted", "viewing", "negotiating", "won", "lost"],
+      lead_stage: [
+        "new",
+        "contacted",
+        "viewing",
+        "negotiating",
+        "won",
+        "lost",
+        "qualified",
+        "visit_scheduled",
+        "visited",
+        "reserved",
+        "contracted",
+        "sold",
+        "postponed",
+      ],
       review_status: ["draft", "pending", "approved", "rejected"],
     },
   },
