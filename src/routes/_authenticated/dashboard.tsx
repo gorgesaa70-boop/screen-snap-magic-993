@@ -174,6 +174,13 @@ function MyProperties({ brokerId, list, reload }: { brokerId: string; list: Prop
           </div>
           <div className="flex gap-2">
             {p.review_status === "draft" && <button className={btnOutline} onClick={async () => { const { error } = await supabase.from("properties").update({ review_status: "pending" }).eq("id", p.id); if (error) toast.error(error.message); else { toast.success("أُرسل للمراجعة"); reload(); } }}>إرسال</button>}
+            {p.review_status === "approved" && !p.is_highlight && (
+              <button title="اطلب من فاليو عقار تعرضه في «عروض بسعر مميز»" className={btnOutline} disabled={!!p.highlight_requested_at} onClick={async () => {
+                const { error } = await supabase.from("properties").update({ highlight_requested_at: new Date().toISOString() }).eq("id", p.id);
+                if (error) toast.error(error.message); else { toast.success("اتبعت طلب الترشيح للإدارة"); reload(); }
+              }}>{p.highlight_requested_at ? "مطلوب ترشيحه ⏳" : "☆ رشّحه كعرض مميز"}</button>
+            )}
+            {p.is_highlight && <span className="self-center rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">★ عرض مميز</span>}
             <button aria-label="تعديل" onClick={() => setEditing(p)} className="grid size-11 place-items-center rounded-xl border text-primary hover:bg-secondary"><Pencil className="size-4" /></button>
             <button aria-label="حذف" onClick={async () => { if (!confirm("حذف العقار؟")) return; const { error } = await supabase.from("properties").delete().eq("id", p.id); if (error) toast.error(error.message); else reload(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
           </div>

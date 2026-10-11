@@ -23,6 +23,7 @@ import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDealsRouteImport } from './routes/_authenticated/deals'
 import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authenticated/inquiries'
+import { Route as AuthenticatedInvestorRouteImport } from './routes/_authenticated/investor'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
@@ -33,11 +34,14 @@ import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
 import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
 import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
+import { Route as InvestmentsIndexRouteImport } from './routes/investments.index'
+import { Route as InvestmentsIdRouteImport } from './routes/investments.$id'
 import { Route as MallsIndexRouteImport } from './routes/malls.index'
 import { Route as MallsIdRouteImport } from './routes/malls.$id'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -112,6 +116,11 @@ const AuthenticatedInquiriesRoute = AuthenticatedInquiriesRouteImport.update({
   path: '/inquiries',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInvestorRoute = AuthenticatedInvestorRouteImport.update({
+  id: '/investor',
+  path: '/investor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedJoinRoute = AuthenticatedJoinRouteImport.update({
   id: '/join',
   path: '/join',
@@ -163,6 +172,16 @@ const IndustrialIdRoute = IndustrialIdRouteImport.update({
   path: '/industrial/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InvestmentsIndexRoute = InvestmentsIndexRouteImport.update({
+  id: '/investments/',
+  path: '/investments/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvestmentsIdRoute = InvestmentsIdRouteImport.update({
+  id: '/investments/$id',
+  path: '/investments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MallsIndexRoute = MallsIndexRouteImport.update({
   id: '/malls/',
   path: '/malls/',
@@ -188,6 +207,12 @@ const PropertiesIdRoute = PropertiesIdRouteImport.update({
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedInvestmentsNewRoute =
+  AuthenticatedInvestmentsNewRouteImport.update({
+    id: '/investments/new',
+    path: '/investments/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
@@ -220,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deals': typeof AuthenticatedDealsRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
+  '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -228,13 +254,16 @@ export interface FileRoutesByFullPath {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/investments/$id': typeof InvestmentsIdRoute
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
+  '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -253,6 +282,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/deals': typeof AuthenticatedDealsRoute
   '/inquiries': typeof AuthenticatedInquiriesRoute
+  '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -261,13 +291,16 @@ export interface FileRoutesByTo {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/investments/$id': typeof InvestmentsIdRoute
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/industrial': typeof IndustrialIndexRoute
+  '/investments': typeof InvestmentsIndexRoute
   '/malls': typeof MallsIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -288,6 +321,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/deals': typeof AuthenticatedDealsRoute
   '/_authenticated/inquiries': typeof AuthenticatedInquiriesRoute
+  '/_authenticated/investor': typeof AuthenticatedInvestorRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
@@ -296,13 +330,16 @@ export interface FileRoutesById {
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
+  '/investments/$id': typeof InvestmentsIdRoute
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
+  '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -323,6 +360,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/deals'
     | '/inquiries'
+    | '/investor'
     | '/join'
     | '/notifications'
     | '/pending'
@@ -331,13 +369,16 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/investments/$id'
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
+    | '/investments/'
     | '/malls/'
     | '/projects/'
+    | '/investments/new'
     | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -356,6 +397,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/deals'
     | '/inquiries'
+    | '/investor'
     | '/join'
     | '/notifications'
     | '/pending'
@@ -364,13 +406,16 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/investments/$id'
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers'
     | '/industrial'
+    | '/investments'
     | '/malls'
     | '/projects'
+    | '/investments/new'
     | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -390,6 +435,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/deals'
     | '/_authenticated/inquiries'
+    | '/_authenticated/investor'
     | '/_authenticated/join'
     | '/_authenticated/notifications'
     | '/_authenticated/pending'
@@ -398,13 +444,16 @@ export interface FileRouteTypes {
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
+    | '/investments/$id'
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
     | '/industrial/'
+    | '/investments/'
     | '/malls/'
     | '/projects/'
+    | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -422,11 +471,13 @@ export interface RootRouteChildren {
   BrokersSlugRoute: typeof BrokersSlugRoute
   DemoCentralPointRoute: typeof DemoCentralPointRoute
   IndustrialIdRoute: typeof IndustrialIdRoute
+  InvestmentsIdRoute: typeof InvestmentsIdRoute
   MallsIdRoute: typeof MallsIdRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
+  InvestmentsIndexRoute: typeof InvestmentsIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
@@ -533,6 +584,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInquiriesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/investor': {
+      id: '/_authenticated/investor'
+      path: '/investor'
+      fullPath: '/investor'
+      preLoaderRoute: typeof AuthenticatedInvestorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/join': {
       id: '/_authenticated/join'
       path: '/join'
@@ -603,6 +661,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndustrialIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/investments/': {
+      id: '/investments/'
+      path: '/investments'
+      fullPath: '/investments/'
+      preLoaderRoute: typeof InvestmentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/investments/$id': {
+      id: '/investments/$id'
+      path: '/investments/$id'
+      fullPath: '/investments/$id'
+      preLoaderRoute: typeof InvestmentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/malls/': {
       id: '/malls/'
       path: '/malls'
@@ -638,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/investments/new': {
+      id: '/_authenticated/investments/new'
+      path: '/investments/new'
+      fullPath: '/investments/new'
+      preLoaderRoute: typeof AuthenticatedInvestmentsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/leads/$id': {
       id: '/_authenticated/leads/$id'
       path: '/leads/$id'
@@ -669,11 +748,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDealsRoute: typeof AuthenticatedDealsRoute
   AuthenticatedInquiriesRoute: typeof AuthenticatedInquiriesRoute
+  AuthenticatedInvestorRoute: typeof AuthenticatedInvestorRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
+  AuthenticatedInvestmentsNewRoute: typeof AuthenticatedInvestmentsNewRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
 }
 
@@ -684,11 +765,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDealsRoute: AuthenticatedDealsRoute,
   AuthenticatedInquiriesRoute: AuthenticatedInquiriesRoute,
+  AuthenticatedInvestorRoute: AuthenticatedInvestorRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
+  AuthenticatedInvestmentsNewRoute: AuthenticatedInvestmentsNewRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
 }
 
@@ -707,11 +790,13 @@ const rootRouteChildren: RootRouteChildren = {
   BrokersSlugRoute: BrokersSlugRoute,
   DemoCentralPointRoute: DemoCentralPointRoute,
   IndustrialIdRoute: IndustrialIdRoute,
+  InvestmentsIdRoute: InvestmentsIdRoute,
   MallsIdRoute: MallsIdRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
+  InvestmentsIndexRoute: InvestmentsIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:

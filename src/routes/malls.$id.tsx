@@ -67,6 +67,7 @@ function MallPage() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold md:text-4xl">{m.name}</h1>
+            {m.kind === "medical" && <span className="mt-1 inline-block rounded-full bg-teal px-3 py-0.5 text-xs font-bold text-accent-foreground">⚕ {t("مول طبي")}</span>}
             {m.location && <p className="mt-1 flex items-center gap-1 text-sm text-primary-foreground/80"><MapPin className="size-4 text-teal" />{m.location}</p>}
           </div>
         </div>

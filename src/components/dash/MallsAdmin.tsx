@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { REVIEW, formatPrice, uploadImage, type BrokerRow, type PropertyRow } from "@/components/site/data";
-import { fetchMalls, type MallRow } from "@/components/site/malls";
+import { MALL_KINDS, fetchMalls, type MallRow } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MallUnitForm } from "./MallUnitForm";
 
@@ -51,11 +51,11 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
 }
 
 function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
-  const [f, setF] = useState({ name: m.name, location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
+  const [f, setF] = useState({ name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
   const [busy, setBusy] = useState(false);
   async function save(patch?: Partial<MallRow>) {
     setBusy(true);
-    const { error } = await supabase.from("malls").update(patch ?? { name: f.name.trim(), location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null }).eq("id", m.id);
+    const { error } = await supabase.from("malls").update(patch ?? { name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null }).eq("id", m.id);
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("تم الحفظ"); onSaved(); }
   }
@@ -71,6 +71,7 @@ function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
         </label>
         <div className="grid flex-1 gap-2">
           <input aria-label="اسم المول" className={`${inputCls} h-10`} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={120} />
+          <select aria-label="نوع المول" className={`${inputCls} h-10`} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{Object.entries(MALL_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <input aria-label="الموقع" className={`${inputCls} h-10`} placeholder="الموقع" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} maxLength={300} />
         </div>
       </div>

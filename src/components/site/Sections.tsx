@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, AREAS, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
+import { OpportunityCard } from "./OpportunityCard";
+import { fetchOpportunities } from "@/lib/investments";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
 import { t as tr, useLang } from "@/lib/i18n";
@@ -63,6 +65,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : p.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>
           {tr(PURPOSE_LABEL[p.status] ?? p.status)}
         </span>
+        {p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{tr("سعر مميز")}</span>}
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
       </div>
@@ -71,6 +74,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
           {p.status === "مصيف" && <span className="text-sm font-semibold text-muted-foreground">{tr("من")} </span>}{formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.priceUnit ? tr(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span>
         </p>
         <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{p.title}</h3>
+        {p.highlight && <p className="mt-1 line-clamp-1 text-xs font-bold text-teal">★ {p.highlight.reason}{p.highlight.yield ? ` · ${tr("عائد تقريبي")} ${formatPrice(p.highlight.yield)}%` : ""}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
           <span className="rounded-lg bg-secondary px-2.5 py-1.5 text-primary">{tr(p.type)}</span>
           <span className="flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-primary"><MapPin className="size-3.5 shrink-0 text-teal" />{p.area === p.city ? tr(p.city) : `${tr(p.area)}${tr("، ")}${tr(p.city)}`}</span>
@@ -159,6 +163,40 @@ export function PurposeStrip({ status, eyebrow, title, onAll }: { status: "إي�
       <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
         {list.map((p) => <div key={p.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><PropertyCard p={p} /></div>)}
       </div>
+    </section>
+  );
+}
+
+/** Investment opportunities (big deals) — shown once at least one is published. */
+export function InvestmentsStrip() {
+  useLang();
+  const { data = [] } = useQuery({ queryKey: ["opportunities"], queryFn: fetchOpportunities });
+  if (data.length === 0) return null;
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
+      <SectionHead eyebrow={tr("أراضي للتطوير · أنشطة قائمة · شراكات")} title={tr("فرص استثمارية")} action={
+        <Link to="/investments" className="flex shrink-0 items-center gap-1 text-sm font-bold text-primary hover:text-teal">{tr("كل الفرص")} <ArrowLeft className="size-4" /></Link>
+      } />
+      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+        {data.slice(0, 3).map((o) => <div key={o.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><OpportunityCard o={o} /></div>)}
+      </div>
+    </section>
+  );
+}
+
+/** Curated special-price listings — shown only when there are at least 3, so the section never looks empty. */
+export function HighlightsStrip() {
+  useLang();
+  const { data: properties = [] } = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
+  const list = properties.filter((p) => p.highlight).slice(0, 6);
+  if (list.length < 3) return null;
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
+      <SectionHead eyebrow={tr("مختارة من فريق فاليو عقار")} title={tr("عروض بسعر مميز")} />
+      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
+        {list.map((p) => <div key={p.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><PropertyCard p={p} /></div>)}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">{tr("* أسباب الترشيح والعوائد تقديرية ومش ضمان.")}</p>
     </section>
   );
 }
