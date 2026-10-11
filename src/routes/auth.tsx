@@ -35,6 +35,9 @@ function AuthPage() {
     if (!data.user) return;
     const to = await destinationFor(data.user.id);
     if (to === "suspended") { await supabase.auth.signOut(); toast.error("هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة"); return; }
+    // Back to the page that asked for sign-in (favourite / alert), when it is a path on this site.
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && /^\/(?![/\\])/.test(next) && to !== "/admin") { window.location.replace(next); return; }
     nav({ to, replace: true });
   };
   const [email, setEmail] = useState("");

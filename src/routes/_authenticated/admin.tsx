@@ -259,6 +259,11 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
               const y = prompt("عائد سنوي تقريبي % (اختياري — سيبه فاضي لو مفيش)", p.highlight_yield?.toString() ?? "");
               await upd(p.id, { is_highlight: true, highlight_reason: reason.trim().slice(0, 160), highlight_yield: y && Number(y) > 0 ? Number(y) : null }, "اتضاف للعروض المميزة");
             }}>{p.is_highlight ? "★ سعر مميز" : p.highlight_requested_at ? "★ مطلوب ترشيحه" : "☆ سعر مميز"}</button>
+            <button className={p.verified_at ? btnPrimary : btnOutline} title="فريق فاليو عقار عاين العقار على الطبيعة" onClick={async () => {
+              if (p.verified_at) { if (confirm("تشيل علامة «متحقق منه»؟")) await upd(p.id, { verified_at: null }, "اتشالت علامة متحقق منه"); return; }
+              const note = prompt("ملاحظة المعاينة (اختياري — بتظهر للناس، مثلاً: عاينه أحمد ومطابق للصور)", ""); if (note === null) return;
+              await upd(p.id, { verified_at: new Date().toISOString(), verified_note: note.trim().slice(0, 160) || null }, "اتعلّم «متحقق منه»");
+            }}>{p.verified_at ? "✓ متحقق منه" : "متحقق منه؟"}</button>
             {p.review_status !== "rejected" && <button className={btnOutline} onClick={() => { const note = prompt(p.review_status === "approved" ? "سبب الإخفاء (يظهر للوسيط)" : "سبب الرفض (يظهر للوسيط)"); if (note === null) return; upd(p.id, { review_status: "rejected", review_note: note.slice(0, 500) || null }, p.review_status === "approved" ? "تم إخفاء العقار" : "تم الرفض"); }}><X className="size-4" />{p.review_status === "approved" ? "إخفاء" : "رفض"}</button>}
             <button title="الموقع على الخريطة" onClick={() => setLocFor(locFor === p.id ? null : p.id)} className={`grid size-11 place-items-center rounded-xl border ${p.lat != null ? "text-teal" : "text-muted-foreground"}`} aria-label="الموقع على الخريطة">📍</button>
             <button aria-label="تمييز" className={`grid size-11 place-items-center rounded-xl border ${p.is_featured ? "bg-teal text-accent-foreground" : "text-primary"}`} onClick={() => upd(p.id, { is_featured: !p.is_featured }, p.is_featured ? "أُلغي التمييز" : "تم التمييز")}><Star className="size-4" /></button>

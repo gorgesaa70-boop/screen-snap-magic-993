@@ -8,6 +8,7 @@ import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/component
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { formatPrice } from "@/components/site/data";
 import { UNIT_STATUS, fetchProject, projectCover, type UnitRow } from "@/components/site/projects";
+import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
 
@@ -49,13 +50,18 @@ function ProjectPage() {
   if (!q.data) return <PageShell><div className="mx-auto max-w-md p-10 text-center"><h1 className="text-xl font-bold text-primary">{t("المشروع غير متاح")}</h1><Link to="/projects" className={`${btnOutline} mt-6`}>{t("كل المشروعات")}</Link></div></PageShell>;
   const { project: p, developer } = q.data;
   const images = p.images.length ? p.images : [projectCover(p)];
+  const prices = q.data.units.filter((u) => u.status === "available" && u.price != null).map((u) => Number(u.price));
+  const cheapest = prices.length ? Math.min(...prices) : null;
 
   return (
     <PageShell>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0">
           <Gallery images={images} title={p.name} />
-          <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.name}</h1>
+          <div className="mt-5 flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-extrabold text-primary md:text-3xl">{p.name}</h1>
+            <ShareButton title={p.name} />
+          </div>
           <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)} / ${t(p.city)}`}</span>
             {p.delivery_date && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><CalendarClock className="size-4 text-teal" />{t("التسليم:")} {p.delivery_date}</span>}
@@ -68,6 +74,7 @@ function ProjectPage() {
               <p className="mt-2 text-sm leading-relaxed whitespace-pre-line text-foreground/80">{p.payment_plans}</p>
             </div>
           )}
+          <InstallmentCalc price={picked?.price != null ? Number(picked.price) : cheapest} />
           {p.amenities.length > 0 && (
             <div className="mt-6">
               <h2 className="text-lg font-extrabold text-primary">{t("الخدمات")}</h2>
@@ -102,7 +109,7 @@ function ProjectPage() {
                         <td className="p-3">{u.floor ?? "—"}</td>
                         <td className="p-3 font-bold text-primary">{u.price != null ? `${formatPrice(Number(u.price))} ${t("ج.م")}` : t("اسأل عن السعر")}</td>
                         <td className="p-3"><span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${UNIT_STATUS[u.status]?.cls}`}>{t(UNIT_STATUS[u.status]?.label ?? u.status)}</span></td>
-                        <td className="p-3">{u.status === "available" && <button type="button" onClick={() => setPicked(u)} className="text-xs font-bold text-teal hover:underline">{t("استفسر")}</button>}</td>
+                        <td className="p-3">{u.status === "available" && <button type="button" onClick={() => setPicked(u)} className="text-xs font-bold text-teal hover:underline">{t("استفسر واحسب القسط")}</button>}</td>
                       </tr>
                     ))}
                   </tbody>

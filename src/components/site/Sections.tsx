@@ -1,4 +1,4 @@
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, AREAS, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
+import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -68,6 +69,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         {p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{tr("سعر مميز")}</span>}
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
+        <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">
@@ -85,7 +87,8 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
           {p.baths && <span className="flex items-center gap-1.5"><Bath className="size-4 shrink-0 text-teal" />{formatPrice(p.baths)} {tr("حمام")}</span>}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? tr("لم يتم التحقق بعد") : tr("تمت مراجعته")}</span>
+          {p.verified ? <span className="flex items-center gap-1 font-bold text-teal"><BadgeCheck className="size-3.5 shrink-0" />{tr("متحقق منه")}</span>
+            : <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? tr("لم يتم التحقق بعد") : tr("تمت مراجعته")}</span>}
           <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />{tr("تحديث:")} {formatDate(p.updated)}</span>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
@@ -111,6 +114,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
       {filtered && (
         <div className="-mt-4 mb-6 flex items-center justify-between gap-3 rounded-xl bg-teal-soft px-4 py-3" aria-live="polite">
           <p className="text-sm font-bold text-primary">{tr("تم العثور على")} {formatPrice(results.length)} {results.length === 1 ? tr("عقار") : tr("عقارات")}</p>
+          <AlertButton key={JSON.stringify(filters)} filters={filters} className="ms-auto h-9" />
           <button onClick={onClear} className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-primary underline-offset-4 transition hover:underline focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none">
             <RotateCcw className="size-3.5" /> {tr("مسح الفلاتر")}
           </button>
@@ -133,6 +137,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">{tr("جرّب توسيع نطاق السعر أو اختيار منطقة أو نوع مختلف، أو اطلب عقارك وسنساعدك.")}</p>
           <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
             <button onClick={onClear} className="h-11 rounded-xl border border-primary px-6 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">{tr("مسح الفلاتر")}</button>
+            <AlertButton key={JSON.stringify(filters)} filters={filters} />
             <a href="#request" className="flex h-11 items-center justify-center rounded-xl bg-teal px-6 text-sm font-bold text-accent-foreground transition hover:brightness-95">{tr("اطلب عقارك")}</a>
           </div>
         </div>
