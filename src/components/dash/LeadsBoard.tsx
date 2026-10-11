@@ -408,7 +408,30 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
     </th>
   );
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-card">
+    <>
+    {/* Phones: one card per lead instead of a wide table (item 31). */}
+    <ul className="space-y-2 md:hidden">
+      {rows.map((l) => {
+        const dups = dupOf(counts, l);
+        const late = !!l.follow_up_at && new Date(l.follow_up_at).getTime() < Date.now();
+        return (
+          <li key={l.id}>
+            <Link to="/leads/$id" params={{ id: l.id }} className="block rounded-2xl border bg-card p-4 active:bg-secondary/40">
+              <div className="flex items-start justify-between gap-2">
+                <p className="min-w-0 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind} · <span dir="ltr">{leadNo(l.lead_no)}</span></span></p>
+                <span className="shrink-0 rounded-full bg-teal-soft px-2.5 py-0.5 text-[11px] font-bold text-primary">{stageLabel(l.stage, l.purpose)}</span>
+              </div>
+              <p className="mt-2 text-sm" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive">×{dups + 1}</span>}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {[LEAD_SOURCES[l.source ?? ""] ?? l.source, brokers ? brokers.find((b) => b.id === l.assigned_broker_id)?.name ?? (l.assigned_broker_id ? null : "غير مُسند") : null, formatDate(l.created_at)].filter(Boolean).join(" · ")}
+              </p>
+              {l.follow_up_at && <p className={`mt-1 text-xs ${late ? "font-bold text-destructive" : "text-muted-foreground"}`}>المتابعة: {new Date(l.follow_up_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</p>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+    <div className="hidden overflow-x-auto rounded-2xl border bg-card md:block">
       <table className="w-full min-w-[820px] text-sm">
         <thead className="bg-secondary text-primary">
           <tr>{th("lead_no", "الرقم")}{th("name", "العميل")}<th className="p-3 text-start font-bold">الهاتف</th>{th("source", "المصدر")}{th("stage", "المرحلة")}<th className="p-3 text-start font-bold">المسؤول</th>{th("follow_up_at", "المتابعة")}{th("created_at", "التاريخ")}</tr>
@@ -432,5 +455,6 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
         </tbody>
       </table>
     </div>
+    </>
   );
 }
