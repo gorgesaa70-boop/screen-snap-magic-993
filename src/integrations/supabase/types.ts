@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
+          response_sla_minutes: number
+          work_end_hour: number
+          work_start_hour: number
           android_url: string | null
           id: number
           ios_url: string | null
@@ -23,6 +26,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          response_sla_minutes?: number
+          work_end_hour?: number
+          work_start_hour?: number
           android_url?: string | null
           id?: number
           ios_url?: string | null
@@ -30,6 +36,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          response_sla_minutes?: number
+          work_end_hour?: number
+          work_start_hour?: number
           android_url?: string | null
           id?: number
           ios_url?: string | null
@@ -317,6 +326,7 @@ export type Database = {
       }
       company_agreements: {
         Row: {
+          deal_type: string
           approved_at: string
           approved_by: string | null
           broker_id: string
@@ -329,6 +339,7 @@ export type Database = {
           rate: number | null
         }
         Insert: {
+          deal_type?: string
           approved_at?: string
           approved_by?: string | null
           broker_id: string
@@ -341,6 +352,7 @@ export type Database = {
           rate?: number | null
         }
         Update: {
+          deal_type?: string
           approved_at?: string
           approved_by?: string | null
           broker_id?: string
@@ -446,6 +458,10 @@ export type Database = {
       }
       deals: {
         Row: {
+          deal_type: string
+          rent_end: string | null
+          rent_monthly: number | null
+          rent_start: string | null
           broker_id: string | null
           contract_date: string | null
           contract_value: number | null
@@ -469,6 +485,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          deal_type?: string
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           broker_id?: string | null
           contract_date?: string | null
           contract_value?: number | null
@@ -491,6 +511,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          deal_type?: string
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           broker_id?: string | null
           contract_date?: string | null
           contract_value?: number | null
@@ -644,6 +668,10 @@ export type Database = {
       }
       leads: {
         Row: {
+          first_response_at: string | null
+          routed_rule_id: string | null
+          sla_alerted_at: string | null
+          sla_escalated_at: string | null
           via_broker_id: string | null
           first_broker_id: string | null
           first_referred_at: string | null
@@ -680,6 +708,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          first_response_at?: string | null
+          routed_rule_id?: string | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -714,6 +746,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          first_response_at?: string | null
+          routed_rule_id?: string | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -1078,6 +1114,17 @@ export type Database = {
       }
       properties: {
         Row: {
+          available_from: string | null
+          available_to: string | null
+          deposit: number | null
+          furnished: string | null
+          guests: number | null
+          min_months: number | null
+          price_month: number | null
+          price_night: number | null
+          price_season: number | null
+          price_unit: string | null
+          price_week: number | null
           activity_id: string | null
           address: string | null
           area: string
@@ -1114,6 +1161,17 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          available_from?: string | null
+          available_to?: string | null
+          deposit?: number | null
+          furnished?: string | null
+          guests?: number | null
+          min_months?: number | null
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           activity_id?: string | null
           address?: string | null
           area: string
@@ -1150,6 +1208,17 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          available_from?: string | null
+          available_to?: string | null
+          deposit?: number | null
+          furnished?: string | null
+          guests?: number | null
+          min_months?: number | null
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           activity_id?: string | null
           address?: string | null
           area?: string
@@ -1222,6 +1291,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      routing_rules: {
+        Row: {
+          areas: string[] | null
+          broker_ids: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          kinds: string[] | null
+          name: string
+          priority: number
+          property_types: string[] | null
+          sources: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          areas?: string[] | null
+          broker_ids: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          areas?: string[] | null
+          broker_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name?: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -1476,6 +1587,7 @@ export type Database = {
       }
       normalize_phone: { Args: { _p: string }; Returns: string }
       run_reminders: { Args: never; Returns: Json }
+      work_minutes: { Args: { _from: string; _to: string }; Returns: number }
       notify_admins: {
         Args: {
           _except?: string

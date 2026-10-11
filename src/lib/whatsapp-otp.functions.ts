@@ -180,7 +180,9 @@ const listingSchema = z.object({
   name: z.string().trim().min(2).max(100),
   phone: phoneSchema,
   code: z.string().regex(/^d{6}$/).optional(),
-  purpose: z.enum(["sale", "rent"]),
+  purpose: z.enum(["sale", "rent", "summer"]),
+  // Summer listings: what the asking price is per (defaults to a night).
+  price_unit: z.enum(["night", "week", "month", "season"]).optional(),
   property_type: z.string().trim().min(1).max(40),
   city: z.string().trim().min(1).max(80),
   area: z.string().trim().min(1).max(80),
@@ -228,7 +230,8 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       .eq("kind", "listing").eq("phone", data.phone).gte("created_at", new Date(Date.now() - 864e5).toISOString());
     if ((count ?? 0) >= MAX_LISTINGS_PER_PHONE_PER_DAY) return { ok: false, error: "rate_limited" };
 
-    const status = data.purpose === "rent" ? "إيجار" : "بيع";
+    const status = data.purpose === "rent" ? "إيجار" : data.purpose === "summer" ? "مصيف" : "بيع";
+    const summerPrice = data.purpose === "summer" ? { [`price_${data.price_unit ?? "night"}`]: data.asking_price } : {};
     const place = data.area === data.city ? data.city : `${data.area}، ${data.city}`;
     const { data: lead, error: leadErr } = await db.from("leads").insert({
       kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
@@ -248,10 +251,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
 
     const { error: propErr } = await db.from("properties").insert({
       broker_id: null, owner_lead_id: lead.id, review_status: "pending", category: "residential",
-      title: `${data.property_type} لل${status} في ${place}`.slice(0, 150),
+      title: `${data.property_type} ${status === "مصيف" ? "للمصيف" : `لل${status}`} في ${place}`.slice(0, 150),
       description: data.details || null, price: data.asking_price, type: data.property_type, status,
       city: data.city, area: data.area, size: data.size_m2, rooms: data.rooms ?? null, baths: data.baths ?? null,
-      floor: data.floor || null, image_url: urls[0] ?? null, images: urls,
+      floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
     });
     // The lead is already saved, so the team can still follow up if this fails.
     if (propErr) console.error("owner listing property", propErr.code, propErr.message);

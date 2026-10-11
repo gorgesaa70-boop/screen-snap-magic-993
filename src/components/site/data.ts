@@ -23,15 +23,33 @@ export type Property = {
   rooms?: number | undefined;
   baths?: number | undefined;
   lat?: number | undefined;
+  /** Rent: 'month'; summer: unit of the lowest price ('night' | 'week' | 'month' | 'season'); sale: undefined. */
+  priceUnit?: string | undefined;
+  rent?: {
+    night?: number | undefined; week?: number | undefined; month?: number | undefined; season?: number | undefined;
+    furnished?: string | undefined; minMonths?: number | undefined; deposit?: number | undefined; guests?: number | undefined;
+    from?: string | undefined; to?: string | undefined;
+  } | undefined;
   lng?: number | undefined;
-  status: "بيع" | "إيجار";
+  status: "بيع" | "إيجار" | "مصيف";
   updated: string;
   isDemo: boolean;
   featured: boolean;
   brokerId: string | null;
 };
 
-export const TYPES = ["شقة", "فيلا", "أرض", "محل", "مكتب", "دوبلكس"];
+export const TYPES = ["شقة", "دوبلكس", "فيلا", "استوديو", "شاليه", "أرض", "محل", "مكتب", "عيادة"];
+/** Listing purpose (properties.status): sale, monthly rent, or summer / holiday rent. */
+export const PURPOSES = ["بيع", "إيجار", "مصيف"] as const;
+export const PURPOSE_LABEL: Record<string, string> = { "بيع": "للبيع", "إيجار": "للإيجار", "مصيف": "مصيف" };
+/** Types offered per purpose (no land for rent). */
+export const TYPES_FOR: Record<string, string[]> = {
+  "": TYPES, "بيع": TYPES,
+  "إيجار": TYPES.filter((t) => t !== "أرض"),
+  "مصيف": ["شاليه", "فيلا", "شقة", "دوبلكس", "استوديو"],
+};
+export const PRICE_UNIT_LABEL: Record<string, string> = { night: " / الليلة", week: " / الأسبوع", month: " / شهريًا", season: " / الموسم" };
+export const FURNISHED_LABEL: Record<string, string> = { furnished: "مفروش", semi: "نص فرش", unfurnished: "مش مفروش" };
 export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس", "الحي السادس", "الحي السابع", "الحي الثامن", "الحي التاسع"];
 export const DEFAULT_CITY = "برج العرب الجديدة";
 /** City -> its areas. Cities with no areas store the city name as the area. */
@@ -44,6 +62,8 @@ export const CITIES: Record<string, string[]> = {
 export const CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
 export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", company: "شركة تسويق / وساطة", developer: "شركة تطوير" };
+
+const num = (v: number | null | undefined) => (v == null ? undefined : Number(v));
 
 export const toProperty = (r: PropertyRow): Property => ({
   id: r.id,
@@ -65,6 +85,12 @@ export const toProperty = (r: PropertyRow): Property => ({
   isDemo: r.is_demo,
   featured: r.is_featured,
   brokerId: r.broker_id,
+  priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),
+  rent: r.status === "بيع" ? undefined : {
+    night: num(r.price_night), week: num(r.price_week), month: num(r.price_month), season: num(r.price_season),
+    furnished: r.furnished ?? undefined, minMonths: r.min_months ?? undefined, deposit: num(r.deposit), guests: r.guests ?? undefined,
+    from: r.available_from ?? undefined, to: r.available_to ?? undefined,
+  },
 });
 
 /** Columns the public may read. Phone / WhatsApp / e-mail come only from broker_contacts() (see withContacts). */
@@ -112,6 +138,10 @@ export const STAGES: Record<string, string> = {
   lost: "لم يكتمل",
   postponed: "مؤجل",
 };
+/** Stage name for a lead; the final stage reads "إيجار مؤكد" for rent / summer customers. */
+export const stageLabel = (stage: string, purpose?: string | null) =>
+  stage === "sold" && (purpose === "rent" || purpose === "summer") ? "إيجار مؤكد" : STAGES[stage] ?? stage;
+export const DEAL_TYPE_LABEL: Record<string, string> = { sale: "بيع", rent: "إيجار شهري", summer: "مصيف" };
 /** Stages that need extra data (and documents) before a lead can enter them — set from the lead's page. */
 export const STAGES_WITH_DATA = ["visit_scheduled", "reserved", "contracted", "sold", "lost", "postponed"];
 /** Finished leads: no follow-up reminders. */

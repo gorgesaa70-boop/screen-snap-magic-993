@@ -45,6 +45,7 @@ export type CommissionRow = {
 
 export type AgreementRow = {
   id: string;
+  deal_type: string;
   broker_id: string;
   rate: number | null;
   fixed_amount: number | null;

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Navbar, MobileBar } from "@/components/site/Navbar";
 import { emptyFilters, TYPE_GROUPS, type Filters } from "@/components/site/search";
 import { Hero } from "@/components/site/Hero";
-import { Categories, FeaturedProperties, RequestCTA, Brokers, BrokerServices, Footer } from "@/components/site/Sections";
+import { Categories, FeaturedProperties, PurposeStrip, RequestCTA, Brokers, BrokerServices, Footer } from "@/components/site/Sections";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,7 +40,9 @@ function Index() {
         {/* A hero search by type replaces any category group picked before. */}
         <Hero draft={draft} setDraft={setDraft} onSearch={() => { setFilters(draft.type ? { ...draft, group: "" } : draft); go(); }} onClear={clear} />
         <FeaturedProperties filters={filters} onClear={clear} />
-        <Categories onPick={pick} />
+        <Categories onPick={pick} status={draft.status} />
+        <PurposeStrip status="إيجار" eyebrow="شهري" title="أحدث عقارات للإيجار" onAll={() => pick({ status: "إيجار" })} />
+        <PurposeStrip status="مصيف" eyebrow="الساحل الشمالي" title="مصيف الساحل — شاليهات وفيلات" onAll={() => pick({ status: "مصيف" })} />
         <RequestCTA />
         <Brokers />
         <BrokerServices />

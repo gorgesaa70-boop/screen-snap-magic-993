@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
-import { TYPES, CITIES, DEFAULT_CITY } from "@/components/site/data";
+import { TYPES_FOR, CITIES, DEFAULT_CITY } from "@/components/site/data";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
 import { t, useLang } from "@/lib/i18n";
 
@@ -12,9 +12,9 @@ export const Route = createFileRoute("/sell")({
   head: () => ({
     links: [{ rel: "canonical", href: "https://valueaqar.com/sell" }],
     meta: [
-      { title: "بيع عقارك | فاليو عقار" },
+      { title: "اعرض عقارك للبيع أو الإيجار | فاليو عقار" },
       { name: "description", content: "اعرض شقتك أو أرضك أو محلك للبيع أو الإيجار في برج العرب، وفريق فاليو عقار يتواصل معك." },
-      { property: "og:title", content: "بيع عقارك | فاليو عقار" },
+      { property: "og:title", content: "اعرض عقارك للبيع أو الإيجار | فاليو عقار" },
       { property: "og:url", content: "https://valueaqar.com/sell" },
       { property: "og:description", content: "اعرض عقارك للبيع أو الإيجار بسهولة من خلال فاليو عقار." },
       { property: "og:type", content: "website" },
@@ -68,7 +68,7 @@ function SellPage() {
     <PageShell>
       <section className="bg-primary px-4 py-8 text-primary-foreground md:px-6 md:py-12">
         <div className="mx-auto max-w-3xl">
-          <h1 className="flex items-center gap-2 text-2xl font-extrabold md:text-4xl"><HousePlus className="size-7 text-teal md:size-9" />{t("بيع عقارك")}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-extrabold md:text-4xl"><HousePlus className="size-7 text-teal md:size-9" />{t("اعرض عقارك")}</h1>
           <p className="mt-2 text-sm text-primary-foreground/80 md:text-base">{t("عندك شقة أو أرض أو محل وعايز تبيعه أو تأجّره؟ ابعت البيانات، وفريق فاليو عقار هيتواصل معاك ويساعدك توصل للمشتري المناسب.")}</p>
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
             {[{ I: Wallet, l: "مجانًا بدون رسوم عرض" }, { I: ShieldCheck, l: "بياناتك مش بتظهر للعامة" }, { I: Users, l: "نوصّلك بعملاء جادين" }].map(({ I, l }) => (
@@ -88,7 +88,7 @@ function SellForm() {
   useLang();
   const send = useServerFn(sendWhatsappOtp);
   const submit = useServerFn(submitOwnerListing);
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
+  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
   const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
   const [compressing, setCompressing] = useState(false);
   const [step, setStep] = useState<"form" | "code" | "done">("form");
@@ -124,7 +124,7 @@ function SellForm() {
   async function save(p: string, withCode?: string) {
     setBusy(true);
     const r = await submit({ data: {
-      name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, property_type: f.property_type,
+      name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
       city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
       rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
       photos: photos.map((x) => x.b64),
@@ -191,18 +191,18 @@ function SellForm() {
     <form onSubmit={requestCode} className="grid gap-4 rounded-2xl border bg-card p-5 shadow-card sm:grid-cols-2">
       <div className="sm:col-span-2">
         <span className="mb-1.5 block text-sm font-bold text-primary">{t("عايز")}</span>
-        <div className="grid grid-cols-2 gap-2" role="radiogroup">
-          {(["sale", "rent"] as const).map((p) => (
+        <div className="grid grid-cols-3 gap-2" role="radiogroup">
+          {(["sale", "rent", "summer"] as const).map((p) => (
             <button key={p} type="button" role="radio" aria-checked={f.purpose === p} onClick={() => setF({ ...f, purpose: p })}
               className={`h-11 rounded-xl border text-sm font-bold transition ${f.purpose === p ? "border-teal bg-teal/10 text-primary" : "border-border text-muted-foreground hover:border-teal/50"}`}>
-              {p === "sale" ? t("أبيع") : t("أأجّر")}
+              {p === "sale" ? t("أبيع") : p === "rent" ? t("أأجّر شهري") : t("أأجّر مصيف")}
             </button>
           ))}
         </div>
       </div>
       <Field label={t("نوع العقار")}>
         <select className={inputCls} value={f.property_type} onChange={set("property_type")} required>
-          <option value="">{t("اختر")}</option>{TYPES.map((v) => <option key={v} value={v}>{t(v)}</option>)}
+          <option value="">{t("اختر")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
         </select>
       </Field>
       <Field label={t("المدينة")}>
@@ -220,8 +220,15 @@ function SellForm() {
       <Field label={t("المساحة (م²)")}>
         <input className={inputCls} inputMode="numeric" dir="ltr" value={f.size} onChange={digits("size")} placeholder="120" />
       </Field>
-      <Field label={f.purpose === "sale" ? t("السعر المطلوب (ج.م)") : t("الإيجار الشهري (ج.م)")}>
-        <input className={inputCls} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} required />
+      <Field label={f.purpose === "sale" ? t("السعر المطلوب (ج.م)") : f.purpose === "rent" ? t("الإيجار الشهري (ج.م)") : t("السعر (ج.م)")}>
+        <div className="flex gap-2">
+          <input className={inputCls} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} required />
+          {f.purpose === "summer" && (
+            <select aria-label={t("السعر لكل")} className={`${inputCls} w-36 shrink-0`} value={f.price_unit} onChange={(e) => setF({ ...f, price_unit: e.target.value as typeof f.price_unit })}>
+              <option value="night">{t("الليلة")}</option><option value="week">{t("الأسبوع")}</option><option value="month">{t("الشهر")}</option><option value="season">{t("الموسم")}</option>
+            </select>
+          )}
+        </div>
       </Field>
       {!["أرض", "محل", "مكتب"].includes(f.property_type) && (
         <>
