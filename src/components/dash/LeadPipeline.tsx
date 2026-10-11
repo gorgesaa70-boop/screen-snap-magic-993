@@ -62,7 +62,7 @@ export function StageChanger({ lead, initial, isAdmin, onChanged }: { lead: Lead
 
   async function apply() {
     if (!target) return;
-    const patch: Record<string, unknown> = { stage: target };
+    const patch: any = { stage: target };
     if (target === "lost") { if (!reason.trim()) { toast.error("اختار أو اكتب سبب عدم الاكتمال"); return; } patch.lost_reason = reason.trim().slice(0, 300); }
     if (target === "postponed") { if (!when) { toast.error("حدد ميعاد المتابعة"); return; } patch.follow_up_at = new Date(when).toISOString(); }
     if (target === "visit_scheduled") { if (!when) { toast.error("حدد ميعاد الزيارة"); return; } patch.visit_at = new Date(when).toISOString(); }
