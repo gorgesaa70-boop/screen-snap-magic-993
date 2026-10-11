@@ -249,13 +249,14 @@ export async function destinationFor(userId: string): Promise<"/admin" | "/dashb
     supabase.from("user_roles").select("role").eq("user_id", userId),
     supabase.from("brokers").select("is_active, suspended_at").eq("user_id", userId).maybeSingle(),
   ]);
-  const list = (roles.data ?? []).map((r) => r.role);
+  const list = (roles.data ?? []).map((r) => r.role as string);
   if (list.includes("admin")) return "/admin";
   if (broker.data?.suspended_at) return "suspended";
   if (broker.data?.is_active) return "/dashboard";
   if (broker.data) return "/pending";
   // Company team members work inside their company's account; Value Aqar staff work the requests list.
-  const membership = await supabase.rpc("my_membership");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types regenerate after the release migration applies
+  const membership = await (supabase as any).rpc("my_membership");
   if (membership.data?.length) return "/dashboard";
   if (list.includes("staff")) return "/inquiries";
   return "/join";
