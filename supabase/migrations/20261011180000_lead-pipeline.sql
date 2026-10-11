@@ -2,18 +2,14 @@
 -- Reservation / contract / sale details live on a deal (one per lead) with documents; a sale is only
 -- confirmed after an admin approves it (the core of the deals center, item 14).
 
--- 1) Stage becomes text with the new 10 values. Old values map: viewing → visit_scheduled,
---    negotiating → qualified, won → sold. (Text instead of the enum: new enum values can't be used in the
---    same transaction that adds them.)
-drop policy if exists "anyone submits leads" on public.leads;
-alter table public.leads alter column stage drop default;
-alter table public.leads alter column stage type text using (case stage::text
-  when 'viewing' then 'visit_scheduled' when 'negotiating' then 'qualified' when 'won' then 'sold' else stage::text end);
-alter table public.leads alter column stage set default 'new';
-alter table public.leads add constraint leads_stage_check check (stage in
+-- 1) The 10 stages. The column keeps its lead_stage type (the new values were added by
+--    20261011175000_lead-stage-values.sql, committed first) — no column type change, so this stays a
+--    backward-compatible migration. Old values move: viewing → visit_scheduled, negotiating → qualified, won → sold.
+update public.leads set stage = (case stage::text
+  when 'viewing' then 'visit_scheduled' when 'negotiating' then 'qualified' when 'won' then 'sold' end)::public.lead_stage
+where stage::text in ('viewing','negotiating','won');
+alter table public.leads add constraint leads_stage_check check (stage::text in
   ('new','contacted','qualified','visit_scheduled','visited','reserved','contracted','sold','lost','postponed'));
-create policy "anyone submits leads" on public.leads for insert to anon, authenticated
-  with check (stage = 'new' and notes is null);
 
 alter table public.leads
   add column if not exists lost_reason text check (lost_reason is null or char_length(lost_reason) <= 300),
