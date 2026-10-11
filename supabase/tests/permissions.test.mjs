@@ -581,4 +581,32 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     const r = (await as(U.admin, `select public.delete_demo_data() r`))[0].r;
     return [r.properties, Number((await sys(`select count(*) c from public.properties where is_demo`))[0].c), Number((await sys(`select count(*) c from public.properties where not is_demo`))[0].c) === realBefore, (await sys(`select show_demo from public.app_settings`))[0].show_demo];
   }, (r) => r[0] === before[0] && r[1] === 0 && r[2] === true && r[3] === false);
+
+  console.log("\nAccount deletion (store compliance)");
+  const DU = "00000000-0000-0000-0000-0000000000d1", DB = "00000000-0000-0000-0000-0000000000d2";
+  await sys(`insert into auth.users (id, phone) values ('${DU}','201000000091'), ('${DB}','201000000092')`);
+  const anyProp = (await sys(`select id from public.properties where not is_demo limit 1`))[0].id;
+  await as(DU, `insert into public.favorites (property_id) values ('${anyProp}')`);
+  await as(DU, `insert into public.saved_searches (label) values ('x')`);
+  await as(DU, `insert into public.leads (name, phone, details) values ('عميل هيمسح','01000000091','شقة')`);
+  await sys(`insert into public.notifications (user_id, title, type) values ('${DU}','x','admin')`);
+  await sys(`insert into public.user_roles (user_id, role) values ('${DB}','broker')`);
+  const dbBroker = (await sys(`insert into public.brokers (user_id, slug, name, phone, whatsapp, email, account_type, is_active) values ('${DB}','del-b','وسيط هيمسح','201000000092','201000000092','b@x.com','individual', true) returning id`))[0].id;
+  await expectErr("users can't call it themselves", () => as(DU, `select public.prepare_account_deletion('${DU}')`));
+  await expectErr("visitors can't either", () => as(null, `select public.prepare_account_deletion('${DU}')`));
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await expectOk("an admin account is not deleted", () => sys(`select public.prepare_account_deletion('${U.admin}') r`), (r) => r[0].r === "admin");
+  await expectOk("customer: favourites, alerts, notifications gone; their request kept for the company without the link", async () => {
+    const r = (await sys(`select public.prepare_account_deletion('${DU}') r`))[0].r;
+    const c = async (sql) => Number((await sys(sql))[0].c);
+    return [r, await c(`select count(*) c from public.favorites where user_id='${DU}'`), await c(`select count(*) c from public.saved_searches where user_id='${DU}'`),
+      await c(`select count(*) c from public.notifications where user_id='${DU}'`), (await sys(`select customer_id from public.leads where name='عميل هيمسح'`))[0].customer_id];
+  }, (r) => r[0] === "ok" && r[1] === 0 && r[2] === 0 && r[3] === 0 && r[4] === null);
+  await expectOk("broker: profile hidden, contact details cleared, role removed, admins notified", async () => {
+    await sys(`select public.prepare_account_deletion('${DB}')`);
+    const b = (await sys(`select is_active, user_id, phone, whatsapp, email from public.brokers where id='${dbBroker}'`))[0];
+    return [b, Number((await sys(`select count(*) c from public.user_roles where user_id='${DB}'`))[0].c), await notes(U.admin, "حساب اتمسح بطلب صاحبه")];
+  }, (r) => r[0].is_active === false && r[0].user_id === null && r[0].phone === null && r[0].email === null && r[1] === 0 && r[2] >= 2);
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("the deleted broker no longer shows publicly", () => as(null, `select id from public.brokers where id='${dbBroker}'`), (r) => r.length === 0);
 }

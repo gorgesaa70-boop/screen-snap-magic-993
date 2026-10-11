@@ -563,6 +563,11 @@ const EN: Record<string, string> = {
   "موقع المول على الخريطة": "Mall location on the map",
   "موقع الفرصة على الخريطة": "Opportunity location on the map",
   // UX review fixes
+  "راسلنا على واتساب": "Message us on WhatsApp",
+  "أهلاً فاليو عقار": "Hello Value Aqar",
+  "بالدخول إنت موافق على": "By signing in you agree to the",
+  "شروط الاستخدام": "Terms of use",
+  "و": " and ",
   "الوسطاء ماحمّلوش دلوقتي": "Couldn't load brokers right now",
   "جرّب تاني": "Try again",
   "لسه مفيش وسطاء منشورين": "No brokers listed yet",
