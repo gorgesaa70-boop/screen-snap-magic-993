@@ -9,7 +9,7 @@ import { dbx } from "@/lib/dbx";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
-import { Timeline, logActivity } from "@/components/dash/LeadsBoard";
+import { ContactOutcome, OUTCOME_LABEL, Timeline, logActivity } from "@/components/dash/LeadsBoard";
 import { MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { stageLabel, LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
@@ -39,7 +39,7 @@ function LeadPage() {
   const q = useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("leads").select("*, properties(title)").eq("id", id).maybeSingle();
+      const { data, error } = await supabase.from("leads").select("*, properties(title), projects(name), project_units(unit_type, code)").eq("id", id).maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -110,8 +110,14 @@ function LeadPage() {
               <a onClick={() => logActivity(l.id, "call", "اتصال بالعميل")} href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
               <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك فريق فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
             </div>
+            <div className="mt-3">
+              {l.first_response_at
+                ? <p className="text-xs font-bold text-teal">✓ اتواصل معاه {new Date(l.first_response_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}{l.first_response_outcome && OUTCOME_LABEL[l.first_response_outcome] ? ` — ${OUTCOME_LABEL[l.first_response_outcome]}` : ""}</p>
+                : <ContactOutcome leadId={l.id} onDone={() => q.refetch()} />}
+            </div>
             <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
               {l.properties?.title && <Row k="العقار" v={l.properties.title} />}
+              {l.projects?.name && <Row k="المشروع" v={l.project_units ? `${l.projects.name} — ${l.project_units.unit_type}${l.project_units.code ? ` (${l.project_units.code})` : ""}` : l.projects.name} />}
               {l.property_type && <Row k="نوع العقار" v={l.property_type} />}
               {l.area && <Row k="المنطقة" v={l.area} />}
               {l.budget != null && <Row k="الميزانية" v={`${formatPrice(Number(l.budget))} ج.م`} />}

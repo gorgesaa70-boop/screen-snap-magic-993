@@ -829,6 +829,8 @@ export type Database = {
           id: string
           kind: string
           lead_id: string
+
+          outcome?: string | null
           summary: string
         }
         Insert: {
@@ -837,6 +839,8 @@ export type Database = {
           id?: string
           kind: string
           lead_id: string
+
+          outcome?: string | null
           summary: string
         }
         Update: {
@@ -845,6 +849,8 @@ export type Database = {
           id?: string
           kind?: string
           lead_id?: string
+
+          outcome?: string | null
           summary?: string
         }
         Relationships: [
@@ -864,6 +870,18 @@ export type Database = {
           created_at: string
           id: string
           lead_id: string
+
+          source: string | null
+
+          deadline_at: string | null
+
+          ended_at: string | null
+
+          end_reason: string | null
+
+          outcome: string | null
+
+          note: string | null
           member_id: string | null
           staff_id: string | null
         }
@@ -873,6 +891,18 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id: string
+
+          source: string | null
+
+          deadline_at: string | null
+
+          ended_at: string | null
+
+          end_reason: string | null
+
+          outcome: string | null
+
+          note: string | null
           member_id?: string | null
           staff_id?: string | null
         }
@@ -882,6 +912,18 @@ export type Database = {
           created_at?: string
           id?: string
           lead_id?: string
+
+          source?: string | null
+
+          deadline_at?: string | null
+
+          ended_at?: string | null
+
+          end_reason?: string | null
+
+          outcome?: string | null
+
+          note?: string | null
           member_id?: string | null
           staff_id?: string | null
         }
@@ -905,6 +947,14 @@ export type Database = {
           assigned_staff_id: string | null
           created_by: string | null
           customer_id: string | null
+
+          first_response_by: string | null
+
+          first_response_outcome: string | null
+
+          project_id: string | null
+
+          project_unit_id: string | null
           campaign: string | null
           utm: Json | null
           external_ref: string | null
@@ -950,6 +1000,14 @@ export type Database = {
           assigned_staff_id?: string | null
           created_by?: string | null
           customer_id?: string | null
+
+          first_response_by?: string | null
+
+          first_response_outcome?: string | null
+
+          project_id?: string | null
+
+          project_unit_id?: string | null
           campaign?: string | null
           utm?: Json | null
           external_ref?: string | null
@@ -993,6 +1051,14 @@ export type Database = {
           assigned_staff_id?: string | null
           created_by?: string | null
           customer_id?: string | null
+
+          first_response_by?: string | null
+
+          first_response_outcome?: string | null
+
+          project_id?: string | null
+
+          project_unit_id?: string | null
           campaign?: string | null
           utm?: Json | null
           external_ref?: string | null
@@ -1032,6 +1098,20 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_unit_id_fkey"
+            columns: ["project_unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
             referencedColumns: ["id"]
           },
         ]
