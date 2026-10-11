@@ -1,3 +1,4 @@
+import { getLang, t } from "@/lib/i18n";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,9 +53,9 @@ export function useNotifications(limit = 50) {
 
 export function timeAgo(iso: string) {
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (m < 1) return "الآن";
-  if (m < 60) return `منذ ${m} دقيقة`;
+  if (m < 1) return t("الآن");
+  if (m < 60) return t("منذ {n} دقيقة", { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `منذ ${h} ساعة`;
-  return new Date(iso).toLocaleDateString("ar-EG");
+  if (h < 24) return t("منذ {n} ساعة", { n: h });
+  return new Date(iso).toLocaleDateString(getLang() === "en" ? "en-US" : "ar-EG");
 }

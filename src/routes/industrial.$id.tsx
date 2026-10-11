@@ -46,14 +46,13 @@ export const Route = createFileRoute("/industrial/$id")({
 });
 
 function Page() {
-  useLang();
+  const { lang } = useLang();
   const { id } = Route.useParams();
   const initial = Route.useLoaderData();
   const q = useQuery({ queryKey: ["industrial", id], queryFn: () => fetchIndustrial(id), initialData: initial });
   if (q.isLoading) return <PageShell><div className="mx-auto mt-6 h-80 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">{t("العقار غير متاح")}</p><Link to="/industrial" className={`${btnOutline} mt-4`}>{t("كل العقارات الصناعية")}</Link></div></PageShell>;
   const { p, broker } = q.data;
-  const { lang } = useLang();
   const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
   const chip = "flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5";
   return (

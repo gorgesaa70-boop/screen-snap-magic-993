@@ -1,3 +1,5 @@
+import { t, useLang } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -6,7 +8,6 @@ import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
-import { t, useLang } from "@/lib/i18n";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchProperty(id: string) {
@@ -50,14 +51,15 @@ export const Route = createFileRoute("/properties/$id")({
 });
 
 function PropertyMap({ lat, lng }: { lat: number; lng: number }) {
+  const { lang } = useLang();
   const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
   if (!key) return null;
   return (
     <div className="mt-6">
-      <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />الموقع على الخريطة</h2>
+      <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />{t("الموقع على الخريطة")}</h2>
       <iframe
-        title="موقع العقار على الخريطة"
-        src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${lat},${lng}&zoom=15&language=ar&region=EG`}
+        title={t("موقع العقار على الخريطة")}
+        src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${lat},${lng}&zoom=15&language=${lang}&region=EG`}
         className="h-64 w-full rounded-2xl border bg-muted md:h-80"
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
@@ -88,7 +90,7 @@ function PropertyPage() {
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{t(p.type)}</span>
-            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)}${t("، ")}${t(p.city)}`}</span>
+            <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)} / ${t(p.city)}`}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Maximize className="size-4 text-teal" />{formatPrice(p.size)} {t("م²")}</span>
             {p.rooms && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><BedDouble className="size-4 text-teal" />{formatPrice(p.rooms)} {t("غرف")}</span>}
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{formatPrice(p.baths)} {t("حمام")}</span>}
@@ -105,7 +107,7 @@ function PropertyPage() {
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><span className="text-xs font-bold text-muted-foreground">{t(ACCOUNT_LABEL[broker.account_type] ?? "وسيط عقاري")}</span><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">{t("عرض الملف")}</Link></div>
               </div>
-              <a href={waLink(broker.whatsapp || broker.phone, `مرحبًا، أستفسر عن: ${p.title}`)} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
+              <a href={waLink(broker.whatsapp || broker.phone, `${t("مرحبًا، أستفسر عن:")} ${p.title}`)} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
             </div>
           )}
           <InquiryForm propertyId={p.id} />
@@ -138,7 +140,7 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
       <input className={inputCls} placeholder={t("الاسم")} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
       <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={1000} />
-      <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال الاستفسار")}</button>
+      <Button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال الاستفسار")}</Button>
     </form>
   );
 }

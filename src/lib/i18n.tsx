@@ -335,6 +335,19 @@ const EN: Record<string, string> = {
   "تحديد كمقروء": "Mark as read",
   "حذف الإشعار": "Delete notification",
   "حذف": "Delete",
+  "كل الوسطاء": "All brokers",
+  "النشاط": "Activity",
+  "عقار مطابق لبحثك": "Property matching your search",
+  "استفسار جديد": "New inquiry",
+  "طلب عقاري": "Property request",
+  "رد الوسيط": "Broker reply",
+  "تحديث حالة": "Status update",
+  "إداري": "Administrative",
+  "الآن": "Just now",
+  "منذ {n} دقيقة": "{n} min ago",
+  "منذ {n} ساعة": "{n} hr ago",
+  "لوجو {name}": "{name} logo",
+  "مرحبًا، أستفسر عن وحدة {title} في {name}": "Hello, I'm inquiring about unit {title} in {name}",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */
@@ -356,6 +369,13 @@ export function LangProvider({ children }: { children: ReactNode }) {
   // Set during render (not in an effect) so t() returns the new language in this same render pass.
   currentLang = lang;
 
+  // Persist only on an explicit switch: writing from an effect could overwrite the saved choice before it is restored.
+  const setLang = (next: Lang) => {
+    currentLang = next;
+    setLangState(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -368,12 +388,6 @@ export function LangProvider({ children }: { children: ReactNode }) {
     html.lang = lang;
     html.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
-
-  // Persist only on an explicit switch: writing from the effect above could overwrite the saved choice before it is restored.
-  const setLang = (l: Lang) => {
-    setLangState(l);
-    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* ignore */ }
-  };
 
   return <LangCtx.Provider value={{ lang, setLang, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;
 }

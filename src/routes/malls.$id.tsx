@@ -63,7 +63,7 @@ function MallPage() {
       <section className="bg-primary px-4 py-8 text-primary-foreground md:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-4">
           <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-card md:size-28">
-            {m.logo_url ? <img src={m.logo_url} alt={`لوجو ${m.name}`} className="size-full object-contain" /> : <Store className="size-10 text-teal" />}
+            {m.logo_url ? <img src={m.logo_url} alt={t("لوجو {name}", { name: m.name })} className="size-full object-contain" /> : <Store className="size-10 text-teal" />}
           </div>
           <div>
             <h1 className="text-2xl font-extrabold md:text-4xl">{m.name}</h1>
@@ -74,7 +74,7 @@ function MallPage() {
       </section>
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
         <div className="grid grid-cols-2 gap-2">
-          <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x}>{t(x)}</option>)}</select>
+          <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x} value={x}>{t(x)}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
         </div>
         <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("جارٍ التحميل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
@@ -97,7 +97,7 @@ function MallPage() {
                   </div>
                   {u.description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{u.description}</p>}
                   <p className="mt-3 text-lg font-extrabold text-primary">{formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">{t("ج.م")}{u.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
-                  <a href={waLink(b?.whatsapp || b?.phone, `مرحبًا، أستفسر عن وحدة "${u.title}" في ${m.name}`)} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("استفسر واتساب")}</a>
+                  <a href={waLink(b?.whatsapp || b?.phone, t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: m.name }))} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("استفسر واتساب")}</a>
                 </div>
               </div>
             );
