@@ -8,6 +8,7 @@ import { staffDirectory } from "@/lib/admin.functions";
 import { Stat, Tabs, inputCls, btnOutline } from "@/components/site/ui";
 import { CLOSED_STAGES, LEAD_SOURCES, STAGES, formatPrice } from "@/components/site/data";
 import { displayStatus, remaining } from "@/lib/finance";
+import { formatWorkMinutes, workMinutes } from "@/lib/response-time";
 
 /**
  * Dashboard home + reports (item 19). Everything is computed from real rows the viewer may see —
@@ -27,8 +28,8 @@ function useReportData(scope: Scope) {
   return useQuery({
     queryKey: ["reports-data", scope.seeAll, scope.companyId],
     queryFn: async () => {
-      const [leads, deals, comms, pays, units, projects, members, brokers, staff] = await Promise.all([
-        supabase.from("leads").select("id, created_at, stage, source, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at"),
+      const [leads, deals, comms, pays, units, projects, members, brokers, staff, settings] = await Promise.all([
+        supabase.from("leads").select("id, created_at, stage, source, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at"),
         supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, sale_value, sale_date, review_status, reservation_date, contract_date, created_at"),
         supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at"),
         supabase.from("commission_payments").select("commission_id, amount, paid_on"),
@@ -37,6 +38,7 @@ function useReportData(scope: Scope) {
         supabase.from("company_members").select("id, name, company_id"),
         scope.seeAll ? supabase.rpc("admin_brokers") : supabase.rpc("my_account"),
         scope.seeAll ? listStaff().then((r) => (r.ok ? r.staff : [])) : Promise.resolve([]),
+        supabase.from("app_settings").select("response_sla_minutes, work_start_hour, work_end_hour").eq("id", 1).maybeSingle(),
       ]);
       const err = leads.error || deals.error;
       if (err) throw err;
@@ -44,6 +46,7 @@ function useReportData(scope: Scope) {
         leads: leads.data ?? [], deals: deals.data ?? [], comms: comms.data ?? [], pays: pays.data ?? [],
         unitProject: new Map((units.data ?? []).map((u) => [u.id, u.project_id])), projects: projects.data ?? [],
         members: members.data ?? [], brokers: brokers.data ?? [], staff,
+        sla: { minutes: settings.data?.response_sla_minutes ?? 60, start: settings.data?.work_start_hour ?? 9, end: settings.data?.work_end_hour ?? 21 },
       };
     },
   });
@@ -145,6 +148,15 @@ export function Reports({ scope }: { scope: Scope }) {
   const series = [...months.values()].sort((a, b) => a.m.localeCompare(b.m));
   const funnel = ORDER.map((s) => ({ stage: STAGES[s], count: L.filter((l) => REACHED(l.stage, s)).length }));
 
+  // Response time (working hours): average for answered leads, and the share answered within the SLA.
+  const response = (ls: typeof L) => {
+    const hours = { start: d.sla.start, end: d.sla.end };
+    const referred = ls.filter((l) => l.referred_at);
+    const answered = referred.filter((l) => l.first_response_at).map((l) => workMinutes(l.referred_at!, l.first_response_at!, hours));
+    const due = referred.filter((l) => l.first_response_at || workMinutes(l.referred_at!, new Date(), hours) > d.sla.minutes);
+    const onTime = answered.filter((m) => m <= d.sla.minutes).length;
+    return [answered.length ? formatWorkMinutes(Math.round(answered.reduce((a, b) => a + b, 0) / answered.length)) : "—", pct(onTime, due.length)] as const;
+  };
   const group = <K extends string>(rows: typeof L, key: (l: (typeof L)[number]) => K) => {
     const m = new Map<K, typeof L>();
     rows.forEach((l) => { const k = key(l); m.set(k, [...(m.get(k) ?? []), l]); });
@@ -230,20 +242,20 @@ export function Reports({ scope }: { scope: Scope }) {
       )}
 
       {tab === "companies" && scope.seeAll && (
-        <Table name="company-performance" head={["الشركة", "العملاء", "اتواصل معاهم", "بيع مؤكد", "التحويل", "قيمة المبيعات", "عمولات معتمدة", "اتحصّل", "متبقي"]}
+        <Table name="company-performance" head={["الشركة", "العملاء", "متوسط وقت الرد", "رد في الوقت", "اتواصل معاهم", "بيع مؤكد", "التحويل", "قيمة المبيعات", "عمولات معتمدة", "اتحصّل", "متبقي"]}
           rows={group(L.filter((l) => l.assigned_broker_id), (l) => l.assigned_broker_id!).map(([id, ls]) => {
             const ds = view.sales.filter((x) => x.broker_id === id);
             const cs = view.comms.filter((c) => c.broker_id === id && !["expected", "pending_review", "cancelled"].includes(c.status));
-            return [nameOf(id), ls.length, ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
+            return [nameOf(id), ls.length, ...response(ls), ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
               money(ds.reduce((s, x) => s + Number(x.sale_value ?? 0), 0)), money(cs.reduce((s, c) => s + Number(c.expected_amount ?? 0), 0)),
               money(cs.reduce((s, c) => s + Number(c.paid_amount), 0)), money(cs.reduce((s, c) => s + remaining(c), 0))];
           }).sort((a, b) => Number(b[1]) - Number(a[1]))} />
       )}
 
       {tab === "people" && (
-        <Table name="employee-performance" head={["الموظف", "العملاء المسندين", "قيد المتابعة", "متابعات متأخرة", "وصلوا لزيارة", "بيع مؤكد", "التحويل"]}
+        <Table name="employee-performance" head={["الموظف", "العملاء المسندين", "متوسط وقت الرد", "رد في الوقت", "قيد المتابعة", "متابعات متأخرة", "وصلوا لزيارة", "بيع مؤكد", "التحويل"]}
           rows={group(L.filter((l) => view.personOf(l)), (l) => view.personOf(l)).map(([id, ls]) => [
-            nameOf(id, "عضو"), ls.length, ls.filter((l) => !CLOSED_STAGES.includes(l.stage)).length,
+            nameOf(id, "عضو"), ls.length, ...response(ls), ls.filter((l) => !CLOSED_STAGES.includes(l.stage)).length,
             ls.filter((l) => l.follow_up_at && new Date(l.follow_up_at).getTime() < today && !CLOSED_STAGES.includes(l.stage)).length,
             ls.filter((l) => REACHED(l.stage, "visited")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
           ]).sort((a, b) => Number(b[1]) - Number(a[1]))} />

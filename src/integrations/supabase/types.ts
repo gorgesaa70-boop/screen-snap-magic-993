@@ -16,6 +16,9 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
+          response_sla_minutes: number
+          work_end_hour: number
+          work_start_hour: number
           android_url: string | null
           id: number
           ios_url: string | null
@@ -23,6 +26,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          response_sla_minutes?: number
+          work_end_hour?: number
+          work_start_hour?: number
           android_url?: string | null
           id?: number
           ios_url?: string | null
@@ -30,6 +36,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          response_sla_minutes?: number
+          work_end_hour?: number
+          work_start_hour?: number
           android_url?: string | null
           id?: number
           ios_url?: string | null
@@ -644,6 +653,10 @@ export type Database = {
       }
       leads: {
         Row: {
+          first_response_at: string | null
+          routed_rule_id: string | null
+          sla_alerted_at: string | null
+          sla_escalated_at: string | null
           via_broker_id: string | null
           first_broker_id: string | null
           first_referred_at: string | null
@@ -680,6 +693,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          first_response_at?: string | null
+          routed_rule_id?: string | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -714,6 +731,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          first_response_at?: string | null
+          routed_rule_id?: string | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -1223,6 +1244,48 @@ export type Database = {
           },
         ]
       }
+      routing_rules: {
+        Row: {
+          areas: string[] | null
+          broker_ids: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          kinds: string[] | null
+          name: string
+          priority: number
+          property_types: string[] | null
+          sources: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          areas?: string[] | null
+          broker_ids: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          areas?: string[] | null
+          broker_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name?: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           broker_id: string
@@ -1476,6 +1539,7 @@ export type Database = {
       }
       normalize_phone: { Args: { _p: string }; Returns: string }
       run_reminders: { Args: never; Returns: Json }
+      work_minutes: { Args: { _from: string; _to: string }; Returns: number }
       notify_admins: {
         Args: {
           _except?: string
