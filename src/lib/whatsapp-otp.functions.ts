@@ -172,25 +172,51 @@ async function consumeCode(phone: string, code: string): Promise<{ ok: true } | 
   return consumed?.length ? { ok: true } : { ok: false, error: "expired" };
 }
 
+const MAX_LISTING_PHOTOS = 6;
+const MAX_PHOTO_BYTES = 1_500_000;
+const MAX_LISTINGS_PER_PHONE_PER_DAY = 3;
+
 const listingSchema = z.object({
   name: z.string().trim().min(2).max(100),
   phone: phoneSchema,
-  code: z.string().regex(/^\d{6}$/).optional(),
+  code: z.string().regex(/^d{6}$/).optional(),
   purpose: z.enum(["sale", "rent"]),
   property_type: z.string().trim().min(1).max(40),
-  area: z.string().trim().max(80).optional(),
-  asking_price: z.number().nonnegative().max(1e12).optional(),
-  size_m2: z.number().positive().max(1e7).optional(),
-  details: z.string().trim().max(1000).optional(),
+  city: z.string().trim().min(1).max(80),
+  area: z.string().trim().min(1).max(80),
+  asking_price: z.number().positive().max(1e12),
+  size_m2: z.number().positive().max(1e7),
+  rooms: z.number().int().min(0).max(50).optional(),
+  baths: z.number().int().min(0).max(50).optional(),
+  floor: z.string().trim().max(50).optional(),
+  details: z.string().trim().max(3000).optional(),
+  // JPEG images, base64 without the data: prefix (the browser resizes them first)
+  photos: z.array(z.string().max(Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4)).max(MAX_LISTING_PHOTOS).default([]),
 });
 
+function decodeJpeg(b64: string): Uint8Array | null {
+  try {
+    const bin = atob(b64);
+    if (bin.length > MAX_PHOTO_BYTES) return null;
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff ? bytes : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * "بيع عقارك": an owner submits a property as a lead (kind 'listing').
+ * "بيع عقارك": an owner submits a property with photos. It is saved as a hidden 'pending' property
+ * (approved later by an admin) plus a 'listing' lead holding the owner's private contact details.
  * When WhatsApp is configured the phone must be proven with a code; otherwise it is saved unverified.
  */
 export const submitOwnerListing = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => listingSchema.parse(d))
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> => {
+    const photos = data.photos.map(decodeJpeg);
+    if (photos.some((p) => !p)) return { ok: false, error: "bad_photo" };
+
     const waReady = !!(process.env["WHATSAPP_ACCESS_TOKEN"] && process.env["WHATSAPP_PHONE_NUMBER_ID"] && process.env["WHATSAPP_TEMPLATE_NAME"]);
     if (waReady) {
       if (!data.code) return { ok: false, error: "code_required" };
@@ -198,12 +224,37 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       if (!r.ok) return r;
     }
     const db = await admin();
-    const { error } = await db.from("leads").insert({
+    const { count } = await db.from("leads").select("id", { count: "exact", head: true })
+      .eq("kind", "listing").eq("phone", data.phone).gte("created_at", new Date(Date.now() - 864e5).toISOString());
+    if ((count ?? 0) >= MAX_LISTINGS_PER_PHONE_PER_DAY) return { ok: false, error: "rate_limited" };
+
+    const status = data.purpose === "rent" ? "إيجار" : "بيع";
+    const place = data.area === data.city ? data.city : `${data.area}، ${data.city}`;
+    const { data: lead, error: leadErr } = await db.from("leads").insert({
       kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
-      purpose: data.purpose, property_type: data.property_type, area: data.area || null,
-      asking_price: data.asking_price ?? null, size_m2: data.size_m2 ?? null, details: data.details || null,
+      purpose: data.purpose, property_type: data.property_type, area: place,
+      asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null,
+    }).select("id").single();
+    if (leadErr || !lead) { console.error("owner listing lead", leadErr?.code); return { ok: false, error: "server" }; }
+
+    const urls: string[] = [];
+    for (const [i, bytes] of photos.entries()) {
+      const path = `owners/${lead.id}/${i + 1}.jpg`;
+      const { error: upErr } = await db.storage.from("media").upload(path, bytes!, { contentType: "image/jpeg", upsert: true });
+      if (upErr) { console.error("owner photo upload", upErr.message); continue; }
+      const { data: signed } = await db.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signed?.signedUrl) urls.push(signed.signedUrl);
+    }
+
+    const { error: propErr } = await db.from("properties").insert({
+      broker_id: null, owner_lead_id: lead.id, review_status: "pending", category: "residential",
+      title: `${data.property_type} لل${status} في ${place}`.slice(0, 150),
+      description: data.details || null, price: data.asking_price, type: data.property_type, status,
+      city: data.city, area: data.area, size: data.size_m2, rooms: data.rooms ?? null, baths: data.baths ?? null,
+      floor: data.floor || null, image_url: urls[0] ?? null, images: urls,
     });
-    if (error) { console.error("owner listing insert", error.code); return { ok: false, error: "server" }; }
+    // The lead is already saved, so the team can still follow up if this fails.
+    if (propErr) console.error("owner listing property", propErr.code, propErr.message);
     return { ok: true };
   });
 

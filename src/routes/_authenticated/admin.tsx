@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
@@ -28,7 +28,7 @@ function useAdminData(enabled: boolean) {
     queryFn: async () => {
       const [b, p, l, pl] = await Promise.all([
         supabase.from("brokers").select("*").order("created_at", { ascending: false }),
-        supabase.from("properties").select("*").order("updated_at", { ascending: false }),
+        supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }),
         supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }),
         supabase.from("plans").select("*").order("max_properties"),
       ]);
@@ -185,15 +185,27 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد عقارات.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 md:flex-row md:items-center">
-          <img src={p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
+          <a href={p.images[0] || p.image_url || "/demo/p1.jpg"} target="_blank" rel="noreferrer" className="relative shrink-0">
+            <img src={p.images[0] || p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
+            {p.images.length > 1 && <span className="absolute bottom-1 left-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold text-primary">{p.images.length} صور</span>}
+          </a>
           <div className="min-w-0 flex-1">
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
+            {p.owner_lead_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
-            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م · {p.type} · {p.area} · {brokerName(p.broker_id)}</p>
+            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م · {p.type} · {p.area} · {p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
+            {p.owner && (
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <span className="font-bold text-primary">المالك: {p.owner.name}</span>
+                <a href={`tel:+${p.owner.phone}`} dir="ltr" className="font-semibold text-primary underline">+{p.owner.phone}</a>
+                <a href={waLink(p.owner.phone, `مرحبًا ${p.owner.name}، معك فريق فاليو عقار بخصوص إعلانك: ${p.title}`)} target="_blank" rel="noreferrer" className="font-bold text-whatsapp">واتساب</a>
+                <span className={`text-xs font-bold ${p.owner.phone_verified ? "text-teal" : "text-muted-foreground"}`}>{p.owner.phone_verified ? "✓ رقم مؤكَّد" : "رقم غير مؤكَّد"}</span>
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {p.review_status !== "approved" && <button className={btnPrimary} onClick={() => upd(p.id, { review_status: "approved", review_note: null }, "تم الاعتماد")}><Check className="size-4" />اعتماد</button>}
-            {p.review_status !== "rejected" && <button className={btnOutline} onClick={() => { const note = prompt("سبب الرفض (يظهر للوسيط)") ?? ""; upd(p.id, { review_status: "rejected", review_note: note.slice(0, 500) || null }, "تم الرفض"); }}><X className="size-4" />رفض</button>}
+            {p.review_status !== "rejected" && <button className={btnOutline} onClick={() => { const note = prompt(p.review_status === "approved" ? "سبب الإخفاء (يظهر للوسيط)" : "سبب الرفض (يظهر للوسيط)"); if (note === null) return; upd(p.id, { review_status: "rejected", review_note: note.slice(0, 500) || null }, p.review_status === "approved" ? "تم إخفاء العقار" : "تم الرفض"); }}><X className="size-4" />{p.review_status === "approved" ? "إخفاء" : "رفض"}</button>}
             <button aria-label="تمييز" className={`grid size-11 place-items-center rounded-xl border ${p.is_featured ? "bg-teal text-accent-foreground" : "text-primary"}`} onClick={() => upd(p.id, { is_featured: !p.is_featured }, p.is_featured ? "أُلغي التمييز" : "تم التمييز")}><Star className="size-4" /></button>
           </div>
         </div>

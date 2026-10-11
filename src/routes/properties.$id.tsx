@@ -4,7 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
+import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
@@ -69,6 +69,37 @@ function PropertyMap({ lat, lng }: { lat: number; lng: number }) {
   );
 }
 
+/** Main photo with thumbnails; swipeable strip on phones. */
+function Gallery({ images, title, children }: { images: string[]; title: string; children?: React.ReactNode }) {
+  const [i, setI] = useState(0);
+  const go = (d: number) => setI((x) => (x + d + images.length) % images.length);
+  return (
+    <>
+      <div className="relative overflow-hidden rounded-2xl bg-muted">
+      <img src={images[i]} alt={title} className="aspect-[4/3] w-full object-cover md:aspect-video" />
+      {children}
+      {images.length > 1 && (
+        <>
+          <button type="button" onClick={() => go(-1)} aria-label={t("الصورة السابقة")} className="absolute top-1/2 right-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background/85 text-primary shadow"><ChevronRight className="size-5" /></button>
+          <button type="button" onClick={() => go(1)} aria-label={t("الصورة التالية")} className="absolute top-1/2 left-3 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-background/85 text-primary shadow"><ChevronLeft className="size-5" /></button>
+          <span className="absolute bottom-3 left-3 rounded-full bg-background/85 px-2.5 py-1 text-xs font-bold text-primary" dir="ltr">{i + 1} / {images.length}</span>
+        </>
+      )}
+      </div>
+      {images.length > 1 && (
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+            {images.map((src, j) => (
+              <button key={src} type="button" onClick={() => setI(j)} aria-label={`${t("صورة")} ${j + 1}`}
+                className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${j === i ? "border-teal" : "border-transparent opacity-70"}`}>
+                <img src={src} alt="" loading="lazy" className="size-full object-cover" />
+              </button>
+            ))}
+          </div>
+      )}
+    </>
+  );
+}
+
 function PropertyPage() {
   useLang();
   const { id } = Route.useParams();
@@ -81,11 +112,10 @@ function PropertyPage() {
     <PageShell>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div>
-          <div className="relative overflow-hidden rounded-2xl bg-muted">
-            <img src={p.image} alt={p.title} className="aspect-[4/3] w-full object-cover md:aspect-video" />
+          <Gallery images={p.images} title={p.title}>
             <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(p.status)}</span>
             {p.isDemo && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("إعلان تجريبي")}</span>}
-          </div>
+          </Gallery>
           <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">

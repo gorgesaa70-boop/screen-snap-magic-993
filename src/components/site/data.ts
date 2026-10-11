@@ -14,6 +14,7 @@ export type Property = {
   title: string;
   description: string | null;
   image: string;
+  images: string[];
   price: number;
   type: string;
   city: string;
@@ -48,7 +49,8 @@ export const toProperty = (r: PropertyRow): Property => ({
   id: r.id,
   title: r.title,
   description: r.description,
-  image: r.image_url || "/demo/p1.jpg",
+  image: r.images?.[0] || r.image_url || "/demo/p1.jpg",
+  images: r.images?.length ? r.images : [r.image_url || "/demo/p1.jpg"],
   price: Number(r.price),
   type: r.type,
   city: r.city,

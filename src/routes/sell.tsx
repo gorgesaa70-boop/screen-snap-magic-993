@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft } from "lucide-react";
+import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
 import { TYPES, CITIES, DEFAULT_CITY } from "@/components/site/data";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
@@ -33,7 +33,23 @@ const ERRORS: Record<string, string> = {
   locked: "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا",
   wrong: "رمز غير صحيح",
   server: "تعذّر إرسال الطلب، حاول مرة أخرى",
+  bad_photo: "فيه صورة مش مدعومة، جرّب صورة تانية",
 };
+
+const MAX_PHOTOS = 6;
+
+/** Resize to at most 1600px and re-encode as JPEG so uploads stay small; returns base64 without the prefix. */
+async function compressPhoto(file: File): Promise<{ b64: string; preview: string }> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
+  const preview = canvas.toDataURL("image/jpeg", 0.8);
+  return { b64: preview.slice(preview.indexOf(",") + 1), preview };
+}
 
 /** Egyptian mobile -> 20XXXXXXXXXX, or null. */
 function egPhone(raw: string) {
@@ -72,7 +88,9 @@ function SellForm() {
   useLang();
   const send = useServerFn(sendWhatsappOtp);
   const submit = useServerFn(submitOwnerListing);
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", details: "" });
+  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
+  const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
+  const [compressing, setCompressing] = useState(false);
   const [step, setStep] = useState<"form" | "code" | "done">("form");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -80,7 +98,21 @@ function SellForm() {
   const [resendIn, setResendIn] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  const digits = (k: "price" | "size") => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "").slice(0, 13) });
+  const digits = (k: "price" | "size" | "rooms" | "baths", max = 13) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "").slice(0, max) });
+
+  async function addPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = [...(e.target.files ?? [])].filter((x) => x.type.startsWith("image/"));
+    e.target.value = "";
+    const room = MAX_PHOTOS - photos.length;
+    if (files.length > room) toast.error(t("أقصى عدد {n} صور", { n: MAX_PHOTOS }));
+    setCompressing(true);
+    const out: { b64: string; preview: string }[] = [];
+    for (const file of files.slice(0, room)) {
+      try { out.push(await compressPhoto(file)); } catch { toast.error(t(ERRORS["bad_photo"]!)); }
+    }
+    setPhotos((p) => [...p, ...out].slice(0, MAX_PHOTOS));
+    setCompressing(false);
+  }
   const areas = CITIES[f.city] ?? [];
 
   useEffect(() => {
@@ -93,7 +125,9 @@ function SellForm() {
     setBusy(true);
     const r = await submit({ data: {
       name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, property_type: f.property_type,
-      area: f.area ? `${f.city} - ${f.area}` : f.city, asking_price: num(f.price), size_m2: num(f.size), details: f.details.trim() || undefined,
+      city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
+      rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
+      photos: photos.map((x) => x.b64),
     } }).catch(() => ({ ok: false as const, error: "server" }));
     setBusy(false);
     if (r.ok) { setStep("done"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
@@ -108,6 +142,10 @@ function SellForm() {
     if (f.name.trim().length < 2) { toast.error(t("اكتب اسمك")); return; }
     if (!p) { toast.error(t("اكتب رقم موبايل مصري صحيح")); return; }
     if (!f.property_type) { toast.error(t("اختر نوع العقار")); return; }
+    if (areas.length > 0 && !f.area) { toast.error(t("اختر المنطقة / الحي")); return; }
+    if (!Number(f.size)) { toast.error(t("اكتب المساحة")); return; }
+    if (!Number(f.price)) { toast.error(t("اكتب السعر")); return; }
+    if (photos.length === 0) { toast.error(t("ضيف صورة واحدة على الأقل للعقار")); return; }
     setPhone(p);
     setBusy(true);
     const r = await send({ data: { phone: p } }).catch(() => ({ ok: false as const, error: "server" }));
@@ -124,7 +162,7 @@ function SellForm() {
     return (
       <div className="rounded-2xl border bg-card p-8 text-center shadow-card">
         <p className="text-xl font-extrabold text-primary">{t("تم استلام عقارك ✓")}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{t("فريق فاليو عقار هيراجع البيانات ويتواصل معاك على واتساب قريب.")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("فريق فاليو عقار هيراجع الإعلان، وأول ما يتوافق عليه هينزل على الموقع. هنتواصل معاك على واتساب لو احتجنا أي حاجة.")}</p>
         <a href="/" className={`${btnTeal} mt-6`}>{t("الرجوع للرئيسية")}</a>
       </div>
     );
@@ -183,8 +221,43 @@ function SellForm() {
         <input className={inputCls} inputMode="numeric" dir="ltr" value={f.size} onChange={digits("size")} placeholder="120" />
       </Field>
       <Field label={f.purpose === "sale" ? t("السعر المطلوب (ج.م)") : t("الإيجار الشهري (ج.م)")}>
-        <input className={inputCls} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} placeholder={t("اختياري")} />
+        <input className={inputCls} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} required />
       </Field>
+      {!["أرض", "محل", "مكتب"].includes(f.property_type) && (
+        <>
+          <Field label={t("عدد الغرف")}>
+            <input className={inputCls} inputMode="numeric" dir="ltr" value={f.rooms} onChange={digits("rooms", 2)} placeholder={t("اختياري")} />
+          </Field>
+          <Field label={t("عدد الحمامات")}>
+            <input className={inputCls} inputMode="numeric" dir="ltr" value={f.baths} onChange={digits("baths", 2)} placeholder={t("اختياري")} />
+          </Field>
+        </>
+      )}
+      {f.property_type !== "أرض" && (
+        <Field label={t("الدور")}>
+          <input className={inputCls} value={f.floor} onChange={set("floor")} maxLength={50} placeholder={t("اختياري")} />
+        </Field>
+      )}
+      <div className="sm:col-span-2">
+        <span className="mb-1.5 block text-sm font-bold text-primary">{t("صور العقار")} <span className="font-normal text-muted-foreground">({photos.length}/{MAX_PHOTOS})</span></span>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {photos.map((p, i) => (
+            <div key={i} className="relative aspect-square overflow-hidden rounded-xl border bg-muted">
+              <img src={p.preview} alt="" className="size-full object-cover" />
+              {i === 0 && <span className="absolute bottom-1 start-1 rounded-full bg-primary/85 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">{t("الرئيسية")}</span>}
+              <button type="button" onClick={() => setPhotos((x) => x.filter((_, j) => j !== i))} aria-label={t("حذف الصورة")}
+                className="absolute top-1 end-1 grid size-7 place-items-center rounded-full bg-background/90 text-primary shadow"><X className="size-4" /></button>
+            </div>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <label className={`grid aspect-square cursor-pointer place-items-center rounded-xl border-2 border-dashed text-center text-xs font-bold text-primary transition hover:border-teal ${compressing ? "opacity-60" : ""}`}>
+              <span className="flex flex-col items-center gap-1"><ImagePlus className="size-6 text-teal" />{compressing ? t("جارٍ التجهيز...") : t("ضيف صور")}</span>
+              <input type="file" accept="image/*" multiple className="sr-only" onChange={addPhotos} disabled={compressing} />
+            </label>
+          )}
+        </div>
+        <p className="mt-1.5 text-xs text-muted-foreground">{t("أول صورة هتبقى الصورة الرئيسية للإعلان. الصور بتتصغّر تلقائيًا.")}</p>
+      </div>
       <Field label={t("تفاصيل إضافية")}>
         <textarea className={`${inputCls} h-24 py-2`} value={f.details} onChange={set("details")} maxLength={1000} placeholder={t("الدور، التشطيب، عدد الغرف...")} />
       </Field>
@@ -196,7 +269,7 @@ function SellForm() {
           <input className={inputCls} inputMode="tel" dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} required placeholder="01xxxxxxxxx" autoComplete="tel" />
         </Field>
       </div>
-      <button disabled={busy} className={`${btnTeal} h-12 sm:col-span-2`}>{busy ? t("جارٍ الإرسال...") : t("ابعت بيانات العقار")} <ArrowLeft className="size-4" /></button>
+      <button disabled={busy || compressing} className={`${btnTeal} h-12 sm:col-span-2`}>{busy ? t("جارٍ الإرسال...") : t("ابعت بيانات العقار")} <ArrowLeft className="size-4" /></button>
       <p className="text-xs text-muted-foreground sm:col-span-2">{t("هنبعتلك رمز تحقق على واتساب للتأكد من رقمك. رقمك مش هيظهر لحد غير فريق فاليو عقار.")}</p>
     </form>
   );

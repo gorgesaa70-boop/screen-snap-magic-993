@@ -439,12 +439,14 @@ export type Database = {
           floor: string | null
           id: string
           image_url: string | null
+          images: string[]
           is_demo: boolean
           is_featured: boolean
           land_size: number | null
           lat: number | null
           lng: number | null
           mall_id: string | null
+          owner_lead_id: string | null
           price: number
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
@@ -473,12 +475,14 @@ export type Database = {
           floor?: string | null
           id?: string
           image_url?: string | null
+          images?: string[]
           is_demo?: boolean
           is_featured?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          owner_lead_id?: string | null
           price: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
@@ -507,12 +511,14 @@ export type Database = {
           floor?: string | null
           id?: string
           image_url?: string | null
+          images?: string[]
           is_demo?: boolean
           is_featured?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          owner_lead_id?: string | null
           price?: number
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
@@ -527,6 +533,13 @@ export type Database = {
           zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "properties_owner_lead_id_fkey"
+            columns: ["owner_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "properties_activity_id_fkey"
             columns: ["activity_id"]

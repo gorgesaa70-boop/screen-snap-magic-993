@@ -7,6 +7,8 @@ import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 
 type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
 
+const MAX_IMAGES = 12;
+
 export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   const [f, setF] = useState({
     title: initial?.title ?? "",
@@ -19,7 +21,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     rooms: initial?.rooms != null ? String(initial.rooms) : "",
     baths: initial?.baths != null ? String(initial.baths) : "",
     status: initial?.status ?? "بيع",
-    image_url: initial?.image_url ?? "",
+    images: initial?.images?.length ? initial.images : initial?.image_url ? [initial.image_url] : ([] as string[]),
     source_url: initial?.source_url ?? "",
   });
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
@@ -27,12 +29,16 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const num = (v: string) => (v === "" ? null : Number(v));
 
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try { setBusy(true); const url = await uploadImage(file); setF((x) => ({ ...x, image_url: url })); }
-    catch (err) { toast.error((err as Error).message); }
-    finally { setBusy(false); }
+  async function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = [...(e.target.files ?? [])].slice(0, MAX_IMAGES - f.images.length);
+    e.target.value = "";
+    if (!files.length) return;
+    setBusy(true);
+    for (const file of files) {
+      try { const url = await uploadImage(file); setF((x) => ({ ...x, images: [...x.images, url].slice(0, MAX_IMAGES) })); }
+      catch (err) { toast.error((err as Error).message); }
+    }
+    setBusy(false);
   }
 
   async function save(submit: boolean) {
@@ -43,7 +49,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     const payload = {
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
       price: Number(f.price), type: f.type, city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, size: Number(f.size || 0),
-      rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.image_url || null, source_url: src || null,
+      rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.images[0] ?? null, images: f.images, source_url: src || null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
@@ -52,14 +58,14 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       : await supabase.from("properties").insert({ ...payload, broker_id: brokerId });
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
-    toast.success(submit ? "تم إرسال العقار للمراجعة" : "تم الحفظ كمسودة");
+    toast.success(!submit ? "تم الحفظ كمسودة" : initial?.review_status === "rejected" ? "تم إرسال العقار للمراجعة" : "تم نشر العقار");
     onDone();
   }
 
   return (
     <div className="rounded-2xl border bg-card p-4 md:p-6">
       <h3 className="mb-4 text-lg font-extrabold text-primary">{initial ? "تعديل العقار" : "إضافة عقار جديد"}</h3>
-      {initial?.review_status === "approved" && <p className="mb-4 rounded-xl bg-teal-soft p-3 text-xs font-semibold text-primary">تعديل عقار معتمد يعيده للمراجعة من جديد.</p>}
+      {initial?.review_status === "rejected" && <p className="mb-4 rounded-xl bg-teal-soft p-3 text-xs font-semibold text-primary">العقار ده اترفض من الإدارة؛ بعد التعديل هيرجع للمراجعة قبل ما يظهر.</p>}
       {initial?.review_note && <p className="mb-4 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">ملاحظة الإدارة: {initial.review_note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Field label="عنوان الإعلان"><input className={inputCls} value={f.title} onChange={set("title")} maxLength={150} /></Field></div>
@@ -76,8 +82,22 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         <div className="sm:col-span-2"><Field label="رابط العقار في إنجاز (اختياري)"><input className={inputCls} dir="ltr" inputMode="url" placeholder="https://valuegroup.engazcrm.net/consumer/unit/..." value={f.source_url} onChange={set("source_url")} maxLength={500} /></Field></div>
         <div className="sm:col-span-2"><Field label="الوصف"><textarea className={`${inputCls} h-28 py-2`} value={f.description} onChange={set("description")} maxLength={3000} /></Field></div>
         <div className="sm:col-span-2">
-          <Field label="صورة العقار"><input type="file" accept="image/*" onChange={onFile} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" /></Field>
-          {f.image_url && <img src={f.image_url} alt="" className="mt-3 h-32 rounded-xl object-cover" />}
+          <Field label={`صور العقار (${f.images.length}/${MAX_IMAGES}) — أول صورة هي الرئيسية`}>
+            <input type="file" accept="image/*" multiple disabled={busy || f.images.length >= MAX_IMAGES} onChange={onFiles} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" />
+          </Field>
+          {f.images.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {f.images.map((url, i) => (
+                <div key={url} className="relative">
+                  <img src={url} alt="" className="h-24 w-32 rounded-xl object-cover" />
+                  <div className="absolute inset-x-1 bottom-1 flex justify-between">
+                    {i > 0 ? <button type="button" onClick={() => setF((x) => ({ ...x, images: [url, ...x.images.filter((u) => u !== url)] }))} className="rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold text-primary">اجعلها الرئيسية</button> : <span className="rounded-full bg-primary/85 px-2 py-0.5 text-[10px] font-bold text-primary-foreground">الرئيسية</span>}
+                    <button type="button" aria-label="حذف الصورة" onClick={() => setF((x) => ({ ...x, images: x.images.filter((u) => u !== url) }))} className="rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold text-destructive">حذف</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="sm:col-span-2">
           <Field label="موقع العقار على الخريطة (اختياري)">
@@ -86,7 +106,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>إرسال للمراجعة</button>
+        <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>{initial?.review_status === "rejected" ? "إرسال للمراجعة" : "نشر العقار"}</button>
         <button disabled={busy} onClick={() => save(false)} className={btnOutline}>حفظ كمسودة</button>
         <button onClick={onCancel} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
       </div>

@@ -4,7 +4,7 @@ import { emptyFilters } from "@/components/site/search";
 import type { Property } from "@/components/site/data";
 
 const p = (o: Partial<Property>): Property => ({
-  id: Math.random().toString(), title: "", description: null, image: "", price: 1_000_000, type: "شقة", city: "برج العرب الجديدة", area: "الحي الأول",
+  id: Math.random().toString(), title: "", description: null, image: "", images: [], price: 1_000_000, type: "شقة", city: "برج العرب الجديدة", area: "الحي الأول",
   size: 100, status: "بيع", updated: "", isDemo: false, featured: false, brokerId: null, ...o,
 });
 const list = [p({}), p({ type: "محل", area: "الحي الثاني", price: 3_000_000 })];
