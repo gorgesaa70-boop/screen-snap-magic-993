@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
 import { AMENITIES, type ProjectRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
@@ -49,8 +50,8 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
     };
     const res = initial
-      ? await supabase.from("projects").update(payload).eq("id", initial.id)
-      : await supabase.from("projects").insert({ ...payload, developer_id: developerId });
+      ? await dbx.from("projects").update(payload).eq("id", initial.id)
+      : await dbx.from("projects").insert({ ...payload, developer_id: developerId });
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
     toast.success(initial?.review_status === "rejected" ? "تم إرسال المشروع للمراجعة" : initial ? "تم حفظ المشروع" : "تم نشر المشروع");

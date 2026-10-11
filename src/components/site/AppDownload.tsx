@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { t, useLang } from "@/lib/i18n";
 
 /** One link for every phone: /app sends iPhones to the App Store and Android phones to Google Play. */
@@ -16,7 +17,7 @@ export function storeFor(ua: string): "ios" | "android" | null {
 export type AppLinks = { ios: string | null; android: string | null };
 
 export async function fetchAppLinks(): Promise<AppLinks> {
-  const { data } = await supabase.from("app_settings").select("ios_url, android_url").eq("id", 1).maybeSingle();
+  const { data } = await dbx.from("app_settings").select("ios_url, android_url").eq("id", 1).maybeSingle();
   return { ios: data?.ios_url ?? null, android: data?.android_url ?? null };
 }
 

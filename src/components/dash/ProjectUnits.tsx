@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { formatPrice, formatDate } from "@/components/site/data";
 import { UNIT_STATUS, UNIT_TYPES, type ProjectRow, type UnitRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
@@ -12,7 +13,7 @@ export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack:
   const q = useQuery({
     queryKey: ["project-units", project.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("project_units").select("*").eq("project_id", project.id).order("unit_type").order("code");
+      const { data, error } = await dbx.from("project_units").select("*").eq("project_id", project.id).order("unit_type").order("code");
       if (error) throw error; return data;
     },
   });
@@ -22,7 +23,7 @@ export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack:
   const count = (s: string) => U.filter((u) => u.status === s).length;
 
   async function setStatus(u: UnitRow, status: string) {
-    const { error } = await supabase.from("project_units").update({ status }).eq("id", u.id);
+    const { error } = await dbx.from("project_units").update({ status }).eq("id", u.id);
     if (error) toast.error(error.message); else { toast.success("تم تحديث الحالة"); q.refetch(); }
   }
 
@@ -60,7 +61,7 @@ export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack:
                     <div className="flex gap-1">
                       <button aria-label="سجل التغييرات" onClick={() => setHistoryOf(historyOf === u.id ? null : u.id)} className="grid size-9 place-items-center rounded-lg border text-primary hover:bg-secondary"><History className="size-4" /></button>
                       <button aria-label="تعديل" onClick={() => setEditing(u)} className="grid size-9 place-items-center rounded-lg border text-primary hover:bg-secondary"><Pencil className="size-4" /></button>
-                      <button aria-label="حذف" onClick={async () => { if (!confirm("حذف الوحدة؟")) return; const { error } = await supabase.from("project_units").delete().eq("id", u.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-9 place-items-center rounded-lg border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
+                      <button aria-label="حذف" onClick={async () => { if (!confirm("حذف الوحدة؟")) return; const { error } = await dbx.from("project_units").delete().eq("id", u.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-9 place-items-center rounded-lg border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -78,7 +79,7 @@ function UnitHistory({ unitId }: { unitId: string }) {
   const q = useQuery({
     queryKey: ["unit-history", unitId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("project_unit_history").select("*").eq("unit_id", unitId).order("created_at", { ascending: false });
+      const { data, error } = await dbx.from("project_unit_history").select("*").eq("unit_id", unitId).order("created_at", { ascending: false });
       if (error) throw error; return data;
     },
   });
@@ -120,8 +121,8 @@ function UnitForm({ projectId, initial, onDone, onCancel }: { projectId: string;
       floor: f.floor.trim().slice(0, 50) || null, price: num(f.price), status: f.status, notes: f.notes.trim().slice(0, 1000) || null,
     };
     const res = initial
-      ? await supabase.from("project_units").update(payload).eq("id", initial.id)
-      : await supabase.from("project_units").insert({ ...payload, project_id: projectId });
+      ? await dbx.from("project_units").update(payload).eq("id", initial.id)
+      : await dbx.from("project_units").insert({ ...payload, project_id: projectId });
     setBusy(false);
     if (res.error) { toast.error(res.error.code === "23505" ? "فيه وحدة تانية بنفس الكود في المشروع ده" : res.error.message); return; }
     toast.success("تم حفظ الوحدة");

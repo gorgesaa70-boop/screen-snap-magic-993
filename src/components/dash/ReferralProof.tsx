@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import type { Tables } from "@/integrations/supabase/types";
 import { LEAD_SOURCES } from "@/components/site/data";
 
@@ -17,8 +18,8 @@ export function ReferralProof({ lead, brokerNames }: { lead: Lead; brokerNames: 
     queryKey: ["referral-proof", lead.id],
     queryFn: async () => {
       const [h, d] = await Promise.all([
-        supabase.from("lead_assignments").select("*").eq("lead_id", lead.id).order("created_at"),
-        supabase.from("deals").select("reservation_date, contract_date, sale_date").eq("lead_id", lead.id).maybeSingle(),
+        dbx.from("lead_assignments").select("*").eq("lead_id", lead.id).order("created_at"),
+        dbx.from("deals").select("reservation_date, contract_date, sale_date").eq("lead_id", lead.id).maybeSingle(),
       ]);
       return { history: h.data ?? [], deal: d.data };
     },

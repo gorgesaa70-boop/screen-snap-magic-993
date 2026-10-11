@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { leadNo, formatDate } from "@/components/site/data";
 
 export const ALERT_KINDS: Record<string, { label: string; hint: string }> = {
@@ -19,14 +19,14 @@ export function LeadAlerts() {
   const q = useQuery({
     queryKey: ["lead-alerts"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("lead_alerts");
+      const { data, error } = await dbx.rpc("lead_alerts");
       if (error) throw error;
       return data ?? [];
     },
   });
   const [kind, setKind] = useState("");
-  const rows = useMemo(() => (q.data ?? []).filter((a) => !kind || a.kind === kind).sort((a, b) => (b.happened_at ?? "").localeCompare(a.happened_at ?? "")), [q.data, kind]);
-  const count = (k: string) => (q.data ?? []).filter((a) => a.kind === k).length;
+  const rows = useMemo(() => (q.data ?? []).filter((a: any) => !kind || a.kind === kind).sort((a: any, b: any) => (b.happened_at ?? "").localeCompare(a.happened_at ?? "")), [q.data, kind]);
+  const count = (k: string) => (q.data ?? []).filter((a: any) => a.kind === k).length;
 
   if (q.isLoading) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
   if (q.error) return <p className="rounded-2xl border bg-card p-6 text-sm text-destructive">تعذّر تحميل التقرير.</p>;
@@ -51,7 +51,7 @@ export function LeadAlerts() {
               <tr>{["التنبيه", "العميل", "الشركة", "التفاصيل", "التاريخ"].map((h) => <th key={h} className="p-3 text-start font-bold">{h}</th>)}</tr>
             </thead>
             <tbody>
-              {rows.map((a, i) => (
+              {rows.map((a: any, i: any) => (
                 <tr key={`${a.kind}-${a.lead_id}-${i}`} className="border-t align-top">
                   <td className="p-3"><span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-bold text-destructive"><AlertTriangle className="size-3" />{ALERT_KINDS[a.kind]?.label ?? a.kind}</span></td>
                   <td className="p-3"><Link to="/leads/$id" params={{ id: a.lead_id }} className="font-bold text-primary hover:text-teal"><span dir="ltr">{leadNo(a.lead_no)}</span> · {a.lead_name}</Link></td>

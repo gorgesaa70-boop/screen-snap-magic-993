@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { REVIEW, formatPrice, type BrokerRow } from "@/components/site/data";
 import { projectCover } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";
@@ -12,12 +13,12 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
   const q = useQuery({
     queryKey: ["admin-projects"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*, project_units(status)").order("updated_at", { ascending: false });
+      const { data, error } = await dbx.from("projects").select("*, project_units(status)").order("updated_at", { ascending: false });
       if (error) throw error; return data;
     },
   });
   const upd = async (id: string, patch: { review_status?: "approved" | "rejected"; review_note?: string | null; is_featured?: boolean }, msg: string) => {
-    const { error } = await supabase.from("projects").update(patch).eq("id", id);
+    const { error } = await dbx.from("projects").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success(msg); q.refetch(); }
   };
   const list = q.data ?? [];

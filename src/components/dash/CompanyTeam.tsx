@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- types regenerate after the release migration applies
+const db = supabase as any;
+
 export const MEMBER_ROLES: Record<string, { label: string; hint: string }> = {
   manager: { label: "مدير", hint: "يدير العقارات والمشروعات والعملاء" },
   sales: { label: "موظف مبيعات", hint: "يتابع العملاء والطلبات بس" },
@@ -17,7 +20,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
   const q = useQuery({
     queryKey: ["company-team", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("company_members").select("*").eq("company_id", companyId).order("created_at");
+      const { data, error } = await db.from("company_members").select("*").eq("company_id", companyId).order("created_at");
       if (error) throw error; return data;
     },
   });
@@ -29,14 +32,14 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error("اكتب الاسم ورقم موبايل صحيح"); return; }
     setBusy(true);
-    const { error } = await supabase.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: f.phone.trim(), role: f.role });
+    const { error } = await db.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: f.phone.trim(), role: f.role });
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? "الرقم ده مضاف بالفعل لفريق شركة" : error.message); return; }
     toast.success("تمت الإضافة — يقدر يدخل برقمه دلوقتي");
     setF({ name: "", phone: "", role: "sales" }); setOpen(false); q.refetch();
   }
   async function upd(id: string, patch: { role?: string; is_active?: boolean }) {
-    const { error } = await supabase.from("company_members").update(patch).eq("id", id);
+    const { error } = await db.from("company_members").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); q.refetch(); }
   }
 
@@ -54,7 +57,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
         </form>
       )}
       {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه مفيش أعضاء في الفريق.</p>}
-      {list.map((m) => (
+      {list.map((m: any) => (
         <div key={m.id} className={`flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center ${m.is_active ? "" : "opacity-60"}`}>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-primary">{m.name} {!m.is_active && <span className="text-xs text-destructive">(موقوف)</span>}</p>
@@ -65,7 +68,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
           </select>
           <div className="flex gap-2">
             <button className={btnOutline} onClick={() => upd(m.id, { is_active: !m.is_active })}>{m.is_active ? "إيقاف" : "تفعيل"}</button>
-            <button aria-label="حذف" onClick={async () => { if (!confirm(`حذف ${m.name} من الفريق؟`)) return; const { error } = await supabase.from("company_members").delete().eq("id", m.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
+            <button aria-label="حذف" onClick={async () => { if (!confirm(`حذف ${m.name} من الفريق؟`)) return; const { error } = await db.from("company_members").delete().eq("id", m.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
           </div>
         </div>
       ))}

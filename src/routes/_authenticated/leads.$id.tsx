@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Phone, MessageCircle, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
@@ -56,7 +57,7 @@ function LeadPage() {
   });
   const team = useQuery({
     queryKey: ["lead-team", companyId], enabled: !!companyId && (seeAll || canTeam),
-    queryFn: async () => (await supabase.from("company_members").select("id, name, role, is_active").eq("company_id", companyId!).order("name")).data ?? [],
+    queryFn: async () => (await dbx.from("company_members").select("id, name, role, is_active").eq("company_id", companyId!).order("name")).data ?? [],
   });
   const listStaff = useServerFn(staffDirectory);
   const staff = useQuery({

@@ -3,12 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, FileText, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
+import { dbx } from "@/lib/dbx";
+import type { Tables } from "@/integrations/supabase/types";
 import { STAGES, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 
-type Lead = Tables<"leads">;
-type Deal = Tables<"deals">;
+// The 10-stage pipeline and its columns land with the 2026-10-11 release migration;
+// until the generated types regenerate, widen the lead row and keep deals untyped.
+type Lead = Omit<Tables<"leads">, "stage"> & { stage: string; lost_reason?: string | null; visit_at?: string | null };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Deal = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DealDoc = any;
 
 const FLOW = ["new", "contacted", "qualified", "visit_scheduled", "visited", "reserved", "contracted", "sold"];
 const LOST_REASONS = ["السعر مش مناسب", "اشترى من مكان تاني", "مش جاد / بيستفسر بس", "مش بيرد", "المنطقة مش مناسبة", "التمويل / التقسيط"];
@@ -56,12 +62,12 @@ export function StageChanger({ lead, initial, isAdmin, onChanged }: { lead: Lead
 
   async function apply() {
     if (!target) return;
-    const patch: TablesUpdate<"leads"> = { stage: target };
+    const patch: any = { stage: target };
     if (target === "lost") { if (!reason.trim()) { toast.error("اختار أو اكتب سبب عدم الاكتمال"); return; } patch.lost_reason = reason.trim().slice(0, 300); }
     if (target === "postponed") { if (!when) { toast.error("حدد ميعاد المتابعة"); return; } patch.follow_up_at = new Date(when).toISOString(); }
     if (target === "visit_scheduled") { if (!when) { toast.error("حدد ميعاد الزيارة"); return; } patch.visit_at = new Date(when).toISOString(); }
     setBusy(true);
-    const { error } = await supabase.from("leads").update(patch).eq("id", lead.id);
+    const { error } = await dbx.from("leads").update(patch).eq("id", lead.id);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`العميل اتنقل لمرحلة «${STAGES[target]}»`);
@@ -108,9 +114,9 @@ export function DealPanel({ lead, isAdmin, onChanged }: { lead: Lead; isAdmin: b
   const q = useQuery({
     queryKey: ["deal", lead.id],
     queryFn: async () => {
-      const { data: deal, error } = await supabase.from("deals").select("*").eq("lead_id", lead.id).maybeSingle();
+      const { data: deal, error } = await dbx.from("deals").select("*").eq("lead_id", lead.id).maybeSingle();
       if (error) throw error;
-      const docs = deal ? (await supabase.from("deal_documents").select("*").eq("deal_id", deal.id).order("created_at")).data ?? [] : [];
+      const docs = deal ? (await dbx.from("deal_documents").select("*").eq("deal_id", deal.id).order("created_at")).data ?? [] : [];
       return { deal, docs };
     },
   });
@@ -118,7 +124,7 @@ export function DealPanel({ lead, isAdmin, onChanged }: { lead: Lead; isAdmin: b
   const reload = () => { q.refetch(); onChanged(); };
 
   async function open() {
-    const { error } = await supabase.from("deals").insert({ lead_id: lead.id });
+    const { error } = await dbx.from("deals").insert({ lead_id: lead.id });
     if (error) toast.error(error.message); else { toast.success("اتفتحت صفقة للعميل"); reload(); }
   }
   if (q.isLoading) return <div className="h-24 animate-pulse rounded-xl bg-muted" />;
@@ -131,7 +137,7 @@ export function DealPanel({ lead, isAdmin, onChanged }: { lead: Lead; isAdmin: b
   return <DealForm deal={deal} docs={q.data?.docs ?? []} isAdmin={isAdmin} reload={reload} />;
 }
 
-function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"deal_documents">[]; isAdmin: boolean; reload: () => void }) {
+function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]; isAdmin: boolean; reload: () => void }) {
   const locked = deal.review_status === "approved" || (deal.review_status === "pending" && !isAdmin);
   const [f, setF] = useState({
     unit_desc: deal.unit_desc ?? "", reservation_date: deal.reservation_date ?? "", reservation_amount: deal.reservation_amount?.toString() ?? "",
@@ -147,9 +153,9 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"d
     contract_date: f.contract_date || null, contract_value: num(f.contract_value), sale_date: f.sale_date || null, sale_value: num(f.sale_value),
   });
 
-  async function save(extra?: TablesUpdate<"deals">, msg = "تم حفظ بيانات الصفقة") {
+  async function save(extra?: Record<string, unknown>, msg = "تم حفظ بيانات الصفقة") {
     setBusy(true);
-    const { error } = await supabase.from("deals").update({ ...payload(), ...extra }).eq("id", deal.id);
+    const { error } = await dbx.from("deals").update({ ...payload(), ...extra }).eq("id", deal.id);
     setBusy(false);
     if (error) { toast.error(error.message); return false; }
     toast.success(msg); reload(); return true;
@@ -164,7 +170,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"d
     const up = await supabase.storage.from("deal-docs").upload(path, file, { contentType: file.type });
     if (up.error) { setBusy(false); toast.error(up.error.message); return; }
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("deal_documents").insert({ deal_id: deal.id, kind, file_path: path, file_name: file.name.slice(0, 200), uploaded_by: u.user?.id ?? null });
+    const { error } = await dbx.from("deal_documents").insert({ deal_id: deal.id, kind, file_path: path, file_name: file.name.slice(0, 200), uploaded_by: u.user?.id ?? null });
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("اترفع المستند"); reload(); }
   }
@@ -176,7 +182,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"d
   async function review(status: "approved" | "rejected" | "needs_info") {
     let note: string | null = null;
     if (status !== "approved") { note = prompt(status === "rejected" ? "سبب الرفض:" : "إيه البيانات أو المستندات الناقصة؟"); if (!note?.trim()) return; }
-    const { error } = await supabase.from("deals").update({ review_status: status, review_note: note?.trim().slice(0, 500) ?? null }).eq("id", deal.id);
+    const { error } = await dbx.from("deals").update({ review_status: status, review_note: note?.trim().slice(0, 500) ?? null }).eq("id", deal.id);
     if (error) toast.error(error.message); else { toast.success(status === "approved" ? "اتعتمدت الصفقة والبيع اتأكد" : "اتسجلت المراجعة"); reload(); }
   }
 
@@ -211,7 +217,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"d
               <button onClick={() => view(d.file_path)} className="truncate font-semibold text-primary underline">{d.file_name}</button>
               <span className="shrink-0 text-xs text-muted-foreground">{DOC_KINDS[d.kind] ?? d.kind} · {formatDate(d.created_at)}</span>
               {["draft", "rejected", "needs_info"].includes(deal.review_status) && (
-                <button aria-label="حذف" onClick={async () => { if (!confirm("حذف المستند من الصفقة؟")) return; const { error } = await supabase.from("deal_documents").delete().eq("id", d.id); if (error) toast.error(error.message); else reload(); }} className="ms-auto text-destructive"><Trash2 className="size-4" /></button>
+                <button aria-label="حذف" onClick={async () => { if (!confirm("حذف المستند من الصفقة؟")) return; const { error } = await dbx.from("deal_documents").delete().eq("id", d.id); if (error) toast.error(error.message); else reload(); }} className="ms-auto text-destructive"><Trash2 className="size-4" /></button>
               )}
             </li>
           ))}

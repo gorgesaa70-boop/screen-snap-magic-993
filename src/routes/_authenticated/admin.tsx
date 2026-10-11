@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, X, Star, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
@@ -136,7 +137,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
   const [type, setType] = useState("");
   const team = useQuery({
     queryKey: ["admin-team-counts"],
-    queryFn: async () => ((await supabase.from("company_members").select("company_id, is_active")).data ?? []),
+    queryFn: async () => ((await dbx.from("company_members").select("company_id, is_active")).data ?? []),
   });
   const list = brokers.filter((b) => (!status || accountStatus(b) === status) && (!type || b.account_type === type));
   const activate = async (b: BrokerRow, active: boolean) => {

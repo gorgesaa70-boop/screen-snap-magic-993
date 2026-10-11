@@ -18,7 +18,8 @@ export function AppSettingsAdmin() {
     if (ios && !ios.startsWith("https://apps.apple.com/")) { toast.error("رابط App Store لازم يبدأ بـ https://apps.apple.com/"); return; }
     if (android && !android.startsWith("https://play.google.com/store/apps/")) { toast.error("رابط Google Play لازم يبدأ بـ https://play.google.com/store/apps/"); return; }
     setBusy(true);
-    const { error } = await supabase.from("app_settings").update({ ios_url: ios || null, android_url: android || null }).eq("id", 1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types regenerate after the release migration applies
+    const { error } = await (supabase as any).from("app_settings").update({ ios_url: ios || null, android_url: android || null }).eq("id", 1);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("تم حفظ روابط التطبيق");
