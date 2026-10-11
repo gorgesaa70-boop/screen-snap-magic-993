@@ -6,7 +6,7 @@ import { Lock, MapPin, FileText, CheckCircle2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionUser } from "@/hooks/useAuth";
 import { PageShell, Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { Gallery } from "@/components/site/Gallery";
+import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { formatPrice } from "@/components/site/data";
 import { DEAL_KINDS, OPP_KINDS, fetchOpportunity, investmentRange, oppNo } from "@/lib/investments";
 import { pageHead, unavailableHead, breadcrumbs } from "@/lib/seo";
@@ -34,13 +34,14 @@ function OpportunityPage() {
   const access = useQuery({
     queryKey: ["opportunity-access", id, user?.id], enabled: !!user,
     queryFn: async () => {
-      const [priv, req] = await Promise.all([
+      const [priv, pin, req] = await Promise.all([
         supabase.rpc("opportunity_private", { _id: id }),
+        supabase.rpc("opportunity_location", { _id: id }),
         supabase.from("investment_requests").select("status").eq("opportunity_id", id).maybeSingle(),
       ]);
       const details = priv.data?.[0] ?? null;
       const docs = details ? ((await supabase.storage.from("investment-docs").list(id)).data ?? []) : [];
-      return { details, request: req.data, docs };
+      return { details, request: req.data, docs, pin: pin.data?.[0] ?? null };
     },
   });
   const o = q.data;
@@ -80,6 +81,7 @@ function OpportunityPage() {
               {a.details.location_note && <p className="text-sm"><b>{t("الموقع:")}</b> {a.details.location_note}</p>}
               {a.details.licenses && <p className="text-sm"><b>{t("التراخيص والموافقات:")}</b> {a.details.licenses}</p>}
               {a.details.details && <p className="whitespace-pre-line text-sm text-foreground/80">{a.details.details}</p>}
+              {a.pin && <PlaceMap lat={a.pin.lat} lng={a.pin.lng} label={t("موقع الفرصة على الخريطة")} />}
               {a.docs.length > 0 && (
                 <ul className="space-y-1 border-t pt-3 text-sm">
                   {a.docs.map((d) => <li key={d.name}><button onClick={() => openDoc(d.name)} className="inline-flex items-center gap-1.5 font-bold text-primary underline"><FileText className="size-4 text-teal" />{d.name.replace(/^\d+-/, "")}</button></li>)}

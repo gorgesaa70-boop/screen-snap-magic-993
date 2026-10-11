@@ -12,6 +12,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { STAGES_WITH_DATA, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
@@ -216,6 +217,7 @@ function NewBroker({ plans, onDone }: { plans: PlanRow[]; onDone: () => void }) 
 
 function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
   const [filter, setFilter] = useState("pending");
+  const [locFor, setLocFor] = useState<string | null>(null);
   const brokerName = (id: string | null) => d.brokers.find((b) => b.id === id)?.name ?? "—";
   const list = d.properties.filter((p) => !filter || p.review_status === filter);
   const upd = async (id: string, patch: TablesUpdate<"properties">, msg: string) => {
@@ -229,7 +231,8 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
       </select>
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد عقارات.</p>}
       {list.map((p) => (
-        <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 md:flex-row md:items-center">
+        <div key={p.id} className="rounded-2xl border bg-card">
+        <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
           <a href={p.images[0] || p.image_url || "/demo/p1.jpg"} target="_blank" rel="noreferrer" className="relative shrink-0">
             <img src={p.images[0] || p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
             {p.images.length > 1 && <span className="absolute bottom-1 left-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold text-primary">{p.images.length} صور</span>}
@@ -257,10 +260,31 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
               await upd(p.id, { is_highlight: true, highlight_reason: reason.trim().slice(0, 160), highlight_yield: y && Number(y) > 0 ? Number(y) : null }, "اتضاف للعروض المميزة");
             }}>{p.is_highlight ? "★ سعر مميز" : p.highlight_requested_at ? "★ مطلوب ترشيحه" : "☆ سعر مميز"}</button>
             {p.review_status !== "rejected" && <button className={btnOutline} onClick={() => { const note = prompt(p.review_status === "approved" ? "سبب الإخفاء (يظهر للوسيط)" : "سبب الرفض (يظهر للوسيط)"); if (note === null) return; upd(p.id, { review_status: "rejected", review_note: note.slice(0, 500) || null }, p.review_status === "approved" ? "تم إخفاء العقار" : "تم الرفض"); }}><X className="size-4" />{p.review_status === "approved" ? "إخفاء" : "رفض"}</button>}
+            <button title="الموقع على الخريطة" onClick={() => setLocFor(locFor === p.id ? null : p.id)} className={`grid size-11 place-items-center rounded-xl border ${p.lat != null ? "text-teal" : "text-muted-foreground"}`} aria-label="الموقع على الخريطة">📍</button>
             <button aria-label="تمييز" className={`grid size-11 place-items-center rounded-xl border ${p.is_featured ? "bg-teal text-accent-foreground" : "text-primary"}`} onClick={() => upd(p.id, { is_featured: !p.is_featured }, p.is_featured ? "أُلغي التمييز" : "تم التمييز")}><Star className="size-4" /></button>
           </div>
         </div>
+        {locFor === p.id && <LocationEditor id={p.id} initial={p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null} onDone={() => { setLocFor(null); reload(); }} />}
+        </div>
       ))}
+    </div>
+  );
+}
+
+/** Admin sets or corrects a listing's map pin (owners can't search addresses, so they may pin roughly). */
+function LocationEditor({ id, initial, onDone }: { id: string; initial: LatLng | null; onDone: () => void }) {
+  const [loc, setLoc] = useState<LatLng | null>(initial);
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    setBusy(true);
+    const { error } = await supabase.from("properties").update({ lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", id);
+    setBusy(false);
+    if (error) toast.error(error.message); else { toast.success(loc ? "اتحفظ الموقع" : "اتشال الموقع"); onDone(); }
+  }
+  return (
+    <div className="space-y-2 border-t p-3">
+      <MapPicker value={loc} onChange={setLoc} />
+      <button disabled={busy} onClick={save} className={btnPrimary}>حفظ الموقع</button>
     </div>
   );
 }

@@ -55,10 +55,11 @@ export function loadMapsApi(): Promise<void> {
 
 const BORG_EL_ARAB: LatLng = { lat: 30.8658, lng: 29.5967 };
 
-type Props = { value: LatLng | null; onChange: (v: LatLng | null) => void };
+/** allowSearch=false hides address search (it needs a signed-in user); pinning by tap or current location still works. */
+type Props = { value: LatLng | null; onChange: (v: LatLng | null) => void; allowSearch?: boolean };
 
 /** Click-to-pin location picker with current-location and search support. */
-export function MapPicker({ value, onChange }: Props) {
+export function MapPicker({ value, onChange, allowSearch = true }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -136,10 +137,12 @@ export function MapPicker({ value, onChange }: Props) {
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        <form onSubmit={search} className="flex min-w-56 flex-1 items-center gap-1.5 rounded-xl border bg-background px-3">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن عنوان أو منطقة…" className="h-10 w-full bg-transparent text-sm outline-none" />
-        </form>
+        {allowSearch && (
+          <form onSubmit={search} className="flex min-w-56 flex-1 items-center gap-1.5 rounded-xl border bg-background px-3">
+            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ابحث عن عنوان أو منطقة…" className="h-10 w-full bg-transparent text-sm outline-none" />
+          </form>
+        )}
         <button type="button" onClick={useMyLocation} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary hover:bg-teal-soft">
           <LocateFixed className="size-4 text-teal" />موقعي الحالي
         </button>

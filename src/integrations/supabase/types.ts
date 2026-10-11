@@ -603,6 +603,8 @@ export type Database = {
       }
       investment_opportunities: {
         Row: {
+          lat: number | null
+          lng: number | null
           activity: string
           area: string
           broker_id: string | null
@@ -631,6 +633,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          lat?: number | null
+          lng?: number | null
           activity: string
           area: string
           broker_id?: string | null
@@ -658,6 +662,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          lat?: number | null
+          lng?: number | null
           activity?: string
           area?: string
           broker_id?: string | null
@@ -993,6 +999,8 @@ export type Database = {
       }
       malls: {
         Row: {
+          lat: number | null
+          lng: number | null
           kind: string
           created_at: string
           description: string | null
@@ -1004,6 +1012,8 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          lat?: number | null
+          lng?: number | null
           kind?: string
           created_at?: string
           description?: string | null
@@ -1015,6 +1025,8 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          lat?: number | null
+          lng?: number | null
           kind?: string
           created_at?: string
           description?: string | null
@@ -1784,6 +1796,7 @@ export type Database = {
         }[]
       }
       my_opportunities: { Args: never; Returns: Database["public"]["Tables"]["investment_opportunities"]["Row"][] }
+      opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_phone: { Args: never; Returns: string }
       owned_company_id: { Args: never; Returns: string }

@@ -8,6 +8,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Tabs, btnOutline, btnPrimary } from "@/components/site/ui";
 import { formatDate, formatPrice } from "@/components/site/data";
 import { DEAL_KINDS, OPP_KINDS, investmentRange, oppNo } from "@/lib/investments";
+import { PlaceMap } from "@/components/site/Gallery";
 
 const STATUS: Record<string, [string, string]> = {
   pending: ["بانتظار المراجعة", "bg-teal-soft text-primary"], approved: ["منشورة", "bg-primary text-primary-foreground"],
@@ -85,6 +86,7 @@ function OpportunityReview({ id, o, isAdmin, upd }: { id: string; o: Opp; isAdmi
         {o.location_note && <p><b>الموقع:</b> {o.location_note}</p>}
         {o.licenses && <p><b>التراخيص:</b> {o.licenses}</p>}
         {o.details && <p className="whitespace-pre-line text-foreground/80">{o.details}</p>}
+        {o.lat != null && o.lng != null && <PlaceMap lat={o.lat} lng={o.lng} label="الموقع على الخريطة" />}
         {docs.data?.map((d) => <button key={d.name} onClick={() => openDoc(d.name)} className="me-3 inline-flex items-center gap-1 font-bold text-primary underline"><FileText className="size-4 text-teal" />{d.name.replace(/^\d+-/, "")}</button>)}
       </div>
       {o.review_note && <p className="text-destructive">ملاحظة: {o.review_note}</p>}

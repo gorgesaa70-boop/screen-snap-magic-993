@@ -8,6 +8,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { useMe } from "@/hooks/useAuth";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage, formatDate } from "@/components/site/data";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ACTIVITIES, DEAL_KINDS, OPP_KINDS, investmentRange, oppNo } from "@/lib/investments";
 
 export const Route = createFileRoute("/_authenticated/investments/new")({
@@ -27,6 +28,7 @@ function NewOpportunityPage() {
   };
   const [f, setF] = useState(blank);
   const [images, setImages] = useState<string[]>([]);
+  const [loc, setLoc] = useState<LatLng | null>(null);
   const [docs, setDocs] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
@@ -47,7 +49,7 @@ function NewOpportunityPage() {
       title: f.title.trim(), kind: f.kind, activity: f.activity.trim(), deal_kind: f.deal_kind, city: f.city,
       area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, land_area: num(f.land_area), built_area: num(f.built_area),
       investment_min: num(f.investment_min), investment_max: num(f.investment_max), offered_share: num(f.offered_share), expected_return: num(f.expected_return),
-      teaser: f.teaser.trim(), details: f.details.trim() || null, location_note: f.location_note.trim() || null, licenses: f.licenses.trim() || null, images,
+      teaser: f.teaser.trim(), details: f.details.trim() || null, location_note: f.location_note.trim() || null, licenses: f.licenses.trim() || null, images, lat: loc?.lat ?? null, lng: loc?.lng ?? null,
     }).select("id").single();
     if (error || !data) { setBusy(false); toast.error(error?.message ?? "تعذّر الحفظ"); return; }
     for (const d of docs) {
@@ -56,7 +58,7 @@ function NewOpportunityPage() {
     }
     setBusy(false);
     toast.success("اتبعتت الفرصة لمراجعة فاليو عقار ✓");
-    setF(blank); setImages([]); setDocs([]); mine.refetch();
+    setF(blank); setImages([]); setDocs([]); setLoc(null); mine.refetch();
   }
 
   return (
@@ -81,6 +83,7 @@ function NewOpportunityPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2"><Field label="التفاصيل الكاملة (السعر النهائي، الشروط، حالة النشاط…)"><textarea className={`${inputCls} h-28 py-2`} value={f.details} onChange={set("details")} maxLength={8000} /></Field></div>
             <Field label="الموقع بالتحديد"><input className={inputCls} value={f.location_note} onChange={set("location_note")} maxLength={300} /></Field>
+            <div className="sm:col-span-2"><Field label="الموقع على الخريطة (سرّي — بيظهر للمستثمر بعد الموافقة بس)"><MapPicker value={loc} onChange={setLoc} /></Field></div>
             <Field label="التراخيص والموافقات"><input className={inputCls} value={f.licenses} onChange={set("licenses")} maxLength={1000} /></Field>
             <label className="flex cursor-pointer items-center gap-2 text-sm font-bold text-primary sm:col-span-2"><Upload className="size-4" />مستندات (PDF أو صور) — {docs.length} ملف<input type="file" multiple accept="application/pdf,image/*" className="hidden" onChange={(e) => setDocs([...(e.target.files ?? [])].filter((x) => x.size <= 10 * 1024 * 1024).slice(0, 10))} /></label>
           </div>

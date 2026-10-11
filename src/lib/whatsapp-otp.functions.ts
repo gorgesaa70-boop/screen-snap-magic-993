@@ -194,6 +194,9 @@ const listingSchema = z.object({
   details: z.string().trim().max(3000).optional(),
   // JPEG images, base64 without the data: prefix (the browser resizes them first)
   photos: z.array(z.string().max(Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4)).max(MAX_LISTING_PHOTOS).default([]),
+  // Optional map pin, limited to Egypt.
+  lat: z.number().min(22).max(32).optional(),
+  lng: z.number().min(24).max(37).optional(),
 });
 
 function decodeJpeg(b64: string): Uint8Array | null {
@@ -255,6 +258,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       description: data.details || null, price: data.asking_price, type: data.property_type, status,
       city: data.city, area: data.area, size: data.size_m2, rooms: data.rooms ?? null, baths: data.baths ?? null,
       floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
+      lat: data.lat ?? null, lng: data.lng ?? null,
     });
     // The lead is already saved, so the team can still follow up if this fails.
     if (propErr) console.error("owner listing property", propErr.code, propErr.message);

@@ -558,6 +558,11 @@ const EN: Record<string, string> = {
   "مولات طبية": "Medical malls",
   "طبي": "Medical",
   "متعدد الأنشطة": "Mixed-use",
+  // Map pins
+  "حدد موقع عقارك على الخريطة — اختياري": "Pin your property on the map — optional",
+  "دوس على مكان العقار في الخريطة، أو «موقعي الحالي» لو إنت في العقار دلوقتي.": "Tap the property's spot on the map, or use “my location” if you're at the property now.",
+  "موقع المول على الخريطة": "Mall location on the map",
+  "موقع الفرصة على الخريطة": "Opportunity location on the map",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */
