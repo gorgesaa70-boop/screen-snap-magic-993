@@ -57,7 +57,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
         </form>
       )}
       {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه مفيش أعضاء في الفريق.</p>}
-      {list.map((m) => (
+      {list.map((m: any) => (
         <div key={m.id} className={`flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center ${m.is_active ? "" : "opacity-60"}`}>
           <div className="min-w-0 flex-1">
             <p className="font-bold text-primary">{m.name} {!m.is_active && <span className="text-xs text-destructive">(موقوف)</span>}</p>

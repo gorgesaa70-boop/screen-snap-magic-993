@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { leadNo, formatDate } from "@/components/site/data";
 
 export const ALERT_KINDS: Record<string, { label: string; hint: string }> = {
@@ -19,7 +19,7 @@ export function LeadAlerts() {
   const q = useQuery({
     queryKey: ["lead-alerts"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("lead_alerts");
+      const { data, error } = await dbx.rpc("lead_alerts");
       if (error) throw error;
       return data ?? [];
     },
