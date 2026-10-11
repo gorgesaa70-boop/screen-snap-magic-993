@@ -7,6 +7,7 @@ import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { PlaceMap } from "@/components/site/Gallery";
 import { t, useLang } from "@/lib/i18n";
 
 async function fetchMall(id: string) {
@@ -104,6 +105,7 @@ function MallPage() {
             );
           })}
         </div>
+        {m.lat != null && m.lng != null && <PlaceMap lat={m.lat} lng={m.lng} label={t("موقع المول على الخريطة")} />}
       </div>
     </PageShell>
   );

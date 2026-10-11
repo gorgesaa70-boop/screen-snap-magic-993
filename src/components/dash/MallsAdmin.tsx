@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Store } from "lucide-react";
@@ -52,10 +53,12 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
 
 function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
   const [f, setF] = useState({ name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
+  const [loc, setLoc] = useState<LatLng | null>(m.lat != null && m.lng != null ? { lat: m.lat, lng: m.lng } : null);
+  const [showMap, setShowMap] = useState(false);
   const [busy, setBusy] = useState(false);
   async function save(patch?: Partial<MallRow>) {
     setBusy(true);
-    const { error } = await supabase.from("malls").update(patch ?? { name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null }).eq("id", m.id);
+    const { error } = await supabase.from("malls").update(patch ?? { name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null, lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", m.id);
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("تم الحفظ"); onSaved(); }
   }
@@ -76,6 +79,8 @@ function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
         </div>
       </div>
       <textarea aria-label="الوصف" className={`${inputCls} mt-2 h-16 py-2`} placeholder="وصف المول" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} />
+      <button type="button" onClick={() => setShowMap(!showMap)} className="mt-2 text-xs font-bold text-primary underline">📍 {loc ? "الموقع على الخريطة (متحدد)" : "حدد موقع المول على الخريطة"}</button>
+      {showMap && <div className="mt-2"><MapPicker value={loc} onChange={setLoc} /><p className="mt-1 text-xs text-muted-foreground">وحدات المول اللي ملهاش موقع خاص بتاخد موقع المول.</p></div>}
       <div className="mt-2 flex gap-2">
         <button disabled={busy} onClick={() => save()} className={`${btnPrimary} h-10`}>حفظ</button>
         <button disabled={busy} onClick={() => save({ is_active: !m.is_active })} className={`h-10 rounded-xl px-3 text-xs font-bold ${m.is_active ? "bg-teal-soft text-primary" : "bg-muted text-muted-foreground"}`}>{m.is_active ? "ظاهر" : "مخفي"}</button>

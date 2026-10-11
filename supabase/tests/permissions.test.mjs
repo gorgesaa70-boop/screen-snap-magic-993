@@ -433,4 +433,26 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("malls can be medical", async () => { await as(U.admin, `insert into public.malls (name, kind) values ('مول طبي تجريبي', 'medical')`); return as(null, `select kind from public.malls where name='مول طبي تجريبي'`); }, (r) => r[0].kind === "medical");
   await expectErr("unknown mall kind refused", () => as(U.admin, `insert into public.malls (name, kind) values ('مول غلط', 'other')`));
 
+
+  console.log("\nMap locations (item 43)");
+  const mall = (await sys(`select id from public.malls where name='مول طبي تجريبي'`))[0].id;
+  await as(U.admin, `update public.malls set lat=30.8701, lng=29.5902 where id='${mall}'`);
+  await as(U.admin, `insert into public.properties (broker_id, title, type, area, status, price, category, mall_id, review_status) values ('${CO}', 'عيادة في المول', 'عيادة', 'الحي الأول', 'إيجار', 6000, 'mall', '${mall}', 'approved')`);
+  const unitLoc = () => sys(`select lat, lng from public.properties where title='عيادة في المول'`).then((r) => r[0]);
+  await expectOk("a unit added to a mall takes the mall's pin", unitLoc, (r) => r.lat === 30.8701 && r.lng === 29.5902);
+  await expectOk("moving the mall's pin moves its units", async () => { await as(U.admin, `update public.malls set lat=30.8800, lng=29.6000 where id='${mall}'`); return unitLoc(); }, (r) => r.lat === 30.88 && r.lng === 29.6);
+  await expectOk("a unit with its own pin keeps it when the mall moves", async () => {
+    await as(U.admin, `update public.properties set lat=30.9, lng=29.7 where title='عيادة في المول'`);
+    await as(U.admin, `update public.malls set lat=30.8100, lng=29.5100 where id='${mall}'`);
+    return unitLoc();
+  }, (r) => r.lat === 30.9 && r.lng === 29.7);
+
+  await as(U.admin, `update public.investment_opportunities set lat=30.861, lng=29.598 where id='${opp}'`);
+  await expectErr("visitors can't read an opportunity's pin", () => as(null, `select lat from public.investment_opportunities`));
+  await expectErr("signed-in users can't read it from the table", () => as(U.owner, `select lng from public.investment_opportunities`));
+  await expectOk("an investor with approved access sees the pin", () => as(U.outsider, `select * from public.opportunity_location('${opp}')`), (r) => r.length === 1 && r[0].lat === 30.861);
+  await expectOk("the submitter and admins see it", async () => [(await as(U.owner, `select * from public.opportunity_location('${opp}')`)).length, (await as(U.admin, `select * from public.opportunity_location('${opp}')`)).length], (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("anyone else gets nothing", () => as(U.sales, `select * from public.opportunity_location('${opp}')`), (r) => r.length === 0);
+  await expectErr("visitors can't call the location function", () => as(null, `select * from public.opportunity_location('${opp}')`));
+
 }

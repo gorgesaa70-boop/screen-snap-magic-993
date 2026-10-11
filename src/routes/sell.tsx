@@ -6,6 +6,7 @@ import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
 import { TYPES_FOR, CITIES, DEFAULT_CITY } from "@/components/site/data";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
+import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { t, useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/sell")({
@@ -90,6 +91,7 @@ function SellForm() {
   const submit = useServerFn(submitOwnerListing);
   const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
   const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
+  const [loc, setLoc] = useState<LatLng | null>(null);
   const [compressing, setCompressing] = useState(false);
   const [step, setStep] = useState<"form" | "code" | "done">("form");
   const [phone, setPhone] = useState("");
@@ -127,7 +129,7 @@ function SellForm() {
       name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
       city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
       rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
-      photos: photos.map((x) => x.b64),
+      photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}),
     } }).catch(() => ({ ok: false as const, error: "server" }));
     setBusy(false);
     if (r.ok) { setStep("done"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
@@ -264,6 +266,12 @@ function SellForm() {
           )}
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">{t("أول صورة هتبقى الصورة الرئيسية للإعلان. الصور بتتصغّر تلقائيًا.")}</p>
+      </div>
+      <div className="sm:col-span-2">
+        <Field label={t("حدد موقع عقارك على الخريطة — اختياري")}>
+          <MapPicker value={loc} onChange={setLoc} allowSearch={false} />
+        </Field>
+        <p className="mt-1.5 text-xs text-muted-foreground">{t("دوس على مكان العقار في الخريطة، أو «موقعي الحالي» لو إنت في العقار دلوقتي.")}</p>
       </div>
       <Field label={t("تفاصيل إضافية")}>
         <textarea className={`${inputCls} h-24 py-2`} value={f.details} onChange={set("details")} maxLength={1000} placeholder={t("الدور، التشطيب، عدد الغرف...")} />
