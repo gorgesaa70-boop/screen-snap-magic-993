@@ -24,7 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: bun install --frozen-lockfile
+      # Not --frozen-lockfile: Lovable owns bun.lock and it can lag package.json slightly.
+      - run: bun install
       - name: Type check
         run: bunx tsc --noEmit -p .
       - name: Unit tests
