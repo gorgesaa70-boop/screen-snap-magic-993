@@ -179,7 +179,7 @@ const MAX_LISTINGS_PER_PHONE_PER_DAY = 3;
 const listingSchema = z.object({
   name: z.string().trim().min(2).max(100),
   phone: phoneSchema,
-  code: z.string().regex(/^d{6}$/).optional(),
+  code: z.string().regex(/^\d{6}$/).optional(),
   purpose: z.enum(["sale", "rent", "summer"]),
   // Summer listings: what the asking price is per (defaults to a night).
   price_unit: z.enum(["night", "week", "month", "season"]).optional(),
@@ -197,6 +197,8 @@ const listingSchema = z.object({
   // Optional map pin, limited to Egypt.
   lat: z.number().min(22).max(32).optional(),
   lng: z.number().min(24).max(37).optional(),
+  // Ad / campaign that brought the owner (item 30); the database maps it to the lead source.
+  utm: z.record(z.string().max(30), z.string().max(120)).optional(),
 });
 
 function decodeJpeg(b64: string): Uint8Array | null {
@@ -239,7 +241,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const { data: lead, error: leadErr } = await db.from("leads").insert({
       kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
       purpose: data.purpose, property_type: data.property_type, area: place,
-      asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null,
+      asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null, utm: data.utm ?? null,
     }).select("id").single();
     if (leadErr || !lead) { console.error("owner listing lead", leadErr?.code); return { ok: false, error: "server" }; }
 

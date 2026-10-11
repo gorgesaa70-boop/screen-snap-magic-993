@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
 import { TYPES_FOR, CITIES, DEFAULT_CITY } from "@/components/site/data";
+import { getAttribution } from "@/lib/attribution";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { t, useLang } from "@/lib/i18n";
@@ -125,11 +126,12 @@ function SellForm() {
 
   async function save(p: string, withCode?: string) {
     setBusy(true);
+    const attr = getAttribution();
     const r = await submit({ data: {
       name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
       city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
       rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
-      photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}),
+      photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}), ...(attr ? { utm: attr } : {}),
     } }).catch(() => ({ ok: false as const, error: "server" }));
     setBusy(false);
     if (r.ok) { setStep("done"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }

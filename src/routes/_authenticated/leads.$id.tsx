@@ -182,6 +182,7 @@ function LeadPage() {
               <Row k="المصدر الحالي" v={LEAD_SOURCES[l.source] ?? l.source} />
               <Row k="المصدر الأصلي" v={`${LEAD_SOURCES[l.original_source] ?? l.original_source} (ثابت)`} />
               {l.source_note && <Row k="تفاصيل" v={l.source_note} />}
+              {l.campaign && <Row k="الحملة" v={l.campaign} />}
             </dl>
             {me?.isAdmin && (src ? (
               <div className="mt-3 space-y-2 border-t pt-3">

@@ -493,4 +493,70 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     await as(U.staff, `update public.leads set stage='contacted' where name='عميل مسجل'`);
     return notes(CU, "فريق فاليو عقار بدأ يتابع طلبك");
   }, (r) => r === 1);
+
+  console.log("\nLead sources: ads, WhatsApp, Meta Lead Ads (items 29–30)");
+  const src = (name) => sys(`select source, original_source, campaign, source_note, external_ref, utm from public.leads where name='${name}'`).then((r) => r[0]);
+  await expectOk("visitor from a Facebook ad → source facebook + campaign", async () => {
+    await as(null, `insert into public.leads (name, phone, utm) values ('من إعلان فيس','01055550001','{"utm_source":"fb","utm_campaign":"برج العرب أكتوبر","utm_content":"فيديو 1","evil":"x"}')`);
+    return src("من إعلان فيس");
+  }, (r) => r.source === "facebook" && r.original_source === "facebook" && r.campaign === "برج العرب أكتوبر" && r.source_note === "إعلان: فيديو 1" && !("evil" in r.utm));
+  await expectOk("Google click id → google_ads", async () => { await as(null, `insert into public.leads (name, phone, utm) values ('من جوجل','01055550002','{"gclid":"abc"}')`); return src("من جوجل"); }, (r) => r.source === "google_ads");
+  await expectOk("Instagram referrer → instagram", async () => { await as(null, `insert into public.leads (name, phone, utm) values ('من انستا','01055550003','{"ref":"l.instagram.com"}')`); return src("من انستا"); }, (r) => r.source === "instagram");
+  await expectOk("unknown utm source stays website but keeps the campaign", async () => { await as(null, `insert into public.leads (name, phone, utm) values ('نشرة','01055550004','{"utm_source":"newsletter","utm_campaign":"n1"}')`); return src("نشرة"); }, (r) => r.source === "website" && r.campaign === "n1");
+  await expectOk("visitors can't set campaign or external_ref directly", async () => { await as(null, `insert into public.leads (name, phone, campaign, external_ref) values ('مزوّر','01055550005','fake','meta:1')`); return src("مزوّر"); }, (r) => r.campaign === null && r.external_ref === null && r.source === "website");
+  await expectOk("the team can't rewrite the ad data later", async () => { await as(U.staff, `update public.leads set campaign='x', utm=null where name='من إعلان فيس'`); return src("من إعلان فيس"); }, (r) => r.campaign === "برج العرب أكتوبر" && r.utm);
+
+  await expectErr("public can't call the WhatsApp import", () => as(null, `select public.whatsapp_inbound_lead('201055550010','x','y','m1')`));
+  await expectErr("signed-in users can't either", () => as(U.outsider, `select public.whatsapp_inbound_lead('201055550010','x','y','m1')`));
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await expectOk("WhatsApp from a new number → lead (source whatsapp), admins notified", async () => {
+    const r = await sys(`select public.whatsapp_inbound_lead('201055550010','منى','عايزة شقة 3 غرف','wamid.1') r`);
+    return [r[0].r, await src("منى"), await notes(U.admin, "طلب عقاري جديد")];
+  }, (r) => r[0] === "created" && r[1].source === "whatsapp" && r[1].external_ref === "wa:wamid.1" && r[2] >= 1);
+  await expectOk("second message from the same customer → one note, no new lead", async () => {
+    const a = await sys(`select public.whatsapp_inbound_lead('+20 105 555 0010','منى','لسه مستنية','wamid.2') r`);
+    await sys(`select public.whatsapp_inbound_lead('201055550010','منى','تالت رسالة','wamid.3')`);
+    return [a[0].r, (await sys(`select count(*) c from public.leads where phone_norm=public.normalize_phone('201055550010')`))[0].c,
+      (await sys(`select count(*) c from public.lead_activities a join public.leads l on l.id=a.lead_id where l.name='منى' and a.kind='whatsapp'`))[0].c];
+  }, (r) => r[0] === "existing" && Number(r[1]) === 1 && Number(r[2]) === 1);
+  await expectOk("messages from a company's number are ignored", () => sys(`select public.whatsapp_inbound_lead('201000000001','شركة','رد','wamid.4') r`), (r) => r[0].r === "team");
+  await expectOk("messages from staff are ignored", () => sys(`select public.whatsapp_inbound_lead('201000000004','موظف','x','wamid.5') r`), (r) => r[0].r === "team");
+
+  await expectOk("Meta lead → lead with Instagram source, campaign and ad", async () => {
+    const r = await sys(`select public.meta_inbound_lead('L1','أحمد','+201055550020','ig','حملة الساحل','إعلان شاليه','الميزانية: 2 مليون') r`);
+    return [r[0].r, await src("أحمد")];
+  }, (r) => r[0] === "created" && r[1].source === "instagram" && r[1].campaign === "حملة الساحل" && r[1].source_note === "Lead Ads: إعلان شاليه" && r[1].external_ref === "meta:L1");
+  await expectOk("the same Meta lead twice is imported once", () => sys(`select public.meta_inbound_lead('L1','أحمد','+201055550020','ig','حملة الساحل','إعلان شاليه','') r`), (r) => r[0].r === "duplicate");
+  await expectOk("an open customer filling the form again → note, not a duplicate", () => sys(`select public.meta_inbound_lead('L2','منى','01055550010','fb','حملة 2','','') r`), (r) => r[0].r === "existing");
+  await expectOk("no phone → skipped", () => sys(`select public.meta_inbound_lead('L3','x','','fb','','','') r`), (r) => r[0].r === "no_phone");
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+
+  console.log("\nError tracking (item 37)");
+  await expectOk("a visitor's browser error is recorded", async () => {
+    await as(null, `select public.log_app_error('client', 'Cannot read properties of undefined', E'TypeError: x\\n    at Foo (app.js:1:2)', '/properties/94136c70-b49d-475b-b920-221af5785d8c?x=1', 'Mozilla')`);
+    return sys(`select kind, path, count from public.app_errors`);
+  }, (r) => r.length === 1 && r[0].kind === "client" && r[0].path === "/properties/94136c70-b49d-475b-b920-221af5785d8c");
+  await expectOk("the same error on another listing is grouped and counted", async () => {
+    await as(U.outsider, `select public.log_app_error('client', 'Cannot read properties of undefined', E'TypeError: x\\n    at Foo (app.js:1:2)', '/properties/11111111-1111-1111-1111-111111111111', 'Mozilla')`);
+    return sys(`select count from public.app_errors`);
+  }, (r) => r.length === 1 && r[0].count === 2);
+  await expectOk("a visitor can't pretend to be the server", async () => {
+    await as(null, `select public.log_app_error('server', 'fake', null, '/', null)`);
+    return sys(`select kind from public.app_errors where message='fake'`);
+  }, (r) => r[0].kind === "client");
+  await expectOk("the server's own errors are marked as server", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`select public.log_app_error('server', 'SSR failed', null, '/projects', null)`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    return sys(`select kind from public.app_errors where message='SSR failed'`);
+  }, (r) => r[0].kind === "server");
+  await expectErr("visitors can't read the errors table", () => as(null, `select * from public.app_errors`));
+  await expectOk("non-admins see nothing", () => as(U.owner, `select * from public.app_errors`), (r) => r.length === 0);
+  await expectOk("admins see and clear them", async () => [(await as(U.admin, `select * from public.app_errors`)).length, (await as(U.admin, `delete from public.app_errors returning id`)).length], (r) => r[0] === 3 && r[1] === 3);
+  await expectErr("nobody inserts directly", () => as(U.admin, `insert into public.app_errors (fingerprint, kind, message) values ('x','client','x')`));
+  await expectOk("capped at 300 distinct errors a day", async () => {
+    await sys(`insert into public.app_errors (fingerprint, kind, message) select 'f' || g, 'client', 'm' from generate_series(1, 300) g`);
+    await as(null, `select public.log_app_error('client', 'one more', null, '/', null)`);
+    return sys(`select count(*) c from public.app_errors`);
+  }, (r) => Number(r[0].c) === 300);
 }

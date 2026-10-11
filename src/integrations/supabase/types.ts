@@ -14,12 +14,20 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_errors: {
+        Row: { count: number; day: string; fingerprint: string; first_seen: string; id: string; kind: string; last_seen: string; message: string; path: string | null; stack: string | null; user_agent: string | null; user_id: string | null }
+        Insert: { count?: number; day?: string; fingerprint: string; first_seen?: string; id?: string; kind: string; last_seen?: string; message: string; path?: string | null; stack?: string | null; user_agent?: string | null; user_id?: string | null }
+        Update: { count?: number; day?: string; fingerprint?: string; first_seen?: string; id?: string; kind?: string; last_seen?: string; message?: string; path?: string | null; stack?: string | null; user_agent?: string | null; user_id?: string | null }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           response_sla_minutes: number
           work_end_hour: number
           work_start_hour: number
           android_url: string | null
+
+          last_backup_at: string | null
           id: number
           ios_url: string | null
           updated_at: string
@@ -30,6 +38,8 @@ export type Database = {
           work_end_hour?: number
           work_start_hour?: number
           android_url?: string | null
+
+          last_backup_at?: string | null
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -40,6 +50,8 @@ export type Database = {
           work_end_hour?: number
           work_start_hour?: number
           android_url?: string | null
+
+          last_backup_at?: string | null
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -884,6 +896,9 @@ export type Database = {
           assigned_staff_id: string | null
           created_by: string | null
           customer_id: string | null
+          campaign: string | null
+          utm: Json | null
+          external_ref: string | null
           lead_no: number
           original_source: string
           phone_norm: string | null
@@ -926,6 +941,9 @@ export type Database = {
           assigned_staff_id?: string | null
           created_by?: string | null
           customer_id?: string | null
+          campaign?: string | null
+          utm?: Json | null
+          external_ref?: string | null
           original_source?: string
           source?: string
           source_note?: string | null
@@ -966,6 +984,9 @@ export type Database = {
           assigned_staff_id?: string | null
           created_by?: string | null
           customer_id?: string | null
+          campaign?: string | null
+          utm?: Json | null
+          external_ref?: string | null
           original_source?: string
           source?: string
           source_note?: string | null
@@ -1820,6 +1841,9 @@ export type Database = {
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
+      log_app_error: { Args: { _kind: string; _message: string; _stack: string; _path: string; _ua: string }; Returns: undefined }
+      whatsapp_inbound_lead: { Args: { _phone: string; _name: string; _text: string; _msg_id: string }; Returns: string }
+      meta_inbound_lead: { Args: { _ref: string; _name: string; _phone: string; _platform: string; _campaign: string; _ad: string; _details: string }; Returns: string }
       my_phone: { Args: never; Returns: string }
       owned_company_id: { Args: never; Returns: string }
       has_role: {

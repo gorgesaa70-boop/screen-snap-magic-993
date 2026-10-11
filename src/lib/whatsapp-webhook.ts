@@ -68,3 +68,28 @@ export function parseEvents(payload: unknown): WebhookEvent[] {
   }
   return out;
 }
+
+export type InboundMessage = { wa_message_id: string; phone: string; name: string | null; text: string | null };
+
+/**
+ * Item 29: incoming customer messages with the sender's number, profile name and text (trimmed). Used only to
+ * create or annotate a lead; never stored in whatsapp_webhook_events.
+ */
+export function parseInbound(payload: unknown): InboundMessage[] {
+  const out: InboundMessage[] = [];
+  const p = payload as { object?: string; entry?: { changes?: { field?: string; value?: any }[] }[] };
+  if (p?.object !== "whatsapp_business_account" || !Array.isArray(p.entry)) return out;
+  for (const e of p.entry) for (const c of e?.changes ?? []) {
+    if (c?.field !== "messages") continue;
+    const v = c.value ?? {};
+    const names = new Map<string, string>();
+    for (const ct of v.contacts ?? []) if (ct?.wa_id && ct?.profile?.name) names.set(String(ct.wa_id), String(ct.profile.name).slice(0, 100));
+    for (const m of v.messages ?? []) {
+      const phone = String(m?.from ?? "").replace(/\D/g, "");
+      if (!m?.id || phone.length < 8) continue;
+      const text = m.type === "text" ? m.text?.body : m.type === "button" ? m.button?.text : m.type === "interactive" ? (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title) : null;
+      out.push({ wa_message_id: String(m.id), phone, name: names.get(phone) ?? null, text: text ? String(text).slice(0, 500) : m.type ? `(${String(m.type).slice(0, 20)})` : null });
+    }
+  }
+  return out;
+}

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
+import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
@@ -127,7 +128,7 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
     e.preventDefault();
     if (name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(phone.trim())) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: phone.trim(), details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry" });
+    const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: phone.trim(), details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(t("تعذّر الإرسال")); return; }
     setDone(true);

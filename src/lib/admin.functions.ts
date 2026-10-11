@@ -147,3 +147,39 @@ export const staffDirectory = createServerFn({ method: "GET" })
     }));
     return { ok: true as const, staff };
   });
+
+/**
+ * Item 37: full copy of the platform's data as JSON (admins only), downloaded from the admin panel.
+ * Login codes (whatsapp_otps) are left out; photos and documents stay in storage and are not included.
+ */
+const BACKUP_TABLES = [
+  "app_settings", "plans", "brokers", "company_members", "user_roles", "properties", "malls", "industrial_zones", "industrial_activities",
+  "projects", "project_units", "project_unit_history", "leads", "lead_activities", "lead_assignments", "deals", "deal_documents",
+  "company_agreements", "commissions", "commission_payments", "tasks", "routing_rules", "subscriptions", "investment_opportunities",
+  "investment_requests", "investor_profiles", "favorites", "saved_searches", "notification_preferences", "notifications", "audit_log",
+] as const;
+
+export const exportBackup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as Ctx);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic table loop
+    const db = supabaseAdmin as any;
+    const tables: Record<string, unknown[]> = {};
+    const missing: string[] = [];
+    for (const name of BACKUP_TABLES) {
+      const rows: unknown[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await db.from(name).select("*").range(from, from + 999);
+        if (error) { missing.push(name); break; }
+        rows.push(...(data ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      tables[name] = rows;
+    }
+    const at = new Date().toISOString();
+    await supabaseAdmin.from("app_settings").update({ last_backup_at: at }).eq("id", 1);
+    // Sent as text: the browser saves it as a file as-is.
+    return { ok: true as const, at, missing, json: JSON.stringify({ generated_at: at, tables }) };
+  });

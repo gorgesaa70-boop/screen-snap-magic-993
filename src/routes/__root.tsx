@@ -44,6 +44,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    void import("../lib/app-errors").then((m) => m.reportAppError(error)).catch(() => {});
   }, [error]);
 
   return (
@@ -126,6 +127,8 @@ function RootComponent() {
   useSocialReturn(useCallback((to: string) => { void router.navigate({ to, replace: true }); }, [router]));
   useEffect(() => {
     void import("../lib/native-links").then((m) => m.initNativeShell()).catch(() => {});
+    void import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
+    void import("../lib/app-errors").then((m) => m.initErrorReporting()).catch(() => {});
   }, []);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
