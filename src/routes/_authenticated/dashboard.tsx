@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
+import { CustomerHome } from "@/components/dash/CustomerHome";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
@@ -25,6 +26,7 @@ function Dashboard() {
   if (loading || !me) return <DashShell title="لوحة التحكم"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
 
   if (!me.broker) {
+    if (!me.isAdmin && !me.isStaff && me.adminExists) return <CustomerHome />;
     return (
       <DashShell title="لوحة التحكم" isAdmin={me.isAdmin}>
         <div className="max-w-lg rounded-2xl border bg-card p-6">

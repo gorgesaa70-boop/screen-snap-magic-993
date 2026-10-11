@@ -455,4 +455,42 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("anyone else gets nothing", () => as(U.sales, `select * from public.opportunity_location('${opp}')`), (r) => r.length === 0);
   await expectErr("visitors can't call the location function", () => as(null, `select * from public.opportunity_location('${opp}')`));
 
+  console.log("\nCustomer: verified badge, favourites, alerts, my requests (items 33–35)");
+  const CU = "00000000-0000-0000-0000-0000000000c1", CU2 = "00000000-0000-0000-0000-0000000000c2";
+  await sys(`insert into auth.users (id, phone) values ('${CU}','201000000071'), ('${CU2}','')`);
+  await expectOk("company can't mark its listing verified", async () => { await as(U.manager, `update public.properties set verified_at=now(), verified_note='x' where id='${cprop}'`); return sys(`select verified_at from public.properties where id='${cprop}'`); }, (r) => r[0].verified_at === null);
+  await expectOk("admin marks it verified; everyone sees it", async () => { await as(U.admin, `update public.properties set verified_at=now(), verified_note='عاينه فريقنا' where id='${cprop}'`); return as(null, `select verified_at, verified_note from public.properties where id='${cprop}'`); }, (r) => r[0].verified_at !== null && r[0].verified_note === "عاينه فريقنا");
+  await expectOk("a company edit keeps the badge", async () => { await as(U.manager, `update public.properties set title='شقة محدثة' where id='${cprop}'`); return sys(`select verified_at from public.properties where id='${cprop}'`); }, (r) => r[0].verified_at !== null);
+  await expectOk("removing the badge clears the note", async () => { await as(U.admin, `update public.properties set verified_at=null where id='${cprop}'`); return sys(`select verified_note from public.properties where id='${cprop}'`); }, (r) => r[0].verified_note === null);
+
+  await expectOk("customer saves a favourite", () => as(CU, `insert into public.favorites (property_id) values ('${cprop}') returning user_id`), (r) => r[0].user_id === CU);
+  await expectOk("others don't see it", () => as(CU2, `select * from public.favorites`), (r) => r.length === 0);
+  await expectErr("can't add a favourite for someone else", () => as(CU2, `insert into public.favorites (user_id, property_id) values ('${CU}','${cprop}')`));
+  await expectErr("visitors can't save favourites", () => as(null, `insert into public.favorites (property_id) values ('${cprop}')`));
+
+  await expectOk("customer creates an alert", () => as(CU, `insert into public.saved_searches (status, types, city, price_max) values ('بيع', '{شقة}', 'برج العرب الجديدة', 2000000) returning id`), (r) => r.length === 1);
+  await as(CU2, `insert into public.saved_searches (status) values ('إيجار')`);
+  await expectOk("others can't see or delete it", async () => [(await as(CU2, `select * from public.saved_searches`)).length, (await as(CU2, `delete from public.saved_searches where user_id='${CU}' returning id`)).length], (r) => r[0] === 1 && r[1] === 0);
+  await expectErr("max 10 alerts", async () => { for (let i = 0; i < 10; i++) await as(CU2, `insert into public.saved_searches (label) values ('${i}')`); });
+  await sys(`delete from public.saved_searches where label is not null`); // filter-less alerts match everything
+  await expectOk("matching listing goes public → only the matching customer is notified", async () => {
+    await as(U.admin, `insert into public.properties (broker_id, title, price, type, area, city, status, review_status) values ('${CO}','شقة للتنبيه',1500000,'شقة','الحي الأول','برج العرب الجديدة','بيع','approved')`);
+    return [await notes(CU, "نزل عقار مطابق لبحثك"), await notes(CU2, "نزل عقار مطابق لبحثك")];
+  }, (r) => r[0] === 1 && r[1] === 0);
+  await expectOk("too expensive → no alert", async () => {
+    await as(U.admin, `insert into public.properties (broker_id, title, price, type, area, city, status, review_status) values ('${CO}','شقة غالية',3000000,'شقة','الحي الأول','برج العرب الجديدة','بيع','approved')`);
+    return notes(CU, "نزل عقار مطابق لبحثك");
+  }, (r) => r === 1);
+
+  await expectOk("signed-in customer's request is linked to them", async () => { await as(CU, `insert into public.leads (name, phone, kind, details) values ('عميل مسجل','01000000071','request','شقة 3 غرف')`); return sys(`select customer_id from public.leads where name='عميل مسجل'`); }, (r) => r[0].customer_id === CU);
+  await sys(`insert into public.leads (name, phone) values ('قبل التسجيل','+20 100 000 0071')`);
+  await expectOk("my requests: own + earlier ones from the verified phone, no internal fields", () => as(CU, `select * from public.my_requests()`), (r) => r.length === 2 && !("notes" in r[0]) && !("phone" in r[0]));
+  await expectOk("other customers see nothing", () => as(CU2, `select * from public.my_requests()`), (r) => r.length === 0);
+  await expectErr("visitors can't call it", () => as(null, `select * from public.my_requests()`));
+  await expectOk("staff-entered leads aren't linked to the staff member", async () => { await as(U.staff, `insert into public.leads (name, phone) values ('من الفريق','01000000099')`); return sys(`select customer_id from public.leads where name='من الفريق'`); }, (r) => r[0].customer_id === null);
+  await expectOk("customer_id can't be changed by the team", async () => { await as(U.staff, `update public.leads set customer_id='${CU2}' where name='عميل مسجل'`); return sys(`select customer_id from public.leads where name='عميل مسجل'`); }, (r) => r[0].customer_id === CU);
+  await expectOk("customer is notified when the request moves forward", async () => {
+    await as(U.staff, `update public.leads set stage='contacted' where name='عميل مسجل'`);
+    return notes(CU, "فريق فاليو عقار بدأ يتابع طلبك");
+  }, (r) => r === 1);
 }

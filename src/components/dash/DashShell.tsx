@@ -7,7 +7,11 @@ import { Logo } from "@/components/site/Navbar";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
 import { NotificationBell } from "@/components/site/NotificationBell";
 
-export function DashShell({ title, children, isAdmin }: { title: string; children: ReactNode; isAdmin?: boolean }) {
+const linkCls = "shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary";
+const activeCls = { className: "text-primary bg-secondary" };
+
+/** customer = signed-in customer (no broker, team, staff or admin role): only their own pages. */
+export function DashShell({ title, children, isAdmin, customer }: { title: string; children: ReactNode; isAdmin?: boolean; customer?: boolean }) {
   const nav = useNavigate();
   const qc = useQueryClient();
   async function signOut() {
@@ -24,6 +28,14 @@ export function DashShell({ title, children, isAdmin }: { title: string; childre
           <div className="shrink-0"><Logo /></div>
           <nav className="flex min-w-0 items-center gap-1 text-sm font-bold">
             <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+            {customer ? (
+              <>
+                <Link to="/dashboard" className={linkCls} activeProps={activeCls}>صفحتي</Link>
+                <Link to="/favorites" className={linkCls} activeProps={activeCls}>المفضلة</Link>
+                <Link to="/my-requests" className={linkCls} activeProps={activeCls}>طلباتي</Link>
+                <a href="/" className={linkCls}>تصفّح العقارات</a>
+              </>
+            ) : (<>
             <Link to="/dashboard" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>لوحتي</Link>
             {isAdmin && <Link to="/admin" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الإدارة</Link>}
             <Link to="/tasks" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>متابعاتي</Link>
@@ -32,6 +44,7 @@ export function DashShell({ title, children, isAdmin }: { title: string; childre
             <Link to="/deals" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الصفقات</Link>
             <Link to="/commissions" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العمولات</Link>
             <Link to="/account" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>حسابي</Link>
+            </>)}
             </div>
             <NotificationBell />
             <button onClick={signOut} aria-label="تسجيل الخروج" className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary"><LogOut className="size-5" /></button>

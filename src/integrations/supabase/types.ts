@@ -553,6 +553,12 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: { created_at: string; property_id: string; user_id: string }
+        Insert: { created_at?: string; property_id: string; user_id?: string }
+        Update: { created_at?: string; property_id?: string; user_id?: string }
+        Relationships: []
+      }
       industrial_activities: {
         Row: {
           created_at: string
@@ -877,6 +883,7 @@ export type Database = {
           assigned_member_id: string | null
           assigned_staff_id: string | null
           created_by: string | null
+          customer_id: string | null
           lead_no: number
           original_source: string
           phone_norm: string | null
@@ -918,6 +925,7 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           created_by?: string | null
+          customer_id?: string | null
           original_source?: string
           source?: string
           source_note?: string | null
@@ -957,6 +965,7 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           created_by?: string | null
+          customer_id?: string | null
           original_source?: string
           source?: string
           source_note?: string | null
@@ -1323,6 +1332,8 @@ export type Database = {
           highlight_reason: string | null
           highlight_requested_at: string | null
           highlight_yield: number | null
+          verified_at: string | null
+          verified_note: string | null
           is_highlight: boolean
           available_from: string | null
           available_to: string | null
@@ -1374,6 +1385,8 @@ export type Database = {
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
+          verified_at?: string | null
+          verified_note?: string | null
           is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
@@ -1425,6 +1438,8 @@ export type Database = {
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
+          verified_at?: string | null
+          verified_note?: string | null
           is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
@@ -1550,6 +1565,12 @@ export type Database = {
           sources?: string[] | null
           updated_at?: string
         }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: { area: string | null; city: string | null; created_at: string; id: string; label: string | null; notify: boolean; price_max: number | null; price_min: number | null; status: string | null; types: string[]; user_id: string }
+        Insert: { area?: string | null; city?: string | null; created_at?: string; id?: string; label?: string | null; notify?: boolean; price_max?: number | null; price_min?: number | null; status?: string | null; types?: string[]; user_id?: string }
+        Update: { area?: string | null; city?: string | null; created_at?: string; id?: string; label?: string | null; notify?: boolean; price_max?: number | null; price_min?: number | null; status?: string | null; types?: string[]; user_id?: string }
         Relationships: []
       }
       subscriptions: {
@@ -1798,6 +1819,7 @@ export type Database = {
       my_opportunities: { Args: never; Returns: Database["public"]["Tables"]["investment_opportunities"]["Row"][] }
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
+      my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
       my_phone: { Args: never; Returns: string }
       owned_company_id: { Args: never; Returns: string }
       has_role: {

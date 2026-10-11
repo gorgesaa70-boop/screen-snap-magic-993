@@ -259,5 +259,6 @@ export async function destinationFor(userId: string): Promise<"/admin" | "/dashb
   const membership = await (supabase as any).rpc("my_membership");
   if (membership.data?.length) return "/dashboard";
   if (list.includes("staff")) return "/inquiries";
-  return "/join";
+  // Customers get their own page (favourites, alerts, requests) with a link to join as a broker.
+  return "/dashboard";
 }

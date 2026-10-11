@@ -9,6 +9,9 @@ import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { AlertButton, FavoriteButton, ShareButton, VerifiedBadge } from "@/components/site/CustomerTools";
+import { PropertyCard } from "@/components/site/Sections";
+import { TYPE_GROUPS } from "@/components/site/search";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchProperty(id: string) {
@@ -68,8 +71,13 @@ function PropertyPage() {
             <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t(PURPOSE_LABEL[p.status] ?? p.status)}</span>
             {p.isDemo && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("إعلان تجريبي")}</span>}
           </Gallery>
-          <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
+          <div className="mt-5 flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
+            <div className="flex shrink-0 gap-2"><FavoriteButton id={p.id} className="border" /><ShareButton title={p.title} /></div>
+          </div>
           <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
+          {p.status === "بيع" && p.price > 0 && p.size > 0 && <p className="mt-1 text-sm font-bold text-muted-foreground">{t("سعر المتر:")} {formatPrice(Math.round(p.price / p.size))} {t("ج.م")}</p>}
+          {p.verified && <VerifiedBadge at={p.verified.at} note={p.verified.note} />}
           {p.highlight && (
             <div className="mt-3 rounded-2xl border-2 border-[#f2b84b]/60 bg-[#f2b84b]/10 p-4">
               <p className="text-sm font-extrabold text-primary">★ {t("ليه ده عرض بسعر مميز؟")}</p>
@@ -89,6 +97,7 @@ function PropertyPage() {
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}
           {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">{t("آخر تحديث:")} {formatDate(p.updated)}</p>
+          <Similar p={p} />
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">
           {broker && (
@@ -163,5 +172,34 @@ function RentDetails({ p }: { p: Property }) {
       )}
       {facts.length > 0 && <ul className="flex flex-wrap gap-2 text-sm font-semibold text-primary">{facts.map((f) => <li key={f} className="rounded-lg bg-teal-soft px-3 py-1.5">{f}</li>)}</ul>}
     </div>
+  );
+}
+
+/** Similar listings: same purpose and city, same type first, price within ±30% preferred; plus "notify me" for more. */
+function Similar({ p }: { p: Property }) {
+  useLang();
+  // Same family of types only (an apartment never suggests land).
+  const sameGroup = Object.values(TYPE_GROUPS).find((g) => g.includes(p.type)) ?? [p.type];
+  const q = useQuery({
+    queryKey: ["similar", p.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("properties").select("*").eq("review_status", "approved").eq("category", "residential")
+        .eq("status", p.status).eq("city", p.city).in("type", sameGroup).neq("id", p.id).gte("price", p.price * 0.7).lte("price", p.price * 1.3).limit(24);
+      const rows = (data ?? []).map(toProperty);
+      const score = (x: Property) => (x.type === p.type ? 0 : 2) + (x.area === p.area ? 0 : 1);
+      return rows.sort((a, b) => score(a) - score(b)).slice(0, 3);
+    },
+  });
+  const range = (f: number) => String(Math.round((p.price * f) / 1000) * 1000);
+  return (
+    <section className="mt-10 border-t pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-extrabold text-primary">{t("عقارات مشابهة")}</h2>
+        <AlertButton filters={{ status: p.status, type: p.type, city: p.city, area: p.area === p.city ? "" : p.area, min: range(0.8), max: range(1.2) }} />
+      </div>
+      {q.data && q.data.length > 0 ? (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{q.data.map((x) => <PropertyCard key={x.id} p={x} />)}</div>
+      ) : q.data ? <p className="mt-3 text-sm text-muted-foreground">{t("مفيش عقارات مشابهة دلوقتي — دوس «نبّهني» ونبلغك أول ما ينزل.")}</p> : null}
+    </section>
   );
 }
