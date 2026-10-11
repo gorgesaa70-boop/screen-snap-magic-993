@@ -137,7 +137,7 @@ export function DealPanel({ lead, isAdmin, onChanged }: { lead: Lead; isAdmin: b
   return <DealForm deal={deal} docs={q.data?.docs ?? []} isAdmin={isAdmin} reload={reload} />;
 }
 
-function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"deal_documents">[]; isAdmin: boolean; reload: () => void }) {
+function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]; isAdmin: boolean; reload: () => void }) {
   const locked = deal.review_status === "approved" || (deal.review_status === "pending" && !isAdmin);
   const [f, setF] = useState({
     unit_desc: deal.unit_desc ?? "", reservation_date: deal.reservation_date ?? "", reservation_amount: deal.reservation_amount?.toString() ?? "",
@@ -153,7 +153,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: Tables<"d
     contract_date: f.contract_date || null, contract_value: num(f.contract_value), sale_date: f.sale_date || null, sale_value: num(f.sale_value),
   });
 
-  async function save(extra?: TablesUpdate<"deals">, msg = "تم حفظ بيانات الصفقة") {
+  async function save(extra?: Record<string, unknown>, msg = "تم حفظ بيانات الصفقة") {
     setBusy(true);
     const { error } = await dbx.from("deals").update({ ...payload(), ...extra }).eq("id", deal.id);
     setBusy(false);
