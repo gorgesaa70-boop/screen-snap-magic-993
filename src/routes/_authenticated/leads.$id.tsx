@@ -17,6 +17,7 @@ import { staffDirectory } from "@/lib/admin.functions";
 import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
 import { ReferralProof } from "@/components/dash/ReferralProof";
 import { LeadTasks } from "@/components/dash/Tasks";
+import { ResponseStatus } from "@/components/dash/ResponseStatus";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -198,10 +199,11 @@ function LeadPage() {
 
           <section className={card}>
             <h2 className={h2}>المسؤول</h2>
+            <ResponseStatus lead={l} seeAll={seeAll} assignSelectId="assign-broker" />
             {seeAll ? (
               <div className="space-y-3">
                 <Field label="الشركة / الوسيط">
-                  <select className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd({ assigned_broker_id: e.target.value || null }, "تم الإسناد")}>
+                  <select id="assign-broker" className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd({ assigned_broker_id: e.target.value || null }, "تم الإسناد")}>
                     <option value="">غير مُسند</option>
                     {(brokers.data ?? []).filter((b) => b.is_active || b.id === l.assigned_broker_id).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>

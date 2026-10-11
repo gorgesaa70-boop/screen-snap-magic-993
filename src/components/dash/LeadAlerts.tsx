@@ -12,6 +12,7 @@ export const ALERT_KINDS: Record<string, { label: string; hint: string }> = {
   bad_dates: { label: "تواريخ مش منطقية", hint: "حجز أو بيع قبل تسجيل العميل أو قبل إحالته" },
   dup_companies: { label: "نفس الرقم عند أكتر من شركة", hint: "العميل نفسه متسجل عند شركات مختلفة" },
   quick_lost: { label: "اتقفل بسرعة بعد الإحالة", hint: "«لم يكتمل» خلال 3 أيام — يستاهل مكالمة للعميل" },
+  slow_response: { label: "تأخير الرد", hint: "عدّى ضعف مدة الرد المسموحة ومحدش ردّ على العميل — أعد الإسناد" },
 };
 
 /** Review report of suspicious lead patterns (admins and Value Aqar staff). */
@@ -33,7 +34,7 @@ export function LeadAlerts() {
   return (
     <div className="space-y-4">
       <p className="max-w-3xl text-sm text-muted-foreground">حالات تستاهل مراجعة لحماية عمولة فاليو عقار. التقرير بيتحدّث تلقائيًا من البيانات، ومفيش حاجة بتتغيّر لوحدها — راجع وقرّر.</p>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-7">
         {Object.entries(ALERT_KINDS).map(([k, v]) => (
           <button key={k} onClick={() => setKind(kind === k ? "" : k)} title={v.hint}
             className={`rounded-2xl border p-3 text-start transition ${kind === k ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-teal"}`}>
