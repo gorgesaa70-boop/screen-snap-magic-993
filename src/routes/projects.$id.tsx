@@ -94,7 +94,7 @@ function ProjectPage() {
               </select>
             </div>
             {units.length === 0 ? (
-              <p className="mt-3 rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("لا توجد وحدات بهذه الحالة حاليًا.")}</p>
+              <p className="mt-3 rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("مفيش وحدات بالحالة دي دلوقتي.")}</p>
             ) : (
               <div className="mt-3 overflow-x-auto rounded-2xl border bg-card">
                 <table className="w-full min-w-[560px] text-sm">
@@ -153,10 +153,10 @@ function ProjectInquiry({ project, unit, onClearUnit }: { project: string; unit:
       details: [about, details.trim()].filter(Boolean).join("\n").slice(0, 1000), utm: getAttribution(),
     });
     setBusy(false);
-    if (error) { toast.error(t("تعذّر الإرسال")); return; }
+    if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);
   }
-  if (done) return <div className="rounded-2xl bg-teal-soft p-5 text-center font-bold text-primary">{t("تم إرسال استفسارك، وفريق فاليو عقار هيتواصل معاك ✓")}</div>;
+  if (done) return <div className="rounded-2xl bg-teal-soft p-5 text-center font-bold text-primary">{t("استفسارك وصل، وفريق فاليو عقار هيكلمك ✓")}</div>;
   return (
     <form onSubmit={submit} className="space-y-2.5 rounded-2xl border bg-card p-5">
       <h2 className="font-bold text-primary">{t("استفسر عن المشروع")}</h2>
@@ -169,7 +169,7 @@ function ProjectInquiry({ project, unit, onClearUnit }: { project: string; unit:
       <input className={inputCls} placeholder={t("الاسم")} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
       <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={600} />
-      <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال الاستفسار")}</button>
+      <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال الاستفسار")}</button>
     </form>
   );
 }

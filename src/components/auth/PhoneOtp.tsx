@@ -217,7 +217,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
           </div>
         )}
         <p className="text-xs text-muted-foreground">{t("سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.", { c: channel === "whatsapp" ? t("واتساب") : t("رسالة نصية") })}</p>
-        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال رمز التحقق")}</button>
+        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال رمز التحقق")}</button>
       </form>
     );
   }

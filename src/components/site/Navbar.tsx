@@ -92,12 +92,14 @@ export function Navbar() {
 export function MobileBar() {
   useLang();
   const { pathname, hash } = useRouterState({ select: (s) => s.location });
+  const { lang } = useLang();
+  const short = (ar: string, en: string) => (lang === "en" ? en : t(ar));
   const items = [
     { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },
     { id: "search", label: t("بحث"), href: "/#search", icon: Search },
-    { id: "sell", label: t("اعرض عقارك"), href: "/sell", icon: Plus },
+    { id: "sell", label: short("اعرض عقارك", "List"), href: "/sell", icon: Plus },
     { id: "brokers", label: t("الوسطاء"), href: "/brokers", icon: Building2 },
-    { id: "request", label: t("اطلب عقارك"), href: "/#request", icon: FileSearch },
+    { id: "request", label: short("اطلب عقارك", "Request"), href: "/#request", icon: FileSearch },
   ];
   const active =
     pathname === "/sell" ? "sell"

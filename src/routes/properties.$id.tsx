@@ -94,7 +94,7 @@ function PropertyPage() {
             {p.rooms && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><BedDouble className="size-4 text-teal" />{formatPrice(p.rooms)} {t("غرف")}</span>}
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{formatPrice(p.baths)} {t("حمام")}</span>}
           </div>
-          <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("لا يوجد وصف إضافي.")}</p>
+          <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}
           {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">{t("آخر تحديث:")} {formatDate(p.updated)}</p>
@@ -130,17 +130,17 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
     setBusy(true);
     const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: phone.trim(), details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry", utm: getAttribution() });
     setBusy(false);
-    if (error) { toast.error(t("تعذّر الإرسال")); return; }
+    if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);
   }
-  if (done) return <div className="rounded-2xl bg-teal-soft p-5 text-center font-bold text-primary">{t("تم إرسال استفسارك للوسيط ✓")}</div>;
+  if (done) return <div className="rounded-2xl bg-teal-soft p-5 text-center font-bold text-primary">{t("استفسارك وصل للوسيط ✓")}</div>;
   return (
     <form onSubmit={submit} className="space-y-2.5 rounded-2xl border bg-card p-5">
-      <h2 className="font-bold text-primary">{t("أرسل استفسارًا")}</h2>
+      <h2 className="font-bold text-primary">{t("ابعت استفسار")}</h2>
       <input className={inputCls} placeholder={t("الاسم")} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
       <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={1000} />
-      <Button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال الاستفسار")}</Button>
+      <Button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال الاستفسار")}</Button>
     </form>
   );
 }

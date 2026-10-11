@@ -124,7 +124,7 @@ function RequestForm({ opportunityId, onDone }: { opportunityId: string; onDone:
     setBusy(true);
     const { error } = await supabase.from("investment_requests").insert({ opportunity_id: opportunityId, name: f.name.trim(), budget: f.budget ? Number(f.budget) : null, message: f.message.trim() || null });
     setBusy(false);
-    if (error) { toast.error(error.code === "23505" ? t("طلبت التفاصيل قبل كده") : t("تعذّر الإرسال")); return; }
+    if (error) { toast.error(error.code === "23505" ? t("طلبت التفاصيل قبل كده") : t("ماتبعتش، جرّب تاني")); return; }
     toast.success(t("طلبك وصل ✓"));
     onDone();
   }

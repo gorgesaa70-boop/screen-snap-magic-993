@@ -66,10 +66,35 @@ function AdminPage() {
   const pendingAccounts = d?.brokers.filter((b) => accountStatus(b) === "pending").length ?? 0;
   return (
     <DashShell title="لوحة الإدارة" isAdmin>
-      <Tabs<Tab> value={tab} onChange={setTab} tabs={[
-        { id: "reports", label: "التقارير" }, { id: "review_alerts", label: "تنبيهات المراجعة" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "routing", label: "قواعد التوزيع" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "investments", label: "الفرص الاستثمارية" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" }, { id: "health", label: "الصيانة والنسخ الاحتياطي" },
-      ]} />
+      {/* 16 sections grouped in 5 (UX review): pick a group, then a section inside it. */}
+      {(() => {
+        const labels: Record<Tab, string> = {
+          reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
+          review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
+          industrial: "الصناعي", malls: "المولات", app: "التطبيق", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+        };
+        const groups: { id: string; label: string; tabs: Tab[] }[] = [
+          { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
+          { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing"] },
+          { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "industrial"] },
+          { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
+          { id: "settings", label: "الإعدادات", tabs: ["app", "health"] },
+        ];
+        const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!;
+        return (
+          <>
+            <Tabs<string> value={group.id} onChange={(id) => setTab(groups.find((g) => g.id === id)!.tabs[0]!)} tabs={groups.map((g) => ({ id: g.id, label: g.label }))} />
+            {group.tabs.length > 1 && (
+              <div className="-mt-3 mb-5 flex flex-wrap gap-2">
+                {group.tabs.map((id) => (
+                  <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
+                    className={`h-10 rounded-full border px-4 text-sm font-bold transition ${tab === id ? "border-primary bg-primary text-primary-foreground" : "bg-card text-primary hover:border-teal"}`}>{labels[id]}</button>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()}
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
           {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: true, companyId: null }} />}
