@@ -34,6 +34,7 @@ import { Route as MallsIdRouteImport } from './routes/malls.$id'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -162,6 +163,11 @@ const PropertiesIdRoute = PropertiesIdRouteImport.update({
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicNotificationsWhatsappDispatchRoute =
   ApiPublicNotificationsWhatsappDispatchRouteImport.update({
     id: '/api/public/notifications/whatsapp-dispatch',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -228,6 +235,7 @@ export interface FileRoutesByTo {
   '/industrial': typeof IndustrialIndexRoute
   '/malls': typeof MallsIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/industrial/': typeof IndustrialIndexRoute
   '/malls/': typeof MallsIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/industrial/'
     | '/malls/'
     | '/projects/'
+    | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/industrial'
     | '/malls'
     | '/projects'
+    | '/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   id:
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/industrial/'
     | '/malls/'
     | '/projects/'
+    | '/_authenticated/leads/$id'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -549,6 +561,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/leads/$id': {
+      id: '/_authenticated/leads/$id'
+      path: '/leads/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/notifications/whatsapp-dispatch': {
       id: '/api/public/notifications/whatsapp-dispatch'
       path: '/api/public/notifications/whatsapp-dispatch'
@@ -574,6 +593,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
+  AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -584,6 +604,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
+  AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

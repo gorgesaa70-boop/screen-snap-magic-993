@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { LeadsBoard } from "@/components/dash/LeadsBoard";
+import { NewLeadForm } from "@/components/dash/NewLeadForm";
 
 export const Route = createFileRoute("/_authenticated/inquiries")({
   head: () => ({ meta: [{ title: "الطلبات والاستفسارات | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -58,11 +59,14 @@ function InquiriesPage() {
       ) : leads.error ? (
         <p className="rounded-2xl border bg-card p-6 text-sm text-destructive">تعذّر تحميل الطلبات.</p>
       ) : (
+        <div className="space-y-4">
+        {seeAll && <NewLeadForm brokers={brokers.data ?? []} onDone={() => leads.refetch()} />}
         <LeadsBoard
           list={leads.data ?? []}
           brokers={seeAll ? (brokers.data ?? []) : undefined}
           reload={() => leads.refetch()}
         />
+        </div>
       )}
     </DashShell>
   );

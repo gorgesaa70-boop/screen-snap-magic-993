@@ -124,3 +124,22 @@ export async function uploadImage(file: File) {
   if (e2) throw e2;
   return data.signedUrl;
 }
+
+/** Where a lead came from. The original source is fixed; changes are logged on the lead. */
+export const LEAD_SOURCES: Record<string, string> = {
+  website: "الموقع",
+  whatsapp: "واتساب",
+  facebook: "فيسبوك",
+  instagram: "إنستجرام",
+  tiktok: "تيك توك",
+  google_ads: "إعلانات جوجل",
+  referral: "ترشيح / إحالة",
+  phone_call: "مكالمة",
+  walk_in: "زيارة المكتب",
+  manual: "إدخال يدوي",
+  excel: "ملف Excel",
+  other: "أخرى",
+};
+
+/** Customer-facing lead number, e.g. VA-000123. */
+export const leadNo = (n: number | null | undefined) => (n ? `VA-${String(n).padStart(6, "0")}` : "VA-—");

@@ -283,6 +283,14 @@ export type Database = {
       }
       leads: {
         Row: {
+          assigned_member_id: string | null
+          assigned_staff_id: string | null
+          created_by: string | null
+          lead_no: number
+          original_source: string
+          phone_norm: string | null
+          source: string
+          source_note: string | null
           area: string | null
           asking_price: number | null
           assigned_broker_id: string | null
@@ -304,6 +312,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_member_id?: string | null
+          assigned_staff_id?: string | null
+          created_by?: string | null
+          original_source?: string
+          source?: string
+          source_note?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -325,6 +339,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_member_id?: string | null
+          assigned_staff_id?: string | null
+          created_by?: string | null
+          original_source?: string
+          source?: string
+          source_note?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -988,6 +1008,7 @@ export type Database = {
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
       is_staff: { Args: never; Returns: boolean }
+      my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
         Returns: {

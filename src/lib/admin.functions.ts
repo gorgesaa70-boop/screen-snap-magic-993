@@ -130,3 +130,20 @@ export const removeStaff = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: error.message };
     return { ok: true as const };
   });
+
+/** Names of Value Aqar staff for the lead assignment menu (admins and staff only). */
+export const staffDirectory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as Ctx;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: mine } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", ctx.userId);
+    const roles = (mine ?? []).map((r) => r.role as string);
+    if (!roles.includes("admin") && !roles.includes("staff")) return { ok: false as const, error: "غير مصرح لك بهذا الإجراء" };
+    const { data: rows } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "staff");
+    const staff = await Promise.all((rows ?? []).map(async ({ user_id }) => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      return { userId: user_id, name: (data.user?.user_metadata?.["full_name"] as string | undefined) || (data.user?.phone ? `+${data.user.phone}` : "موظف") };
+    }));
+    return { ok: true as const, staff };
+  });
