@@ -31,7 +31,7 @@ export const Route = createFileRoute("/properties/$id")({
     const { p, broker } = loaderData;
     const price = priceText(p.price, p.status);
     const title = `${p.title} لل${p.status} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
-    const description = `${p.type} لل${p.status} في ${p.area} بمساحة ${formatPrice(p.size)} {t("م²")}${p.rooms ? `، ${formatPrice(p.rooms)} {t("غرف")}` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
+    const description = `${p.type} لل${p.status} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
     return pageHead({
       path, title, description, image: p.image, type: "article",
       jsonLd: [

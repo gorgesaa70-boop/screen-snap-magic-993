@@ -11,7 +11,7 @@ import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
 import { Factory, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { AREAS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "لوحة التحكم | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -155,7 +155,7 @@ function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s
     <div className="rounded-2xl border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-bold text-primary">{l.name} <span className="text-xs font-semibold text-muted-foreground">· {l.kind === "inquiry" ? "استفسار عقار" : "طلب عقار"}</span></p>
+          <p className="font-bold text-primary">{l.name} <span className="text-xs font-semibold text-muted-foreground">· {LEAD_KINDS[l.kind] ?? l.kind}</span></p>
           <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
         </div>
         <select aria-label="مرحلة المتابعة" value={l.stage} onChange={(e) => onStage(e.target.value)} className={`${inputCls} h-10 w-auto`}>

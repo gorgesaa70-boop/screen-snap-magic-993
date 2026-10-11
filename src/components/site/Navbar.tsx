@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { t, useLang } from "@/lib/i18n";
@@ -57,8 +58,8 @@ export function Navbar() {
           <a href="/#search" aria-label={t("البحث")} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <Search className="size-5" />
           </a>
-          <a href="/#request" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
-            <Plus className="size-4" /> {t("أضف عقارك")}
+          <a href="/sell" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
+            <Plus className="size-4" /> {t("بيع عقارك")}
           </a>
           <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary xl:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -72,8 +73,8 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
-          <a href="/#request" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
-            <Plus className="size-4" /> {t("أضف عقارك")}
+          <a href="/sell" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
+            <Plus className="size-4" /> {t("بيع عقارك")}
           </a>
         </nav>
       )}
@@ -83,20 +84,37 @@ export function Navbar() {
 
 export function MobileBar() {
   useLang();
+  const { pathname, hash } = useRouterState({ select: (s) => s.location });
   const items = [
-    { label: t("الرئيسية"), href: "/#top", icon: Home },
-    { label: t("بحث"), href: "/#search", icon: Search },
-    { label: t("الوسطاء"), href: "/brokers", icon: Building2 },
-    { label: t("اطلب عقارك"), href: "/#request", icon: FileSearch },
+    { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },
+    { id: "search", label: t("بحث"), href: "/#search", icon: Search },
+    { id: "sell", label: t("بيع عقارك"), href: "/sell", icon: Plus },
+    { id: "brokers", label: t("الوسطاء"), href: "/brokers", icon: Building2 },
+    { id: "request", label: t("اطلب عقارك"), href: "/#request", icon: FileSearch },
   ];
+  const active =
+    pathname === "/sell" ? "sell"
+    : pathname.startsWith("/brokers") ? "brokers"
+    : pathname === "/" ? (hash === "search" || hash === "request" ? hash : "home")
+    : null;
   return (
     <nav aria-label={t("تنقل سريع")} className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-      <div className="grid grid-cols-4">
-        {items.map(({ label, href, icon: Icon }) => (
-          <a key={href} href={href} className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold text-foreground/70 transition hover:text-primary active:bg-secondary">
-            <Icon className="size-5 shrink-0" />{label}
-          </a>
-        ))}
+      <div className="grid grid-cols-5">
+        {items.map(({ id, label, href, icon: Icon }) =>
+          id === "sell" ? (
+            <a key={id} href={href} aria-current={active === id ? "page" : undefined} className="flex h-16 flex-col items-center justify-end gap-1 pb-2 text-[11px] font-extrabold text-primary">
+              <span className="-mt-7 grid size-14 place-items-center rounded-full border-4 border-background bg-teal text-accent-foreground shadow-float transition active:scale-95">
+                <Icon className="size-6" strokeWidth={2.5} />
+              </span>
+              {label}
+            </a>
+          ) : (
+            <a key={id} href={href} aria-current={active === id ? "page" : undefined}
+              className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold transition hover:text-primary active:bg-secondary ${active === id ? "text-primary" : "text-foreground/60"}`}>
+              <Icon className="size-5 shrink-0" strokeWidth={active === id ? 2.5 : 2} />{label}
+            </a>
+          ),
+        )}
       </div>
     </nav>
   );

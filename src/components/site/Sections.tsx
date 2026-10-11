@@ -84,7 +84,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{p.title}</h3>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
           <span className="rounded-lg bg-secondary px-2.5 py-1.5 text-primary">{tr(p.type)}</span>
-          <span className="flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-primary"><MapPin className="size-3.5 shrink-0 text-teal" />{p.area === p.city ? tr(p.city) : `${tr(p.area)}، ${tr(p.city)}`}</span>
+          <span className="flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-primary"><MapPin className="size-3.5 shrink-0 text-teal" />{p.area === p.city ? tr(p.city) : `${tr(p.area)}${tr("، ")}${tr(p.city)}`}</span>
           <span className="flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-primary"><Maximize className="size-3.5 shrink-0 text-teal" />{formatPrice(p.size)} {tr("م²")}</span>
         </div>
         <div className="mt-3 flex min-h-5 items-center gap-4 text-sm text-foreground/70">

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { useServerFn } from "@tanstack/react-start";
+import { t, useLang } from "@/lib/i18n";
 import { sendWhatsappOtp, verifyWhatsappOtp, changePhoneWithWhatsapp } from "@/lib/whatsapp-otp.functions";
 
 const WA_ERRORS: Record<string, string> = {
@@ -69,6 +70,7 @@ type Props = {
 };
 
 export function PhoneOtp({ mode, onVerified }: Props) {
+  useLang();
   const [cc, setCc] = useState("20");
   const [raw, setRaw] = useState("");
   const [phone, setPhone] = useState(""); // E.164 without +
@@ -194,13 +196,13 @@ export function PhoneOtp({ mode, onVerified }: Props) {
   if (step === "phone") {
     return (
       <form onSubmit={(e) => { e.preventDefault(); send(); }} className="space-y-4">
-        <Field label={mode === "login" ? "رقم الهاتف" : "رقم الهاتف الجديد"}>
+        <Field label={mode === "login" ? t("رقم الهاتف") : t("رقم الهاتف الجديد")}>
           <div className="flex gap-2" dir="ltr">
             <div className="w-28 shrink-0"><select aria-label="مفتاح الدولة" value={cc} onChange={(e) => setCc(e.target.value)} className={inputCls}>
               {COUNTRIES.map((c) => <option key={c.label} value={c.code}>{c.flag} {c.code ? `+${c.code}` : "+…"}</option>)}
             </select></div>
             <input type="tel" inputMode="tel" autoComplete="tel-national" required maxLength={18}
-              placeholder={cc === "20" ? "10 1234 5678" : cc === "965" ? "5123 4567" : cc ? "" : "مفتاح الدولة + الرقم"}
+              placeholder={cc === "20" ? "10 1234 5678" : cc === "965" ? "5123 4567" : cc ? "" : t("مفتاح الدولة + الرقم")}
               className={`${inputCls.replace("w-full", "")} w-auto min-w-0 flex-1`} value={raw} onChange={(e) => setRaw(e.target.value)} />
           </div>
         </Field>
@@ -209,32 +211,32 @@ export function PhoneOtp({ mode, onVerified }: Props) {
             {(["whatsapp", "sms"] as const).map((c) => (
               <button key={c} type="button" role="radio" aria-checked={channel === c} onClick={() => setChannel(c)}
                 className={`h-11 rounded-xl border text-sm font-bold transition ${channel === c ? "border-teal bg-teal/10 text-primary" : "border-border text-muted-foreground hover:border-teal/50"}`}>
-                {c === "whatsapp" ? "واتساب" : "رسالة نصية"}
+                {c === "whatsapp" ? t("واتساب") : t("رسالة نصية")}
               </button>
             ))}
           </div>
         )}
-        <p className="text-xs text-muted-foreground">سنرسل رمز تحقق من 6 أرقام عبر {channel === "whatsapp" ? "واتساب" : "رسالة نصية"}. الرمز صالح لمدة 5 دقائق.</p>
-        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "جارٍ الإرسال..." : "إرسال رمز التحقق"}</button>
+        <p className="text-xs text-muted-foreground">{t("سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.", { c: channel === "whatsapp" ? t("واتساب") : t("رسالة نصية") })}</p>
+        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ الإرسال...") : t("إرسال رمز التحقق")}</button>
       </form>
     );
   }
 
   return (
     <form onSubmit={verify} className="space-y-4">
-      <p className="text-sm text-foreground/80">أدخل الرمز المرسل إلى <span dir="ltr" className="font-bold text-primary">+{phone}</span></p>
+      <p className="text-sm text-foreground/80">{t("أدخل الرمز المرسل إلى")} <span dir="ltr" className="font-bold text-primary">+{phone}</span></p>
       <input ref={codeRef} aria-label="رمز التحقق" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} dir="ltr"
         className={`${inputCls} h-14 text-center text-2xl font-extrabold tracking-[0.6em]`} value={code}
         onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy || attempts >= MAX_ATTEMPTS} />
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{expiresIn > 0 ? `صلاحية الرمز: ${mmss(expiresIn)}` : "انتهت صلاحية الرمز"}</span>
-        <span>المحاولات: {attempts}/{MAX_ATTEMPTS}</span>
+        <span>{expiresIn > 0 ? `${t("صلاحية الرمز:")} ${mmss(expiresIn)}` : t("انتهت صلاحية الرمز")}</span>
+        <span>{t("المحاولات:")} {attempts}/{MAX_ATTEMPTS}</span>
       </div>
-      <button disabled={busy || code.length !== 6 || expiresIn <= 0 || attempts >= MAX_ATTEMPTS} className={`${btnPrimary} w-full`}>{busy ? "جارٍ التحقق..." : "تأكيد"}</button>
+      <button disabled={busy || code.length !== 6 || expiresIn <= 0 || attempts >= MAX_ATTEMPTS} className={`${btnPrimary} w-full`}>{busy ? t("جارٍ التحقق...") : t("تأكيد")}</button>
       <div className="flex items-center justify-between text-sm">
-        <button type="button" onClick={() => setStep("phone")} className="font-bold text-muted-foreground hover:text-primary">تغيير الرقم</button>
+        <button type="button" onClick={() => setStep("phone")} className="font-bold text-muted-foreground hover:text-primary">{t("تغيير الرقم")}</button>
         <button type="button" disabled={resendIn > 0 || busy} onClick={() => send(true)} className="font-bold text-primary hover:text-teal disabled:text-muted-foreground">
-          {resendIn > 0 ? `إعادة الإرسال بعد ${resendIn} ث` : "إعادة إرسال الرمز"}
+          {resendIn > 0 ? `${t("إعادة الإرسال بعد")} ${resendIn}` : t("إعادة إرسال الرمز")}
         </button>
       </div>
     </form>

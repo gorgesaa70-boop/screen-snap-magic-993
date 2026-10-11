@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { AREAS, REVIEW, STAGES, formatPrice, formatDate, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
@@ -220,7 +220,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
           <div key={l.id} className="rounded-2xl border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-bold text-primary">{l.name} <span className="text-xs text-muted-foreground">· {l.kind === "inquiry" ? "استفسار" : "طلب"} · {STAGES[l.stage]}</span></p>
+                <p className="font-bold text-primary">{l.name} <span className="text-xs text-muted-foreground">· {LEAD_KINDS[l.kind] ?? l.kind} · {STAGES[l.stage]}</span></p>
                 <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
               </div>
               <a href={`tel:${l.phone}`} dir="ltr" className="inline-flex h-9 items-center gap-1 rounded-lg bg-secondary px-3 text-sm font-bold text-primary"><Phone className="size-3.5" />{l.phone}</a>

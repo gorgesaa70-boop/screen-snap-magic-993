@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { PhoneOtp, destinationFor } from "@/components/auth/PhoneOtp";
+import { t, useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
+  useLang();
   const nav = useNavigate();
   const [method, setMethod] = useState<"phone" | "email">("phone");
   const [mode, setMode] = useState<"login" | "forgot">("login");
@@ -58,35 +60,35 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center bg-secondary px-4 py-10">
       <div className="w-full max-w-sm rounded-3xl border bg-card p-6 shadow-card md:p-8">
         <Logo />
-        <h1 className="mt-6 text-xl font-extrabold text-primary">تسجيل الدخول</h1>
-        <p className="mt-1 text-sm text-muted-foreground">للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.</p>
+        <h1 className="mt-6 text-xl font-extrabold text-primary">{t("تسجيل الدخول")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.")}</p>
         <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
           {([["phone", "رقم الهاتف"], ["email", "البريد الإلكتروني"]] as const).map(([k, l]) => (
-            <button key={k} type="button" onClick={() => setMethod(k)} className={`h-10 rounded-lg text-sm font-bold transition ${method === k ? "bg-card text-primary shadow-card" : "text-foreground/70"}`}>{l}</button>
+            <button key={k} type="button" onClick={() => setMethod(k)} className={`h-10 rounded-lg text-sm font-bold transition ${method === k ? "bg-card text-primary shadow-card" : "text-foreground/70"}`}>{t(l)}</button>
           ))}
         </div>
         <div className="mt-5">
           {method === "phone" ? (
             <>
               <PhoneOtp mode="login" onVerified={go} />
-              <button type="button" onClick={() => setHelp(!help)} className="mt-4 text-sm font-bold text-primary hover:text-teal">نسيت رقم الهاتف أو تم تغييره؟</button>
+              <button type="button" onClick={() => setHelp(!help)} className="mt-4 text-sm font-bold text-primary hover:text-teal">{t("نسيت رقم الهاتف أو تم تغييره؟")}</button>
               {help && (
                 <div className="mt-2 space-y-1.5 rounded-xl bg-secondary p-3 text-xs leading-6 text-foreground/80">
-                  <p>1. سجّل الدخول بالبريد الإلكتروني المسجّل في حسابك (أو أعد تعيين كلمة المرور منه).</p>
-                  <p>2. من صفحة «حسابي» أضف الرقم الجديد وأكّده برمز يصل إليه.</p>
-                  <p>إذا لم يكن لديك بريد مسجّل، تتحقق الإدارة من هويتك وملكية الحساب قبل أي تعديل، ثم يجب تأكيد الرقم الجديد برمز تحقق. التواصل وحده لا يكفي لنقل الحساب.</p>
+                  <p>{t("1. سجّل الدخول بالبريد الإلكتروني المسجّل في حسابك (أو أعد تعيين كلمة المرور منه).")}</p>
+                  <p>{t("2. من صفحة «حسابي» أضف الرقم الجديد وأكّده برمز يصل إليه.")}</p>
+                  <p>{t("إذا لم يكن لديك بريد مسجّل، تتحقق الإدارة من هويتك وملكية الحساب قبل أي تعديل، ثم يجب تأكيد الرقم الجديد برمز تحقق. التواصل وحده لا يكفي لنقل الحساب.")}</p>
                 </div>
               )}
             </>
           ) : (
             <>
               <form onSubmit={submit} className="space-y-4">
-                <Field label="البريد الإلكتروني"><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
-                {mode === "login" && <Field label="كلمة المرور"><input type="password" dir="ltr" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>}
-                <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? "تسجيل الدخول" : "إرسال رابط إعادة التعيين"}</button>
+                <Field label={t("البريد الإلكتروني")}><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
+                {mode === "login" && <Field label={t("كلمة المرور")}><input type="password" dir="ltr" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>}
+                <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? t("تسجيل الدخول") : t("إرسال رابط إعادة التعيين")}</button>
               </form>
               <button onClick={() => setMode(mode === "login" ? "forgot" : "login")} className="mt-4 text-sm font-bold text-primary hover:text-teal">
-                {mode === "login" ? "نسيت كلمة المرور؟" : "رجوع لتسجيل الدخول"}
+                {mode === "login" ? t("نسيت كلمة المرور؟") : t("رجوع لتسجيل الدخول")}
               </button>
             </>
           )}
@@ -99,6 +101,7 @@ function AuthPage() {
 
 /** First-run only: lets the platform owner create the first admin account. */
 function AdminBootstrap() {
+  useLang();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -114,7 +117,7 @@ function AdminBootstrap() {
   }
   return (
     <div className="mt-6 border-t pt-4">
-      <button onClick={() => setOpen(!open)} className="text-xs font-semibold text-muted-foreground hover:text-primary">إعداد حساب المدير لأول مرة</button>
+      <button onClick={() => setOpen(!open)} className="text-xs font-semibold text-muted-foreground hover:text-primary">{t("إعداد حساب المدير لأول مرة")}</button>
       {open && (
         <form onSubmit={submit} className="mt-3 space-y-2.5">
           <p className="text-xs text-muted-foreground">يتاح فقط قبل إنشاء أول مدير. بعد التأكيد، سجّل الدخول واضغط «تفعيل صلاحية المدير».</p>

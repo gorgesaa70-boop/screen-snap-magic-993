@@ -25,6 +25,77 @@ const EN: Record<string, string> = {
   "تنقل سريع": "Quick links",
   "فاليو عقار": "Value Aqar",
 
+  // Brokers, auth, map
+  "{n} وسيط": "{n} brokers",
+  "العقارات المسجلة ({n})": "Listed properties ({n})",
+  "{n} عقار على الخريطة — اضغط على العلامة لعرض التفاصيل.": "{n} properties on the map — tap a pin for details.",
+  "تسجيل الدخول": "Sign in",
+  "للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.": "For brokers and admins. New here? Sign up with your number and request to join.",
+  "البريد الإلكتروني": "Email",
+  "نسيت رقم الهاتف أو تم تغييره؟": "Lost or changed your phone number?",
+  "1. سجّل الدخول بالبريد الإلكتروني المسجّل في حسابك (أو أعد تعيين كلمة المرور منه).": "1. Sign in with the email on your account (or reset your password from it).",
+  "2. من صفحة «حسابي» أضف الرقم الجديد وأكّده برمز يصل إليه.": "2. From “My account”, add the new number and confirm it with the code sent to it.",
+  "إذا لم يكن لديك بريد مسجّل، تتحقق الإدارة من هويتك وملكية الحساب قبل أي تعديل، ثم يجب تأكيد الرقم الجديد برمز تحقق. التواصل وحده لا يكفي لنقل الحساب.": "Without an email on file, the admins verify your identity and account ownership first, and the new number must still be confirmed with a code. Contacting us alone is not enough to move an account.",
+  "كلمة المرور": "Password",
+  "إرسال رابط إعادة التعيين": "Send reset link",
+  "نسيت كلمة المرور؟": "Forgot password?",
+  "رجوع لتسجيل الدخول": "Back to sign in",
+  "إعداد حساب المدير لأول مرة": "First-time admin setup",
+  "رقم الهاتف الجديد": "New phone number",
+  "مفتاح الدولة + الرقم": "Country code + number",
+  "رسالة نصية": "SMS",
+  "سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.": "We'll send a 6-digit code via {c}. It's valid for 5 minutes.",
+  "إرسال رمز التحقق": "Send code",
+  "أدخل الرمز المرسل إلى": "Enter the code sent to",
+  "صلاحية الرمز:": "Code valid for:",
+  "انتهت صلاحية الرمز": "Code expired",
+  "المحاولات:": "Attempts:",
+  "جارٍ التحقق...": "Verifying...",
+  "تأكيد": "Confirm",
+  "تغيير الرقم": "Change number",
+
+  // Property page
+  "، ": ", ",
+
+  // Sell your property (/sell)
+  "بيع عقارك": "Sell your property",
+  "عندك شقة أو أرض أو محل وعايز تبيعه أو تأجّره؟ ابعت البيانات، وفريق فاليو عقار هيتواصل معاك ويساعدك توصل للمشتري المناسب.": "Have an apartment, land or shop to sell or rent? Send us the details and the Value Aqar team will contact you and help you reach the right buyer.",
+  "مجانًا بدون رسوم عرض": "Free, no listing fees",
+  "بياناتك مش بتظهر للعامة": "Your details stay private",
+  "نوصّلك بعملاء جادين": "We connect you with serious buyers",
+  "عايز": "I want to",
+  "أبيع": "Sell",
+  "أأجّر": "Rent out",
+  "اختر": "Choose",
+  "المساحة (م²)": "Size (m²)",
+  "السعر المطلوب (ج.م)": "Asking price (EGP)",
+  "الإيجار الشهري (ج.م)": "Monthly rent (EGP)",
+  "اختياري": "Optional",
+  "الدور، التشطيب، عدد الغرف...": "Floor, finishing, rooms...",
+  "رقم الموبايل (واتساب)": "Mobile number (WhatsApp)",
+  "ابعت بيانات العقار": "Send property details",
+  "هنبعتلك رمز تحقق على واتساب للتأكد من رقمك. رقمك مش هيظهر لحد غير فريق فاليو عقار.": "We will send a WhatsApp code to confirm your number. Only the Value Aqar team will see it.",
+  "اكتب اسمك": "Enter your name",
+  "اكتب رقم موبايل مصري صحيح": "Enter a valid Egyptian mobile number",
+  "اختر نوع العقار": "Choose the property type",
+  "بعتنالك رمز من 6 أرقام على واتساب للرقم": "We sent a 6-digit WhatsApp code to",
+  "رمز التحقق": "Verification code",
+  "تأكيد وإرسال": "Confirm & send",
+  "إعادة الإرسال بعد": "Resend in",
+  "إعادة إرسال الرمز": "Resend code",
+  "تعديل البيانات": "Edit details",
+  "تم استلام عقارك ✓": "We received your property ✓",
+  "فريق فاليو عقار هيراجع البيانات ويتواصل معاك على واتساب قريب.": "The Value Aqar team will review it and contact you on WhatsApp soon.",
+  "الرجوع للرئيسية": "Back to home",
+  "متبقٍ": "remaining",
+  "انتظر قليلًا قبل طلب رمز جديد": "Please wait before requesting a new code",
+  "تجاوزت عدد مرات الإرسال المسموح، حاول لاحقًا": "Too many attempts, try again later",
+  "تعذّر إرسال الرسالة عبر واتساب، تأكد أن الرقم مسجّل على واتساب": "Could not send the WhatsApp message. Make sure the number is on WhatsApp",
+  "أدخل رمز التحقق المرسل على واتساب": "Enter the code sent on WhatsApp",
+  "انتهت صلاحية الرمز، اطلب رمزًا جديدًا": "The code expired, request a new one",
+  "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا": "Code locked after too many attempts, request a new one",
+  "رمز غير صحيح": "Wrong code",
+
   // Hero / search form
   "برج العرب الجديدة": "New Borg El Arab",
   "عقارك المناسب،": "Your ideal property,",
@@ -295,15 +366,20 @@ const STORAGE_KEY = "va-lang";
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
+  // Set during render (not in an effect) so t() returns the new language in this same render pass.
+  currentLang = lang;
+
+  // Persist only on an explicit switch: writing from an effect could overwrite the saved choice before it is restored.
   const setLang = (next: Lang) => {
     currentLang = next;
     setLangState(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
   };
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "en" || saved === "ar") setLang(saved);
+      if (saved === "en" || saved === "ar") setLangState(saved);
     } catch { /* ignore */ }
   }, []);
 
@@ -311,7 +387,6 @@ export function LangProvider({ children }: { children: ReactNode }) {
     const html = document.documentElement;
     html.lang = lang;
     html.dir = lang === "ar" ? "rtl" : "ltr";
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, [lang]);
 
   return <LangCtx.Provider value={{ lang, setLang, dir: lang === "ar" ? "rtl" : "ltr" }}>{children}</LangCtx.Provider>;

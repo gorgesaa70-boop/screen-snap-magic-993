@@ -82,6 +82,9 @@ export async function fetchPublicBrokers() {
   return data as PublicBroker[];
 }
 
+/** Lead kind -> Arabic label. listing = owner offering a property via /sell. */
+export const LEAD_KINDS: Record<string, string> = { request: "طلب عقار", inquiry: "استفسار عقار", listing: "عرض مالك" };
+
 export const STAGES: Record<string, string> = {
   new: "جديد",
   contacted: "تم التواصل",

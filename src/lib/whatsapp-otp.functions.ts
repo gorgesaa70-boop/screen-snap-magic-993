@@ -172,6 +172,41 @@ async function consumeCode(phone: string, code: string): Promise<{ ok: true } | 
   return consumed?.length ? { ok: true } : { ok: false, error: "expired" };
 }
 
+const listingSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  phone: phoneSchema,
+  code: z.string().regex(/^\d{6}$/).optional(),
+  purpose: z.enum(["sale", "rent"]),
+  property_type: z.string().trim().min(1).max(40),
+  area: z.string().trim().max(80).optional(),
+  asking_price: z.number().nonnegative().max(1e12).optional(),
+  size_m2: z.number().positive().max(1e7).optional(),
+  details: z.string().trim().max(1000).optional(),
+});
+
+/**
+ * "بيع عقارك": an owner submits a property as a lead (kind 'listing').
+ * When WhatsApp is configured the phone must be proven with a code; otherwise it is saved unverified.
+ */
+export const submitOwnerListing = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => listingSchema.parse(d))
+  .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> => {
+    const waReady = !!(process.env["WHATSAPP_ACCESS_TOKEN"] && process.env["WHATSAPP_PHONE_NUMBER_ID"] && process.env["WHATSAPP_TEMPLATE_NAME"]);
+    if (waReady) {
+      if (!data.code) return { ok: false, error: "code_required" };
+      const r = await consumeCode(data.phone, data.code);
+      if (!r.ok) return r;
+    }
+    const db = await admin();
+    const { error } = await db.from("leads").insert({
+      kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
+      purpose: data.purpose, property_type: data.property_type, area: data.area || null,
+      asking_price: data.asking_price ?? null, size_m2: data.size_m2 ?? null, details: data.details || null,
+    });
+    if (error) { console.error("owner listing insert", error.code); return { ok: false, error: "server" }; }
+    return { ok: true };
+  });
+
 /**
  * Change the signed-in user's login phone. Ownership proof = active session (old account)
  * + valid WhatsApp code sent to the NEW number. Rejected if the number belongs to anyone else.
