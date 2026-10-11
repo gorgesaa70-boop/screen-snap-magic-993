@@ -64,7 +64,7 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "review_alerts", label: "تنبيهات المراجعة" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "routing", label: "قواعد التوزيع" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "investments", label: "الفرص الاستثمارية" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" }, { id: "health", label: "الأخطاء والنسخ الاحتياطي" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "routing", label: "قواعد التوزيع" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "investments", label: "الفرص الاستثمارية" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" }, { id: "health", label: "الصيانة والنسخ الاحتياطي" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
@@ -150,6 +150,9 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
                   {[b.phone ? `+${b.phone}` : null, b.email, b.contact_person ? `المسؤول: ${b.contact_person}` : null, b.commercial_register ? `س.ت: ${b.commercial_register}` : null, b.address].filter(Boolean).join(" · ") || (b.user_id ? "" : "بدون حساب دخول")}
                 </p>
                 {st === "rejected" && b.review_note && <p className="text-xs text-destructive">سبب الرفض: {b.review_note}</p>}
+                {st === "approved" && (b.whatsapp || b.phone) && !b.is_demo && (
+                  <a href={waLink(b.whatsapp || b.phone, welcomeMessage(b.name, b.account_type))} target="_blank" rel="noreferrer" className="inline-block text-xs font-bold text-teal hover:underline">📩 ابعت رسالة الترحيب على واتساب</a>
+                )}
               </div>
             </div>
             {st === "approved" && (
@@ -361,4 +364,19 @@ function PlanCard({ p, reload }: { p: PlanRow; reload: () => void }) {
       }}>حفظ</button>
     </div>
   );
+}
+
+/** Item 32: ready welcome text for a newly approved company or broker, sent from the admin's own WhatsApp. */
+function welcomeMessage(name: string, type: string) {
+  const company = ["company", "developer", "office"].includes(type);
+  return [
+    `أهلاً ${name} 👋`,
+    "حسابك على فاليو عقار اتفعّل ✓",
+    "",
+    "1) ادخل من هنا برقم موبايلك: https://valueaqar.com/auth",
+    company ? "2) من «عقاراتي» ضيف عقاراتك واحد واحد، أو ارفعهم مرة واحدة من «رفع من Excel» (فيه نموذج جاهز)." : "2) من «عقاراتي» ضيف عقاراتك بالصور.",
+    company ? "3) من «حسابي» ضيف فريقك (مديرين ومبيعات) بأرقام موبايلاتهم." : "3) العملاء المهتمين هيوصلوك في «العملاء والطلبات» ومعاهم إشعار.",
+    "",
+    "أي سؤال إحنا معاك هنا على واتساب.",
+  ].join("\n");
 }

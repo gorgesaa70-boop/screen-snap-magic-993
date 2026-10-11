@@ -39,6 +39,7 @@ export function SystemHealth() {
 
   return (
     <div className="space-y-6">
+      <DemoData />
       <section className={`rounded-2xl border p-5 ${stale ? "border-destructive/40 bg-destructive/5" : "bg-card"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -82,5 +83,44 @@ export function SystemHealth() {
         )}
       </section>
     </div>
+  );
+}
+
+/** Item 32: hide the demo brokers / listings from the public (reversible), or delete them for good. */
+function DemoData() {
+  const q = useQuery({
+    queryKey: ["demo-data"],
+    queryFn: async () => {
+      const [s, p, b] = await Promise.all([
+        supabase.from("app_settings").select("show_demo").eq("id", 1).maybeSingle(),
+        supabase.from("properties").select("id", { count: "exact", head: true }).eq("is_demo", true),
+        supabase.from("brokers").select("id", { count: "exact", head: true }).eq("is_demo", true),
+      ]);
+      return { show: s.data?.show_demo ?? true, properties: p.count ?? 0, brokers: b.count ?? 0 };
+    },
+  });
+  if (!q.data || (q.data.properties === 0 && q.data.brokers === 0)) return null;
+  const { show, properties, brokers } = q.data;
+  async function toggle() {
+    const { error } = await supabase.from("app_settings").update({ show_demo: !show }).eq("id", 1);
+    if (error) toast.error("تعذّر الحفظ"); else { toast.success(show ? "البيانات التجريبية اختفت من الموقع" : "البيانات التجريبية رجعت تظهر"); q.refetch(); }
+  }
+  async function remove() {
+    if (!confirm(`هيتمسح ${properties} عقار تجريبي و${brokers} وسيط تجريبي نهائيًا. متأكد؟`)) return;
+    const { data, error } = await supabase.rpc("delete_demo_data");
+    if (error) { toast.error(error.message); return; }
+    const r = data as { properties: number; brokers: number };
+    toast.success(`اتمسح ${r.properties} عقار و${r.brokers} وسيط تجريبي`);
+    q.refetch();
+  }
+  return (
+    <section className="rounded-2xl border bg-card p-5">
+      <p className="font-bold text-primary">البيانات التجريبية</p>
+      <p className="mt-1 text-sm text-muted-foreground">فيه {properties} عقار و{brokers} وسيط تجريبي. {show ? "ظاهرين دلوقتي للزوار بعلامة «إعلان تجريبي»." : "مخفيين عن الزوار (إنت بس اللي شايفهم)."}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={toggle} className={show ? btnPrimary : btnOutline}>{show ? "إخفاء البيانات التجريبية من الموقع" : "إظهارها تاني"}</button>
+        {!show && <button onClick={remove} className="h-11 rounded-xl px-4 text-sm font-bold text-destructive hover:bg-destructive/10">مسحها نهائيًا</button>}
+      </div>
+    </section>
   );
 }

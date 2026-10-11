@@ -6,13 +6,14 @@ import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
+import { ListingsImport } from "@/components/dash/ListingsImport";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
 import { MyProjects } from "@/components/dash/MyProjects";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
-import { Factory, Store } from "lucide-react";
+import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { STAGES_WITH_DATA, leadNo, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
 
@@ -144,15 +145,17 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       )}
       {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
       {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
-      {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} reload={() => props.refetch()} />}
+      {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} maxProperties={plan.data?.max_properties ?? null} reload={() => props.refetch()} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
   );
 }
 
-function MyProperties({ brokerId, list, reload }: { brokerId: string; list: PropertyRow[]; reload: () => void }) {
-  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall">(null);
+function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: string; list: PropertyRow[]; maxProperties: number | null; reload: () => void }) {
+  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall" | "import">(null);
+  if (editing === "import")
+    return <ListingsImport brokerId={brokerId} remaining={maxProperties != null ? maxProperties - list.length : null} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-mall" || (editing && typeof editing !== "string" && editing.category === "mall"))
     return <MallUnitForm brokerId={brokerId} initial={editing === "new-mall" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-ind" || (editing && typeof editing !== "string" && editing.category === "industrial"))
@@ -160,7 +163,7 @@ function MyProperties({ brokerId, list, reload }: { brokerId: string; list: Prop
   if (editing) return <PropertyForm brokerId={brokerId} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button><button onClick={() => setEditing("new-mall")} className={btnOutline}><Store className="size-4" />إضافة وحدة في مول</button></div>
+      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button><button onClick={() => setEditing("new-mall")} className={btnOutline}><Store className="size-4" />إضافة وحدة في مول</button><button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع من Excel</button></div>
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لم تضف أي عقار بعد.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">

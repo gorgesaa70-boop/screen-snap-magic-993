@@ -28,6 +28,9 @@ export type Database = {
           android_url: string | null
 
           last_backup_at: string | null
+
+
+          show_demo: boolean
           id: number
           ios_url: string | null
           updated_at: string
@@ -40,6 +43,9 @@ export type Database = {
           android_url?: string | null
 
           last_backup_at?: string | null
+
+
+          show_demo?: boolean
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -52,6 +58,9 @@ export type Database = {
           android_url?: string | null
 
           last_backup_at?: string | null
+
+
+          show_demo?: boolean
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -1841,6 +1850,8 @@ export type Database = {
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
+      delete_demo_data: { Args: never; Returns: Json }
+      demo_visible: { Args: never; Returns: boolean }
       log_app_error: { Args: { _kind: string; _message: string; _stack: string; _path: string; _ua: string }; Returns: undefined }
       whatsapp_inbound_lead: { Args: { _phone: string; _name: string; _text: string; _msg_id: string }; Returns: string }
       meta_inbound_lead: { Args: { _ref: string; _name: string; _phone: string; _platform: string; _campaign: string; _ad: string; _details: string }; Returns: string }
