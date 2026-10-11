@@ -370,8 +370,9 @@ export function Footer() {
   const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
-        <div className="md:col-span-2">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 md:grid-cols-4 md:gap-10 md:px-6 md:py-14">
+        {/* Phones: brand + social across the top, then links and contact side by side (the footer was very tall). */}
+        <div className="col-span-2">
           <Logo light />
           <p className="mt-4 max-w-sm text-sm leading-relaxed">{tr("منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.")}</p>
           <div className="mt-5 flex gap-2">
