@@ -14,6 +14,7 @@ import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
 import { staffDirectory } from "@/lib/admin.functions";
 import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
+import { ReferralProof } from "@/components/dash/ReferralProof";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -161,6 +162,12 @@ function LeadPage() {
         </div>
 
         <aside className="space-y-4">
+          {seeAll && (
+            <section className={card}>
+              <h2 className={h2}>إثبات مصدر العميل</h2>
+              <ReferralProof lead={l} brokerNames={new Map((brokers.data ?? []).map((b) => [b.id, b.name]))} />
+            </section>
+          )}
           <section className={card}>
             <h2 className={h2}>المصدر</h2>
             <dl className="space-y-1.5 text-sm">

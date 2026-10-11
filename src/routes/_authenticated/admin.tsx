@@ -14,6 +14,7 @@ import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
+import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -55,7 +56,7 @@ function AdminPage() {
   return (
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
-        { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
+        { id: "reports", label: "التقارير" }, { id: "review_alerts", label: "تنبيهات المراجعة" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
         { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
@@ -63,6 +64,7 @@ function AdminPage() {
           {tab === "reports" && <Reports d={d} />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
+          {tab === "review_alerts" && <LeadAlerts />}
           {tab === "app" && <AppSettingsAdmin />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}

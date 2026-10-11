@@ -138,4 +138,50 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectErr("company can't move a confirmed sale back", () => stage(U.manager, "qualified"));
   await expectOk("outsider can't see the deal", () => as(U.outsider, `select id from public.deals`), (r) => r.length === 0);
   await expectOk("pipeline is logged on the lead", () => sys(`select count(*) c from public.lead_activities where lead_id='${fb}' and kind='deal'`), (r) => Number(r[0].c) >= 3);
+
+  console.log("\nReferral proof (item 13)");
+  await expectOk("first referral is recorded (company + time)", () => sys(`select first_broker_id, first_referred_at, referred_at from public.leads where id='${fb}'`), (r) => r[0].first_broker_id === CO && r[0].first_referred_at && r[0].referred_at);
+  await expectOk("even admin can't rewrite the first referral", () => as(U.admin, `update public.leads set first_broker_id='${DEV}', first_referred_at=now() - interval '1 year' where id='${fb}' returning first_broker_id`), (r) => r[0].first_broker_id === CO);
+  await expectOk("every assignment change is in the history", () => as(U.admin, `select broker_id from public.lead_assignments where lead_id='${fb}' order by created_at`), (r) => r.length >= 4 && r[0].broker_id === CO);
+  await expectOk("companies can't read the assignment history", () => as(U.owner, `select id from public.lead_assignments`), (r) => r.length === 0);
+  await expectErr("companies can't run the alerts report", () => as(U.owner, `select * from public.lead_alerts()`));
+
+  // Scenarios for the report.
+  const visitor = (await sys(`select id from public.leads where name='زائر'`))[0].id;
+  await as(U.staff, `update public.leads set assigned_broker_id='${DEV}' where id='${visitor}'`); // same phone as fb (at CO) → duplicate across companies
+  await as(U.staff, `insert into public.leads (name, phone, assigned_broker_id) values ('ينقل','01055556666','${DEV}')`);
+  const moved = (await sys(`select id from public.leads where name='ينقل'`))[0].id;
+  await as(U.staff, `update public.leads set assigned_broker_id='${CO}' where id='${moved}'`); // company changed after referral
+  await as(U.staff, `insert into public.leads (name, phone, assigned_broker_id) values ('سريع','01077778888','${CO}')`);
+  const quick = (await sys(`select id from public.leads where name='سريع'`))[0].id;
+  await as(U.manager, `update public.leads set stage='lost', lost_reason='اشترى من مكان تاني' where id='${quick}'`); // lost right after referral
+  await as(U.staff, `insert into public.leads (name, phone, assigned_broker_id) values ('قديم','01099990000','${CO}')`);
+  const old = (await sys(`select id from public.leads where name='قديم'`))[0].id;
+  await sys(`set session_replication_role = replica`);
+  await sys(`update public.leads set referred_at=now() - interval '10 days' where id='${old}'`);
+  await sys(`delete from public.lead_activities where lead_id='${old}'`);
+  await sys(`set session_replication_role = origin`);
+  const alerts = await as(U.staff, `select kind, lead_id from public.lead_alerts()`);
+  const has = (kind, id) => alerts.some((a) => a.kind === kind && a.lead_id === id);
+  await expectOk("report: stale lead (10 days, no activity)", async () => [has("stale", old)], (r) => r[0]);
+  await expectOk("report: sudden sale (3 days after referral)", async () => [has("sudden_sale", fb)], (r) => r[0]);
+  await expectOk("report: dates out of order (reservation before the lead)", async () => [has("bad_dates", fb)], (r) => r[0]);
+  await expectOk("report: company changed after referral", async () => [has("company_changed", moved)], (r) => r[0]);
+  await expectOk("report: same phone at two companies", async () => [has("dup_companies", fb) && has("dup_companies", visitor)], (r) => r[0]);
+  await expectOk("report: lost right after referral", async () => [has("quick_lost", quick)], (r) => r[0]);
+  await expectOk("report: a healthy fresh lead is not flagged", async () => [!alerts.some((a) => a.lead_id === moved && a.kind === "stale")], (r) => r[0]);
+
+  console.log("\nNotifications");
+  const notes = (user, title) => sys(`select count(*) c from public.notifications where user_id='${user}' and title like '${title}%'`).then((r) => Number(r[0].c));
+  await expectOk("join request → admins notified", async () => [await notes(U.admin, "طلب انضمام جديد")], (r) => r[0] >= 1);
+  await expectOk("approval and rejection → applicant notified", async () => [await notes(U.applicant, "تم اعتماد حسابك"), await notes(U.applicant, "طلب الانضمام ما اتقبلش")], (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("deal approved → company owner and managers notified", async () => [await notes(U.owner, "تم اعتماد البيع"), await notes(U.manager, "تم اعتماد البيع")], (r) => r[0] === 1 && r[1] === 1);
+  await as(U.staff, `insert into public.leads (name, phone, assigned_broker_id) values ('إشعار','01012121212','${CO}')`);
+  const nl = (await sys(`select id from public.leads where name='إشعار'`))[0].id;
+  await expectOk("new lead for a company → owner and manager notified (not sales)", () => sys(`select user_id from public.notifications where related_id='${nl}'`),
+    (r) => [U.owner, U.manager].every((u) => r.some((x) => x.user_id === u)) && !r.some((x) => x.user_id === U.sales));
+  await expectOk("assigned to a team member → that member notified", async () => { await as(U.manager, `update public.leads set assigned_member_id='${salesId}' where id='${nl}'`); return [await notes(U.sales, "تم إسناد عميل لك")]; }, (r) => r[0] >= 1);
+  await expectOk("assigned to a Value Aqar employee → employee notified", async () => { await as(U.admin, `update public.leads set assigned_staff_id='${U.staff}' where id='${nl}'`); return sys(`select count(*) c from public.notifications where user_id='${U.staff}' and related_id='${nl}' and title='تم إسناد عميل لك'`); }, (r) => Number(r[0].c) === 1);
+  await expectOk("quick 'lost' → admins and staff alerted", async () => [await notes(U.admin, "تنبيه: عميل اتقفل بسرعة"), await notes(U.staff, "تنبيه: عميل اتقفل بسرعة")], (r) => r[0] >= 1 && r[1] >= 1);
+  await expectOk("nobody is notified about their own action", () => sys(`select count(*) c from public.notifications where user_id='${U.manager}' and related_id='${nl}' and title='تم إسناد عميل لك'`), (r) => Number(r[0].c) === 0);
 }

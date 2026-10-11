@@ -404,8 +404,41 @@ export type Database = {
           },
         ]
       }
+      lead_assignments: {
+        Row: {
+          broker_id: string | null
+          changed_by: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          member_id: string | null
+          staff_id: string | null
+        }
+        Insert: {
+          broker_id?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          member_id?: string | null
+          staff_id?: string | null
+        }
+        Update: {
+          broker_id?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          member_id?: string | null
+          staff_id?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
+          first_broker_id: string | null
+          first_referred_at: string | null
+          referred_at: string | null
           lost_reason: string | null
           stage_changed_at: string | null
           visit_at: string | null
@@ -438,6 +471,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          first_broker_id?: string | null
+          first_referred_at?: string | null
+          referred_at?: string | null
           lost_reason?: string | null
           stage_changed_at?: string | null
           visit_at?: string | null
@@ -468,6 +504,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          first_broker_id?: string | null
+          first_referred_at?: string | null
+          referred_at?: string | null
           lost_reason?: string | null
           stage_changed_at?: string | null
           visit_at?: string | null
@@ -1140,6 +1179,18 @@ export type Database = {
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
       is_staff: { Args: never; Returns: boolean }
+      lead_alerts: {
+        Args: never
+        Returns: {
+          broker_name: string
+          detail: string
+          happened_at: string
+          kind: string
+          lead_id: string
+          lead_name: string
+          lead_no: number
+        }[]
+      }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
