@@ -3,12 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Check, FileText, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
+import { dbx } from "@/lib/dbx";
+import type { Tables } from "@/integrations/supabase/types";
 import { STAGES, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 
-type Lead = Tables<"leads">;
-type Deal = Tables<"deals">;
+// The 10-stage pipeline and its columns land with the 2026-10-11 release migration;
+// until the generated types regenerate, widen the lead row and keep deals untyped.
+type Lead = Omit<Tables<"leads">, "stage"> & { stage: string; lost_reason?: string | null; visit_at?: string | null };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Deal = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DealDoc = any;
 
 const FLOW = ["new", "contacted", "qualified", "visit_scheduled", "visited", "reserved", "contracted", "sold"];
 const LOST_REASONS = ["السعر مش مناسب", "اشترى من مكان تاني", "مش جاد / بيستفسر بس", "مش بيرد", "المنطقة مش مناسبة", "التمويل / التقسيط"];
@@ -56,7 +62,7 @@ export function StageChanger({ lead, initial, isAdmin, onChanged }: { lead: Lead
 
   async function apply() {
     if (!target) return;
-    const patch: TablesUpdate<"leads"> = { stage: target };
+    const patch: Record<string, unknown> = { stage: target };
     if (target === "lost") { if (!reason.trim()) { toast.error("اختار أو اكتب سبب عدم الاكتمال"); return; } patch.lost_reason = reason.trim().slice(0, 300); }
     if (target === "postponed") { if (!when) { toast.error("حدد ميعاد المتابعة"); return; } patch.follow_up_at = new Date(when).toISOString(); }
     if (target === "visit_scheduled") { if (!when) { toast.error("حدد ميعاد الزيارة"); return; } patch.visit_at = new Date(when).toISOString(); }
