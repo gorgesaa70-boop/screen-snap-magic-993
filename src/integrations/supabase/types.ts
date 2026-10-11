@@ -39,6 +39,21 @@ export type Database = {
 
 
           transfer_max_companies: number
+
+
+
+
+          featured_week_price: number
+
+
+
+
+          featured_month_price: number
+
+
+
+
+          subscription_grace_days: number
           id: number
           ios_url: string | null
           updated_at: string
@@ -62,6 +77,21 @@ export type Database = {
 
 
           transfer_max_companies?: number
+
+
+
+
+          featured_week_price?: number
+
+
+
+
+          featured_month_price?: number
+
+
+
+
+          subscription_grace_days?: number
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -85,6 +115,21 @@ export type Database = {
 
 
           transfer_max_companies?: number
+
+
+
+
+          featured_week_price?: number
+
+
+
+
+          featured_month_price?: number
+
+
+
+
+          subscription_grace_days?: number
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -1293,6 +1338,12 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: { amount: number; broker_id: string | null; created_at: string; created_by: string | null; currency: string; failed_reason: string | null; feature_days: number | null; id: string; method: string | null; note: string | null; paid_at: string | null; payment_no: number; period: string | null; plan_id: string | null; property_id: string | null; provider: string; provider_order_id: string | null; provider_txn_id: string | null; purpose: string; refunded_at: string | null; status: string }
+        Insert: { amount?: number; broker_id?: string | null; created_at?: string; created_by?: string | null; currency?: string; failed_reason?: string | null; feature_days?: number | null; id?: string; method?: string | null; note?: string | null; paid_at?: string | null; payment_no?: number; period?: string | null; plan_id?: string | null; property_id?: string | null; provider?: string; provider_order_id?: string | null; provider_txn_id?: string | null; purpose?: string; refunded_at?: string | null; status?: string }
+        Update: { amount?: number; broker_id?: string | null; created_at?: string; created_by?: string | null; currency?: string; failed_reason?: string | null; feature_days?: number | null; id?: string; method?: string | null; note?: string | null; paid_at?: string | null; payment_no?: number; period?: string | null; plan_id?: string | null; property_id?: string | null; provider?: string; provider_order_id?: string | null; provider_txn_id?: string | null; purpose?: string; refunded_at?: string | null; status?: string }
+        Relationships: []
+      }
       plans: {
         Row: {
           code: string
@@ -1302,6 +1353,10 @@ export type Database = {
           is_active: boolean
           max_properties: number
           monthly_price: number
+
+          yearly_price: number
+
+          trial_days: number
           name: string
         }
         Insert: {
@@ -1312,6 +1367,10 @@ export type Database = {
           is_active?: boolean
           max_properties?: number
           monthly_price?: number
+
+          yearly_price?: number
+
+          trial_days?: number
           name: string
         }
         Update: {
@@ -1322,6 +1381,10 @@ export type Database = {
           is_active?: boolean
           max_properties?: number
           monthly_price?: number
+
+          yearly_price?: number
+
+          trial_days?: number
           name?: string
         }
         Relationships: []
@@ -1501,6 +1564,8 @@ export type Database = {
           highlight_yield: number | null
           verified_at: string | null
           verified_note: string | null
+
+          hidden_by_plan: boolean
           is_highlight: boolean
           available_from: string | null
           available_to: string | null
@@ -1554,6 +1619,8 @@ export type Database = {
           highlight_yield?: number | null
           verified_at?: string | null
           verified_note?: string | null
+
+          hidden_by_plan?: boolean
           is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
@@ -1607,6 +1674,8 @@ export type Database = {
           highlight_yield?: number | null
           verified_at?: string | null
           verified_note?: string | null
+
+          hidden_by_plan?: boolean
           is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
@@ -1749,6 +1818,12 @@ export type Database = {
           plan_id: string
           provider: string | null
           provider_ref: string | null
+
+          payment_id: string | null
+
+          reminded_7d_at: string | null
+
+          reminded_1d_at: string | null
           starts_at: string
           status: string
         }
@@ -1760,6 +1835,12 @@ export type Database = {
           plan_id: string
           provider?: string | null
           provider_ref?: string | null
+
+          payment_id?: string | null
+
+          reminded_7d_at?: string | null
+
+          reminded_1d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -1771,6 +1852,12 @@ export type Database = {
           plan_id?: string
           provider?: string | null
           provider_ref?: string | null
+
+          payment_id?: string | null
+
+          reminded_7d_at?: string | null
+
+          reminded_1d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -1987,6 +2074,10 @@ export type Database = {
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
+      create_payment: { Args: { _purpose: string; _plan?: string | null; _period?: string | null; _property?: string | null; _days?: number | null }; Returns: string }
+      mark_payment_paid: { Args: { _id: string; _txn: string; _amount: number; _method?: string | null }; Returns: string }
+      mark_payment_failed: { Args: { _id: string; _reason: string }; Returns: string }
+      run_subscription_expiry: { Args: never; Returns: Json }
       run_lead_transfers: { Args: never; Returns: Json }
       add_work_minutes: { Args: { _from: string; _mins: number }; Returns: string }
       prepare_account_deletion: { Args: { _uid: string }; Returns: string }

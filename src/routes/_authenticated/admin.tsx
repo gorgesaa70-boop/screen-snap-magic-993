@@ -371,25 +371,53 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
 function PlansAdmin({ plans, reload }: { plans: PlanRow[]; reload: () => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">حدّد عدد العقارات والإعلانات المميزة لكل باقة. الأسعار جاهزة لربط الدفع لاحقًا.</p>
+      <p className="text-sm text-muted-foreground">حدّد عدد العقارات والإعلانات المميزة والأسعار لكل باقة. الباقة اللي سعرها صفر مش بتتدفع. الدفع الأونلاين هيشتغل لما بوابة الدفع تتربط.</p>
       <div className="grid gap-3 md:grid-cols-3">
         {plans.map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
       </div>
+      <PaymentSettings />
     </div>
   );
 }
 
 function PlanCard({ p, reload }: { p: PlanRow; reload: () => void }) {
-  const [f, setF] = useState({ name: p.name, max_properties: String(p.max_properties), featured_slots: String(p.featured_slots), monthly_price: String(p.monthly_price) });
+  const [f, setF] = useState({ name: p.name, max_properties: String(p.max_properties), featured_slots: String(p.featured_slots), monthly_price: String(p.monthly_price), yearly_price: String(p.yearly_price ?? 0), trial_days: String(p.trial_days ?? 0) });
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4">
       <Field label="اسم الباقة"><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
       <Field label="الحد الأقصى للعقارات"><input className={inputCls} inputMode="numeric" value={f.max_properties} onChange={(e) => setF({ ...f, max_properties: e.target.value.replace(/\D/g, "") })} /></Field>
       <Field label="الإعلانات المميزة"><input className={inputCls} inputMode="numeric" value={f.featured_slots} onChange={(e) => setF({ ...f, featured_slots: e.target.value.replace(/\D/g, "") })} /></Field>
       <Field label="السعر الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.monthly_price} onChange={(e) => setF({ ...f, monthly_price: e.target.value.replace(/\D/g, "") })} /></Field>
+      <Field label="السعر السنوي (ج.م)"><input className={inputCls} inputMode="numeric" value={f.yearly_price} onChange={(e) => setF({ ...f, yearly_price: e.target.value.replace(/\D/g, "") })} /></Field>
+      {Number(f.monthly_price) > 0 && Number(f.yearly_price) > 0 && Number(f.yearly_price) < Number(f.monthly_price) * 12 && <p className="-mt-2 text-xs font-bold text-teal">توفير {Math.round((1 - Number(f.yearly_price) / (Number(f.monthly_price) * 12)) * 100)}% على السنوي</p>}
+      <Field label="أيام التجربة المجانية"><input className={inputCls} inputMode="numeric" value={f.trial_days} onChange={(e) => setF({ ...f, trial_days: e.target.value.replace(/\D/g, "").slice(0, 2) })} /></Field>
       <button className={`${btnPrimary} w-full`} onClick={async () => {
-        const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0) }).eq("id", p.id);
+        const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0), yearly_price: Number(f.yearly_price || 0), trial_days: Math.min(Number(f.trial_days || 0), 60) }).eq("id", p.id);
         if (error) toast.error(error.message); else { toast.success("تم الحفظ"); reload(); }
+      }}>حفظ</button>
+    </div>
+  );
+}
+
+/** Featured-listing prices and the grace period after a subscription ends (payments phase 1). */
+function PaymentSettings() {
+  const q = useQuery({ queryKey: ["payment-settings"], queryFn: async () => (await supabase.from("app_settings").select("featured_week_price, featured_month_price, subscription_grace_days").eq("id", 1).maybeSingle()).data });
+  const [f, setF] = useState<{ week: string; month: string; grace: string } | null>(null);
+  const v = f ?? (q.data ? { week: String(q.data.featured_week_price), month: String(q.data.featured_month_price), grace: String(q.data.subscription_grace_days) } : null);
+  if (!v) return null;
+  const num = (x: string) => x.replace(/\D/g, "");
+  return (
+    <div className="space-y-3 rounded-2xl border bg-card p-4">
+      <p className="font-bold text-primary">تمييز العقار والتجديد</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="تمييز عقار أسبوع (ج.م)"><input className={inputCls} inputMode="numeric" value={v.week} onChange={(e) => setF({ ...v, week: num(e.target.value) })} /></Field>
+        <Field label="تمييز عقار شهر (ج.م)"><input className={inputCls} inputMode="numeric" value={v.month} onChange={(e) => setF({ ...v, month: num(e.target.value) })} /></Field>
+        <Field label="أيام السماح بعد انتهاء الباقة"><input className={inputCls} inputMode="numeric" value={v.grace} onChange={(e) => setF({ ...v, grace: num(e.target.value).slice(0, 2) })} /></Field>
+      </div>
+      <p className="text-xs text-muted-foreground">بعد أيام السماح الحساب بيرجع للباقة المجانية، والعقارات الزيادة عن حدها بتستخبى (مش بتتمسح) لحد ما يجدد. وفيه تنبيه قبل الانتهاء بأسبوع وبيوم.</p>
+      <button className={btnPrimary} onClick={async () => {
+        const { error } = await supabase.from("app_settings").update({ featured_week_price: Number(v.week || 0), featured_month_price: Number(v.month || 0), subscription_grace_days: Math.min(Number(v.grace || 0), 30) }).eq("id", 1);
+        if (error) toast.error(error.message); else { toast.success("تم الحفظ"); setF(null); q.refetch(); }
       }}>حفظ</button>
     </div>
   );

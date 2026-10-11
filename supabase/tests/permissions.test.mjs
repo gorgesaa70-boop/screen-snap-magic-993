@@ -747,4 +747,82 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     await as(U.admin, `update public.app_settings set transfer_enabled=true`);
     return [r.disabled, t6.transfer_deadline_at];
   }, (r) => r[0] === true && r[1] === null);
+
+  console.log("\nPayments phase 1: ledger, applying payments once, subscription expiry");
+  const svc = async (sql) => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); try { return await sys(sql); } finally { await sys(`select set_config('request.jwt.claim.role','',false)`); } };
+  const pro = (await sys(`select id from public.plans where code='pro'`))[0].id;
+  const free = (await sys(`select id from public.plans where code='free'`))[0].id;
+  await expectErr("only admins set prices", () => as(U.owner, `update public.plans set monthly_price=500 where id='${pro}' returning id`).then((r) => { if (!r.length) throw new Error("blocked"); return r; }));
+  await expectErr("a free plan can't be paid for (price not set)", () => as(U.owner, `select public.create_payment('subscription', '${pro}', 'monthly')`));
+  await as(U.admin, `update public.plans set monthly_price=500, yearly_price=5000 where id='${pro}'`);
+  await as(U.admin, `update public.app_settings set featured_week_price=150, featured_month_price=400`);
+  await expectErr("team members (not the owner) can't pay", () => as(U.manager, `select public.create_payment('subscription', '${pro}', 'monthly')`));
+  await expectErr("visitors can't pay", () => as(null, `select public.create_payment('subscription', '${pro}', 'monthly')`));
+  const pay1 = (await as(U.owner, `select public.create_payment('subscription', '${pro}', 'monthly') id`))[0].id;
+  await expectOk("the owner starts a payment; the amount comes from the price list", () => sys(`select amount, status, broker_id from public.payments where id='${pay1}'`), (r) => Number(r[0].amount) === 500 && r[0].status === "pending" && r[0].broker_id === CO);
+  await expectErr("nobody writes payments directly", () => as(U.owner, `update public.payments set amount=1 where id='${pay1}' returning id`).then((r) => { if (!r.length) throw new Error("blocked"); return r; }));
+  await expectErr("users can't confirm payments themselves", () => as(U.owner, `select public.mark_payment_paid('${pay1}', 'T1', 500)`));
+  await expectOk("a wrong amount is refused and admins are alerted", async () => [(await svc(`select public.mark_payment_paid('${pay1}', 'T1', 1) r`))[0].r, (await sys(`select status from public.payments where id='${pay1}'`))[0].status, await notes(U.admin, "دفعة بمبلغ مختلف")], (r) => r[0] === "amount_mismatch" && r[1] === "pending" && r[2] >= 1);
+  await expectOk("confirmed payment → paid, plan switched, one-month subscription, owner and admins notified", async () => {
+    const r = (await svc(`select public.mark_payment_paid('${pay1}', 'T1', 500, 'card') r`))[0].r;
+    const sub = (await sys(`select plan_id, status, round(extract(epoch from (ends_at - starts_at)) / 86400) days from public.subscriptions where payment_id='${pay1}'`))[0];
+    return [r, (await sys(`select plan_id from public.brokers where id='${CO}'`))[0].plan_id, sub, await notes(U.owner, "اتفعّلت باقتك"), await notes(U.admin, "دفعة جديدة")];
+  }, (r) => r[0] === "paid" && r[1] === pro && r[2].status === "active" && Number(r[2].days) >= 28 && Number(r[2].days) <= 31 && r[3] === 1 && r[4] >= 1);
+  await expectOk("the same confirmation again changes nothing", async () => [(await svc(`select public.mark_payment_paid('${pay1}', 'T1', 500) r`))[0].r, Number((await sys(`select count(*) c from public.subscriptions where payment_id='${pay1}'`))[0].c)], (r) => r[0] === "already_paid" && r[1] === 1);
+  const pay2 = (await as(U.owner, `select public.create_payment('subscription', '${pro}', 'yearly') id`))[0].id;
+  await expectOk("a transaction id can't pay for two payments", async () => (await svc(`select public.mark_payment_paid('${pay2}', 'T1', 5000) r`))[0].r, (r) => r === "duplicate_txn");
+  await expectOk("renewing the same plan early extends from the current end date", async () => {
+    const before = (await sys(`select ends_at from public.subscriptions where payment_id='${pay1}'`))[0].ends_at;
+    await svc(`select public.mark_payment_paid('${pay2}', 'T2', 5000)`);
+    const s = (await sys(`select starts_at, ends_at from public.subscriptions where payment_id='${pay2}'`))[0];
+    return [new Date(s.starts_at).getTime() === new Date(before).getTime(), new Date(s.ends_at) > new Date(Date.now() + 360 * 864e5)];
+  }, (r) => r[0] && r[1]);
+  await expectOk("the owner sees their payments, other companies don't", async () => [(await as(U.owner, `select id from public.payments`)).length, (await as(U.dev, `select id from public.payments`)).length], (r) => r[0] === 2 && r[1] === 0);
+
+  const myProp = (await sys(`select id from public.properties where broker_id='${CO}' and review_status='approved' limit 1`))[0].id;
+  const otherProp = (await svc(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${DEV}','عقار شركة تانية',1,'شقة','الحي الأول','بيع','approved') returning id`))[0].id;
+  await expectErr("featuring needs a published listing of your own", () => as(U.owner, `select public.create_payment('featured', null, null, '${otherProp}', 7)`));
+  await expectOk("featured payment → listing featured for 7 days", async () => {
+    const id = (await as(U.owner, `select public.create_payment('featured', null, null, '${myProp}', 7) id`))[0].id;
+    await svc(`select public.mark_payment_paid('${id}', 'T3', 150)`);
+    return sys(`select is_featured, round(extract(epoch from (featured_until - now())) / 86400) d from public.properties where id='${myProp}'`).then((x) => x[0]);
+  }, (r) => r.is_featured === true && Number(r.d) === 7);
+
+  await expectErr("companies can't run the expiry job", () => as(U.owner, `select public.run_subscription_expiry()`));
+  await expectOk("7 days before the end → reminder (once)", async () => {
+    await svc(`update public.subscriptions set status='canceled' where broker_id='${CO}' and payment_id='${pay2}'`);
+    await svc(`update public.subscriptions set ends_at = now() + interval '5 days' where payment_id='${pay1}'`);
+    await svc(`select public.run_subscription_expiry()`); await svc(`select public.run_subscription_expiry()`);
+    return notes(U.owner, "باقتك هتخلص خلال أسبوع");
+  }, (r) => r === 1);
+  await expectOk("inside the grace period nothing changes", async () => {
+    await svc(`update public.subscriptions set ends_at = now() - interval '1 day' where payment_id='${pay1}'`);
+    await svc(`select public.run_subscription_expiry()`);
+    return sys(`select plan_id from public.brokers where id='${CO}'`).then((x) => x[0].plan_id);
+  }, (r) => r === pro);
+  await expectOk("after the grace period → free plan, extra listings hidden (not deleted), owner notified", async () => {
+    await svc(`update public.subscriptions set ends_at = now() - interval '4 days' where payment_id='${pay1}'`);
+    await svc(`select public.run_subscription_expiry()`);
+    const total = Number((await sys(`select count(*) c from public.properties where broker_id='${CO}'`))[0].c);
+    const hidden = Number((await sys(`select count(*) c from public.properties where broker_id='${CO}' and hidden_by_plan`))[0].c);
+    return [(await sys(`select plan_id from public.brokers where id='${CO}'`))[0].plan_id, total, hidden, await notes(U.owner, "باقتك انتهت")];
+  }, (r) => r[0] === free && r[2] === Math.max(0, r[1] - 5) && r[3] === 1);
+  await expectOk("hidden listings are not public, and the company can't unhide them itself", async () => {
+    const h = (await sys(`select id from public.properties where broker_id='${CO}' and hidden_by_plan limit 1`))[0];
+    if (!h) return [0, false];
+    await as(U.owner, `update public.properties set hidden_by_plan=false where id='${h.id}'`);
+    return [(await as(null, `select id from public.properties where id='${h.id}'`)).length, (await sys(`select hidden_by_plan from public.properties where id='${h.id}'`))[0].hidden_by_plan];
+  }, (r) => r[0] === 0 && r[1] === true);
+  await expectOk("paying again brings every hidden listing back", async () => {
+    const id = (await as(U.owner, `select public.create_payment('subscription', '${pro}', 'monthly') id`))[0].id;
+    await svc(`select public.mark_payment_paid('${id}', 'T4', 500)`);
+    return Number((await sys(`select count(*) c from public.properties where broker_id='${CO}' and hidden_by_plan`))[0].c);
+  }, (r) => r === 0);
+  await expectOk("featured ends on time; abandoned checkouts expire after 2 hours", async () => {
+    await svc(`update public.properties set featured_until = now() - interval '1 minute' where id='${myProp}'`);
+    const id = (await as(U.owner, `select public.create_payment('featured', null, null, '${myProp}', 30) id`))[0].id;
+    await svc(`update public.payments set created_at = now() - interval '3 hours' where id='${id}'`);
+    await svc(`select public.run_subscription_expiry()`);
+    return [(await sys(`select is_featured from public.properties where id='${myProp}'`))[0].is_featured, (await sys(`select status from public.payments where id='${id}'`))[0].status];
+  }, (r) => r[0] === false && r[1] === "expired");
 }
