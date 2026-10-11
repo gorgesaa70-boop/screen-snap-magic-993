@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
+import { BrokerGuide } from "@/components/dash/BrokerGuide";
 import { ListingsImport } from "@/components/dash/ListingsImport";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
@@ -105,6 +106,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
     queryKey: ["plan", broker.plan_id], enabled: !!broker.plan_id,
     queryFn: async () => (await supabase.from("plans").select("*").eq("id", broker.plan_id!).maybeSingle()).data,
   });
+  const team = useQuery({
+    queryKey: ["team-count", broker.id], enabled: isOwner && TEAM_ACCOUNTS.includes(broker.account_type),
+    queryFn: async () => (await supabase.from("company_members").select("id", { count: "exact", head: true }).eq("company_id", broker.id)).count ?? 0,
+  });
+  const hasTeam = (team.data ?? 0) > 0;
   const P = props.data ?? [];
   const L = leads.data ?? [];
   const count = (s: string) => P.filter((p) => p.review_status === s).length;
@@ -125,6 +131,15 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       ]} />
       {tab === "overview" && (
         <div className="space-y-4">
+          {isOwner && (
+            <BrokerGuide brokerId={broker.id} steps={[
+              { done: !!(broker.photo_url && broker.bio), title: "كمّل ملفك", hint: "صورة أو لوجو ونبذة قصيرة — ده اللي العملاء بيشوفوه.", action: "الملف الشخصي", onClick: () => setTab("profile") },
+              { done: P.length > 0, title: "ضيف أول عقار", hint: TEAM_ACCOUNTS.includes(broker.account_type) ? "واحد واحد، أو كله مرة واحدة من «رفع من Excel»." : "بالصور والسعر والمنطقة.", action: "عقاراتي", onClick: () => setTab("properties") },
+              TEAM_ACCOUNTS.includes(broker.account_type)
+                ? { done: hasTeam, title: "ضيف فريقك", hint: "مديرين ومبيعات بأرقام موبايلاتهم — كل واحد يدخل برقمه.", action: "الفريق", onClick: () => setTab("team") }
+                : { done: L.length > 0, title: "استقبل أول عميل", hint: "العملاء المهتمين بيوصلوك هنا ومعاهم إشعار — رد بسرعة.", action: "العملاء", onClick: () => setTab("leads") },
+            ]} />
+          )}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Stat label="كل العقارات" value={P.length} hint={plan.data ? `الحد: ${plan.data.max_properties} (${plan.data.name})` : undefined} />
             <Stat label="معتمدة" value={count("approved")} />
