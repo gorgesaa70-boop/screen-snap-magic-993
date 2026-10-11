@@ -57,6 +57,19 @@ const EN: Record<string, string> = {
   // Property page
   "، ": ", ",
 
+  // Home categories / header
+  "سكني": "Residential",
+  "تجاري": "Commercial",
+  "أراضي": "Land",
+  "صناعي": "Industrial",
+  "حسابي": "My account",
+  "تصفّح المحلات والوحدات داخل المولات التجارية": "Browse shops and units inside shopping malls",
+
+  // Location text
+  "برج العرب والساحل الشمالي": "Borg El Arab & the North Coast",
+  "منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.": "A real estate platform connecting you with properties and brokers in Borg El Arab and the North Coast.",
+  "اكتشف العقارات المتاحة في برج العرب والساحل الشمالي، وقارن الخيارات، وتواصل مع الوسيط المناسب بكل سهولة.": "Explore available properties in Borg El Arab and the North Coast, compare your options, and easily reach the right broker.",
+
   // Sell your property (/sell)
   "بيع عقارك": "Sell your property",
   "عندك شقة أو أرض أو محل وعايز تبيعه أو تأجّره؟ ابعت البيانات، وفريق فاليو عقار هيتواصل معاك ويساعدك توصل للمشتري المناسب.": "Have an apartment, land or shop to sell or rent? Send us the details and the Value Aqar team will contact you and help you reach the right buyer.",
