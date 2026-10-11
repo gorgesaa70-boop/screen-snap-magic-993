@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDate } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- types regenerate after the release migration applies
+const db = supabase as any;
+
 export const MEMBER_ROLES: Record<string, { label: string; hint: string }> = {
   manager: { label: "مدير", hint: "يدير العقارات والمشروعات والعملاء" },
   sales: { label: "موظف مبيعات", hint: "يتابع العملاء والطلبات بس" },
