@@ -10,6 +10,7 @@ import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { ContactOutcome, OUTCOME_LABEL, Timeline, logActivity } from "@/components/dash/LeadsBoard";
+import { DeadlineBadge } from "@/components/dash/Deadline";
 import { MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { stageLabel, LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
@@ -111,6 +112,8 @@ function LeadPage() {
               <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك فريق فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
             </div>
             <div className="mt-3">
+              {l.admin_queue_at && <p className="mb-2 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">في طابور الإدارة من {new Date(l.admin_queue_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })} — {l.admin_queue_reason ?? "محتاج إسناد"}</p>}
+              {l.transfer_deadline_at && !l.first_response_at && <div className="mb-2"><DeadlineBadge at={l.transfer_deadline_at} /></div>}
               {l.first_response_at
                 ? <p className="text-xs font-bold text-teal">✓ اتواصل معاه {new Date(l.first_response_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}{l.first_response_outcome && OUTCOME_LABEL[l.first_response_outcome] ? ` — ${OUTCOME_LABEL[l.first_response_outcome]}` : ""}</p>
                 : <ContactOutcome leadId={l.id} onDone={() => q.refetch()} />}

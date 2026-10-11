@@ -29,9 +29,9 @@ function useReportData(scope: Scope) {
   return useQuery({
     queryKey: ["reports-data", scope.seeAll, scope.companyId],
     queryFn: async () => {
-      const [leads, deals, comms, pays, units, projects, members, brokers, staff, settings] = await Promise.all([
+      const [leads, deals, comms, pays, units, projects, members, brokers, staff, settings, periods, outcomes] = await Promise.all([
         // Paged: a plain select stops at 1,000 rows and the totals would silently be wrong.
-        fetchAll((a, b) => supabase.from("leads").select("id, created_at, stage, source, campaign, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at").order("id").range(a, b)),
+        fetchAll((a, b) => supabase.from("leads").select("id, created_at, stage, source, campaign, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at, admin_queue_at").order("id").range(a, b)),
         fetchAll((a, b) => supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, deal_type, sale_value, sale_date, review_status, reservation_date, contract_date, created_at").order("id").range(a, b)),
         fetchAll((a, b) => supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at").order("id").range(a, b)),
         fetchAll((a, b) => supabase.from("commission_payments").select("id, commission_id, amount, paid_on").order("id").range(a, b)),
@@ -41,9 +41,12 @@ function useReportData(scope: Scope) {
         scope.seeAll ? supabase.rpc("admin_brokers") : supabase.rpc("my_account"),
         scope.seeAll ? listStaff().then((r) => (r.ok ? r.staff : [])) : Promise.resolve([]),
         supabase.from("app_settings").select("response_sla_minutes, work_start_hour, work_end_hour").eq("id", 1).maybeSingle(),
+        // CRM: assignment periods are readable by admins / staff only; contact outcomes by whoever sees the lead.
+        scope.seeAll ? fetchAll((a, b) => supabase.from("lead_assignments").select("id, lead_id, broker_id, end_reason, created_at").order("id").range(a, b)) : Promise.resolve([]),
+        fetchAll((a, b) => supabase.from("lead_activities").select("id, lead_id, outcome").not("outcome", "is", null).order("id").range(a, b)),
       ]);
       return {
-        leads, deals, comms, pays,
+        leads, deals, comms, pays, periods, outcomes,
         unitProject: new Map(units.map((u) => [u.id, u.project_id])), projects: projects.data ?? [],
         members: members.data ?? [], brokers: brokers.data ?? [], staff,
         sla: { minutes: settings.data?.response_sla_minutes ?? 60, start: settings.data?.work_start_hour ?? 9, end: settings.data?.work_end_hour ?? 21 },
@@ -143,6 +146,14 @@ export function Reports({ scope }: { scope: Scope }) {
   const overdue = view.comms.filter((c) => displayStatus(c) === "due").reduce((s, c) => s + remaining(c), 0);
   const today = Date.now();
 
+  // CRM: leads in the period that timed out at least once, spread across companies, and "no answer" without contact.
+  const inPeriod = new Set(L.map((l) => l.id));
+  const timedOut = new Set(d.periods.filter((x) => x.end_reason === "timeout" && inPeriod.has(x.lead_id)).map((x) => x.lead_id));
+  const perLead = new Map<string, Set<string>>();
+  d.periods.forEach((x) => { if (x.broker_id && inPeriod.has(x.lead_id)) perLead.set(x.lead_id, (perLead.get(x.lead_id) ?? new Set()).add(x.broker_id)); });
+  const avgCompanies = perLead.size ? (Math.round(([...perLead.values()].reduce((a, v) => a + v.size, 0) / perLead.size) * 10) / 10).toString() : "—";
+  const noAnswer = new Set(d.outcomes.filter((o) => o.outcome === "no_answer").map((o) => o.lead_id));
+
   // Monthly series: new leads and revenue collected.
   const months = new Map<string, { m: string; leads: number; revenue: number; sales: number }>();
   const bump = (k: string) => { if (!months.has(k)) months.set(k, { m: k, leads: 0, revenue: 0, sales: 0 }); return months.get(k)!; };
@@ -195,6 +206,10 @@ export function Reports({ scope }: { scope: Scope }) {
         <Stat label="إيرادات فاليو عقار (محصّلة)" value={money(collected)} hint="دفعات العمولات في الفترة" />
         <Stat label="عمولات اتعتمدت" value={money(approvedComm)} />
         <Stat label="متبقي للتحصيل" value={money(outstanding)} hint={overdue ? `منها ${money(overdue)} متأخرة` : undefined} />
+        <Stat label="اتواصلوا فعليًا" value={L.filter((l) => l.first_response_at).length} hint="نتيجة «رد» أو «طلب نكلمه تاني» أو مرحلة تم التواصل" />
+        <Stat label="ما ردوش لسه" value={L.filter((l) => noAnswer.has(l.id) && !l.first_response_at).length} hint="سجّلوا «ما ردش» ومفيش تواصل فعلي" />
+        {scope.seeAll && <Stat label="اتنقلوا بسبب المهلة" value={timedOut.size} hint={`متوسط ${avgCompanies} شركة لكل عميل اتوزّع`} />}
+        {scope.seeAll && <Stat label="في طابور الإدارة دلوقتي" value={d.leads.filter((l) => l.admin_queue_at && !l.assigned_broker_id).length} />}
         {scope.seeAll
           ? <Stat label="الحسابات النشطة" value={d.brokers.filter((b) => b.is_active).length} hint={`${d.brokers.filter((b) => !b.is_active && !b.rejected_at && !b.suspended_at).length} طلب انضمام مستني`} />
           : <Stat label="متابعات متأخرة" value={L.filter((l) => l.follow_up_at && new Date(l.follow_up_at).getTime() < today && !CLOSED_STAGES.includes(l.stage)).length} />}
@@ -257,11 +272,11 @@ export function Reports({ scope }: { scope: Scope }) {
       )}
 
       {tab === "companies" && scope.seeAll && (
-        <Table name="company-performance" head={["الشركة", "العملاء", "متوسط وقت الرد", "رد في الوقت", "اتواصل معاهم", "بيع مؤكد", "التحويل", "قيمة المبيعات", "عمولات معتمدة", "اتحصّل", "متبقي"]}
+        <Table name="company-performance" head={["الشركة", "العملاء", "متوسط وقت أول تواصل", "تواصل في المهلة", "اتنقلوا منها (مهلة)", "اتواصل معاهم", "بيع مؤكد", "التحويل", "قيمة المبيعات", "عمولات معتمدة", "اتحصّل", "متبقي"]}
           rows={group(L.filter((l) => l.assigned_broker_id), (l) => l.assigned_broker_id!).map(([id, ls]) => {
             const ds = view.sales.filter((x) => x.broker_id === id);
             const cs = view.comms.filter((c) => c.broker_id === id && !["expected", "pending_review", "cancelled"].includes(c.status));
-            return [nameOf(id), ls.length, ...response(ls), ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
+            return [nameOf(id), ls.length, ...response(ls), d.periods.filter((x) => x.broker_id === id && x.end_reason === "timeout" && view.inRange(x.created_at)).length, ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
               money(ds.reduce((s, x) => s + Number(x.sale_value ?? 0), 0)), money(cs.reduce((s, c) => s + Number(c.expected_amount ?? 0), 0)),
               money(cs.reduce((s, c) => s + Number(c.paid_amount), 0)), money(cs.reduce((s, c) => s + remaining(c), 0))];
           }).sort((a, b) => Number(b[1]) - Number(a[1]))} />
