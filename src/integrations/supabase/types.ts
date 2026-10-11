@@ -601,6 +601,194 @@ export type Database = {
         }
         Relationships: []
       }
+      investment_opportunities: {
+        Row: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          licenses: string | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity: string
+          area: string
+          broker_id?: string | null
+          built_area?: number | null
+          city: string
+          created_at?: string
+          deal_kind: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind: string
+          land_area?: number | null
+          licenses?: string | null
+          location_note?: string | null
+          offered_share?: number | null
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity?: string
+          area?: string
+          broker_id?: string | null
+          built_area?: number | null
+          city?: string
+          created_at?: string
+          deal_kind?: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind?: string
+          land_area?: number | null
+          licenses?: string | null
+          location_note?: string | null
+          offered_share?: number | null
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_opportunities_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investment_requests: {
+        Row: {
+          budget: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          investor_id: string
+          lead_id: string | null
+          message: string | null
+          name: string
+          opportunity_id: string
+          status: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name: string
+          opportunity_id: string
+          status?: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name?: string
+          opportunity_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_requests_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investment_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_profiles: {
+        Row: {
+          areas: string[]
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          kinds: string[]
+          name: string
+          notify: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name?: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+
+        ]
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -668,6 +856,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          opportunity_id: string | null
           first_response_at: string | null
           routed_rule_id: string | null
           sla_alerted_at: string | null
@@ -708,6 +897,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          opportunity_id?: string | null
           first_response_at?: string | null
           routed_rule_id?: string | null
           sla_alerted_at?: string | null
@@ -746,6 +936,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          opportunity_id?: string | null
           first_response_at?: string | null
           routed_rule_id?: string | null
           sla_alerted_at?: string | null
@@ -802,6 +993,7 @@ export type Database = {
       }
       malls: {
         Row: {
+          kind: string
           created_at: string
           description: string | null
           id: string
@@ -812,6 +1004,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          kind?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -822,6 +1015,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          kind?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -1114,6 +1308,10 @@ export type Database = {
       }
       properties: {
         Row: {
+          highlight_reason: string | null
+          highlight_requested_at: string | null
+          highlight_yield: number | null
+          is_highlight: boolean
           available_from: string | null
           available_to: string | null
           deposit: number | null
@@ -1161,6 +1359,10 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
+          is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
           deposit?: number | null
@@ -1208,6 +1410,10 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
+          is_highlight?: boolean
           available_from?: string | null
           available_to?: string | null
           deposit?: number | null
@@ -1547,6 +1753,7 @@ export type Database = {
         }[]
       }
       claim_first_admin: { Args: never; Returns: boolean }
+      admin_opportunities: { Args: never; Returns: Database["public"]["Tables"]["investment_opportunities"]["Row"][] }
       admin_brokers: { Args: never; Returns: Database["public"]["Tables"]["brokers"]["Row"][] }
       assignable_users: { Args: never; Returns: { label: string; user_id: string }[] }
       broker_contacts: { Args: { _ids: string[] }; Returns: { email: string | null; id: string; phone: string | null; whatsapp: string | null }[] }
@@ -1576,6 +1783,8 @@ export type Database = {
           role: string
         }[]
       }
+      my_opportunities: { Args: never; Returns: Database["public"]["Tables"]["investment_opportunities"]["Row"][] }
+      opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_phone: { Args: never; Returns: string }
       owned_company_id: { Args: never; Returns: string }
       has_role: {

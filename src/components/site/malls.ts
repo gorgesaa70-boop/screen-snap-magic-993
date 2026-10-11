@@ -2,7 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type MallRow = Tables<"malls">;
-export const MALL_UNIT_TYPES = ["محل تجاري", "مكتب إداري", "عيادة", "مطعم / كافيه", "كشك"];
+export const MALL_UNIT_TYPES = ["محل تجاري", "مكتب إداري", "عيادة", "صيدلية", "معمل تحاليل", "مركز أشعة", "مركز علاج طبيعي", "مطعم / كافيه", "كشك"];
+/** Mall kinds; medical malls get a filter chip and a badge instead of a separate home section. */
+export const MALL_KINDS: Record<string, string> = { commercial: "تجاري", medical: "طبي", administrative: "إداري", mixed: "متعدد الأنشطة" };
 
 export async function fetchMalls(all = false) {
   let q = supabase.from("malls").select("*").order("sort_order").order("name");

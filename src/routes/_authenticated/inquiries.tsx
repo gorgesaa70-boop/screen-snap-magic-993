@@ -6,6 +6,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { LeadsBoard } from "@/components/dash/LeadsBoard";
 import { NewLeadForm } from "@/components/dash/NewLeadForm";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
+import { InvestmentsAdmin } from "@/components/dash/InvestmentsAdmin";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/inquiries")({
@@ -19,6 +20,7 @@ function InquiriesPage() {
   // Admins and Value Aqar staff see and assign every request.
   const seeAll = isAdmin || !!me?.isStaff;
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showInvest, setShowInvest] = useState(false);
   const brokerId = me?.broker?.id;
 
   const leads = useQuery({
@@ -67,9 +69,11 @@ function InquiriesPage() {
           <div className="flex flex-wrap gap-2">
             <NewLeadForm brokers={brokers.data ?? []} onDone={() => leads.refetch()} />
             <button onClick={() => setShowAlerts(!showAlerts)} className="inline-flex h-11 items-center rounded-xl border px-4 text-sm font-bold text-primary hover:bg-secondary">{showAlerts ? "إخفاء تنبيهات المراجعة" : "تنبيهات المراجعة"}</button>
+            <button onClick={() => setShowInvest(!showInvest)} className="inline-flex h-11 items-center rounded-xl border px-4 text-sm font-bold text-primary hover:bg-secondary">{showInvest ? "إخفاء الفرص الاستثمارية" : "الفرص الاستثمارية"}</button>
           </div>
         )}
         {seeAll && showAlerts && <LeadAlerts />}
+        {seeAll && showInvest && <InvestmentsAdmin isAdmin={isAdmin} />}
         <LeadsBoard
           list={leads.data ?? []}
           brokers={seeAll ? (brokers.data ?? []) : undefined}

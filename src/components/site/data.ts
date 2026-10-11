@@ -25,6 +25,8 @@ export type Property = {
   lat?: number | undefined;
   /** Rent: 'month'; summer: unit of the lowest price ('night' | 'week' | 'month' | 'season'); sale: undefined. */
   priceUnit?: string | undefined;
+  /** Curated "special price" pick by Value Aqar (reason in one line, optional approximate yield %). */
+  highlight?: { reason: string; yield?: number | undefined } | undefined;
   rent?: {
     night?: number | undefined; week?: number | undefined; month?: number | undefined; season?: number | undefined;
     furnished?: string | undefined; minMonths?: number | undefined; deposit?: number | undefined; guests?: number | undefined;
@@ -86,6 +88,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   featured: r.is_featured,
   brokerId: r.broker_id,
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),
+  highlight: r.is_highlight && r.highlight_reason ? { reason: r.highlight_reason, yield: num(r.highlight_yield) } : undefined,
   rent: r.status === "بيع" ? undefined : {
     night: num(r.price_night), week: num(r.price_week), month: num(r.price_month), season: num(r.price_season),
     furnished: r.furnished ?? undefined, minMonths: r.min_months ?? undefined, deposit: num(r.deposit), guests: r.guests ?? undefined,

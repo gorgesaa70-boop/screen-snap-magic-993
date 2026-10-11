@@ -70,6 +70,13 @@ function PropertyPage() {
           </Gallery>
           <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
           <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
+          {p.highlight && (
+            <div className="mt-3 rounded-2xl border-2 border-[#f2b84b]/60 bg-[#f2b84b]/10 p-4">
+              <p className="text-sm font-extrabold text-primary">★ {t("ليه ده عرض بسعر مميز؟")}</p>
+              <p className="mt-1 text-sm text-foreground/80">{p.highlight.reason}{p.highlight.yield ? ` — ${t("عائد تقريبي")} ${formatPrice(p.highlight.yield)}%` : ""}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{t("* تقديري ومش ضمان.")}</p>
+            </div>
+          )}
           {p.rent && <RentDetails p={p} />}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{t(p.type)}</span>

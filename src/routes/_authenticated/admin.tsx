@@ -17,6 +17,7 @@ import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { AuditLog } from "@/components/dash/AuditLog";
+import { InvestmentsAdmin } from "@/components/dash/InvestmentsAdmin";
 import { RoutingRules } from "@/components/dash/RoutingRules";
 import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app" | "audit" | "routing";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app" | "audit" | "routing" | "investments";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -61,7 +62,7 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "review_alerts", label: "تنبيهات المراجعة" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "routing", label: "قواعد التوزيع" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "routing", label: "قواعد التوزيع" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "investments", label: "الفرص الاستثمارية" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
@@ -70,6 +71,7 @@ function AdminPage() {
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}
           {tab === "app" && <AppSettingsAdmin />}
+          {tab === "investments" && <InvestmentsAdmin isAdmin />}
           {tab === "audit" && <AuditLog />}
           {tab === "routing" && <RoutingRules />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
@@ -248,6 +250,12 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {p.review_status !== "approved" && <button className={btnPrimary} onClick={() => upd(p.id, { review_status: "approved", review_note: null }, "تم الاعتماد")}><Check className="size-4" />اعتماد</button>}
+            <button className={p.is_highlight ? btnPrimary : btnOutline} title={p.highlight_requested_at ? "الشركة طالبة ترشيحه" : "عرض بسعر مميز"} onClick={async () => {
+              if (p.is_highlight) { await upd(p.id, { is_highlight: false }, "اتشال من العروض المميزة"); return; }
+              const reason = prompt("ليه ده عرض بسعر مميز؟ (سطر واحد بيظهر للناس)", p.highlight_reason ?? ""); if (!reason?.trim()) return;
+              const y = prompt("عائد سنوي تقريبي % (اختياري — سيبه فاضي لو مفيش)", p.highlight_yield?.toString() ?? "");
+              await upd(p.id, { is_highlight: true, highlight_reason: reason.trim().slice(0, 160), highlight_yield: y && Number(y) > 0 ? Number(y) : null }, "اتضاف للعروض المميزة");
+            }}>{p.is_highlight ? "★ سعر مميز" : p.highlight_requested_at ? "★ مطلوب ترشيحه" : "☆ سعر مميز"}</button>
             {p.review_status !== "rejected" && <button className={btnOutline} onClick={() => { const note = prompt(p.review_status === "approved" ? "سبب الإخفاء (يظهر للوسيط)" : "سبب الرفض (يظهر للوسيط)"); if (note === null) return; upd(p.id, { review_status: "rejected", review_note: note.slice(0, 500) || null }, p.review_status === "approved" ? "تم إخفاء العقار" : "تم الرفض"); }}><X className="size-4" />{p.review_status === "approved" ? "إخفاء" : "رفض"}</button>}
             <button aria-label="تمييز" className={`grid size-11 place-items-center rounded-xl border ${p.is_featured ? "bg-teal text-accent-foreground" : "text-primary"}`} onClick={() => upd(p.id, { is_featured: !p.is_featured }, p.is_featured ? "أُلغي التمييز" : "تم التمييز")}><Star className="size-4" /></button>
           </div>
