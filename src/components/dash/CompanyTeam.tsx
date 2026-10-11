@@ -20,7 +20,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
   const q = useQuery({
     queryKey: ["company-team", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("company_members").select("*").eq("company_id", companyId).order("created_at");
+      const { data, error } = await db.from("company_members").select("*").eq("company_id", companyId).order("created_at");
       if (error) throw error; return data;
     },
   });
@@ -32,14 +32,14 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error("اكتب الاسم ورقم موبايل صحيح"); return; }
     setBusy(true);
-    const { error } = await supabase.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: f.phone.trim(), role: f.role });
+    const { error } = await db.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: f.phone.trim(), role: f.role });
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? "الرقم ده مضاف بالفعل لفريق شركة" : error.message); return; }
     toast.success("تمت الإضافة — يقدر يدخل برقمه دلوقتي");
     setF({ name: "", phone: "", role: "sales" }); setOpen(false); q.refetch();
   }
   async function upd(id: string, patch: { role?: string; is_active?: boolean }) {
-    const { error } = await supabase.from("company_members").update(patch).eq("id", id);
+    const { error } = await db.from("company_members").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); q.refetch(); }
   }
 
@@ -68,7 +68,7 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
           </select>
           <div className="flex gap-2">
             <button className={btnOutline} onClick={() => upd(m.id, { is_active: !m.is_active })}>{m.is_active ? "إيقاف" : "تفعيل"}</button>
-            <button aria-label="حذف" onClick={async () => { if (!confirm(`حذف ${m.name} من الفريق؟`)) return; const { error } = await supabase.from("company_members").delete().eq("id", m.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
+            <button aria-label="حذف" onClick={async () => { if (!confirm(`حذف ${m.name} من الفريق؟`)) return; const { error } = await db.from("company_members").delete().eq("id", m.id); if (error) toast.error(error.message); else q.refetch(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
           </div>
         </div>
       ))}
