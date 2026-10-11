@@ -98,6 +98,7 @@ export type Database = {
       }
       brokers: {
         Row: {
+          show_contact: boolean
           account_type: string
           address: string | null
           commercial_register: string | null
@@ -124,6 +125,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          show_contact?: boolean
           account_type?: string
           address?: string | null
           commercial_register?: string | null
@@ -150,6 +152,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          show_contact?: boolean
           account_type?: string
           address?: string | null
           commercial_register?: string | null
@@ -641,6 +644,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          via_broker_id: string | null
           first_broker_id: string | null
           first_referred_at: string | null
           referred_at: string | null
@@ -676,6 +680,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
           referred_at?: string | null
@@ -709,6 +714,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          via_broker_id?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
           referred_at?: string | null
@@ -1430,7 +1436,9 @@ export type Database = {
         }[]
       }
       claim_first_admin: { Args: never; Returns: boolean }
+      admin_brokers: { Args: never; Returns: Database["public"]["Tables"]["brokers"]["Row"][] }
       assignable_users: { Args: never; Returns: { label: string; user_id: string }[] }
+      broker_contacts: { Args: { _ids: string[] }; Returns: { email: string | null; id: string; phone: string | null; whatsapp: string | null }[] }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
@@ -1447,6 +1455,7 @@ export type Database = {
           lead_no: number
         }[]
       }
+      my_account: { Args: never; Returns: Database["public"]["Tables"]["brokers"]["Row"][] }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never

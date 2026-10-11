@@ -37,7 +37,7 @@ function InquiriesPage() {
     queryKey: ["inquiries-brokers"],
     enabled: seeAll,
     queryFn: async () => {
-      const { data, error } = await supabase.from("brokers").select("*").order("name");
+      const { data, error } = await supabase.rpc("admin_brokers");
       if (error) throw error;
       return data;
     },

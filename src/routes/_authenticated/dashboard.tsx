@@ -247,6 +247,7 @@ function ProfileForm({ broker }: { broker: BrokerRow }) {
         <Field label="الاسم"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={100} /></Field>
         <Field label="التخصص"><input className={inputCls} value={f.specialty} onChange={set("specialty")} maxLength={120} /></Field>
         <Field label="هاتف تسجيل الدخول"><><input className={inputCls} dir="ltr" value={f.phone} readOnly disabled /><Link to="/account" className="mt-1 block text-xs font-bold text-primary hover:text-teal">تغيير الرقم بعد التحقق منه</Link></></Field>
+        <p className="text-xs text-muted-foreground sm:col-span-2">{broker.show_contact ? "بيانات التواصل دي ظاهرة للعملاء حسب اتفاقيتك مع فاليو عقار." : "بيانات التواصل دي مش ظاهرة للعملاء — العملاء بيتواصلوا عن طريق فاليو عقار، والاستفسار بيوصلك كعميل في لوحتك."}</p>
         <Field label="واتساب"><input className={inputCls} dir="ltr" value={f.whatsapp} onChange={set("whatsapp")} maxLength={20} /></Field>
         <Field label="البريد"><input className={inputCls} dir="ltr" value={f.email} onChange={set("email")} maxLength={255} /></Field>
         <Field label="رابط فيسبوك"><input className={inputCls} dir="ltr" value={f.facebook} onChange={set("facebook")} maxLength={300} /></Field>

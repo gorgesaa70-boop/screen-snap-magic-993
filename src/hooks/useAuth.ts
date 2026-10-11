@@ -30,19 +30,18 @@ export function useMe() {
     queryFn: async () => {
       const [roles, own, adminExists] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user!.id),
-        supabase.from("brokers").select("*").eq("user_id", user!.id).maybeSingle(),
+        supabase.rpc("my_account"),
         supabase.rpc("admin_exists"),
       ]);
       const list = (roles.data ?? []).map((r) => r.role);
-      let broker = own.data;
+      // my_account(): the user's own account (any status) or the company they work for — full row incl. contacts.
+      const account = own.data?.[0] ?? null;
+      let broker = account && account.user_id === user!.id ? account : null;
       let memberRole: MemberRole | null = broker ? "owner" : null;
       let memberName: string | null = null;
-      if (!broker) {
+      if (!broker && account) {
         const m = (await dbx.rpc("my_membership")).data?.[0];
-        if (m) {
-          broker = (await supabase.from("brokers").select("*").eq("id", m.company_id).maybeSingle()).data;
-          if (broker) { memberRole = m.role as MemberRole; memberName = m.member_name; }
-        }
+        if (m && m.company_id === account.id) { broker = account; memberRole = m.role as MemberRole; memberName = m.member_name; }
       }
       return {
         isAdmin: list.includes("admin"), isStaff: list.includes("staff"), isBroker: list.includes("broker"),

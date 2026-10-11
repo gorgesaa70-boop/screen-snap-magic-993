@@ -33,7 +33,7 @@ function useAdminData(enabled: boolean) {
     queryKey: ["admin-data"], enabled,
     queryFn: async () => {
       const [b, p, l, pl] = await Promise.all([
-        supabase.from("brokers").select("*").order("created_at", { ascending: false }),
+        supabase.rpc("admin_brokers"),
         supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }),
         supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }),
         supabase.from("plans").select("*").order("max_properties"),
@@ -188,6 +188,12 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
               </select>
             )}
             <div className="flex flex-wrap gap-2">
+              {st === "approved" && (
+                <button className={b.show_contact ? btnPrimary : btnOutline} title="رقم التليفون والواتساب والإيميل يظهروا للعملاء (حسب الاتفاقية)" onClick={async () => {
+                  const { error } = await supabase.from("brokers").update({ show_contact: !b.show_contact }).eq("id", b.id);
+                  if (error) toast.error(error.message); else { toast.success(b.show_contact ? "بيانات التواصل اتخفت عن العملاء" : "بيانات التواصل بقت ظاهرة للعملاء"); reload(); }
+                }}>{b.show_contact ? "التواصل ظاهر" : "التواصل مخفي"}</button>
+              )}
               {st === "approved" ? (
                 <button className={btnOutline} onClick={() => activate(b, false)}>إيقاف</button>
               ) : (

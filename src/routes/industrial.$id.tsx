@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Factory, MapPin, Maximize, MessageCircle, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
-import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
 
@@ -12,7 +12,7 @@ async function fetchIndustrial(id: string) {
   if (error) throw error;
   if (!p) return null;
   let broker: PublicBroker | null = null;
-  if (p.broker_id) broker = ((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", p.broker_id).maybeSingle()).data as PublicBroker | null) ?? null;
+  if (p.broker_id) { const row = (await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", p.broker_id).maybeSingle()).data; broker = row ? ((await withContacts([row]))[0] as PublicBroker) : null; }
   return { p, broker };
 }
 

@@ -8,7 +8,7 @@ import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, type PublicBroker } from "@/components/site/data";
+import { ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 async function fetchProperty(id: string) {
@@ -18,7 +18,7 @@ async function fetchProperty(id: string) {
   let broker: PublicBroker | null = null;
   if (data.broker_id) {
     const r = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.broker_id).maybeSingle();
-    broker = r.data as PublicBroker | null;
+    broker = r.data ? ((await withContacts([r.data]))[0] as PublicBroker) : null;
   }
   return { p: toProperty(data), broker, sourceUrl: data.source_url, approved: data.review_status === "approved", createdAt: data.created_at };
 }
