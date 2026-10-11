@@ -211,4 +211,14 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     return sys(`select c.status, c.expected_amount from public.commissions c join public.deals d on d.id=c.deal_id where d.lead_id='${nl}'`);
   }, (r) => r[0].status === "expected" && Number(r[0].expected_amount) === 50000);
   await expectErr("cancelling needs a reason", () => as(U.admin, `update public.commissions c set status='cancelled' from public.deals d where d.id=c.deal_id and d.lead_id='${nl}'`));
+
+  console.log("\nAudit log (item 20)");
+  await expectOk("source change recorded with old and new value", () => as(U.admin, `select changes->'source' s, actor_label from public.audit_log where table_name='leads' and row_id='${fb}' and action='update' and changes ? 'source' order by at limit 1`), (r) => r[0] && r[0].s[0] === "facebook" && r[0].s[1] === "referral" && r[0].actor_label === "أدمن");
+  await expectOk("team member actions carry their name and company", () => as(U.admin, `select actor_label from public.audit_log where actor='${U.manager}' limit 1`), (r) => r[0]?.actor_label.startsWith("فريق: مدير"));
+  await expectOk("payments and commission approvals are in the log", () => as(U.admin, `select (select count(*) from public.audit_log where table_name='commission_payments') p, (select count(*) from public.audit_log where table_name='commissions' and changes ? 'approved_at') a`), (r) => Number(r[0].p) === 2 && Number(r[0].a) >= 1);
+  await expectOk("unchanged updates add nothing", async () => { const before = (await sys(`select count(*) c from public.audit_log`))[0].c; await as(U.admin, `update public.plans set name=name`); return [(await sys(`select count(*) c from public.audit_log`))[0].c === before]; }, (r) => r[0]);
+  await expectOk("companies and staff can't read the log", async () => [(await as(U.owner, `select id from public.audit_log`)).length, (await as(U.staff, `select id from public.audit_log`)).length], (r) => r[0] === 0 && r[1] === 0);
+  await expectErr("even admin can't edit the log", () => as(U.admin, `update public.audit_log set actor_label='x'`));
+  await expectErr("even admin can't delete the log", () => as(U.admin, `delete from public.audit_log`));
+  await expectErr("nobody can write to the log directly", () => as(U.admin, `insert into public.audit_log (table_name, action) values ('x','insert')`));
 }

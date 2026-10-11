@@ -16,6 +16,7 @@ import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
+import { AuditLog } from "@/components/dash/AuditLog";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app" | "audit";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -58,7 +59,7 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "review_alerts", label: "تنبيهات المراجعة" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" }, { id: "audit", label: "سجل التدقيق" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
@@ -67,6 +68,7 @@ function AdminPage() {
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}
           {tab === "app" && <AppSettingsAdmin />}
+          {tab === "audit" && <AuditLog />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}

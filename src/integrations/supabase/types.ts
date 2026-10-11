@@ -38,6 +38,37 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          actor_label: string | null
+          at: string
+          changes: Json
+          id: number
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          actor_label?: string | null
+          at?: string
+          changes?: Json
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          actor_label?: string | null
+          at?: string
+          changes?: Json
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       auth_events: {
         Row: {
           created_at: string
