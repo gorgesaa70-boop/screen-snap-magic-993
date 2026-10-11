@@ -16,7 +16,7 @@ export function storeFor(ua: string): "ios" | "android" | null {
 export type AppLinks = { ios: string | null; android: string | null };
 
 export async function fetchAppLinks(): Promise<AppLinks> {
-  const { data } = await supabase.from("app_settings").select("ios_url, android_url").eq("id", 1).maybeSingle();
+  const { data } = await dbx.from("app_settings").select("ios_url, android_url").eq("id", 1).maybeSingle();
   return { ios: data?.ios_url ?? null, android: data?.android_url ?? null };
 }
 

@@ -56,7 +56,7 @@ function LeadPage() {
   });
   const team = useQuery({
     queryKey: ["lead-team", companyId], enabled: !!companyId && (seeAll || canTeam),
-    queryFn: async () => (await supabase.from("company_members").select("id, name, role, is_active").eq("company_id", companyId!).order("name")).data ?? [],
+    queryFn: async () => (await dbx.from("company_members").select("id, name, role, is_active").eq("company_id", companyId!).order("name")).data ?? [],
   });
   const listStaff = useServerFn(staffDirectory);
   const staff = useQuery({

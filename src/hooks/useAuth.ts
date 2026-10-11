@@ -37,7 +37,7 @@ export function useMe() {
       let memberRole: MemberRole | null = broker ? "owner" : null;
       let memberName: string | null = null;
       if (!broker) {
-        const m = (await supabase.rpc("my_membership")).data?.[0];
+        const m = (await dbx.rpc("my_membership")).data?.[0];
         if (m) {
           broker = (await supabase.from("brokers").select("*").eq("id", m.company_id).maybeSingle()).data;
           if (broker) { memberRole = m.role as MemberRole; memberName = m.member_name; }
