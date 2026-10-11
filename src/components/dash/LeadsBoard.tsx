@@ -8,6 +8,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
+import { DeadlineBadge } from "./Deadline";
 import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
 export type LeadWithProp = {
@@ -29,6 +30,9 @@ export type LeadWithProp = {
   assigned_broker_id: string | null;
   follow_up_at?: string | null;
   first_response_at?: string | null;
+  transfer_deadline_at?: string | null;
+  admin_queue_at?: string | null;
+  admin_queue_reason?: string | null;
   properties: { title: string } | null;
   lead_no?: number;
   source?: string;
@@ -261,7 +265,9 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
-      {!l.first_response_at && <div className="mt-3"><ContactOutcome leadId={l.id} onDone={onChanged} /></div>}
+      {l.admin_queue_at && <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">في طابور الإدارة — {l.admin_queue_reason ?? "محتاج إسناد"}</p>}
+      {l.transfer_deadline_at && !l.first_response_at && <div className="mt-3"><DeadlineBadge at={l.transfer_deadline_at} /></div>}
+      {!l.first_response_at && l.assigned_broker_id && <div className="mt-2"><ContactOutcome leadId={l.id} onDone={onChanged} /></div>}
       <div className="mt-3 flex flex-wrap gap-2">
         <a onClick={() => logActivity(l.id, "call", "اتصال بالعميل")} href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
         <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك وسيط فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
@@ -314,23 +320,29 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
     setNotified((p) => new Set([...p, ...fresh.map((l) => l.id)]));
   }, [dueList, notified]);
 
+  const [crm, setCrm] = useState<"all" | "queue" | "waiting" | "urgent">("all");
+  const soon = (l: LeadWithProp) => !!l.transfer_deadline_at && !l.first_response_at && new Date(l.transfer_deadline_at).getTime() - Date.now() < 20 * 60_000;
   const filtered = useMemo(() => {
     const s = search.trim();
     const no = Number(s.replace(/^va-?/i, "").replace(/^0+/, ""));
     return list.filter((l) =>
+      (crm === "all" || (crm === "queue" ? !!l.admin_queue_at && !l.assigned_broker_id : crm === "waiting" ? !l.first_response_at && !!l.assigned_broker_id && !CLOSED_STAGES.includes(l.stage) : soon(l))) &&
       (kind === "all" || l.kind === kind) &&
       (stage === "all" || l.stage === stage) &&
       (source === "all" || l.source === source) &&
       (!s || l.name.includes(s) || l.phone.includes(s) || (l.details ?? "").includes(s) || (l.properties?.title ?? "").includes(s) || (!!no && l.lead_no === no))
     );
-  }, [list, search, kind, stage, source]);
+  }, [list, search, kind, stage, source, crm]);
 
   const upd = async (id: string, patch: TablesUpdate<"leads">) => {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
   };
 
-  const hasFilter = search || kind !== "all" || stage !== "all" || source !== "all";
+  const hasFilter = search || kind !== "all" || stage !== "all" || source !== "all" || crm !== "all";
+  const queueCount = list.filter((l) => l.admin_queue_at && !l.assigned_broker_id).length;
+  const waitingCount = list.filter((l) => !l.first_response_at && l.assigned_broker_id && !CLOSED_STAGES.includes(l.stage)).length;
+  const urgentCount = list.filter(soon).length;
   const open = list.filter((l) => !CLOSED_STAGES.includes(l.stage)).length;
 
   return (
@@ -363,10 +375,17 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
           {Object.entries(LEAD_SOURCES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         {hasFilter && (
-          <button className={btnOutline} onClick={() => { setSearch(""); setKind("all"); setStage("all"); setSource("all"); }}>
+          <button className={btnOutline} onClick={() => { setSearch(""); setKind("all"); setStage("all"); setSource("all"); setCrm("all"); }}>
             <X className="size-4" />مسح الفلاتر
           </button>
         )}
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="متابعة التواصل">
+        {([["all", "الكل", list.length], ["waiting", "مستنيين أول تواصل", waitingCount], ["urgent", "المهلة قربت تخلص", urgentCount], ...(brokers ? [["queue", "طابور الإدارة", queueCount] as const] : [])] as const).map(([id, label, n]) => (
+          <button key={id} type="button" onClick={() => setCrm(id)} aria-pressed={crm === id}
+            className={`h-9 rounded-full border px-3 text-xs font-bold transition ${crm === id ? "border-primary bg-primary text-primary-foreground" : id === "queue" && n ? "border-destructive text-destructive" : "bg-card text-primary hover:border-teal"}`}>{label} ({n})</button>
+        ))}
       </div>
 
       {dueList.length > 0 && (
@@ -461,6 +480,8 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
                 {[LEAD_SOURCES[l.source ?? ""] ?? l.source, brokers ? brokers.find((b) => b.id === l.assigned_broker_id)?.name ?? (l.assigned_broker_id ? null : "غير مُسند") : null, formatDate(l.created_at)].filter(Boolean).join(" · ")}
               </p>
               {l.follow_up_at && <p className={`mt-1 text-xs ${late ? "font-bold text-destructive" : "text-muted-foreground"}`}>المتابعة: {new Date(l.follow_up_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" })}</p>}
+              {l.transfer_deadline_at && !l.first_response_at && <div className="mt-2"><DeadlineBadge at={l.transfer_deadline_at} compact /></div>}
+              {l.admin_queue_at && <p className="mt-1 text-xs font-bold text-destructive">طابور الإدارة</p>}
             </Link>
           </li>
         );
@@ -480,7 +501,7 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
                 <td className="p-3 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind}</span></td>
                 <td className="p-3" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive" title="الرقم مكرر">×{dups + 1}</span>}</td>
                 <td className="p-3">{LEAD_SOURCES[l.source ?? ""] ?? l.source}</td>
-                <td className="p-3">{stageLabel(l.stage, l.purpose)}</td>
+                <td className="p-3">{stageLabel(l.stage, l.purpose)}{l.transfer_deadline_at && !l.first_response_at && <span className="mt-1 block"><DeadlineBadge at={l.transfer_deadline_at} compact /></span>}{l.admin_queue_at && <span className="mt-1 block text-xs font-bold text-destructive">طابور الإدارة</span>}</td>
                 <td className="p-3">{brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? (l.assigned_broker_id ? "—" : "غير مُسند")}</td>
                 <td className={`p-3 ${l.follow_up_at && new Date(l.follow_up_at).getTime() < Date.now() ? "font-bold text-destructive" : ""}`}>{l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
                 <td className="p-3 text-muted-foreground">{formatDate(l.created_at)}</td>

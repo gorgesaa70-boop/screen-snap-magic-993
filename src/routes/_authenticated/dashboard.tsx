@@ -8,6 +8,8 @@ import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
 import { BrokerGuide } from "@/components/dash/BrokerGuide";
+import { DeadlineBadge } from "@/components/dash/Deadline";
+import { ContactOutcome } from "@/components/dash/LeadsBoard";
 import { ListingsImport } from "@/components/dash/ListingsImport";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
@@ -209,9 +211,9 @@ function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: str
   );
 }
 
-type LeadWithProp = { lead_no?: number; id: string; name: string; phone: string; kind: string; details: string | null; property_type: string | null; area: string | null; budget: number | null; stage: string; notes: string | null; created_at: string; properties: { title: string } | null };
+type LeadWithProp = { transfer_deadline_at?: string | null; first_response_at?: string | null; assigned_broker_id?: string | null; lead_no?: number; id: string; name: string; phone: string; kind: string; details: string | null; property_type: string | null; area: string | null; budget: number | null; stage: string; notes: string | null; created_at: string; properties: { title: string } | null };
 
-function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s: string) => void; onNotes?: (n: string) => void; extra?: React.ReactNode }) {
+function LeadCard({ l, onStage, onNotes, extra, onChanged }: { l: LeadWithProp; onStage: (s: string) => void; onNotes?: (n: string) => void; extra?: React.ReactNode; onChanged?: (() => void) | undefined }) {
   const [notes, setNotes] = useState(l.notes ?? "");
   return (
     <div className="rounded-2xl border bg-card p-4">
@@ -229,6 +231,8 @@ function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
+      {l.transfer_deadline_at && !l.first_response_at && <div className="mt-3"><DeadlineBadge at={l.transfer_deadline_at} /></div>}
+      {!l.first_response_at && l.assigned_broker_id && <div className="mt-2"><ContactOutcome leadId={l.id} onDone={onChanged} /></div>}
       <div className="mt-3 flex flex-wrap gap-2">
         <a href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
         <a href={waLink(l.phone, `مرحبًا ${l.name}، معك وسيط فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
@@ -254,7 +258,7 @@ function MyLeads({ list, reload }: { list: LeadWithProp[]; reload: () => void })
   // The latest few here; the full list with filters and the pipeline lives on the "العملاء والطلبات" page (no duplicate lists).
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 lg:grid-cols-2">{list.slice(0, 6).map((l) => <LeadCard key={l.id} l={l} onStage={(s) => upd(l.id, { stage: s })} onNotes={(n) => upd(l.id, { notes: n })} />)}</div>
+      <div className="grid gap-3 lg:grid-cols-2">{list.slice(0, 6).map((l) => <LeadCard key={l.id} l={l} onStage={(s) => upd(l.id, { stage: s })} onNotes={(n) => upd(l.id, { notes: n })} onChanged={reload} />)}</div>
       <Link to="/inquiries" className={btnOutline}>كل العملاء والطلبات ({list.length}) ←</Link>
     </div>
   );
