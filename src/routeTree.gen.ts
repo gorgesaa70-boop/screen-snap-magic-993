@@ -45,6 +45,7 @@ import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as ApiPublicMetaLeadsRouteImport } from './routes/api/public/meta/leads'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 
@@ -230,6 +231,11 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicMetaLeadsRoute = ApiPublicMetaLeadsRouteImport.update({
+  id: '/api/public/meta/leads',
+  path: '/api/public/meta/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicNotificationsWhatsappDispatchRoute =
   ApiPublicNotificationsWhatsappDispatchRouteImport.update({
     id: '/api/public/notifications/whatsapp-dispatch',
@@ -279,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/projects/': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/projects/': typeof ProjectsIndexRoute
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
 }
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/investments/new'
     | '/leads/$id'
+    | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/investments/new'
     | '/leads/$id'
+    | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   id:
@@ -479,6 +490,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
+    | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
   fileRoutesById: FileRoutesById
@@ -504,6 +516,7 @@ export interface RootRouteChildren {
   InvestmentsIndexRoute: typeof InvestmentsIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ApiPublicMetaLeadsRoute: typeof ApiPublicMetaLeadsRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
@@ -762,6 +775,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/meta/leads': {
+      id: '/api/public/meta/leads'
+      path: '/api/public/meta/leads'
+      fullPath: '/api/public/meta/leads'
+      preLoaderRoute: typeof ApiPublicMetaLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/notifications/whatsapp-dispatch': {
       id: '/api/public/notifications/whatsapp-dispatch'
       path: '/api/public/notifications/whatsapp-dispatch'
@@ -841,6 +861,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvestmentsIndexRoute: InvestmentsIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ApiPublicMetaLeadsRoute: ApiPublicMetaLeadsRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:
     ApiPublicNotificationsWhatsappDispatchRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,

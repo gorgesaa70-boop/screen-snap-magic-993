@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { MapPin, CalendarClock, Wallet, CheckCircle2 } from "lucide-react";
+import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
@@ -149,7 +150,7 @@ function ProjectInquiry({ project, unit, onClearUnit }: { project: string; unit:
     const { error } = await supabase.from("leads").insert({
       name: name.trim(), phone: phone.trim(), kind: "request",
       property_type: unit?.unit_type ?? null, budget: unit?.price ?? null,
-      details: [about, details.trim()].filter(Boolean).join("\n").slice(0, 1000),
+      details: [about, details.trim()].filter(Boolean).join("\n").slice(0, 1000), utm: getAttribution(),
     });
     setBusy(false);
     if (error) { toast.error(t("تعذّر الإرسال")); return; }

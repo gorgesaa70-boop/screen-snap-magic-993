@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 import { t, useLang } from "@/lib/i18n";
@@ -14,7 +15,7 @@ export function BrokerInquiry({ brokerId, brokerName }: { brokerId: string; brok
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), details: f.details.trim().slice(0, 1000) || null, via_broker_id: brokerId, kind: "inquiry" });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), details: f.details.trim().slice(0, 1000) || null, via_broker_id: brokerId, kind: "inquiry", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(t("تعذّر الإرسال")); return; }
     setDone(true);
