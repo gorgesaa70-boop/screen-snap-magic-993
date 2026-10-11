@@ -29,7 +29,7 @@ function useReportData(scope: Scope) {
     queryKey: ["reports-data", scope.seeAll, scope.companyId],
     queryFn: async () => {
       const [leads, deals, comms, pays, units, projects, members, brokers, staff, settings] = await Promise.all([
-        supabase.from("leads").select("id, created_at, stage, source, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at"),
+        supabase.from("leads").select("id, created_at, stage, source, campaign, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at"),
         supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, deal_type, sale_value, sale_date, review_status, reservation_date, contract_date, created_at"),
         supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at"),
         supabase.from("commission_payments").select("commission_id, amount, paid_on"),
@@ -244,6 +244,16 @@ export function Reports({ scope }: { scope: Scope }) {
             LEAD_SOURCES[s] ?? s, ls.length, ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => REACHED(l.stage, "visited")).length,
             ls.filter((l) => REACHED(l.stage, "reserved")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length), ls.filter((l) => l.stage === "lost").length,
           ])} />
+      )}
+      {tab === "sources" && L.some((l) => l.campaign) && (
+        <div className="mt-6">
+          <h3 className="mb-2 font-extrabold text-primary">الحملات الإعلانية</h3>
+          <Table name="lead-campaigns" head={["الحملة", "المصدر", "العملاء", "اتواصل معاهم", "زيارات", "بيع مؤكد", "التحويل"]}
+            rows={group(L.filter((l) => l.campaign), (l) => `${l.campaign}|${l.source}`).sort((a, b) => b[1].length - a[1].length).map(([k, ls]) => [
+              k.slice(0, k.lastIndexOf("|")), LEAD_SOURCES[ls[0]!.source] ?? ls[0]!.source, ls.length, ls.filter((l) => REACHED(l.stage, "contacted")).length,
+              ls.filter((l) => REACHED(l.stage, "visited")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
+            ])} />
+        </div>
       )}
 
       {tab === "companies" && scope.seeAll && (

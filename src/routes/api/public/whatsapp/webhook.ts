@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parseEvents, verifyChallenge, verifySignature } from "@/lib/whatsapp-webhook";
+import { parseEvents, parseInbound, verifyChallenge, verifySignature } from "@/lib/whatsapp-webhook";
 
 /** Meta WhatsApp Cloud API webhook. Independent from OTP/dispatch code. */
 export const Route = createFileRoute("/api/public/whatsapp/webhook")({
@@ -36,6 +36,13 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
           } else if (ev.status === "delivered" || ev.status === "read") {
             await db.from("notifications").update({ whatsapp_status: ev.status }).eq("whatsapp_message_id", ev.wa_message_id).neq("whatsapp_status", "read");
           }
+        }
+        // Newly received customer messages: a new number becomes a lead (source WhatsApp), a known customer gets a note.
+        const fresh = new Set((inserted ?? []).filter((ev) => ev.kind === "message" && ev.wa_message_id).map((ev) => ev.wa_message_id));
+        for (const m of parseInbound(payload)) {
+          if (!fresh.has(m.wa_message_id)) continue;
+          const { error: leadErr } = await db.rpc("whatsapp_inbound_lead", { _phone: m.phone, _name: m.name ?? "", _text: m.text ?? "", _msg_id: m.wa_message_id });
+          if (leadErr) console.error("wa inbound lead failed", leadErr.code);
         }
         return new Response("ok");
       },

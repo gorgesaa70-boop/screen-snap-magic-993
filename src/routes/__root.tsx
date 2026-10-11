@@ -126,6 +126,7 @@ function RootComponent() {
   useSocialReturn(useCallback((to: string) => { void router.navigate({ to, replace: true }); }, [router]));
   useEffect(() => {
     void import("../lib/native-links").then((m) => m.initNativeShell()).catch(() => {});
+    void import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
   }, []);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {

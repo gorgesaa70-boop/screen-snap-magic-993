@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, AREAS, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
@@ -234,7 +235,7 @@ function RequestForm() {
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(tr("تعذّر إرسال الطلب، حاول مرة أخرى")); return; }
     setDone(true);
