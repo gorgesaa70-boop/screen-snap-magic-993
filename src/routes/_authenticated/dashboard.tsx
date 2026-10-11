@@ -4,15 +4,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMe } from "@/hooks/useAuth";
+import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
 import { MyProjects } from "@/components/dash/MyProjects";
+import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "لوحة التحكم | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -27,7 +28,14 @@ function Dashboard() {
     return (
       <DashShell title="لوحة التحكم" isAdmin={me.isAdmin}>
         <div className="max-w-lg rounded-2xl border bg-card p-6">
-          {me.isAdmin ? (
+          {me.isStaff && !me.isAdmin ? (
+            <>
+              <ShieldCheck className="size-10 text-teal" />
+              <p className="mt-3 font-bold text-primary">أنت في فريق فاليو عقار.</p>
+              <p className="mt-2 text-sm text-muted-foreground">تقدر تتابع كل طلبات العملاء وتوزّعها على الوسطاء والشركات.</p>
+              <Link to="/inquiries" className={`${btnPrimary} mt-5`}>طلبات العملاء</Link>
+            </>
+          ) : me.isAdmin ? (
             <>
               <ShieldCheck className="size-10 text-teal" />
               <p className="mt-3 font-bold text-primary">أنت مسجّل كمدير للمنصة.</p>
@@ -54,17 +62,28 @@ function Dashboard() {
       <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">تم إيقاف هذا الحساب من الإدارة، ولا يمكن الوصول إلى لوحة التحكم. تواصل مع إدارة المنصة.</p>
     </DashShell>
   );
-  if (!me.broker.is_active) return (
+  if (!me.broker.is_active) return me.broker.rejected_at ? (
+    <DashShell title="طلب الانضمام اترفض" isAdmin={me.isAdmin}>
+      <div className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+        <p>للأسف طلب الانضمام ما اتقبلش.</p>
+        {me.broker.review_note && <p className="mt-2 font-bold text-destructive">السبب: {me.broker.review_note}</p>}
+        <p className="mt-2">لو عندك استفسار تواصل مع إدارة فاليو عقار.</p>
+      </div>
+    </DashShell>
+  ) : (
     <DashShell title="حسابك قيد المراجعة" isAdmin={me.isAdmin}>
       <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">طلب انضمامك قيد المراجعة من الإدارة، وستتمكن من الوصول إلى لوحة الوسيط فور الاعتماد.</p>
     </DashShell>
   );
-  return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} />;
+  return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "properties" | "leads" | "profile";
+type Tab = "overview" | "projects" | "properties" | "leads" | "team" | "profile";
+const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
-function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }) {
+function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
+  const isOwner = role === "owner";
+  const canList = isOwner || role === "manager";
   const [tab, setTab] = useState<Tab>("overview");
   const props = useQuery({
     queryKey: ["my-properties", broker.id],
@@ -89,9 +108,19 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
   const count = (s: string) => P.filter((p) => p.review_status === s).length;
 
   return (
-    <DashShell title={`أهلًا، ${broker.name}`} isAdmin={isAdmin}>
-      <span className="mb-3 inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "office" ? "مكتب عقاري" : broker.account_type === "owner" ? "مالك عقار" : broker.account_type === "developer" ? "شركة تطوير" : "وسيط فرد"}</span>
-      <Tabs<Tab> value={tab} onChange={setTab} tabs={[{ id: "overview", label: "نظرة عامة" }, ...(broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []), { id: "properties", label: "عقاراتي" }, { id: "leads", label: "العملاء والطلبات" }, { id: "profile", label: "الملف الشخصي" }]} />
+    <DashShell title={`أهلًا، ${memberName ?? broker.name}`} isAdmin={isAdmin}>
+      <div className="mb-3 flex flex-wrap gap-2">
+        <span className="inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "individual" ? "وسيط فرد" : ACCOUNT_LABEL[broker.account_type] ?? broker.account_type}</span>
+        {!isOwner && <span className="inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">{broker.name} · {MEMBER_ROLES[role]?.label}</span>}
+      </div>
+      <Tabs<Tab> value={tab} onChange={setTab} tabs={[
+        { id: "overview", label: "نظرة عامة" },
+        ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
+        ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
+        { id: "leads", label: "العملاء والطلبات" },
+        ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
+        ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
+      ]} />
       {tab === "overview" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -104,13 +133,14 @@ function BrokerDash({ broker, isAdmin }: { broker: BrokerRow; isAdmin: boolean }
             <Stat label="عملاء جدد" value={L.filter((l) => l.stage === "new").length} />
             <Stat label="صفقات مغلقة" value={L.filter((l) => l.stage === "won").length} />
           </div>
-          <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>عرض ملفي العام</Link>
+          <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
         </div>
       )}
-      {tab === "projects" && <MyProjects developerId={broker.id} />}
-      {tab === "properties" && <MyProperties brokerId={broker.id} list={P} reload={() => props.refetch()} />}
+      {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
+      {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
+      {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} reload={() => props.refetch()} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
-      {tab === "profile" && <ProfileForm broker={broker} />}
+      {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
   );
 }

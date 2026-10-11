@@ -75,3 +75,58 @@ export const setBrokerActive = createServerFn({ method: "POST" })
     }
     return { ok: true as const };
   });
+
+/** Value Aqar staff are added by phone; they sign in with a WhatsApp code like everyone else. */
+export const listStaff = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as Ctx);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roles, error } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "staff");
+    if (error) return { ok: false as const, error: error.message };
+    const staff = await Promise.all((roles ?? []).map(async ({ user_id }) => {
+      const { data } = await supabaseAdmin.auth.admin.getUserById(user_id);
+      return { userId: user_id, phone: data.user?.phone ?? "", name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? "" };
+    }));
+    return { ok: true as const, staff };
+  });
+
+export const addStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ name: z.string().trim().min(2).max(100), phone: z.string().trim().min(8).max(20) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as Ctx);
+    const { normalizePhone } = await import("@/lib/broker-login");
+    const phone = normalizePhone(data.phone);
+    if (!phone || phone.length < 10) return { ok: false as const, error: "رقم الموبايل غير صحيح" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ids } = await supabaseAdmin.rpc("auth_user_ids_by_phone", { _phone: phone });
+    const list = (ids ?? []) as string[];
+    if (list.length > 1) return { ok: false as const, error: "الرقم ده مربوط بأكتر من حساب — راجعه الأول" };
+    const { data: brokers } = await supabaseAdmin.rpc("brokers_by_phone", { _phone: phone });
+    if ((brokers ?? []).length) return { ok: false as const, error: "الرقم ده مسجّل كحساب وسيط أو شركة" };
+    let userId = list[0];
+    if (!userId) {
+      const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+        phone, phone_confirm: true, email: `wa-${phone}@phone.valueaqar.invalid`, email_confirm: true, user_metadata: { full_name: data.name },
+      });
+      if (error || !created.user) return { ok: false as const, error: error?.message ?? "تعذّر إنشاء الحساب" };
+      userId = created.user.id;
+    } else {
+      await supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: { full_name: data.name } });
+    }
+    const { error } = await supabaseAdmin.from("user_roles").upsert({ user_id: userId, role: "staff" }, { onConflict: "user_id,role" });
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });
+
+export const removeStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context as Ctx);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", "staff");
+    if (error) return { ok: false as const, error: error.message };
+    return { ok: true as const };
+  });

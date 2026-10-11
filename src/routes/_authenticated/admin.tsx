@@ -12,6 +12,7 @@ import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/c
 import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
+import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "alerts" | "brokers" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls";
+type Tab = "reports" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -49,16 +50,18 @@ function AdminPage() {
   const d = q.data;
   const reload = () => q.refetch();
   const pending = d?.properties.filter((p) => p.review_status === "pending").length ?? 0;
+  const pendingAccounts = d?.brokers.filter((b) => accountStatus(b) === "pending").length ?? 0;
   return (
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
-        { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: "الوسطاء" },
+        { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
         { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
           {tab === "reports" && <Reports d={d} />}
           {tab === "alerts" && <AdminNotifications />}
+          {tab === "staff" && <StaffAdmin />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
@@ -109,35 +112,91 @@ function Reports({ d }: { d: D }) {
   );
 }
 
+const ACCOUNT_STATUS = {
+  pending: { label: "بانتظار المراجعة", cls: "bg-teal-soft text-primary" },
+  approved: { label: "معتمد", cls: "bg-primary text-primary-foreground" },
+  rejected: { label: "مرفوض", cls: "bg-destructive/10 text-destructive" },
+  suspended: { label: "موقوف", cls: "bg-destructive text-primary-foreground" },
+} as const;
+type AccountStatus = keyof typeof ACCOUNT_STATUS;
+function accountStatus(b: BrokerRow): AccountStatus {
+  if (b.suspended_at) return "suspended";
+  if (b.is_active) return "approved";
+  return b.rejected_at ? "rejected" : "pending";
+}
+
 function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans: PlanRow[]; reload: () => void }) {
   const toggle = useServerFn(setBrokerActive);
   const [showNew, setShowNew] = useState(false);
+  const [status, setStatus] = useState<AccountStatus | "">("");
+  const [type, setType] = useState("");
+  const team = useQuery({
+    queryKey: ["admin-team-counts"],
+    queryFn: async () => ((await supabase.from("company_members").select("company_id, is_active")).data ?? []),
+  });
+  const list = brokers.filter((b) => (!status || accountStatus(b) === status) && (!type || b.account_type === type));
+  const activate = async (b: BrokerRow, active: boolean) => {
+    const r = await toggle({ data: { brokerId: b.id, active } });
+    if (!r.ok) toast.error(r.error); else { toast.success(active ? "تم اعتماد الحساب" : "تم إيقاف الحساب"); reload(); }
+  };
   return (
     <div className="space-y-3">
       <button onClick={() => setShowNew(!showNew)} className={btnPrimary}>{showNew ? "إغلاق" : "إضافة وسيط / إرسال دعوة"}</button>
       {showNew && <NewBroker plans={plans} onDone={() => { setShowNew(false); reload(); }} />}
-      {brokers.map((b) => (
-        <div key={b.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Avatar name={b.name} url={b.photo_url} size="size-12" />
-            <div className="min-w-0">
-              <p className="truncate font-bold text-primary">{b.name} {b.is_demo && <span className="text-xs text-muted-foreground">(تجريبي)</span>}</p>
-              <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${b.account_type === "developer" ? "bg-teal text-accent-foreground" : "bg-secondary text-primary"}`}>{ACCOUNT_LABEL[b.account_type] ?? b.account_type}</span>
-              <p className="truncate text-xs text-muted-foreground" dir="ltr">{b.email || (b.user_id ? "" : "بدون حساب دخول")}</p>
+      <div className="flex flex-wrap gap-2">
+        <select aria-label="الحالة" className={`${inputCls} w-auto`} value={status} onChange={(e) => setStatus(e.target.value as AccountStatus | "")}>
+          <option value="">كل الحالات</option>{Object.entries(ACCOUNT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select aria-label="نوع الحساب" className={`${inputCls} w-auto`} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">كل الأنواع</option>{Object.entries(ACCOUNT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+      {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد حسابات.</p>}
+      {list.map((b) => {
+        const st = accountStatus(b);
+        const members = (team.data ?? []).filter((m) => m.company_id === b.id);
+        return (
+          <div key={b.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Avatar name={b.name} url={b.photo_url} size="size-12" />
+              <div className="min-w-0 space-y-1">
+                <p className="truncate font-bold text-primary">{b.name} {b.is_demo && <span className="text-xs text-muted-foreground">(تجريبي)</span>}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${ACCOUNT_STATUS[st].cls}`}>{ACCOUNT_STATUS[st].label}</span>
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${["developer", "company"].includes(b.account_type) ? "bg-teal text-accent-foreground" : "bg-secondary text-primary"}`}>{ACCOUNT_LABEL[b.account_type] ?? b.account_type}</span>
+                  {members.length > 0 && <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-[11px] font-bold text-primary">الفريق: {members.filter((m) => m.is_active).length}</span>}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {[b.phone ? `+${b.phone}` : null, b.email, b.contact_person ? `المسؤول: ${b.contact_person}` : null, b.commercial_register ? `س.ت: ${b.commercial_register}` : null, b.address].filter(Boolean).join(" · ") || (b.user_id ? "" : "بدون حساب دخول")}
+                </p>
+                {st === "rejected" && b.review_note && <p className="text-xs text-destructive">سبب الرفض: {b.review_note}</p>}
+              </div>
+            </div>
+            {st === "approved" && (
+              <select aria-label="الباقة" className={`${inputCls} md:w-48`} value={b.plan_id ?? ""} onChange={async (e) => {
+                const { error } = await supabase.from("brokers").update({ plan_id: e.target.value || null }).eq("id", b.id);
+                if (error) toast.error(error.message); else { toast.success("تم تحديث الباقة"); reload(); }
+              }}>
+                <option value="">بدون باقة</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {st === "approved" ? (
+                <button className={btnOutline} onClick={() => activate(b, false)}>إيقاف</button>
+              ) : (
+                <button className={btnPrimary} onClick={() => activate(b, true)}><Check className="size-4" />{st === "suspended" ? "إعادة تفعيل" : "اعتماد"}</button>
+              )}
+              {st === "pending" && (
+                <button className={btnOutline} onClick={async () => {
+                  const note = prompt("سبب الرفض (هيظهر لصاحب الطلب):"); if (note === null) return;
+                  const { error } = await supabase.from("brokers").update({ rejected_at: new Date().toISOString(), review_note: note.trim().slice(0, 500) || null }).eq("id", b.id);
+                  if (error) toast.error(error.message); else { toast.success("تم رفض الطلب"); reload(); }
+                }}><X className="size-4" />رفض</button>
+              )}
             </div>
           </div>
-          <select aria-label="الباقة" className={`${inputCls} md:w-48`} value={b.plan_id ?? ""} onChange={async (e) => {
-            const { error } = await supabase.from("brokers").update({ plan_id: e.target.value || null }).eq("id", b.id);
-            if (error) toast.error(error.message); else { toast.success("تم تحديث الباقة"); reload(); }
-          }}>
-            <option value="">بدون باقة</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <button className={b.is_active ? btnOutline : btnPrimary} onClick={async () => {
-            const r = await toggle({ data: { brokerId: b.id, active: !b.is_active } });
-            if (!r.ok) toast.error(r.error); else { toast.success(b.is_active ? "تم إيقاف الحساب" : "تم تفعيل الحساب"); reload(); }
-          }}>{b.is_active ? "إيقاف" : "تفعيل"}</button>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

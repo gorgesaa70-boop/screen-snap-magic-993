@@ -43,7 +43,7 @@ export const CITIES: Record<string, string[]> = {
 };
 export const CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
-export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", developer: "شركة تطوير" };
+export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", company: "شركة تسويق / وساطة", developer: "شركة تطوير" };
 
 export const toProperty = (r: PropertyRow): Property => ({
   id: r.id,

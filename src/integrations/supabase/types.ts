@@ -44,6 +44,11 @@ export type Database = {
       brokers: {
         Row: {
           account_type: string
+          address: string | null
+          commercial_register: string | null
+          contact_person: string | null
+          rejected_at: string | null
+          review_note: string | null
           areas: string[]
           bio: string | null
           created_at: string
@@ -65,6 +70,11 @@ export type Database = {
         }
         Insert: {
           account_type?: string
+          address?: string | null
+          commercial_register?: string | null
+          contact_person?: string | null
+          rejected_at?: string | null
+          review_note?: string | null
           areas?: string[]
           bio?: string | null
           created_at?: string
@@ -86,6 +96,11 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          address?: string | null
+          commercial_register?: string | null
+          contact_person?: string | null
+          rejected_at?: string | null
+          review_note?: string | null
           areas?: string[]
           bio?: string | null
           created_at?: string
@@ -111,6 +126,50 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          added_by: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
             referencedColumns: ["id"]
           },
         ]
@@ -903,6 +962,18 @@ export type Database = {
       claim_first_admin: { Args: never; Returns: boolean }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
+      current_member_role: { Args: never; Returns: string }
+      is_staff: { Args: never; Returns: boolean }
+      my_membership: {
+        Args: never
+        Returns: {
+          company_id: string
+          member_name: string
+          role: string
+        }[]
+      }
+      my_phone: { Args: never; Returns: string }
+      owned_company_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -935,7 +1006,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "broker"
+      app_role: "admin" | "broker" | "staff"
       lead_stage:
         | "new"
         | "contacted"
@@ -1071,7 +1142,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "broker"],
+      app_role: ["admin", "broker", "staff"],
       lead_stage: ["new", "contacted", "viewing", "negotiating", "won", "lost"],
       review_status: ["draft", "pending", "approved", "rejected"],
     },

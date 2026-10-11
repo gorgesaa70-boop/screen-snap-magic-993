@@ -13,14 +13,16 @@ export const Route = createFileRoute("/_authenticated/inquiries")({
 function InquiriesPage() {
   const { me, loading } = useMe();
   const isAdmin = !!me?.isAdmin;
+  // Admins and Value Aqar staff see and assign every request.
+  const seeAll = isAdmin || !!me?.isStaff;
   const brokerId = me?.broker?.id;
 
   const leads = useQuery({
-    queryKey: ["inquiries", isAdmin ? "admin" : brokerId],
-    enabled: isAdmin || !!brokerId,
+    queryKey: ["inquiries", seeAll ? "all" : brokerId],
+    enabled: seeAll || !!brokerId,
     queryFn: async () => {
       let q = supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false });
-      if (!isAdmin) q = q.eq("assigned_broker_id", brokerId!);
+      if (!seeAll) q = q.eq("assigned_broker_id", brokerId!);
       const { data, error } = await q;
       if (error) throw error;
       return data;
@@ -29,7 +31,7 @@ function InquiriesPage() {
 
   const brokers = useQuery({
     queryKey: ["inquiries-brokers"],
-    enabled: isAdmin,
+    enabled: seeAll,
     queryFn: async () => {
       const { data, error } = await supabase.from("brokers").select("*").order("name");
       if (error) throw error;
@@ -39,7 +41,7 @@ function InquiriesPage() {
 
   if (loading) return <DashShell title="الطلبات والاستفسارات"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
 
-  if (!isAdmin && !brokerId) {
+  if (!seeAll && !brokerId) {
     return (
       <DashShell title="الطلبات والاستفسارات" isAdmin={isAdmin}>
         <p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
@@ -58,7 +60,7 @@ function InquiriesPage() {
       ) : (
         <LeadsBoard
           list={leads.data ?? []}
-          brokers={isAdmin ? (brokers.data ?? []) : undefined}
+          brokers={seeAll ? (brokers.data ?? []) : undefined}
           reload={() => leads.refetch()}
         />
       )}
