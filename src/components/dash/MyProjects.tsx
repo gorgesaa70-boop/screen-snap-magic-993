@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, LayoutGrid } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { REVIEW, formatPrice } from "@/components/site/data";
 import { projectCover, type ProjectRow } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";

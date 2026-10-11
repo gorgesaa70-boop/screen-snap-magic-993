@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 
 export function useSessionUser() {
   const [user, setUser] = useState<User | null>(null);

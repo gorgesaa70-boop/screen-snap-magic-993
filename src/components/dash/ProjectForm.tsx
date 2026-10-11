@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
 import { AMENITIES, type ProjectRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";

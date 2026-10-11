@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { t, useLang } from "@/lib/i18n";
 
 /** One link for every phone: /app sends iPhones to the App Store and Android phones to Google Play. */

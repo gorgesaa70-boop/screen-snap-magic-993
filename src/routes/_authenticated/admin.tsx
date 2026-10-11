@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, X, Star, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";

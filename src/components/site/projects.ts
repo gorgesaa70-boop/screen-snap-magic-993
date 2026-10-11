@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import type { Tables } from "@/integrations/supabase/types";
 import { PUBLIC_BROKER_COLS, type PublicBroker } from "@/components/site/data";
 

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import { REVIEW, formatPrice, type BrokerRow } from "@/components/site/data";
 import { projectCover } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";

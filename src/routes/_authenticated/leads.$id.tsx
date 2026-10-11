@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Phone, MessageCircle, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";

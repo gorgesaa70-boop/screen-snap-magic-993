@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbx } from "@/lib/dbx";
 import type { Tables } from "@/integrations/supabase/types";
 import { LEAD_SOURCES } from "@/components/site/data";
 
