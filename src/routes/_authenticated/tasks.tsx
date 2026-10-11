@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { CalendarClock, AlarmClock, PhoneCall } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { NewTask, TaskItems, useAssignable, type TaskRow } from "@/components/dash/Tasks";
@@ -25,18 +26,18 @@ function TasksPage() {
     queryKey: ["my-followups", onlyMine && seeAll],
     enabled: allowed,
     queryFn: async () => {
-      let q = supabase.from("leads").select("id, lead_no, name, phone, stage, follow_up_at, visit_at, assigned_staff_id")
-        .not("stage", "in", `(${CLOSED_STAGES.join(",")})`)
-        .or(`follow_up_at.not.is.null,visit_at.not.is.null`);
-      if (seeAll && onlyMine && user) q = q.eq("assigned_staff_id", user.id);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as LeadLite[];
+      return (await fetchAll((a, b) => {
+        let q = supabase.from("leads").select("id, lead_no, name, phone, stage, follow_up_at, visit_at, assigned_staff_id")
+          .not("stage", "in", `(${CLOSED_STAGES.join(",")})`)
+          .or(`follow_up_at.not.is.null,visit_at.not.is.null`).order("id");
+        if (seeAll && onlyMine && user) q = q.eq("assigned_staff_id", user.id);
+        return q.range(a, b);
+      })) as LeadLite[];
     },
   });
   const tasks = useQuery({
     queryKey: ["tasks-all"], enabled: allowed,
-    queryFn: async () => ((await supabase.from("tasks").select("*, leads(name, lead_no)").order("due_at", { nullsFirst: false })).data ?? []) as TaskRow[],
+    queryFn: async () => (await fetchAll((a, b) => supabase.from("tasks").select("*, leads(name, lead_no)").order("due_at", { nullsFirst: false }).order("id").range(a, b))) as TaskRow[],
   });
   const people = useAssignable();
 

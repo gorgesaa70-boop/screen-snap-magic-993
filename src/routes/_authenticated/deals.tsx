@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Download, Search } from "lucide-react";
 import { dbx } from "@/lib/dbx";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { DEAL_STATUS, dealNo } from "@/components/dash/LeadPipeline";
@@ -35,9 +36,7 @@ function DealsPage() {
   const q = useQuery({
     queryKey: ["deals-center"], enabled: allowed,
     queryFn: async () => {
-      const { data, error } = await dbx.from("deals").select("*, leads(name, lead_no), brokers(name)").order("updated_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Row[];
+      return (await fetchAll((a, b) => dbx.from("deals").select("*, leads(name, lead_no), brokers(name)").order("updated_at", { ascending: false }).order("id").range(a, b))) as Row[];
     },
   });
   const [status, setStatus] = useState("");

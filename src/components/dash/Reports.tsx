@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
 import { staffDirectory } from "@/lib/admin.functions";
 import { Stat, Tabs, inputCls, btnOutline } from "@/components/site/ui";
 import { CLOSED_STAGES, LEAD_SOURCES, STAGES, formatPrice } from "@/components/site/data";
@@ -29,22 +30,21 @@ function useReportData(scope: Scope) {
     queryKey: ["reports-data", scope.seeAll, scope.companyId],
     queryFn: async () => {
       const [leads, deals, comms, pays, units, projects, members, brokers, staff, settings] = await Promise.all([
-        supabase.from("leads").select("id, created_at, stage, source, campaign, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at"),
-        supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, deal_type, sale_value, sale_date, review_status, reservation_date, contract_date, created_at"),
-        supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at"),
-        supabase.from("commission_payments").select("commission_id, amount, paid_on"),
-        supabase.from("project_units").select("id, project_id"),
+        // Paged: a plain select stops at 1,000 rows and the totals would silently be wrong.
+        fetchAll((a, b) => supabase.from("leads").select("id, created_at, stage, source, campaign, area, assigned_broker_id, assigned_member_id, assigned_staff_id, follow_up_at, first_referred_at, referred_at, first_response_at").order("id").range(a, b)),
+        fetchAll((a, b) => supabase.from("deals").select("id, lead_id, broker_id, project_unit_id, deal_type, sale_value, sale_date, review_status, reservation_date, contract_date, created_at").order("id").range(a, b)),
+        fetchAll((a, b) => supabase.from("commissions").select("id, deal_id, broker_id, expected_amount, paid_amount, status, due_date, approved_at, created_at").order("id").range(a, b)),
+        fetchAll((a, b) => supabase.from("commission_payments").select("id, commission_id, amount, paid_on").order("id").range(a, b)),
+        fetchAll((a, b) => supabase.from("project_units").select("id, project_id").order("id").range(a, b)),
         supabase.from("projects").select("id, name"),
         supabase.from("company_members").select("id, name, company_id"),
         scope.seeAll ? supabase.rpc("admin_brokers") : supabase.rpc("my_account"),
         scope.seeAll ? listStaff().then((r) => (r.ok ? r.staff : [])) : Promise.resolve([]),
         supabase.from("app_settings").select("response_sla_minutes, work_start_hour, work_end_hour").eq("id", 1).maybeSingle(),
       ]);
-      const err = leads.error || deals.error;
-      if (err) throw err;
       return {
-        leads: leads.data ?? [], deals: deals.data ?? [], comms: comms.data ?? [], pays: pays.data ?? [],
-        unitProject: new Map((units.data ?? []).map((u) => [u.id, u.project_id])), projects: projects.data ?? [],
+        leads, deals, comms, pays,
+        unitProject: new Map(units.map((u) => [u.id, u.project_id])), projects: projects.data ?? [],
         members: members.data ?? [], brokers: brokers.data ?? [], staff,
         sla: { minutes: settings.data?.response_sla_minutes ?? 60, start: settings.data?.work_start_hour ?? 9, end: settings.data?.work_end_hour ?? 21 },
       };

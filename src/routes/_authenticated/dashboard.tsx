@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
 import { ListingsImport } from "@/components/dash/ListingsImport";
@@ -91,15 +92,13 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const props = useQuery({
     queryKey: ["my-properties", broker.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("properties").select("*").eq("broker_id", broker.id).order("updated_at", { ascending: false });
-      if (error) throw error; return data;
+      return fetchAll((a, b) => supabase.from("properties").select("*").eq("broker_id", broker.id).order("updated_at", { ascending: false }).order("id").range(a, b));
     },
   });
   const leads = useQuery({
     queryKey: ["my-leads", broker.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("leads").select("*, properties(title)").eq("assigned_broker_id", broker.id).order("created_at", { ascending: false });
-      if (error) throw error; return data;
+      return fetchAll((a, b) => supabase.from("leads").select("*, properties(title)").eq("assigned_broker_id", broker.id).order("created_at", { ascending: false }).order("id").range(a, b));
     },
   });
   const plan = useQuery({
