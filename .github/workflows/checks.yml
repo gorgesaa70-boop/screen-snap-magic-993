@@ -1,0 +1,50 @@
+# Item 36: automatic checks on every pull request and on main — type check, unit tests, build, and the
+# database permission tests (all migrations applied to in-memory Postgres). Free on GitHub Actions.
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Types, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install --frozen-lockfile
+      - name: Type check
+        run: bunx tsc --noEmit -p .
+      - name: Unit tests
+        run: bunx vitest run
+      - name: Build
+        run: bun run build
+
+  database:
+    name: Database permission tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # PGlite is not a project dependency (keeps bun.lock untouched for Lovable); install it on the side.
+      - name: Install PGlite
+        run: mkdir -p "$RUNNER_TEMP/pglite" && npm --prefix "$RUNNER_TEMP/pglite" install --no-save --silent @electric-sql/pglite@0.3.10
+      - name: Apply migrations and run checks
+        run: node supabase/tests/run.mjs
+        env:
+          PGLITE_DIR: ${{ runner.temp }}/pglite

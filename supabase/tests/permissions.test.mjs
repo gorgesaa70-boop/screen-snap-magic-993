@@ -530,4 +530,33 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("an open customer filling the form again → note, not a duplicate", () => sys(`select public.meta_inbound_lead('L2','منى','01055550010','fb','حملة 2','','') r`), (r) => r[0].r === "existing");
   await expectOk("no phone → skipped", () => sys(`select public.meta_inbound_lead('L3','x','','fb','','','') r`), (r) => r[0].r === "no_phone");
   await sys(`select set_config('request.jwt.claim.role','',false)`);
+
+  console.log("\nError tracking (item 37)");
+  await expectOk("a visitor's browser error is recorded", async () => {
+    await as(null, `select public.log_app_error('client', 'Cannot read properties of undefined', E'TypeError: x\\n    at Foo (app.js:1:2)', '/properties/94136c70-b49d-475b-b920-221af5785d8c?x=1', 'Mozilla')`);
+    return sys(`select kind, path, count from public.app_errors`);
+  }, (r) => r.length === 1 && r[0].kind === "client" && r[0].path === "/properties/94136c70-b49d-475b-b920-221af5785d8c");
+  await expectOk("the same error on another listing is grouped and counted", async () => {
+    await as(U.outsider, `select public.log_app_error('client', 'Cannot read properties of undefined', E'TypeError: x\\n    at Foo (app.js:1:2)', '/properties/11111111-1111-1111-1111-111111111111', 'Mozilla')`);
+    return sys(`select count from public.app_errors`);
+  }, (r) => r.length === 1 && r[0].count === 2);
+  await expectOk("a visitor can't pretend to be the server", async () => {
+    await as(null, `select public.log_app_error('server', 'fake', null, '/', null)`);
+    return sys(`select kind from public.app_errors where message='fake'`);
+  }, (r) => r[0].kind === "client");
+  await expectOk("the server's own errors are marked as server", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`select public.log_app_error('server', 'SSR failed', null, '/projects', null)`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    return sys(`select kind from public.app_errors where message='SSR failed'`);
+  }, (r) => r[0].kind === "server");
+  await expectErr("visitors can't read the errors table", () => as(null, `select * from public.app_errors`));
+  await expectOk("non-admins see nothing", () => as(U.owner, `select * from public.app_errors`), (r) => r.length === 0);
+  await expectOk("admins see and clear them", async () => [(await as(U.admin, `select * from public.app_errors`)).length, (await as(U.admin, `delete from public.app_errors returning id`)).length], (r) => r[0] === 3 && r[1] === 3);
+  await expectErr("nobody inserts directly", () => as(U.admin, `insert into public.app_errors (fingerprint, kind, message) values ('x','client','x')`));
+  await expectOk("capped at 300 distinct errors a day", async () => {
+    await sys(`insert into public.app_errors (fingerprint, kind, message) select 'f' || g, 'client', 'm' from generate_series(1, 300) g`);
+    await as(null, `select public.log_app_error('client', 'one more', null, '/', null)`);
+    return sys(`select count(*) c from public.app_errors`);
+  }, (r) => Number(r[0].c) === 300);
 }
