@@ -87,14 +87,23 @@ export async function fetchPublicBrokers() {
 /** Lead kind -> Arabic label. listing = owner offering a property via /sell. */
 export const LEAD_KINDS: Record<string, string> = { request: "طلب عقار", inquiry: "استفسار عقار", listing: "عرض مالك" };
 
+/** The 10-stage customer pipeline, in order. */
 export const STAGES: Record<string, string> = {
   new: "جديد",
   contacted: "تم التواصل",
-  viewing: "معاينة",
-  negotiating: "تفاوض",
-  won: "تم الإغلاق",
+  qualified: "مؤهل",
+  visit_scheduled: "تم تحديد زيارة",
+  visited: "تمت الزيارة",
+  reserved: "حجز",
+  contracted: "عقد",
+  sold: "بيع مؤكد",
   lost: "لم يكتمل",
+  postponed: "مؤجل",
 };
+/** Stages that need extra data (and documents) before a lead can enter them — set from the lead's page. */
+export const STAGES_WITH_DATA = ["visit_scheduled", "reserved", "contracted", "sold", "lost", "postponed"];
+/** Finished leads: no follow-up reminders. */
+export const CLOSED_STAGES = ["sold", "lost"];
 
 export const REVIEW: Record<"draft" | "pending" | "approved" | "rejected", { label: string; cls: string }> = {
   draft: { label: "مسودة", cls: "bg-secondary text-primary" },

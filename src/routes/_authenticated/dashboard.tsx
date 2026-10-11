@@ -13,7 +13,7 @@ import { MyProjects } from "@/components/dash/MyProjects";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, leadNo, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "لوحة التحكم | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -131,7 +131,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
             <Stat label="كل العملاء" value={L.length} />
             <Stat label="استفسارات العقارات" value={L.filter((l) => l.kind === "inquiry").length} />
             <Stat label="عملاء جدد" value={L.filter((l) => l.stage === "new").length} />
-            <Stat label="صفقات مغلقة" value={L.filter((l) => l.stage === "won").length} />
+            <Stat label="مبيعات مؤكدة" value={L.filter((l) => l.stage === "sold").length} />
           </div>
           <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>
         </div>
@@ -179,7 +179,7 @@ function MyProperties({ brokerId, list, reload }: { brokerId: string; list: Prop
   );
 }
 
-type LeadWithProp = { id: string; name: string; phone: string; kind: string; details: string | null; property_type: string | null; area: string | null; budget: number | null; stage: string; notes: string | null; created_at: string; properties: { title: string } | null };
+type LeadWithProp = { lead_no?: number; id: string; name: string; phone: string; kind: string; details: string | null; property_type: string | null; area: string | null; budget: number | null; stage: string; notes: string | null; created_at: string; properties: { title: string } | null };
 
 function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s: string) => void; onNotes?: (n: string) => void; extra?: React.ReactNode }) {
   const [notes, setNotes] = useState(l.notes ?? "");
@@ -188,10 +188,10 @@ function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="font-bold text-primary">{l.name} <span className="text-xs font-semibold text-muted-foreground">· {LEAD_KINDS[l.kind] ?? l.kind}</span></p>
-          <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
+          <p className="text-xs text-muted-foreground"><span dir="ltr">{leadNo(l.lead_no)}</span> · {formatDate(l.created_at)}</p>
         </div>
         <select aria-label="مرحلة المتابعة" value={l.stage} onChange={(e) => onStage(e.target.value)} className={`${inputCls} h-10 w-auto`}>
-          {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(STAGES).filter(([k]) => k === l.stage || !STAGES_WITH_DATA.includes(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
       <div className="mt-2 space-y-1 text-sm text-foreground/80">
@@ -203,6 +203,7 @@ function LeadCard({ l, onStage, onNotes, extra }: { l: LeadWithProp; onStage: (s
         <a href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
         <a href={waLink(l.phone, `مرحبًا ${l.name}، معك وسيط فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
         {extra}
+        <Link to="/leads/$id" params={{ id: l.id }} className="inline-flex h-10 items-center rounded-xl border px-3 text-sm font-bold text-primary hover:bg-secondary">التفاصيل والصفقة</Link>
       </div>
       {onNotes && (
         <div className="mt-3 flex gap-2">

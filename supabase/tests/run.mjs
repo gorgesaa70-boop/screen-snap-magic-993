@@ -54,7 +54,7 @@ async function expectOk(name, fn, check) {
 }
 async function expectErr(name, fn) {
   try { const r = await fn(); fail++; console.log("  FAIL " + name + " — expected error, got " + JSON.stringify(r)); }
-  catch { pass++; console.log("  ok   " + name); }
+  catch (e) { pass++; console.log("  ok   " + name + "  [" + String(e.message).split("\n")[0].slice(0, 90) + "]"); }
 }
 const { default: tests } = await import(toUrl(testFile));
 await tests({ as, sys, expectOk, expectErr });

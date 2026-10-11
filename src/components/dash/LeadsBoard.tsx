@@ -4,11 +4,11 @@ import { draftWhatsappReply, analyzeInquiry, type LeadAnalysis } from "@/lib/ai-
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Phone, MessageCircle, Search, X, Download, Bell, Sparkles, Copy, History, Brain, LayoutGrid, Table2, ArrowUpDown, Users } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
-import { STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
+import { STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
 
 export type LeadWithProp = {
   id: string;
@@ -48,7 +48,7 @@ const toLocalInput = (iso?: string | null) => {
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
-const isDue = (l: LeadWithProp, now: number) => !!l.follow_up_at && new Date(l.follow_up_at).getTime() <= now && !["won", "lost"].includes(l.stage);
+const isDue = (l: LeadWithProp, now: number) => !!l.follow_up_at && new Date(l.follow_up_at).getTime() <= now && !CLOSED_STAGES.includes(l.stage);
 
 function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
   const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
@@ -99,8 +99,11 @@ function AiReply({ l }: { l: LeadWithProp }) {
   );
 }
 
-const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتساب", status: "تغيير المرحلة", note: "ملاحظة", follow_up: "موعد متابعة", assign: "إسناد", source: "تغيير المصدر" };
-const stageName = (k: string) => STAGES[k as keyof typeof STAGES] ?? k;
+const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتساب", status: "تغيير المرحلة", note: "ملاحظة", follow_up: "موعد متابعة", assign: "إسناد", source: "تغيير المصدر", deal: "الصفقة" };
+// Older history entries use the stages from before the 10-stage pipeline.
+const LEGACY_STAGES: Record<string, string> = { viewing: "معاينة", negotiating: "تفاوض", won: "تم الإغلاق" };
+const REVIEW_WORDS: Record<string, string> = { draft: "مسودة", pending: "بانتظار المراجعة", approved: "معتمدة", rejected: "مرفوضة", needs_info: "محتاجة بيانات" };
+const stageName = (k: string) => STAGES[k] ?? LEGACY_STAGES[k] ?? k;
 export const logActivity = async (lead_id: string, kind: "call" | "whatsapp" | "note", summary: string) => {
   const { data: u } = await supabase.auth.getUser();
   await supabase.from("lead_activities").insert({ lead_id, kind, summary, actor_id: u.user?.id ?? null });
@@ -134,7 +137,7 @@ export function Timeline({ leadId }: { leadId: string }) {
           {q.data.map((a) => (
             <li key={a.id} className="text-sm">
               <span className="font-bold text-primary">{ACT[a.kind] ?? a.kind}</span>{" — "}
-              <span className="text-foreground/80">{a.kind === "status" ? a.summary.split(" → ").map(stageName).join(" ← ") : a.kind === "source" ? a.summary.replace(/[a-z_]+/g, (k) => LEAD_SOURCES[k] ?? k) : a.summary}</span>
+              <span className="text-foreground/80">{a.kind === "status" ? a.summary.split(" → ").map(stageName).join(" ← ") : a.kind === "source" ? a.summary.replace(/[a-z_]+/g, (k) => LEAD_SOURCES[k] ?? k) : a.kind === "deal" ? a.summary.replace(/[a-z_]+/g, (k) => REVIEW_WORDS[k] ?? k) : a.summary}</span>
               <span className="block text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString("ar-EG")}</span>
             </li>
           ))}
@@ -263,6 +266,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
   const [kind, setKind] = useState<"all" | "request" | "inquiry" | "listing">("all");
   const [stage, setStage] = useState<string>("all");
   const [source, setSource] = useState<string>("all");
+  const nav = useNavigate();
   const [view, setView] = useState<"cards" | "table">("cards");
   const counts = useMemo(() => phoneCounts(list), [list]);
   const [now, setNow] = useState(() => Date.now());
@@ -293,7 +297,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
   };
 
   const hasFilter = search || kind !== "all" || stage !== "all" || source !== "all";
-  const open = list.filter((l) => !["won", "lost"].includes(l.stage)).length;
+  const open = list.filter((l) => !CLOSED_STAGES.includes(l.stage)).length;
 
   return (
     <div className="space-y-4">
@@ -360,7 +364,10 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
             <LeadCard
               key={l.id}
               l={l}
-              onStage={(s) => upd(l.id, { stage: s as NonNullable<TablesUpdate<"leads">["stage"]> })}
+              onStage={(s) => {
+                if (STAGES_WITH_DATA.includes(s)) { toast.info(`مرحلة «${STAGES[s]}» محتاجة بيانات — كمّلها من صفحة العميل`); void nav({ to: "/leads/$id", params: { id: l.id }, search: { stage: s } }); return; }
+                upd(l.id, { stage: s });
+              }}
               onNotes={(n) => upd(l.id, { notes: n })}
               onAssign={brokers ? (bid) => upd(l.id, { assigned_broker_id: bid }) : undefined}
               brokers={brokers}

@@ -13,8 +13,10 @@ import { MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
 import { staffDirectory } from "@/lib/admin.functions";
+import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
+  validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
   head: () => ({ meta: [{ title: "تفاصيل العميل | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
   component: LeadPage,
 });
@@ -28,6 +30,7 @@ const toLocalInput = (iso?: string | null) => {
 
 function LeadPage() {
   const { id } = Route.useParams();
+  const { stage: wanted } = Route.useSearch();
   const { me, loading } = useMe();
   const q = useQuery({
     queryKey: ["lead", id],
@@ -96,10 +99,9 @@ function LeadPage() {
                   <span dir="ltr">{leadNo(l.lead_no)}</span> · {LEAD_KINDS[l.kind] ?? l.kind} · {formatDate(l.created_at)}
                 </p>
               </div>
-              <select aria-label="المرحلة" className={`${inputCls} h-10 w-auto`} value={l.stage} onChange={(e) => upd({ stage: e.target.value as NonNullable<Patch["stage"]> })}>
-                {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{STAGES[l.stage] ?? l.stage}</span>
             </div>
+            <div className="mt-3"><PipelineSteps stage={l.stage} /></div>
             <div className="mt-3 flex flex-wrap gap-2">
               <a onClick={() => logActivity(l.id, "call", "اتصال بالعميل")} href={`tel:${l.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{l.phone}</a>
               <a onClick={() => logActivity(l.id, "whatsapp", "رسالة واتساب")} href={waLink(l.phone, `مرحبًا ${l.name}، معك فريق فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
@@ -130,6 +132,16 @@ function LeadPage() {
           )}
 
           <section className={card}>
+            <h2 className={h2}>مسار العميل</h2>
+            <StageChanger lead={l} initial={wanted} isAdmin={!!me?.isAdmin} onChanged={() => q.refetch()} />
+          </section>
+
+          <section className={card}>
+            <h2 className={h2}>الصفقة (الحجز والعقد والبيع)</h2>
+            <DealPanel lead={l} isAdmin={!!me?.isAdmin} onChanged={() => q.refetch()} />
+          </section>
+
+          <section className={card}>
             <h2 className={h2}>المتابعة</h2>
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-sm font-bold text-primary" htmlFor="fu">موعد المتابعة</label>
@@ -145,7 +157,6 @@ function LeadPage() {
           <section className={card}>
             <h2 className={h2}>سجل النشاط</h2>
             <Timeline leadId={l.id} />
-            <p className="mt-3 text-xs text-muted-foreground">الزيارات والحجوزات والعقود والمستندات والعمولة هتظهر هنا مع البنود الجاية (مسار العميل والصفقات والعمولات).</p>
           </section>
         </div>
 

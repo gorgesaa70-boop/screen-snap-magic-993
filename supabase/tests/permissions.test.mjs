@@ -106,4 +106,36 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("moving the lead to another company clears the team member", () => as(U.staff, `update public.leads set assigned_broker_id='${DEV}' where id='${fb}' returning assigned_member_id`), (r) => r[0]?.assigned_member_id === null);
   await expectOk("staff assigns a Value Aqar employee (logged)", async () => { await as(U.staff, `update public.leads set assigned_staff_id='${U.staff}' where id='${fb}'`); return as(U.admin, `select count(*) c from public.lead_activities where lead_id='${fb}' and kind='assign'`); }, (r) => Number(r[0].c) >= 3);
   await expectOk("owner can't assign Value Aqar staff", async () => { await as(U.admin, `update public.leads set assigned_broker_id='${CO}' where id='${fb}'`); return as(U.owner, `update public.leads set assigned_staff_id=null where id='${fb}' returning assigned_staff_id`); }, (r) => r[0]?.assigned_staff_id === U.staff);
+
+  console.log("\nCustomer pipeline (10 stages)");
+  const stage = (who, s, extra = "") => as(who, `update public.leads set stage='${s}'${extra} where id='${fb}' returning stage`);
+  await expectOk("manager moves to qualified", () => stage(U.manager, "qualified"), (r) => r[0]?.stage === "qualified");
+  await expectErr("lost needs a reason", () => stage(U.manager, "lost"));
+  await expectErr("postponed needs a future follow-up", () => stage(U.manager, "postponed"));
+  await expectErr("visit scheduled needs a visit time", () => stage(U.manager, "visit_scheduled"));
+  await expectOk("visit scheduled with a time", () => stage(U.manager, "visit_scheduled", `, visit_at=now() + interval '1 day'`), (r) => r[0]?.stage === "visit_scheduled");
+  await expectErr("reserved needs a deal with data and a document", () => stage(U.manager, "reserved"));
+  const deal = await expectOk("manager opens a deal (company filled from the lead, review forced to draft)", () => as(U.manager, `insert into public.deals (lead_id, unit_desc, reservation_date, reservation_amount, review_status, broker_id) values ('${fb}','شقة 120م','2026-10-01',50000,'approved','${DEV}') returning broker_id, review_status`), (r) => r[0].broker_id === CO && r[0].review_status === "draft");
+  void deal;
+  const dealId = (await sys(`select id from public.deals where lead_id='${fb}'`))[0].id;
+  await expectErr("still no reservation document", () => stage(U.manager, "reserved"));
+  await expectErr("document path must be inside the deal folder", () => as(U.manager, `insert into public.deal_documents (deal_id, kind, file_path, file_name, uploaded_by) values ('${dealId}','reservation','other/x.pdf','x.pdf','${U.manager}')`));
+  await expectOk("manager uploads the reservation document", () => as(U.manager, `insert into public.deal_documents (deal_id, kind, file_path, file_name, uploaded_by) values ('${dealId}','reservation','${dealId}/r.pdf','r.pdf','${U.manager}')`));
+  await expectOk("reserved now allowed", () => stage(U.manager, "reserved"), (r) => r[0]?.stage === "reserved");
+  await expectErr("sold can't be set by the company", () => stage(U.manager, "sold"));
+  await expectErr("submitting for review needs sale date/value", () => as(U.manager, `update public.deals set review_status='pending' where id='${dealId}'`));
+  await expectErr("…and a sale document", () => as(U.manager, `update public.deals set sale_date='2026-10-10', sale_value=1500000, review_status='pending' where id='${dealId}'`));
+  await expectOk("company can't approve its own deal", () => as(U.manager, `update public.deals set review_status='approved' where id='${dealId}' returning review_status`), (r) => r[0]?.review_status === "draft");
+  await expectOk("submit with sale document → pending + admins notified", async () => {
+    await as(U.manager, `insert into public.deal_documents (deal_id, kind, file_path, file_name, uploaded_by) values ('${dealId}','sale','${dealId}/s.pdf','s.pdf','${U.manager}')`);
+    await as(U.manager, `update public.deals set sale_date='2026-10-10', sale_value=1500000, review_status='pending' where id='${dealId}'`);
+    return sys(`select (select review_status from public.deals where id='${dealId}') st, (select count(*) from public.notifications where user_id='${U.admin}' and title='صفقة بانتظار المراجعة') n`);
+  }, (r) => r[0].st === "pending" && Number(r[0].n) === 1);
+  await expectErr("admin rejection needs a reason", () => as(U.admin, `update public.deals set review_status='rejected' where id='${dealId}'`));
+  await expectOk("admin approves → lead becomes sold", async () => { await as(U.admin, `update public.deals set review_status='approved' where id='${dealId}'`); return sys(`select stage from public.leads where id='${fb}'`); }, (r) => r[0].stage === "sold");
+  await expectErr("approved deal is locked for the company", () => as(U.manager, `update public.deals set sale_value=1 where id='${dealId}'`));
+  await expectErr("no new documents on an approved deal", () => as(U.manager, `insert into public.deal_documents (deal_id, kind, file_path, file_name, uploaded_by) values ('${dealId}','other','${dealId}/o.pdf','o.pdf','${U.manager}')`));
+  await expectErr("company can't move a confirmed sale back", () => stage(U.manager, "qualified"));
+  await expectOk("outsider can't see the deal", () => as(U.outsider, `select id from public.deals`), (r) => r.length === 0);
+  await expectOk("pipeline is logged on the lead", () => sys(`select count(*) c from public.lead_activities where lead_id='${fb}' and kind='deal'`), (r) => Number(r[0].c) >= 3);
 }

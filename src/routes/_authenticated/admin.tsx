@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
@@ -90,8 +90,8 @@ function Reports({ d }: { d: D }) {
         <Stat label="العقارات المميزة" value={d.properties.filter((p) => p.is_featured).length} />
         <Stat label="كل الطلبات" value={d.leads.length} />
         <Stat label="طلبات غير موزعة" value={d.leads.filter((l) => !l.assigned_broker_id).length} />
-        <Stat label="صفقات مغلقة" value={d.leads.filter((l) => l.stage === "won").length} />
-        <Stat label="نسبة الإغلاق" value={`${d.leads.length ? Math.round((d.leads.filter((l) => l.stage === "won").length / d.leads.length) * 100) : 0}%`} />
+        <Stat label="مبيعات مؤكدة" value={d.leads.filter((l) => l.stage === "sold").length} />
+        <Stat label="نسبة الإغلاق" value={`${d.leads.length ? Math.round((d.leads.filter((l) => l.stage === "sold").length / d.leads.length) * 100) : 0}%`} />
       </div>
       <div className="overflow-x-auto rounded-2xl border bg-card">
         <table className="w-full min-w-[560px] text-sm">
@@ -103,7 +103,7 @@ function Reports({ d }: { d: D }) {
                 <tr key={b.id} className="border-t">
                   <td className="p-3 font-bold text-primary">{b.name}{!b.is_active && <span className="ms-2 text-xs text-destructive">موقوف</span>}</td>
                   <td className="p-3">{P.length}</td><td className="p-3">{P.filter((p) => p.review_status === "approved").length}</td>
-                  <td className="p-3">{L.length}</td><td className="p-3">{L.filter((l) => !["won", "lost"].includes(l.stage)).length}</td><td className="p-3">{L.filter((l) => l.stage === "won").length}</td>
+                  <td className="p-3">{L.length}</td><td className="p-3">{L.filter((l) => !["sold", "lost"].includes(l.stage)).length}</td><td className="p-3">{L.filter((l) => l.stage === "sold").length}</td>
                 </tr>
               );
             })}
@@ -308,7 +308,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
                 <option value="">غير مُسند</option>{d.brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value as NonNullable<TablesUpdate<"leads">["stage"]> })}>
-                {Object.entries(STAGES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                {Object.entries(STAGES).filter(([k]) => k === l.stage || !STAGES_WITH_DATA.includes(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
           </div>
