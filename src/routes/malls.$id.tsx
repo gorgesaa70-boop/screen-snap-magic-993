@@ -79,8 +79,8 @@ function MallPage() {
           <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x} value={x}>{t(x)}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
         </div>
-        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("جارٍ التحميل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
-        {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("لا توجد وحدات متاحة حاليًا في هذا المول.")}</p>}
+        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("بيحمّل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
+        {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("مفيش وحدات متاحة في المول ده دلوقتي.")}</p>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((u) => {
             const b = brokers.data?.find((x) => x.id === u.broker_id);

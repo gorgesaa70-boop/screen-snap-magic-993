@@ -125,7 +125,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         { id: "overview", label: "نظرة عامة" },
         ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
-        { id: "leads", label: "العملاء والطلبات" },
+        { id: "leads", label: "أحدث العملاء" },
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
         ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
       ]} />
@@ -250,8 +250,14 @@ function MyLeads({ list, reload }: { list: LeadWithProp[]; reload: () => void })
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
   };
-  if (list.length === 0) return <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا يوجد عملاء مسندون إليك حاليًا.</p>;
-  return <div className="grid gap-3 lg:grid-cols-2">{list.map((l) => <LeadCard key={l.id} l={l} onStage={(s) => upd(l.id, { stage: s })} onNotes={(n) => upd(l.id, { notes: n })} />)}</div>;
+  if (list.length === 0) return <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه مفيش عملاء وصلوك. أول ما حد يطلب أو يستفسر هيظهر هنا ويجيلك إشعار.</p>;
+  // The latest few here; the full list with filters and the pipeline lives on the "العملاء والطلبات" page (no duplicate lists).
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-2">{list.slice(0, 6).map((l) => <LeadCard key={l.id} l={l} onStage={(s) => upd(l.id, { stage: s })} onNotes={(n) => upd(l.id, { notes: n })} />)}</div>
+      <Link to="/inquiries" className={btnOutline}>كل العملاء والطلبات ({list.length}) ←</Link>
+    </div>
+  );
 }
 
 function ProfileForm({ broker }: { broker: BrokerRow }) {

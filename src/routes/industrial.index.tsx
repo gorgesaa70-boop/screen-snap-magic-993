@@ -59,14 +59,14 @@ function IndustrialPage() {
           <input aria-label={t("أعلى سعر")} className={inputCls} inputMode="numeric" placeholder={t("أعلى سعر")} value={f.maxPrice} onChange={set("maxPrice")} />
         </div>
         <div className="mt-3 flex items-center justify-between text-sm">
-          <p className="font-bold text-primary">{list.isLoading ? t("جارٍ التحميل...") : `${formatPrice(rows.length)} ${t("عقار")}`}</p>
+          <p className="font-bold text-primary">{list.isLoading ? t("بيحمّل...") : `${formatPrice(rows.length)} ${t("عقار")}`}</p>
           {dirty && <button onClick={() => setF(emptyInd)} className="flex items-center gap-1 font-bold text-teal"><X className="size-4" />{t("مسح الفلاتر")}</button>}
         </div>
-        {list.isError && <p className="mt-4 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">{t("تعذّر تحميل العقارات.")}</p>}
+        {list.isError && <p className="mt-4 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">{t("العقارات ماحمّلتش.")}</p>}
         {!list.isLoading && rows.length === 0 && (
           <div className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center">
             <Factory className="mx-auto size-10 text-muted-foreground" />
-            <p className="mt-3 font-bold text-primary">{dirty ? t("لا توجد نتائج مطابقة") : t("لا توجد عقارات صناعية منشورة بعد")}</p>
+            <p className="mt-3 font-bold text-primary">{dirty ? t("مفيش نتايج") : t("لسه مفيش عقارات صناعية منشورة")}</p>
             {dirty && <button onClick={() => setF(emptyInd)} className={`${btnOutline} mt-4`}>{t("مسح الفلاتر")}</button>}
           </div>
         )}

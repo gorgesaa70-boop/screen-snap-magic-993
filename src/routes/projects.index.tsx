@@ -35,7 +35,16 @@ function ProjectsPage() {
           <option value="">{t("كل المدن")}</option>
           {CITY_NAMES.map((c) => <option key={c} value={c}>{t(c)}</option>)}
         </select>
-        {!q.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("لا توجد مشروعات بعد.")}</p>}
+        {q.isError && <p className="mt-4 rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">{t("المشروعات ماحمّلتش، حدّث الصفحة.")}</p>}
+        {!q.isLoading && !q.isError && rows.length === 0 && (
+          <div className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center">
+            <p className="text-sm text-muted-foreground">{t("لسه مفيش مشروعات منشورة.")}</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <a href="/#properties" className="inline-flex h-11 items-center rounded-xl border border-primary px-5 text-sm font-bold text-primary hover:bg-primary hover:text-primary-foreground">{t("تصفّح العقارات المتاحة")}</a>
+              <a href="/#request" className="inline-flex h-11 items-center rounded-xl bg-teal px-5 text-sm font-bold text-accent-foreground hover:brightness-95">{t("اطلب عقارك")}</a>
+            </div>
+          </div>
+        )}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {q.isLoading && [1, 2, 3].map((i) => <div key={i} className="h-72 animate-pulse rounded-2xl bg-muted" />)}
           {rows.map((p) => {

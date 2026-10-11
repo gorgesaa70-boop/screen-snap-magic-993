@@ -55,7 +55,7 @@ export function NotificationBell() {
             <span className="font-extrabold text-primary">{t("الإشعارات")}</span>
             {unread > 0 && <Button variant="ghost" onClick={markAll} className="flex items-center gap-1 text-xs font-bold text-teal hover:underline"><CheckCheck className="size-4" /> {t("تحديد الكل كمقروء")}</Button>}
           </div>
-          {items.length === 0 ? <p className="px-3 py-8 text-center text-sm text-muted-foreground">{t("لا توجد إشعارات")}</p> : (
+          {items.length === 0 ? <p className="px-3 py-8 text-center text-sm text-muted-foreground">{t("مفيش إشعارات")}</p> : (
             <ul className="max-h-[60vh] overflow-y-auto">
               {items.map((n) => <NotificationItem key={n.id} n={n} onOpen={() => openNotification(n, markRead)} onRead={() => markRead(n.id)} onDelete={() => remove(n.id)} />)}
             </ul>

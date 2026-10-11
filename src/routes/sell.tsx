@@ -34,7 +34,7 @@ const ERRORS: Record<string, string> = {
   expired: "انتهت صلاحية الرمز، اطلب رمزًا جديدًا",
   locked: "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا",
   wrong: "رمز غير صحيح",
-  server: "تعذّر إرسال الطلب، حاول مرة أخرى",
+  server: "الطلب ماتبعتش، جرّب تاني",
   bad_photo: "فيه صورة مش مدعومة، جرّب صورة تانية",
 };
 
@@ -145,8 +145,8 @@ function SellForm() {
     const p = egPhone(f.phone);
     if (f.name.trim().length < 2) { toast.error(t("اكتب اسمك")); return; }
     if (!p) { toast.error(t("اكتب رقم موبايل مصري صحيح")); return; }
-    if (!f.property_type) { toast.error(t("اختر نوع العقار")); return; }
-    if (areas.length > 0 && !f.area) { toast.error(t("اختر المنطقة / الحي")); return; }
+    if (!f.property_type) { toast.error(t("اختار نوع العقار")); return; }
+    if (areas.length > 0 && !f.area) { toast.error(t("اختار المنطقة / الحي")); return; }
     if (!Number(f.size)) { toast.error(t("اكتب المساحة")); return; }
     if (!Number(f.price)) { toast.error(t("اكتب السعر")); return; }
     if (photos.length === 0) { toast.error(t("ضيف صورة واحدة على الأقل للعقار")); return; }
@@ -165,7 +165,7 @@ function SellForm() {
   if (step === "done") {
     return (
       <div className="rounded-2xl border bg-card p-8 text-center shadow-card">
-        <p className="text-xl font-extrabold text-primary">{t("تم استلام عقارك ✓")}</p>
+        <p className="text-xl font-extrabold text-primary">{t("عقارك وصلنا ✓")}</p>
         <p className="mt-2 text-sm text-muted-foreground">{t("فريق فاليو عقار هيراجع الإعلان، وأول ما يتوافق عليه هينزل على الموقع. هنتواصل معاك على واتساب لو احتجنا أي حاجة.")}</p>
         <a href="/" className={`${btnTeal} mt-6`}>{t("الرجوع للرئيسية")}</a>
       </div>
@@ -180,7 +180,7 @@ function SellForm() {
           <input ref={codeRef} className={`${inputCls} text-center text-lg tracking-[0.5em]`} dir="ltr" inputMode="numeric" autoComplete="one-time-code"
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy} />
         </Field>
-        <button disabled={busy || code.length !== 6} className={`${btnTeal} w-full`}>{busy ? t("جارٍ الإرسال...") : t("تأكيد وإرسال")}</button>
+        <button disabled={busy || code.length !== 6} className={`${btnTeal} w-full`}>{busy ? t("بيتبعت...") : t("تأكيد وإرسال")}</button>
         <div className="flex items-center justify-between text-sm">
           <button type="button" className="font-bold text-primary disabled:text-muted-foreground" disabled={busy || resendIn > 0} onClick={() => requestCode()}>
             {resendIn > 0 ? `${t("إعادة الإرسال بعد")} ${resendIn}` : t("إعادة إرسال الرمز")}
@@ -286,7 +286,7 @@ function SellForm() {
           <input className={inputCls} inputMode="tel" dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} required placeholder="01xxxxxxxxx" autoComplete="tel" />
         </Field>
       </div>
-      <button disabled={busy || compressing} className={`${btnTeal} h-12 sm:col-span-2`}>{busy ? t("جارٍ الإرسال...") : t("ابعت بيانات العقار")} <ArrowLeft className="size-4" /></button>
+      <button disabled={busy || compressing} className={`${btnTeal} h-12 sm:col-span-2`}>{busy ? t("بيتبعت...") : t("ابعت بيانات العقار")} <ArrowLeft className="size-4" /></button>
       <p className="text-xs text-muted-foreground sm:col-span-2">{t("هنبعتلك رمز تحقق على واتساب للتأكد من رقمك. رقمك مش هيظهر لحد غير فريق فاليو عقار.")}</p>
     </form>
   );

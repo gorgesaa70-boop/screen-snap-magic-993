@@ -81,7 +81,7 @@ function BrokerProfile() {
         </aside>
         <section>
           <h2 className="mb-4 text-xl font-extrabold text-primary">{t("العقارات المسجلة")} ({props.data?.length ?? 0})</h2>
-          {props.data && props.data.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("لا توجد عقارات معتمدة لهذا الوسيط حاليًا.")}</p>}
+          {props.data && props.data.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("الوسيط ده ماعندوش عقارات منشورة دلوقتي.")}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             {props.data?.map((p) => <PropertyCard key={p.id} p={p} whatsapp={b.whatsapp || b.phone} />)}
           </div>

@@ -89,7 +89,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground">
           {p.verified ? <span className="flex items-center gap-1 font-bold text-teal"><BadgeCheck className="size-3.5 shrink-0" />{tr("متحقق منه")}</span>
-            : <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? tr("لم يتم التحقق بعد") : tr("تمت مراجعته")}</span>}
+            : <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? tr("لسه ماتراجعش") : tr("تمت مراجعته")}</span>}
           <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />{tr("تحديث:")} {formatDate(p.updated)}</span>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
@@ -122,7 +122,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
       <SectionHead eyebrow={filtered ? tr("نتائج البحث") : tr("مختارات فاليو عقار")} title={filtered ? tr("العقارات المطابقة") : tr("العقارات المميزة")} />
       {filtered && (
         <div className="-mt-4 mb-6 flex items-center justify-between gap-3 rounded-xl bg-teal-soft px-4 py-3" aria-live="polite">
-          <p className="text-sm font-bold text-primary">{tr("تم العثور على")} {formatPrice(results.length)} {results.length === 1 ? tr("عقار") : tr("عقارات")}</p>
+          <p className="text-sm font-bold text-primary">{tr("لقينا")} {formatPrice(results.length)} {results.length === 1 ? tr("عقار") : tr("عقارات")}</p>
           <AlertButton key={JSON.stringify(filters)} filters={filters} className="ms-auto h-9" />
           <button onClick={onClear} className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold text-primary underline-offset-4 transition hover:underline focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none">
             <RotateCcw className="size-3.5" /> {tr("مسح الفلاتر")}
@@ -138,12 +138,12 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0,1,2].map((i) => <div key={i} className="h-96 animate-pulse rounded-2xl bg-muted" />)}</div>
       ) : isError ? (
-        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">{tr("تعذّر تحميل العقارات، حاول تحديث الصفحة.")}</p>
+        <p className="rounded-2xl border bg-card p-6 text-center text-sm text-muted-foreground">{tr("العقارات ماحمّلتش، حدّث الصفحة.")}</p>
       ) : results.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-card px-6 py-12 text-center">
           <SearchX className="mx-auto size-10 text-teal" />
-          <h3 className="mt-4 text-lg font-bold text-primary">{tr("لا توجد عقارات تطابق بحثك")}</h3>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">{tr("جرّب توسيع نطاق السعر أو اختيار منطقة أو نوع مختلف، أو اطلب عقارك وسنساعدك.")}</p>
+          <h3 className="mt-4 text-lg font-bold text-primary">{tr("مفيش عقارات زي اللي بتدور عليه")}</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">{tr("جرّب توسّع السعر أو تختار منطقة أو نوع تاني، أو اطلب عقارك وإحنا ندوّرلك.")}</p>
           <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
             <button onClick={onClear} className="h-11 rounded-xl border border-primary px-6 text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground">{tr("مسح الفلاتر")}</button>
             <AlertButton key={JSON.stringify(filters)} filters={filters} />
@@ -186,7 +186,7 @@ export function PurposeStrip({ status, eyebrow, title, onAll }: { status: "إي�
   return (
     <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
       <SectionHead eyebrow={tr(eyebrow)} title={tr(title)} action={
-        <button type="button" onClick={onAll} className="flex shrink-0 items-center gap-1 text-sm font-bold text-primary hover:text-teal">{tr("عرض الكل")} <ArrowLeft className="size-4" /></button>
+        <button type="button" onClick={onAll} className="-my-2 flex shrink-0 items-center gap-1 py-3 text-sm font-bold text-primary hover:text-teal">{tr("عرض الكل")} <ArrowLeft className="size-4" /></button>
       } />
       <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
         {list.map((p) => <div key={p.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><PropertyCard p={p} /></div>)}
@@ -259,10 +259,10 @@ function RequestForm() {
     setBusy(true);
     const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, utm: getAttribution() });
     setBusy(false);
-    if (error) { toast.error(tr("تعذّر إرسال الطلب، حاول مرة أخرى")); return; }
+    if (error) { toast.error(tr("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(true);
   }
-  if (done) return <div className="rounded-2xl bg-card p-6 text-center"><p className="text-lg font-bold text-primary">{tr("تم استلام طلبك ✓")}</p><p className="mt-2 text-sm text-muted-foreground">{tr("سيتواصل معك أحد وسطائنا قريبًا.")}</p></div>;
+  if (done) return <div className="rounded-2xl bg-card p-6 text-center"><p className="text-lg font-bold text-primary">{tr("طلبك وصل ✓")}</p><p className="mt-2 text-sm text-muted-foreground">{tr("سيتواصل معك أحد وسطائنا قريبًا.")}</p></div>;
   return (
     <form onSubmit={submit} className="grid gap-2.5 rounded-2xl bg-card p-4 sm:grid-cols-2 md:p-5">
       <input className={inputCls} placeholder={tr("الاسم")} value={f.name} onChange={set("name")} maxLength={100} required />
@@ -277,7 +277,7 @@ function RequestForm() {
       <select className={inputCls} value={f.area} onChange={set("area")}><option value="">{tr("المنطقة")}</option>{AREAS.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
       <input className={`${inputCls} sm:col-span-2`} placeholder={tr(f.purpose === "rent" ? "الميزانية الشهرية (ج.م)" : f.purpose === "summer" ? "الميزانية لليلة (ج.م)" : "الميزانية (ج.م)")} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} />
       <textarea className={`${inputCls} h-20 py-2 sm:col-span-2`} placeholder={tr("تفاصيل إضافية")} value={f.details} onChange={set("details")} maxLength={1000} />
-      <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? tr("جارٍ الإرسال...") : tr("أرسل طلبك")} <ArrowLeft className="size-4" /></button>
+      <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? tr("بيتبعت...") : tr("ابعت طلبك")} <ArrowLeft className="size-4" /></button>
     </form>
   );
 }
@@ -288,7 +288,7 @@ export function Brokers() {
   return (
     <section id="brokers" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
       <SectionHead eyebrow={tr("شركاء موثوقون")} title={tr("تواصل مع الوسيط المناسب")}
-        action={<Link to="/brokers" className="shrink-0 text-sm font-bold text-primary hover:text-teal">{tr("كل الوسطاء ←")}</Link>} />
+        action={<Link to="/brokers" className="-my-2 inline-block shrink-0 py-3 text-sm font-bold text-primary hover:text-teal">{tr("كل الوسطاء ←")}</Link>} />
       <div className="grid gap-5 md:grid-cols-3">
         {brokers.slice(0, 3).map((b) => (
           <div key={b.id} className="rounded-2xl border bg-card p-6 transition hover:shadow-card">
@@ -387,7 +387,7 @@ export function Footer() {
         </div>
         <div>
           <h4 className="font-bold text-primary-foreground">{tr("روابط")}</h4>
-          <ul className="mt-4 space-y-2.5 text-sm">{pages.map(([l, h]) => <li key={h}><a href={h} className="hover:text-teal">{tr(l)}</a></li>)}</ul>
+          <ul className="mt-3 text-sm">{pages.map(([l, h]) => <li key={h}><a href={h} className="inline-block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
         </div>
         <div>
           <h4 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h4>
@@ -401,7 +401,7 @@ export function Footer() {
       <div className="border-t border-primary-foreground/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs md:flex-row md:px-6">
           <p>© {new Date().getFullYear()} {tr("فاليو عقار. جميع الحقوق محفوظة.")}</p>
-          <div className="flex gap-5"><a href="#top" className="hover:text-teal">{tr("سياسة الخصوصية")}</a><a href="#top" className="hover:text-teal">{tr("الشروط والأحكام")}</a></div>
+          <div className="flex gap-5"><a href="#top" className="inline-block py-2.5 hover:text-teal">{tr("سياسة الخصوصية")}</a><a href="#top" className="inline-block py-2.5 hover:text-teal">{tr("الشروط والأحكام")}</a></div>
         </div>
       </div>
     </footer>

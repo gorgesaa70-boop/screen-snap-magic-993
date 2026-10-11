@@ -73,7 +73,7 @@ function Page() {
             {p.built_size != null && <span className={chip}><Maximize className="size-4 text-teal" />{t("المساحة المبنية")} {formatPrice(Number(p.built_size))} {t("م²")}</span>}
           </div>
           {p.address && <p className="mt-3 text-sm text-muted-foreground">{t("الموقع التفصيلي:")} {p.address}</p>}
-          <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("لا يوجد وصف إضافي.")}</p>
+          <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
           {p.video_urls.length > 0 && (
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {p.video_urls.map((v) => <video key={v} src={v} controls preload="metadata" className="aspect-video w-full rounded-2xl bg-muted" />)}
