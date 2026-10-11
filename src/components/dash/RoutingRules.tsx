@@ -37,7 +37,7 @@ export function RoutingRules() {
       const [r, b, s] = await Promise.all([
         supabase.from("routing_rules").select("*").order("priority").order("created_at"),
         supabase.rpc("admin_brokers"),
-        supabase.from("app_settings").select("response_sla_minutes, work_start_hour, work_end_hour").eq("id", 1).maybeSingle(),
+        supabase.from("app_settings").select("response_sla_minutes, work_start_hour, work_end_hour, transfer_enabled, transfer_max_companies").eq("id", 1).maybeSingle(),
       ]);
       if (r.error) throw r.error;
       return { rules: r.data ?? [], brokers: (b.data ?? []).filter((x) => x.is_active && !x.suspended_at && x.account_type !== "owner"), settings: s.data };
@@ -133,27 +133,34 @@ export function RoutingRules() {
   );
 }
 
-function SlaSettings({ settings, onSaved }: { settings: { response_sla_minutes: number; work_start_hour: number; work_end_hour: number } | null; onSaved: () => void }) {
-  const [f, setF] = useState({ sla: "60", start: "9", end: "21" });
+function SlaSettings({ settings, onSaved }: { settings: { response_sla_minutes: number; work_start_hour: number; work_end_hour: number; transfer_enabled: boolean; transfer_max_companies: number } | null; onSaved: () => void }) {
+  const [f, setF] = useState({ sla: "60", start: "9", end: "21", transfer: true, max: "3" });
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (settings) setF({ sla: String(settings.response_sla_minutes), start: String(settings.work_start_hour), end: String(settings.work_end_hour) }); }, [settings]);
+  useEffect(() => { if (settings) setF({ sla: String(settings.response_sla_minutes), start: String(settings.work_start_hour), end: String(settings.work_end_hour), transfer: settings.transfer_enabled, max: String(settings.transfer_max_companies) }); }, [settings]);
   async function save() {
-    const sla = Number(f.sla), start = Number(f.start), end = Number(f.end);
+    const sla = Number(f.sla), start = Number(f.start), end = Number(f.end), max = Number(f.max);
     if (!(sla >= 5 && sla <= 1440)) { toast.error("مدة الرد من 5 دقايق لـ 24 ساعة"); return; }
     if (!(start >= 0 && end <= 24 && end > start)) { toast.error("ساعات العمل مش مظبوطة"); return; }
+    if (!(max >= 1 && max <= 10)) { toast.error("أقصى عدد شركات من 1 لـ 10"); return; }
     setBusy(true);
-    const { error } = await supabase.from("app_settings").update({ response_sla_minutes: sla, work_start_hour: start, work_end_hour: end }).eq("id", 1);
+    const { error } = await supabase.from("app_settings").update({ response_sla_minutes: sla, work_start_hour: start, work_end_hour: end, transfer_enabled: f.transfer, transfer_max_companies: max }).eq("id", 1);
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("اتحفظت إعدادات وقت الرد"); onSaved(); }
   }
   return (
     <div className="rounded-2xl border bg-card p-4">
       <p className="font-bold text-primary">وقت الرد على العميل</p>
-      <p className="mt-1 text-xs text-muted-foreground">لو العميل ما اتردّش عليه (مكالمة، واتساب، ملاحظة، أو تغيير مرحلة) في المدة دي من ساعات العمل، الشركة بيجيلها تنبيه. ولو عدّى ضعف المدة، الإدارة وموظفي فاليو عقار بيجيلهم تنبيه عشان يعيدوا الإسناد.</p>
+      <p className="mt-1 text-xs text-muted-foreground">المدة بتبدأ من وقت إسناد العميل للشركة، وبتتحسب من ساعات العمل بس. التواصل بيتحسب لما الشركة تسجّل نتيجة «رد واتكلمنا» أو «طلب نكلمه تاني» أو تنقل العميل لمرحلة «تم التواصل» — الضغط على اتصال لوحده أو «ما ردش» مش بيتحسب.</p>
+      <label className="mt-3 flex items-center gap-2 text-sm font-bold text-primary">
+        <input type="checkbox" className="size-4" checked={f.transfer} onChange={(e) => setF({ ...f, transfer: e.target.checked })} />
+        النقل التلقائي: لو المدة خلصت من غير تواصل، العميل يتنقل للشركة اللي بعدها حسب قواعد التوزيع
+      </label>
+      <p className="mt-1 text-xs text-muted-foreground">{f.transfer ? "الشركة بيجيلها تنبيه قبل النقل بربع المدة. بعد أقصى عدد شركات (أو لو مفيش شركة تانية مؤهلة، أو الرقم غلط) العميل بيروح لطابور الإدارة ويجيلكم إشعار." : "النقل مقفول: الشركة بيجيلها تنبيه بعد المدة، والإدارة بعد ضعفها، والإسناد بيتغير يدوي."}</p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <Field label="المدة (دقيقة)"><input className={`${inputCls} w-28`} inputMode="numeric" value={f.sla} onChange={(e) => setF({ ...f, sla: e.target.value.replace(/\D/g, "") })} /></Field>
         <Field label="ساعات العمل من"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value.replace(/\D/g, "") })} /></Field>
         <Field label="لحد"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value.replace(/\D/g, "") })} /></Field>
+        {f.transfer && <Field label="أقصى عدد شركات"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.max} onChange={(e) => setF({ ...f, max: e.target.value.replace(/\D/g, "") })} /></Field>}
         <button disabled={busy} onClick={save} className={btnOutline}>حفظ</button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">بتوقيت القاهرة، كل يوم. مثال: 9 لـ 21 يعني من 9 الصبح لـ 9 بالليل.</p>
