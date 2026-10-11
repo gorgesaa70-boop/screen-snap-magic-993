@@ -563,6 +563,12 @@ const EN: Record<string, string> = {
   "دوس على مكان العقار في الخريطة، أو «موقعي الحالي» لو إنت في العقار دلوقتي.": "Tap the property's spot on the map, or use “my location” if you're at the property now.",
   "موقع المول على الخريطة": "Mall location on the map",
   "موقع الفرصة على الخريطة": "Opportunity location on the map",
+  // UX review fixes
+  "ادخل برقم موبايلك — للعملاء والوسطاء والشركات. أول مرة؟ هيتعملك حساب على طول.": "Sign in with your mobile number — for customers, brokers and companies. First time? Your account is created right away.",
+  "انضم لفاليو عقار": "Join Value Aqar",
+  "اعرض على الخريطة": "Show on map",
+  "إخفاء الخريطة": "Hide map",
+  "عرض المزيد": "Show more",
   // Customer tools (items 33–35)
   "سجّل دخولك عشان تحفظ العقارات في المفضلة": "Sign in to save properties to your favourites",
   "تعذّر الحفظ": "Couldn’t save",
