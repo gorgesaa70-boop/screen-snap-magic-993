@@ -1,4 +1,4 @@
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Phone, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -393,7 +393,7 @@ export function Footer() {
           <h4 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h4>
           <ul className="mt-4 space-y-2.5 text-sm">
             <li className="flex items-center gap-2"><MapPin className="size-4 text-teal" />{tr("برج العرب والساحل الشمالي")}</li>
-            <li className="flex items-center gap-2" dir="ltr"><Phone className="size-4 text-teal" />+20 100 000 0000</li>
+            <li><a href={waLink(WHATSAPP_NUMBER, tr("أهلاً فاليو عقار"))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 py-1 hover:text-teal"><MessageCircle className="size-4 text-teal" />{tr("راسلنا على واتساب")}</a></li>
             <li className="flex items-center gap-2"><Mail className="size-4 text-teal" />info@valueaqar.com</li>
           </ul>
         </div>
@@ -401,7 +401,7 @@ export function Footer() {
       <div className="border-t border-primary-foreground/10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs md:flex-row md:px-6">
           <p>© {new Date().getFullYear()} {tr("فاليو عقار. جميع الحقوق محفوظة.")}</p>
-          <div className="flex gap-5"><a href="#top" className="inline-block py-2.5 hover:text-teal">{tr("سياسة الخصوصية")}</a><a href="#top" className="inline-block py-2.5 hover:text-teal">{tr("الشروط والأحكام")}</a></div>
+          <div className="flex gap-5"><Link to="/privacy" className="inline-block py-2.5 hover:text-teal">{tr("سياسة الخصوصية")}</Link><Link to="/terms" className="inline-block py-2.5 hover:text-teal">{tr("الشروط والأحكام")}</Link></div>
         </div>
       </div>
     </footer>

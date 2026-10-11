@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -111,6 +111,9 @@ function AuthPage() {
         </div>
         {setup && <AdminBootstrap />}
       </div>
+      <p className="mx-auto mt-4 max-w-md text-center text-xs text-muted-foreground">
+        {t("بالدخول إنت موافق على")} <Link to="/terms" className="font-bold text-primary hover:text-teal">{t("شروط الاستخدام")}</Link> {t("و")}<Link to="/privacy" className="font-bold text-primary hover:text-teal">{t("سياسة الخصوصية")}</Link>.
+      </p>
       <AppDownload />
       </div>
     </div>

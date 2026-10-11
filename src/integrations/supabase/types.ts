@@ -1850,6 +1850,7 @@ export type Database = {
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
+      prepare_account_deletion: { Args: { _uid: string }; Returns: string }
       delete_demo_data: { Args: never; Returns: Json }
       demo_visible: { Args: never; Returns: boolean }
       log_app_error: { Args: { _kind: string; _message: string; _stack: string; _path: string; _ua: string }; Returns: undefined }

@@ -33,6 +33,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
                 <Link to="/dashboard" className={linkCls} activeProps={activeCls}>صفحتي</Link>
                 <Link to="/favorites" className={linkCls} activeProps={activeCls}>المفضلة</Link>
                 <Link to="/my-requests" className={linkCls} activeProps={activeCls}>طلباتي</Link>
+                <Link to="/account" className={linkCls} activeProps={activeCls}>حسابي</Link>
                 <a href="/" className={linkCls}>تصفّح العقارات</a>
               </>
             ) : (<>
