@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { PhoneOtp, destinationFor } from "@/components/auth/PhoneOtp";
+import { GoogleButton } from "@/components/auth/SocialLogin";
+import { AppDownload } from "@/components/site/AppDownload";
 import { t, useLang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/auth")({
@@ -57,12 +59,20 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-secondary px-4 py-10">
-      <div className="w-full max-w-sm rounded-3xl border bg-card p-6 shadow-card md:p-8">
-        <Logo />
-        <h1 className="mt-6 text-xl font-extrabold text-primary">{t("تسجيل الدخول")}</h1>
+    <div className="min-h-screen bg-secondary px-4 py-8 md:py-12">
+      <div className="mx-auto grid w-full max-w-5xl items-start gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
+      <div className="w-full rounded-3xl border bg-card p-6 shadow-card md:p-8">
+        <div className="flex items-center justify-between gap-3">
+          <Logo />
+          <a href="/" className="text-xs font-bold text-muted-foreground hover:text-primary">{t("الرجوع للموقع")}</a>
+        </div>
+        <h1 className="mt-6 text-2xl font-extrabold text-primary">{t("تسجيل الدخول")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("للوسطاء والإدارة. عملاء جدد؟ سجّل برقمك وقدّم طلب انضمام.")}</p>
-        <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
+        <div className="mt-5">
+          <GoogleButton onSignedIn={go} />
+          <div className="my-4 flex items-center gap-3 text-xs font-semibold text-muted-foreground"><span className="h-px flex-1 bg-border" />{t("أو")}<span className="h-px flex-1 bg-border" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
           {([["phone", "رقم الهاتف"], ["email", "البريد الإلكتروني"]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setMethod(k)} className={`h-10 rounded-lg text-sm font-bold transition ${method === k ? "bg-card text-primary shadow-card" : "text-foreground/70"}`}>{t(l)}</button>
           ))}
@@ -94,6 +104,8 @@ function AuthPage() {
           )}
         </div>
         <AdminBootstrap />
+      </div>
+      <AppDownload />
       </div>
     </div>
   );

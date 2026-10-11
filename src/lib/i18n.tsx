@@ -425,6 +425,23 @@ const EN: Record<string, string> = {
   "شاطئ خاص": "Private beach",
   "مدارس": "Schools",
   "مستشفى / عيادات": "Hospital / clinics",
+  // Sign-in and app download
+  "أو": "or",
+  "الرجوع للموقع": "Back to site",
+  "المتابعة بحساب Google": "Continue with Google",
+  "تعذّر الدخول بحساب Google، حاول تاني": "Couldn't sign in with Google, please try again",
+  "هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة": "This account is suspended. Please contact the administration.",
+  "حمّل تطبيق Value Aqar": "Get the Value Aqar app",
+  "تابع العقارات والطلبات والإشعارات من موبايلك في أي وقت، بنفس حسابك على الموقع.": "Follow properties, requests and notifications from your phone anytime, with the same account as the website.",
+  "التطبيق قيد التجهيز وهيكون متاح على المتاجر قريبًا.": "The app is being prepared and will be on the stores soon.",
+  "التطبيق لسه مش منشور على {store}": "The app isn't on {store} yet",
+  "حمّله من": "Download on the",
+  "متاح على": "Get it on",
+  "قريبًا على": "Coming soon to",
+  "امسح الكود بكاميرا موبايلك لتنزيل التطبيق": "Scan the code with your phone camera to get the app",
+  "الكود بيفتح الصفحة المناسبة لموبايلك تلقائيًا (آيفون أو أندرويد).": "It opens the right store for your phone automatically (iPhone or Android).",
+  "رمز QR لتنزيل تطبيق Value Aqar": "QR code to download the Value Aqar app",
+  "جارٍ فتح المتجر...": "Opening the store...",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */

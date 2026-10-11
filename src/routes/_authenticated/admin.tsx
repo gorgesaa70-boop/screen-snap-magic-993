@@ -13,6 +13,7 @@ import { ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDa
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
+import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls";
+type Tab = "reports" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "app";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -55,13 +56,14 @@ function AdminPage() {
     <DashShell title="لوحة الإدارة" isAdmin>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "reports", label: "التقارير" }, { id: "alerts", label: "الإشعارات الإدارية" }, { id: "brokers", label: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}` }, { id: "staff", label: "فريق فاليو عقار" },
-        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" },
+        { id: "review", label: `مراجعة العقارات${pending ? ` (${pending})` : ""}` }, { id: "leads", label: "طلبات العملاء" }, { id: "plans", label: "الباقات" }, { id: "projects", label: "المشروعات" }, { id: "industrial", label: "الصناعي" }, { id: "malls", label: "المولات" }, { id: "app", label: "التطبيق" },
       ]} />
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         <>
           {tab === "reports" && <Reports d={d} />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
+          {tab === "app" && <AppSettingsAdmin />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}

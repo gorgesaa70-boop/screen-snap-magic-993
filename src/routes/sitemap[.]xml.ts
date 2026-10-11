@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SITE_URL } from "@/lib/seo";
 
-const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/map"];
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/app", "/map"];
 
 type Entry = { path: string; lastmod?: string };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]!);

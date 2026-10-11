@@ -9,7 +9,8 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, type ReactNode } from "react";
+import { useSocialReturn } from "@/components/auth/SocialLogin";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
@@ -122,6 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  useSocialReturn(useCallback((to: string) => { void router.navigate({ to, replace: true }); }, [router]));
   useEffect(() => {
     void import("../lib/native-links").then((m) => m.initNativeShell()).catch(() => {});
   }, []);

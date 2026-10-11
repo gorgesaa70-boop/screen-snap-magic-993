@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          android_url: string | null
+          id: number
+          ios_url: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          android_url?: string | null
+          id?: number
+          ios_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          android_url?: string | null
+          id?: number
+          ios_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       auth_events: {
         Row: {
           created_at: string
