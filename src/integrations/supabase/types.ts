@@ -31,6 +31,14 @@ export type Database = {
 
 
           show_demo: boolean
+
+
+
+          transfer_enabled: boolean
+
+
+
+          transfer_max_companies: number
           id: number
           ios_url: string | null
           updated_at: string
@@ -46,6 +54,14 @@ export type Database = {
 
 
           show_demo?: boolean
+
+
+
+          transfer_enabled?: boolean
+
+
+
+          transfer_max_companies?: number
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -61,6 +77,14 @@ export type Database = {
 
 
           show_demo?: boolean
+
+
+
+          transfer_enabled?: boolean
+
+
+
+          transfer_max_companies?: number
           id?: number
           ios_url?: string | null
           updated_at?: string
@@ -822,6 +846,12 @@ export type Database = {
 
         ]
       }
+      job_runs: {
+        Row: { error: string | null; finished_at: string | null; id: number; job: string; result: Json | null; started_at: string }
+        Insert: { error?: string | null; finished_at?: string | null; id?: never; job: string; result?: Json | null; started_at?: string }
+        Update: { error?: string | null; finished_at?: string | null; id?: never; job?: string; result?: Json | null; started_at?: string }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -952,6 +982,15 @@ export type Database = {
 
           first_response_outcome: string | null
 
+
+          transfer_deadline_at: string | null
+
+
+          admin_queue_at: string | null
+
+
+          admin_queue_reason: string | null
+
           project_id: string | null
 
           project_unit_id: string | null
@@ -1005,6 +1044,15 @@ export type Database = {
 
           first_response_outcome?: string | null
 
+
+          transfer_deadline_at?: string | null
+
+
+          admin_queue_at?: string | null
+
+
+          admin_queue_reason?: string | null
+
           project_id?: string | null
 
           project_unit_id?: string | null
@@ -1055,6 +1103,15 @@ export type Database = {
           first_response_by?: string | null
 
           first_response_outcome?: string | null
+
+
+          transfer_deadline_at?: string | null
+
+
+          admin_queue_at?: string | null
+
+
+          admin_queue_reason?: string | null
 
           project_id?: string | null
 
@@ -1930,6 +1987,8 @@ export type Database = {
       opportunity_location: { Args: { _id: string }; Returns: { lat: number; lng: number }[] }
       opportunity_private: { Args: { _id: string }; Returns: { details: string | null; licenses: string | null; location_note: string | null }[] }
       my_requests: { Args: never; Returns: { id: string; lead_no: number; kind: string; stage: string; purpose: string | null; property_id: string | null; property_title: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null; created_at: string; updated_at: string }[] }
+      run_lead_transfers: { Args: never; Returns: Json }
+      add_work_minutes: { Args: { _from: string; _mins: number }; Returns: string }
       prepare_account_deletion: { Args: { _uid: string }; Returns: string }
       delete_demo_data: { Args: never; Returns: Json }
       demo_visible: { Args: never; Returns: boolean }

@@ -29,6 +29,13 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
 
         // Scheduled reminders (follow-ups, visits, overdue tasks, due commissions, stale reviews, missing documents)
         // become notifications first, so this same run can also send their WhatsApp copies.
+        // CRM: move leads whose response deadline passed without a real contact (safe to run twice; logged in job_runs).
+        const { data: transfers, error: transfersError } = await db.rpc("run_lead_transfers");
+        if (transfersError) {
+          console.error("run_lead_transfers", transfersError.message);
+          await db.rpc("log_app_error", { _kind: "server", _message: `run_lead_transfers: ${transfersError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
+        }
+
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 
@@ -37,7 +44,7 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           .eq("whatsapp_status", "pending").lt("created_at", new Date(Date.now() - 864e5).toISOString());
 
         if (!token || !phoneId || !template) {
-          return Response.json({ configured: false, sent: 0, reminders });
+          return Response.json({ configured: false, sent: 0, reminders, transfers });
         }
 
         const { data: pending, error } = await db.from("notifications")
@@ -78,7 +85,7 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
             failed++;
           }
         }
-        return Response.json({ configured: true, sent, skipped, failed, reminders });
+        return Response.json({ configured: true, sent, skipped, failed, reminders, transfers });
       },
     },
   },

@@ -375,6 +375,8 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("companies can't change the response settings", () => as(U.owner, `update public.app_settings set response_sla_minutes=5 returning id`), (r) => r.length === 0);
 
   // Make the clock deterministic for the alert run: count all 24 hours.
+  // These checks cover the reminder-only mode (automatic transfer switched off); transfer has its own tests below.
+  await as(U.admin, `update public.app_settings set transfer_enabled=false`);
   await as(U.admin, `update public.app_settings set work_start_hour=0, work_end_hour=24`);
   const slow = (await leadBy("دور 1"));
   const late = async (mins) => {
@@ -397,7 +399,7 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   const res3 = await run();
   await expectOk("each alert is sent once", async () => [res3.response_alerts, res3.response_escalations], (r) => r[0] === 0 && r[1] === 0);
   await expectOk("review report lists the lead waiting for a response", () => as(U.staff, `select kind from public.lead_alerts() where lead_id='${slow.id}'`), (r) => r.some((x) => x.kind === "slow_response"));
-  await as(U.admin, `update public.app_settings set work_start_hour=9, work_end_hour=21`);
+  await as(U.admin, `update public.app_settings set work_start_hour=9, work_end_hour=21, transfer_enabled=true`);
 
   console.log("\nInvestment opportunities (item 40)");
   await expectOk("investor registers interests", () => as(U.outsider, `insert into public.investor_profiles (name, budget_min, budget_max, kinds, areas) values ('مستثمر', 10000000, 80000000, array['development_land'], array['برج العرب الجديدة']) returning user_id`), (r) => r[0].user_id === U.outsider);
@@ -662,4 +664,87 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("…and can't change it", async () => (await as(U.owner, `update public.leads set stage='lost' where id='${cl}' returning id`)).length, (r) => r === 0);
   await expectOk("the new company sees it", async () => (await as(U.dev, `select id from public.leads where id='${cl}'`)).length, (r) => r === 1);
   await expectOk("companies can't read the assignment history", async () => (await as(U.dev, `select id from public.lead_assignments where lead_id='${cl}'`)).length, (r) => r === 0);
+
+  console.log("\nCRM phase 4: 60-minute automatic transfer");
+  // Working minutes: 9:00–21:00 Cairo by default (Cairo = UTC+3 in these fixed dates).
+  await expectOk("deadline inside working hours = +60 minutes", () => sys(`select public.add_work_minutes('2026-10-12 10:00+03', 60) t`), (r) => new Date(r[0].t).toISOString() === "2026-10-12T08:00:00.000Z");
+  await expectOk("a lead at 20:30 gets 30 minutes tonight and 30 tomorrow morning", () => sys(`select public.add_work_minutes('2026-10-12 20:30+03', 60) t`), (r) => new Date(r[0].t).toISOString() === "2026-10-13T06:30:00.000Z");
+  await expectOk("a lead at 23:00 starts counting at 9:00", () => sys(`select public.add_work_minutes('2026-10-12 23:00+03', 60) t`), (r) => new Date(r[0].t).toISOString() === "2026-10-13T07:00:00.000Z");
+
+  // Three companies in one rotating rule for this test's leads.
+  const C3 = "c0000000-0000-0000-0000-000000000003";
+  const U3 = "00000000-0000-0000-0000-0000000000e3";
+  await sys(`insert into auth.users (id, phone) values ('${U3}','201000000333')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, account_type, is_active) values ('${C3}','${U3}','co3','شركة تالتة','company', true)`);
+  await as(U.admin, `insert into public.routing_rules (name, priority, areas, broker_ids) values ('نقل تلقائي', 1, array['منطقة النقل'], array['${CO}'::uuid, '${DEV}'::uuid, '${C3}'::uuid])`);
+  const newLead = async (name) => { await as(null, `insert into public.leads (name, phone, kind, area) values ('${name}','010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}','request','منطقة النقل')`); return (await sys(`select * from public.leads where name='${name}'`))[0]; };
+  const expire = async (id) => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); await sys(`update public.leads set transfer_deadline_at = now() - interval '1 minute' where id='${id}'`); await sys(`select set_config('request.jwt.claim.role','',false)`); };
+  const runT = async () => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); const r = (await sys(`select public.run_lead_transfers() r`))[0].r; await sys(`select set_config('request.jwt.claim.role','',false)`); return r; };
+  const state = (id) => sys(`select assigned_broker_id, transfer_deadline_at, admin_queue_at, admin_queue_reason from public.leads where id='${id}'`).then((r) => r[0]);
+
+  const t1 = await newLead("نقل 1");
+  await expectOk("a routed lead gets a deadline at assignment", async () => t1, (r) => !!r.assigned_broker_id && !!r.transfer_deadline_at);
+  await expectOk("before the deadline nothing moves", async () => [await runT(), (await state(t1.id)).assigned_broker_id], (r) => r[0].moved === 0 && r[1] === t1.assigned_broker_id);
+  await expectOk("no answer + deadline passed → moved to the next company, new deadline, both companies notified", async () => {
+    await as(U.owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) select '${t1.id}','call','ما ردش','${U.owner}','no_answer' where '${t1.assigned_broker_id}' = '${CO}'`);
+    await expire(t1.id);
+    const r = await runT(); const s = await state(t1.id);
+    return [r.moved, s.assigned_broker_id !== t1.assigned_broker_id && !!s.assigned_broker_id, new Date(s.transfer_deadline_at) > new Date(), await notes(U.owner, "العميل اتنقل لشركة تانية") + await notes(U.dev, "العميل اتنقل لشركة تانية") + await notes(U3, "العميل اتنقل لشركة تانية")];
+  }, (r) => r[0] === 1 && r[1] && r[2] && r[3] >= 1);
+  await expectOk("the move is logged: timeout end, auto_transfer start, deadline kept", () => sys(`select end_reason, source, deadline_at is not null has_deadline from public.lead_assignments where lead_id='${t1.id}' order by created_at`), (r) => r.length === 2 && r[0].end_reason === "timeout" && r[1].source === "auto_transfer" && r[1].has_deadline);
+  await expectOk("running the job again (or twice) does not move it again", async () => { const a = await runT(); const b = await runT(); return [a.moved + b.moved, Number((await sys(`select count(*) c from public.lead_assignments where lead_id='${t1.id}'`))[0].c)]; }, (r) => r[0] === 0 && r[1] === 2);
+
+  const t2 = await newLead("نقل 2");
+  await expectOk("real contact before the deadline stops the transfer for good", async () => {
+    const owner = { [CO]: U.owner, [DEV]: U.dev }[t2.assigned_broker_id] ?? U.admin;
+    await as(owner, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${t2.id}','call','اتكلمنا','${owner}','reached')`);
+    const s = await state(t2.id); await expire(t2.id); const r = await runT();
+    return [s.transfer_deadline_at, r.moved, (await state(t2.id)).assigned_broker_id === t2.assigned_broker_id];
+  }, (r) => r[0] === null && r[1] === 0 && r[2]);
+
+  const t3 = await newLead("نقل 3");
+  await expectOk("after 3 companies without contact → admin queue, team notified, lead kept", async () => {
+    for (let i = 0; i < 3; i++) { await expire(t3.id); await runT(); }
+    const s = await state(t3.id);
+    return [s.assigned_broker_id, !!s.admin_queue_at, s.admin_queue_reason, await notes(U.staff, "عميل في طابور الإدارة"), Number((await sys(`select count(distinct broker_id) c from public.lead_assignments where lead_id='${t3.id}'`))[0].c)];
+  }, (r) => r[0] === null && r[1] && r[2].includes("3") && r[3] >= 1 && r[4] === 3);
+  await expectOk("none of the companies sees it anymore", async () => [(await as(U.owner, `select id from public.leads where id='${t3.id}'`)).length, (await as(U.dev, `select id from public.leads where id='${t3.id}'`)).length], (r) => r[0] === 0 && r[1] === 0);
+  await expectOk("an admin assigns it again by hand → out of the queue, new deadline (manual assignments are timed too)", async () => {
+    await as(U.admin, `update public.leads set assigned_broker_id='${CO}' where id='${t3.id}'`);
+    const s = await state(t3.id); return [s.admin_queue_at, !!s.transfer_deadline_at];
+  }, (r) => r[0] === null && r[1]);
+
+  const t4 = await newLead("نقل 4");
+  await expectOk("no other eligible company (others suspended) → admin queue with the reason", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`update public.brokers set suspended_at = now() where id in ('${CO}','${DEV}','${C3}') and id <> '${t4.assigned_broker_id}'`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    await expire(t4.id); await runT();
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`update public.brokers set suspended_at = null where id in ('${CO}','${DEV}','${C3}')`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    return state(t4.id);
+  }, (r) => r.assigned_broker_id === null && r.admin_queue_reason === "مفيش شركة تانية مؤهلة");
+
+  const t5 = await newLead("نقل 5");
+  await expectOk("a wrong number goes to Value Aqar for review instead of another company", async () => {
+    await as(U.admin, `insert into public.lead_activities (lead_id, kind, summary, actor_id, outcome) values ('${t5.id}','call','رقم غلط','${U.admin}','wrong_number')`);
+    await expire(t5.id); await runT(); return state(t5.id);
+  }, (r) => r.assigned_broker_id === null && r.admin_queue_reason.startsWith("الرقم غلط"));
+
+  await expectOk("investment requests and owner listings never get a deadline", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`insert into public.leads (name, phone, kind, assigned_broker_id) values ('عرض مالك نقل','01000000777','listing','${CO}')`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    return sys(`select transfer_deadline_at from public.leads where name='عرض مالك نقل'`);
+  }, (r) => r[0].transfer_deadline_at === null);
+  await expectErr("companies can't run the job", () => as(U.owner, `select public.run_lead_transfers()`));
+  await expectErr("visitors can't either", () => as(null, `select public.run_lead_transfers()`));
+  await expectOk("every run is logged; only admins read the log", async () => [Number((await sys(`select count(*) c from public.job_runs where job='lead_transfers' and finished_at is not null`))[0].c), (await as(U.owner, `select * from public.job_runs`)).length], (r) => r[0] >= 5 && r[1] === 0);
+  await expectOk("switching automatic transfer off stops moves", async () => {
+    await as(U.admin, `update public.app_settings set transfer_enabled=false`);
+    const t6 = await newLead("نقل 6"); await expire(t6.id); const r = await runT();
+    await as(U.admin, `update public.app_settings set transfer_enabled=true`);
+    return [r.disabled, t6.transfer_deadline_at];
+  }, (r) => r[0] === true && r[1] === null);
 }
