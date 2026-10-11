@@ -16,6 +16,7 @@ import { LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLi
 import { staffDirectory } from "@/lib/admin.functions";
 import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
 import { ReferralProof } from "@/components/dash/ReferralProof";
+import { LeadTasks } from "@/components/dash/Tasks";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -33,7 +34,7 @@ const toLocalInput = (iso?: string | null) => {
 function LeadPage() {
   const { id } = Route.useParams();
   const { stage: wanted } = Route.useSearch();
-  const { me, loading } = useMe();
+  const { me, user, loading } = useMe();
   const q = useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
@@ -154,6 +155,11 @@ function LeadPage() {
               <input className={inputCls} placeholder="ملاحظات المتابعة" value={notes ?? l.notes ?? ""} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
               <button className={btnOutline} onClick={() => { if (notes !== null) upd({ notes }, "تم حفظ الملاحظة"); setNotes(null); }}>حفظ</button>
             </div>
+          </section>
+
+          <section className={card}>
+            <h2 className={h2}>المهام</h2>
+            <LeadTasks leadId={l.id} me={user?.id} />
           </section>
 
           <section className={card}>

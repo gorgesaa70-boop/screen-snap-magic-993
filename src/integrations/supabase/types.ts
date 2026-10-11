@@ -1268,6 +1268,56 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          assigned_to: string
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          done_by: string | null
+          due_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          reminded_at: string | null
+          title: string
+        }
+        Insert: {
+          assigned_to: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reminded_at?: string | null
+          title: string
+        }
+        Update: {
+          assigned_to?: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reminded_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1380,6 +1430,7 @@ export type Database = {
         }[]
       }
       claim_first_admin: { Args: never; Returns: boolean }
+      assignable_users: { Args: never; Returns: { label: string; user_id: string }[] }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
@@ -1415,6 +1466,7 @@ export type Database = {
         Returns: boolean
       }
       normalize_phone: { Args: { _p: string }; Returns: string }
+      run_reminders: { Args: never; Returns: Json }
       notify_admins: {
         Args: {
           _except?: string

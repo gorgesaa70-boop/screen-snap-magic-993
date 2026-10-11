@@ -26,6 +26,7 @@ import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
@@ -126,6 +127,11 @@ const AuthenticatedPendingRoute = AuthenticatedPendingRouteImport.update({
   path: '/pending',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const BrokersIndexRoute = BrokersIndexRouteImport.update({
   id: '/brokers/',
   path: '/brokers/',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/join': typeof AuthenticatedJoinRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
+  '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
@@ -308,6 +317,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/notifications'
     | '/pending'
+    | '/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/join'
     | '/notifications'
     | '/pending'
+    | '/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/_authenticated/join'
     | '/_authenticated/notifications'
     | '/_authenticated/pending'
+    | '/_authenticated/tasks'
     | '/brokers/$slug'
     | '/demo/central-point'
     | '/industrial/$id'
@@ -530,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPendingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/brokers/': {
       id: '/brokers/'
       path: '/brokers'
@@ -634,6 +653,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
 }
 
@@ -647,6 +667,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
 }
 

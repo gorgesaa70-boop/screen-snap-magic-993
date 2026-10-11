@@ -39,7 +39,7 @@ revoke execute on function public.actor_label() from public, anon, authenticated
 create or replace function public.audit_row()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare o jsonb; n jsonb; diff jsonb := '{}'::jsonb; k text;
-  ignore text[] := array['updated_at','stage_changed_at','phone_norm'];
+  ignore text[] := array['updated_at','stage_changed_at','phone_norm','reminded_follow_up_at','reminded_visit_at','review_reminded_at','docs_reminded_at','due_reminded_on','reminded_at'];
 begin
   if tg_op = 'INSERT' then
     n := to_jsonb(new);
