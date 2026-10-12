@@ -14,11 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_errors: {
+        Row: {
+          count: number
+          day: string
+          fingerprint: string
+          first_seen: string
+          id: string
+          kind: string
+          last_seen: string
+          message: string
+          path: string | null
+          stack: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          count?: number
+          day?: string
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          kind: string
+          last_seen?: string
+          message: string
+          path?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          count?: number
+          day?: string
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          kind?: string
+          last_seen?: string
+          message?: string
+          path?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           android_url: string | null
           id: number
           ios_url: string | null
+          last_backup_at: string | null
           response_sla_minutes: number
           updated_at: string
           updated_by: string | null
@@ -29,6 +75,7 @@ export type Database = {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          last_backup_at?: string | null
           response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
@@ -39,6 +86,7 @@ export type Database = {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          last_backup_at?: string | null
           response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
@@ -2110,6 +2158,16 @@ export type Database = {
           lead_name: string
           lead_no: number
         }[]
+      }
+      log_app_error: {
+        Args: {
+          _kind: string
+          _message: string
+          _path: string
+          _stack: string
+          _ua: string
+        }
+        Returns: undefined
       }
       member_user_id: { Args: { _member: string }; Returns: string }
       meta_inbound_lead: {
