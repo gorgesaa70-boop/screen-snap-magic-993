@@ -29,6 +29,13 @@
       "when": 1791763331410,
       "tag": "0003_developers_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791763379393,
+      "tag": "0004_companies_staff",
+      "breakpoints": true
     }
   ]
 }
