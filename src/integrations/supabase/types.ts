@@ -648,7 +648,9 @@ export type Database = {
           is_featured: boolean
           kind: string
           land_area: number | null
+          lat: number | null
           licenses: string | null
+          lng: number | null
           location_note: string | null
           offered_share: number | null
           opp_no: number
@@ -676,7 +678,9 @@ export type Database = {
           is_featured?: boolean
           kind: string
           land_area?: number | null
+          lat?: number | null
           licenses?: string | null
+          lng?: number | null
           location_note?: string | null
           offered_share?: number | null
           opp_no?: never
@@ -704,7 +708,9 @@ export type Database = {
           is_featured?: boolean
           kind?: string
           land_area?: number | null
+          lat?: number | null
           licenses?: string | null
+          lng?: number | null
           location_note?: string | null
           offered_share?: number | null
           opp_no?: never
@@ -1094,6 +1100,8 @@ export type Database = {
           id: string
           is_active: boolean
           kind: string
+          lat: number | null
+          lng: number | null
           location: string | null
           logo_url: string | null
           name: string
@@ -1105,6 +1113,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           kind?: string
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           logo_url?: string | null
           name: string
@@ -1116,6 +1126,8 @@ export type Database = {
           id?: string
           is_active?: boolean
           kind?: string
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           logo_url?: string | null
           name?: string
@@ -1892,7 +1904,9 @@ export type Database = {
           is_featured: boolean
           kind: string
           land_area: number | null
+          lat: number | null
           licenses: string | null
+          lng: number | null
           location_note: string | null
           offered_share: number | null
           opp_no: number
@@ -2076,7 +2090,9 @@ export type Database = {
           is_featured: boolean
           kind: string
           land_area: number | null
+          lat: number | null
           licenses: string | null
+          lng: number | null
           location_note: string | null
           offered_share: number | null
           opp_no: number
@@ -2146,6 +2162,13 @@ export type Database = {
           _user: string
         }
         Returns: undefined
+      }
+      opportunity_location: {
+        Args: { _id: string }
+        Returns: {
+          lat: number
+          lng: number
+        }[]
       }
       opportunity_private: {
         Args: { _id: string }
