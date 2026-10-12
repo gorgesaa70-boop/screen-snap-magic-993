@@ -1,18 +1,20 @@
-# أيقونة فاليو عقار (دبوس المكان والبيت)
+# لوجو وأيقونات فاليو عقار
 
-ملفات المصدر لأيقونة التطبيق، بالألوان الرسمية: كحلي `#1F2B4D` ومينت `#6CCBB0`.
+المصدر: لوحة البراند `brand-sheet.jpg` (1600×800): دبوس المكان والبيت بالأخضر والكحلي، والكلام "VALUE عقار".
 
 | الملف | الاستخدام |
 |---|---|
-| `icon.png` (1024×1024) | أيقونة App Store وGoogle Play — مربع كامل من غير زوايا (المتاجر بتدوّرها) |
-| `icon-foreground.png` + `icon-background.png` | أيقونة أندرويد المتغيرة (العلامة جوه منطقة الأمان) |
-| `splash-icon.png` | شاشة الفتح |
-| `icon.svg` | النسخة الأصلية القابلة للتكبير |
+| `icon.png` (1024×1024) | أيقونة App Store وGoogle Play (مربع كامل؛ المتاجر بتدوّره) |
+| `icon-foreground.png` + `icon-background.png` | أيقونة أندرويد المتغيرة |
+| `splash-icon.png` | شاشة فتح التطبيق |
 
-لما نبني تطبيقات أندرويد وiOS بـ Capacitor، الأمر ده بيطلّع كل المقاسات من الفولدر ده:
+في الموقع (`public/`):
+- `logo-mark.png`: العلامة على خلفية بيضا، للهيدر. وجنبها الاسم كامل كنص: "فاليو عقار" و"VALUE AQAR".
+- `logo-mark-dark.png`: أيقونة التطبيق الكحلي، لآخر الصفحة.
+- `favicon-32.png` و`favicon.png` للتبويب، و`apple-touch-icon.png` لشاشة الآيفون، و`icon-192/512` و`icon-maskable-512` لأندرويد (من خلال `site.webmanifest`).
+
+⚠️ لوحة البراند صغيرة، فأيقونة الـ 1024 متكبّرة من حوالي 280 بكسل، وده كويس للشاشة بس **قبل الرفع على المتاجر محتاجين الأيقونة الأصلية بجودة عالية** (1024 أو أكبر، ويفضل SVG). ساعتها نشغّل:
 
 ```
-npx @capacitor/assets generate --iconBackgroundColor "#6CCBB0" --splashBackgroundColor "#FFFFFF"
+npx @capacitor/assets generate --iconBackgroundColor "#02162E" --splashBackgroundColor "#02162E"
 ```
-
-أيقونات الموقع في `public/`: `favicon.svg` و`favicon-32.png` و`favicon.png` (التبويب)، `apple-touch-icon.png` (شاشة الآيفون)، `icon-192.png` و`icon-512.png` و`icon-maskable-512.png` (أندرويد، عن طريق `site.webmanifest`).
