@@ -54,6 +54,7 @@ export function Navbar() {
     { label: t("استثمار"), href: "/investments" },
     { label: t("الوسطاء"), href: "/brokers" },
     { label: `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing" },
+    { label: `${t("دليل الخدمات")} · ${t("قريبًا")}`, href: "/services" },
     ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices" }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
