@@ -24,7 +24,7 @@ export function NewLeadForm({ brokers, onDone }: { brokers: BrokerRow[]; onDone:
     const { data: dup } = norm ? await supabase.from("leads").select("lead_no").eq("phone_norm", norm).limit(1) : { data: [] };
     const { data, error } = await supabase.from("leads").insert({
       name: f.name.trim().slice(0, 100), phone: f.phone.trim(), kind: "request",
-      source: f.source, source_note: f.source_note.trim().slice(0, 200) || null,
+      source: f.source, original_source: f.source, source_note: f.source_note.trim().slice(0, 200) || null,
       property_type: f.property_type.trim() || null, area: f.area.trim() || null, budget: f.budget ? Number(f.budget) : null,
       details: f.details.trim().slice(0, 1000) || null, assigned_broker_id: f.assigned_broker_id || null,
     }).select("id, lead_no").single();

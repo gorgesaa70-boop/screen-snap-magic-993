@@ -155,6 +155,41 @@
       "when": 1791764121925,
       "tag": "0021_app_errors",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791764236587,
+      "tag": "0022_demo_switch",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791764250032,
+      "tag": "0023_account_deletion",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791764272947,
+      "tag": "0024_crm_leads",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791764319986,
+      "tag": "0025_crm_transfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791764370585,
+      "tag": "0026_payments",
+      "breakpoints": true
     }
   ]
 }

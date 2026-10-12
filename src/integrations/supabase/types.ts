@@ -62,10 +62,16 @@ export type Database = {
       app_settings: {
         Row: {
           android_url: string | null
+          featured_month_price: number
+          featured_week_price: number
           id: number
           ios_url: string | null
           last_backup_at: string | null
           response_sla_minutes: number
+          show_demo: boolean
+          subscription_grace_days: number
+          transfer_enabled: boolean
+          transfer_max_companies: number
           updated_at: string
           updated_by: string | null
           work_end_hour: number
@@ -73,10 +79,16 @@ export type Database = {
         }
         Insert: {
           android_url?: string | null
+          featured_month_price?: number
+          featured_week_price?: number
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
+          show_demo?: boolean
+          subscription_grace_days?: number
+          transfer_enabled?: boolean
+          transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -84,10 +96,16 @@ export type Database = {
         }
         Update: {
           android_url?: string | null
+          featured_month_price?: number
+          featured_week_price?: number
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
+          show_demo?: boolean
+          subscription_grace_days?: number
+          transfer_enabled?: boolean
+          transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -898,6 +916,33 @@ export type Database = {
         }
         Relationships: []
       }
+      job_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: number
+          job: string
+          result: Json | null
+          started_at: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job: string
+          result?: Json | null
+          started_at?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job?: string
+          result?: Json | null
+          started_at?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -905,6 +950,7 @@ export type Database = {
           id: string
           kind: string
           lead_id: string
+          outcome: string | null
           summary: string
         }
         Insert: {
@@ -913,6 +959,7 @@ export type Database = {
           id?: string
           kind: string
           lead_id: string
+          outcome?: string | null
           summary: string
         }
         Update: {
@@ -921,6 +968,7 @@ export type Database = {
           id?: string
           kind?: string
           lead_id?: string
+          outcome?: string | null
           summary?: string
         }
         Relationships: [
@@ -938,27 +986,45 @@ export type Database = {
           broker_id: string | null
           changed_by: string | null
           created_at: string
+          deadline_at: string | null
+          end_reason: string | null
+          ended_at: string | null
           id: string
           lead_id: string
           member_id: string | null
+          note: string | null
+          outcome: string | null
+          source: string | null
           staff_id: string | null
         }
         Insert: {
           broker_id?: string | null
           changed_by?: string | null
           created_at?: string
+          deadline_at?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
           id?: string
           lead_id: string
           member_id?: string | null
+          note?: string | null
+          outcome?: string | null
+          source?: string | null
           staff_id?: string | null
         }
         Update: {
           broker_id?: string | null
           changed_by?: string | null
           created_at?: string
+          deadline_at?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
           id?: string
           lead_id?: string
           member_id?: string | null
+          note?: string | null
+          outcome?: string | null
+          source?: string | null
           staff_id?: string | null
         }
         Relationships: [
@@ -987,6 +1053,8 @@ export type Database = {
       }
       leads: {
         Row: {
+          admin_queue_at: string | null
+          admin_queue_reason: string | null
           area: string | null
           asking_price: number | null
           assigned_broker_id: string | null
@@ -1002,6 +1070,8 @@ export type Database = {
           first_broker_id: string | null
           first_referred_at: string | null
           first_response_at: string | null
+          first_response_by: string | null
+          first_response_outcome: string | null
           follow_up_at: string | null
           id: string
           kind: string
@@ -1014,6 +1084,8 @@ export type Database = {
           phone: string
           phone_norm: string | null
           phone_verified: boolean
+          project_id: string | null
+          project_unit_id: string | null
           property_id: string | null
           property_type: string | null
           purpose: string | null
@@ -1028,12 +1100,15 @@ export type Database = {
           source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at: string | null
+          transfer_deadline_at: string | null
           updated_at: string
           utm: Json | null
           via_broker_id: string | null
           visit_at: string | null
         }
         Insert: {
+          admin_queue_at?: string | null
+          admin_queue_reason?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -1049,6 +1124,8 @@ export type Database = {
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
+          first_response_by?: string | null
+          first_response_outcome?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -1061,6 +1138,8 @@ export type Database = {
           phone: string
           phone_norm?: string | null
           phone_verified?: boolean
+          project_id?: string | null
+          project_unit_id?: string | null
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
@@ -1075,12 +1154,15 @@ export type Database = {
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
+          transfer_deadline_at?: string | null
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
         }
         Update: {
+          admin_queue_at?: string | null
+          admin_queue_reason?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -1096,6 +1178,8 @@ export type Database = {
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
+          first_response_by?: string | null
+          first_response_outcome?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -1108,6 +1192,8 @@ export type Database = {
           phone?: string
           phone_norm?: string | null
           phone_verified?: boolean
+          project_id?: string | null
+          project_unit_id?: string | null
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
@@ -1122,6 +1208,7 @@ export type Database = {
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
+          transfer_deadline_at?: string | null
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
@@ -1154,6 +1241,20 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_unit_id_fkey"
+            columns: ["project_unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
             referencedColumns: ["id"]
           },
           {
@@ -1299,6 +1400,100 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          broker_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          failed_reason: string | null
+          feature_days: number | null
+          id: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          payment_no: number
+          period: string | null
+          plan_id: string | null
+          property_id: string | null
+          provider: string
+          provider_order_id: string | null
+          provider_txn_id: string | null
+          purpose: string
+          refunded_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_reason?: string | null
+          feature_days?: number | null
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          payment_no?: never
+          period?: string | null
+          plan_id?: string | null
+          property_id?: string | null
+          provider?: string
+          provider_order_id?: string | null
+          provider_txn_id?: string | null
+          purpose: string
+          refunded_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_reason?: string | null
+          feature_days?: number | null
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          payment_no?: never
+          period?: string | null
+          plan_id?: string | null
+          property_id?: string | null
+          provider?: string
+          provider_order_id?: string | null
+          provider_txn_id?: string | null
+          purpose?: string
+          refunded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           code: string
@@ -1309,6 +1504,8 @@ export type Database = {
           max_properties: number
           monthly_price: number
           name: string
+          trial_days: number
+          yearly_price: number
         }
         Insert: {
           code: string
@@ -1319,6 +1516,8 @@ export type Database = {
           max_properties?: number
           monthly_price?: number
           name: string
+          trial_days?: number
+          yearly_price?: number
         }
         Update: {
           code?: string
@@ -1329,6 +1528,8 @@ export type Database = {
           max_properties?: number
           monthly_price?: number
           name?: string
+          trial_days?: number
+          yearly_price?: number
         }
         Relationships: []
       }
@@ -1519,6 +1720,7 @@ export type Database = {
           floor: string | null
           furnished: string | null
           guests: number | null
+          hidden_by_plan: boolean
           highlight_reason: string | null
           highlight_requested_at: string | null
           highlight_yield: number | null
@@ -1572,6 +1774,7 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          hidden_by_plan?: boolean
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
@@ -1625,6 +1828,7 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          hidden_by_plan?: boolean
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
@@ -1788,9 +1992,12 @@ export type Database = {
           created_at: string
           ends_at: string | null
           id: string
+          payment_id: string | null
           plan_id: string
           provider: string | null
           provider_ref: string | null
+          reminded_1d_at: string | null
+          reminded_7d_at: string | null
           starts_at: string
           status: string
         }
@@ -1799,9 +2006,12 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          payment_id?: string | null
           plan_id: string
           provider?: string | null
           provider_ref?: string | null
+          reminded_1d_at?: string | null
+          reminded_7d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -1810,9 +2020,12 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          payment_id?: string | null
           plan_id?: string
           provider?: string | null
           provider_ref?: string | null
+          reminded_1d_at?: string | null
+          reminded_7d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -1982,6 +2195,10 @@ export type Database = {
     }
     Functions: {
       actor_label: { Args: never; Returns: string }
+      add_work_minutes: {
+        Args: { _from: string; _mins: number }
+        Returns: string
+      }
       admin_brokers: {
         Args: never
         Returns: {
@@ -2136,9 +2353,21 @@ export type Database = {
         Args: { _basis: number; _fixed: number; _rate: number }
         Returns: number
       }
+      create_payment: {
+        Args: {
+          _days?: number
+          _period?: string
+          _plan?: string
+          _property?: string
+          _purpose: string
+        }
+        Returns: string
+      }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
+      delete_demo_data: { Args: never; Returns: Json }
+      demo_visible: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2159,6 +2388,10 @@ export type Database = {
           lead_no: number
         }[]
       }
+      lead_transferable: {
+        Args: { _kind: string; _stage: string }
+        Returns: boolean
+      }
       log_app_error: {
         Args: {
           _kind: string
@@ -2168,6 +2401,14 @@ export type Database = {
           _ua: string
         }
         Returns: undefined
+      }
+      mark_payment_failed: {
+        Args: { _id: string; _reason: string }
+        Returns: string
+      }
+      mark_payment_paid: {
+        Args: { _amount: number; _id: string; _method?: string; _txn: string }
+        Returns: string
       }
       member_user_id: { Args: { _member: string }; Returns: string }
       meta_inbound_lead: {
@@ -2285,6 +2526,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      next_transfer_company: {
+        Args: { _lead: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: string
+      }
       normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
         Args: {
@@ -2353,8 +2598,11 @@ export type Database = {
         }[]
       }
       owned_company_id: { Args: never; Returns: string }
+      prepare_account_deletion: { Args: { _uid: string }; Returns: string }
+      run_lead_transfers: { Args: never; Returns: Json }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      run_subscription_expiry: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
