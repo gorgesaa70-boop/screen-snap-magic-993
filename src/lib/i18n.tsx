@@ -181,6 +181,22 @@ const EN: Record<string, string> = {
   "عدد الأسرّة": "Number of beds",
   "عدد الأفراد": "Number of people",
 
+  // Services directory (coming soon)
+  "دليل الخدمات": "Services directory",
+  "مكاتب هندسية ومقاولين وصنايعية": "Engineering offices, contractors and craftsmen",
+  "كل اللي محتاجه لبيتك أو وحدتك في برج العرب في مكان واحد: مكاتب هندسية معتمدة من فاليو عقار، ومقاولين، وصنايعية بتقييمات السكان. بنجهّز الخدمة دلوقتي — سجّل اهتمامك.": "Everything your home or unit in Borg El Arab needs in one place: engineering offices approved by Value Aqar, contractors, and craftsmen rated by residents. We're preparing the service — register your interest.",
+  "مكاتب هندسية معتمدة من فاليو عقار": "Engineering offices approved by Value Aqar",
+  "تصميم، رخص، إشراف، معاينة قبل الشراء": "Design, permits, supervision, pre-purchase inspection",
+  "شركات مقاولات وتشطيبات": "Contracting and finishing companies",
+  "بناء، تشطيب كامل أو نص تشطيب، ترميم": "Construction, full or semi finishing, renovation",
+  "صنايعية": "Craftsmen",
+  "سباك، كهربائي، نجار، نقاش، ألوميتال، تكييف": "Plumber, electrician, carpenter, painter, aluminium, AC",
+  "محتاج خدمة": "I need a service",
+  "أنا مقدم خدمة": "I provide a service",
+  "نوع الخدمة": "Service type",
+  "تخصصك (مثال: سباكة، تشطيبات...)": "Your speciality (e.g. plumbing, finishing...)",
+  "محتاج إيه بالظبط؟": "What exactly do you need?",
+
   // Price index
   "مقارنة بآخر 3 شهور": "vs. 3 months ago",
   "لسه مفيش وحدات كفاية هنا.": "Not enough units here yet.",

@@ -18,6 +18,7 @@ import { Route as MapRouteImport } from './routes/map'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SharedHousingRouteImport } from './routes/shared-housing'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -98,6 +99,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SharedHousingRoute = SharedHousingRouteImport.update({
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -347,6 +354,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -445,6 +454,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -492,6 +502,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -589,6 +601,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SellRoute: typeof SellRoute
+  ServicesRoute: typeof ServicesRoute
   SharedHousingRoute: typeof SharedHousingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -675,6 +688,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shared-housing': {
@@ -990,6 +1010,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SellRoute: SellRoute,
+  ServicesRoute: ServicesRoute,
   SharedHousingRoute: SharedHousingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
