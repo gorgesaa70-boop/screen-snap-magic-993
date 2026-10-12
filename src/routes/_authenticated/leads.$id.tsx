@@ -40,7 +40,7 @@ function LeadPage() {
   const q = useQuery({
     queryKey: ["lead", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("leads").select("*, properties(title), projects(name), project_units(unit_type, code)").eq("id", id).maybeSingle();
+      const { data, error } = await supabase.from("leads").select("*, properties!leads_property_id_fkey(title), projects(name), project_units(unit_type, code)").eq("id", id).maybeSingle();
       if (error) throw error;
       return data;
     },

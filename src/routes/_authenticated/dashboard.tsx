@@ -101,7 +101,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const leads = useQuery({
     queryKey: ["my-leads", broker.id],
     queryFn: async () => {
-      return fetchAll((a, b) => supabase.from("leads").select("*, properties(title)").eq("assigned_broker_id", broker.id).order("created_at", { ascending: false }).order("id").range(a, b));
+      return fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").eq("assigned_broker_id", broker.id).order("created_at", { ascending: false }).order("id").range(a, b));
     },
   });
   const plan = useQuery({

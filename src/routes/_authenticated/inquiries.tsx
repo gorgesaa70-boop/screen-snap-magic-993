@@ -30,7 +30,7 @@ function InquiriesPage() {
     enabled: seeAll || !!brokerId,
     queryFn: async () => {
       return fetchAll((a, b) => {
-        let q = supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }).order("id");
+        let q = supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").order("created_at", { ascending: false }).order("id");
         if (!seeAll) q = q.eq("assigned_broker_id", brokerId!);
         return q.range(a, b);
       });

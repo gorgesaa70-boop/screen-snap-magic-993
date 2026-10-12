@@ -44,7 +44,7 @@ function useAdminData(enabled: boolean) {
       const [b, p, l, pl] = await Promise.all([
         supabase.rpc("admin_brokers"),
         paged(() => fetchAll((a, b) => supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }).order("id").range(a, b))),
-        paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
+        paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
         supabase.from("plans").select("*").order("max_properties"),
       ]);
       const err = b.error || p.error || l.error || pl.error;
