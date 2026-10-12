@@ -8,6 +8,7 @@ import { prepareDocument, uploadErrorMessage } from "@/lib/images";
 import type { Tables } from "@/integrations/supabase/types";
 import { STAGES, DEAL_TYPE_LABEL, stageLabel, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Lead = Tables<"leads">;
 type Deal = Tables<"deals">;
@@ -146,7 +147,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
   const [kind, setKind] = useState("reservation");
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
-  const money = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "") });
+  const money = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") });
   const num = (v: string) => (v === "" ? null : Number(v));
   const payload = () => ({
     unit_desc: f.unit_desc.trim().slice(0, 300) || null, reservation_date: f.reservation_date || null, reservation_amount: num(f.reservation_amount),

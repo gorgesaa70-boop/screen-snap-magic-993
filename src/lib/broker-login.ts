@@ -1,8 +1,9 @@
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 /** Pure, browser-safe helpers for phone-based sign-in. Used by server functions and tests. */
 
 /** Canonical international digits (no "+"), mirrors public.normalize_phone in the database. */
 export function normalizePhone(raw: string): string | null {
-  let d = (raw || "").replace(/\D/g, "");
+  let d = (raw || "").replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   if (!d) return null;
   if (d.startsWith("00")) d = d.slice(2);
   else if (/^01[0125]\d{8}$/.test(d)) d = "2" + d;

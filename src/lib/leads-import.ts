@@ -1,6 +1,7 @@
 /** CRM: validation for importing customers (leads) from Excel / CSV. Pure functions — no I/O. Duplicates are flagged, never merged. */
 import { normalizePhone } from "./broker-login";
 import { key, norm, num } from "./units-import";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export type LeadInput = { name: string; phone: string; phoneNorm: string; source: string; campaign: string | null; property_type: string | null; area: string | null; budget: number | null; details: string | null };
 export type LeadImport = {
@@ -50,7 +51,7 @@ export function parseLeadsSheet(rows: unknown[][], existingPhones: Iterable<stri
     const problems: string[] = [];
     const name = cell("name").slice(0, 100);
     if (name.length < 2) problems.push("الاسم ناقص");
-    const phone = cell("phone").replace(/[^\d+]/g, "").slice(0, 20);
+    const phone = cell("phone").replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d+]/g, "").slice(0, 20);
     const phoneNorm = normalizePhone(phone) ?? "";
     if (phoneNorm.length < 10) problems.push("رقم الموبايل غلط");
     const budget = num(r[col.budget] ?? null);

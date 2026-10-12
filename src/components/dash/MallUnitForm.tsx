@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadImage, type PropertyRow } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMalls } from "@/components/site/malls";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Props = { brokerId?: string | undefined; brokers?: { id: string; name: string }[] | undefined; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
 
@@ -18,7 +19,7 @@ export function MallUnitForm({ brokerId, brokers, initial, onDone, onCancel }: P
   });
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  const num = (k: "size" | "price") => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/[^\d.]/g, "") });
+  const num = (k: "size" | "price") => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "") });
 
   async function onImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;

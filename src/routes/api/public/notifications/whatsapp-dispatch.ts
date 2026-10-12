@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** Normalise to E.164 digits (Egypt local 01xxxxxxxxx -> 201xxxxxxxxx). */
 function toDigits(v: string | null | undefined) {
-  const d = (v ?? "").replace(/\D/g, "");
+  const d = (v ?? "").replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   if (/^01\d{9}$/.test(d)) return "2" + d;
   return /^\d{8,15}$/.test(d) ? d : null;
 }

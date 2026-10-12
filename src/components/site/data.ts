@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getLang } from "@/lib/i18n";
 import { UploadError, extensionFor, prepareImage, uploadErrorMessage } from "@/lib/images";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
@@ -163,7 +164,7 @@ export const REVIEW: Record<"draft" | "pending" | "approved" | "rejected", { lab
 
 export const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("");
 export const waLink = (num: string | null | undefined, text: string) =>
-  `https://wa.me/${(num || WHATSAPP_NUMBER).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+  `https://wa.me/${(num || WHATSAPP_NUMBER).replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 
 export const formatPrice = (n: number) => new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ar-EG").format(n);
 export const formatDate = (d: string) =>

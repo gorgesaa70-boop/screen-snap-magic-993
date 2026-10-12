@@ -5,6 +5,7 @@ import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { useServerFn } from "@tanstack/react-start";
 import { t, useLang } from "@/lib/i18n";
 import { sendWhatsappOtp, verifyWhatsappOtp, changePhoneWithWhatsapp } from "@/lib/whatsapp-otp.functions";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 const WA_ERRORS: Record<string, string> = {
   not_configured: "الدخول عبر واتساب غير مفعّل بعد، استخدم الرسائل النصية أو البريد",
@@ -49,7 +50,7 @@ export async function logAuthEvent(event: string, phone?: string, detail?: strin
 }
 
 function normalize(cc: string, raw: string) {
-  let n = raw.replace(/\D/g, "");
+  let n = raw.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   if (!cc) return n.replace(/^00/, "");
   if (n.startsWith("00" + cc)) n = n.slice(2 + cc.length);
   else if (n.startsWith(cc) && n.length > 9) n = n.slice(cc.length);
@@ -227,7 +228,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
       <p className="text-sm text-foreground/80">{t("أدخل الرمز المرسل إلى")} <span dir="ltr" className="font-bold text-primary">+{phone}</span></p>
       <input ref={codeRef} aria-label="رمز التحقق" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} dir="ltr"
         className={`${inputCls} h-14 text-center text-2xl font-extrabold tracking-[0.6em]`} value={code}
-        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy || attempts >= MAX_ATTEMPTS} />
+        onChange={(e) => setCode(e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 6))} disabled={busy || attempts >= MAX_ATTEMPTS} />
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{expiresIn > 0 ? `${t("صلاحية الرمز:")} ${mmss(expiresIn)}` : t("انتهت صلاحية الرمز")}</span>
         <span>{t("المحاولات:")} {attempts}/{MAX_ATTEMPTS}</span>

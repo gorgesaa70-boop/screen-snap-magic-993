@@ -10,6 +10,7 @@ import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage, formatDate } from "@/components/site/data";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ACTIVITIES, DEAL_KINDS, OPP_KINDS, investmentRange, oppNo } from "@/lib/investments";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/_authenticated/investments/new")({
   head: () => ({ meta: [{ title: "اعرض فرصة استثمارية | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -32,7 +33,7 @@ function NewOpportunityPage() {
   const [docs, setDocs] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  const digits = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/[^\d.]/g, "") });
+  const digits = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "") });
   const num = (v: string) => (v === "" ? null : Number(v));
 
   async function addImages(e: React.ChangeEvent<HTMLInputElement>) {

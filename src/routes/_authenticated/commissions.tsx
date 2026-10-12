@@ -12,6 +12,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { dealNo } from "@/components/dash/LeadPipeline";
 import { Stat, Tabs, Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { DEAL_TYPE_LABEL, formatPrice, leadNo } from "@/components/site/data";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import {
   COMMISSION_STATUS, PAYMENT_METHODS, commissionNo, displayStatus, remaining,
   type AgreementRow, type CommissionRow, type DealRow, type PaymentRow,
@@ -182,9 +183,9 @@ function CommissionDetail({ c, isAdmin, reload }: { c: Row; isAdmin: boolean; re
       {isAdmin && editable && (
         <div className="space-y-3 rounded-xl bg-secondary/60 p-3">
           <div className="grid gap-3 sm:grid-cols-4">
-            <Field label="أساس الحساب (ج.م)"><input className={inputCls} inputMode="numeric" value={f.basis} onChange={(e) => setF({ ...f, basis: e.target.value.replace(/[^\d.]/g, "") })} /></Field>
-            <Field label="النسبة %"><input className={inputCls} inputMode="decimal" value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(/[^\d.]/g, ""), fixed: "" })} /></Field>
-            <Field label="أو مبلغ ثابت (ج.م)"><input className={inputCls} inputMode="numeric" value={f.fixed} onChange={(e) => setF({ ...f, fixed: e.target.value.replace(/[^\d.]/g, ""), rate: "" })} /></Field>
+            <Field label="أساس الحساب (ج.م)"><input className={inputCls} inputMode="numeric" value={f.basis} onChange={(e) => setF({ ...f, basis: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "") })} /></Field>
+            <Field label="النسبة %"><input className={inputCls} inputMode="decimal" value={f.rate} onChange={(e) => setF({ ...f, rate: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, ""), fixed: "" })} /></Field>
+            <Field label="أو مبلغ ثابت (ج.م)"><input className={inputCls} inputMode="numeric" value={f.fixed} onChange={(e) => setF({ ...f, fixed: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, ""), rate: "" })} /></Field>
             <Field label="ميعاد الاستحقاق"><input type="date" className={inputCls} value={f.due} onChange={(e) => setF({ ...f, due: e.target.value })} /></Field>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -214,7 +215,7 @@ function CommissionDetail({ c, isAdmin, reload }: { c: Row; isAdmin: boolean; re
         </ul>
         {isAdmin && ["approved", "partially_paid", "disputed"].includes(c.status) && (
           <div className="mt-3 grid gap-2 rounded-xl border p-3 sm:grid-cols-3">
-            <Field label={`المبلغ (المتبقي ${money(remaining(c))})`}><input className={inputCls} inputMode="numeric" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value.replace(/[^\d.]/g, "") })} /></Field>
+            <Field label={`المبلغ (المتبقي ${money(remaining(c))})`}><input className={inputCls} inputMode="numeric" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "") })} /></Field>
             <Field label="تاريخ الدفع"><input type="date" className={inputCls} value={pay.paid_on} onChange={(e) => setPay({ ...pay, paid_on: e.target.value })} /></Field>
             <Field label="طريقة الدفع"><select className={inputCls} value={pay.method} onChange={(e) => setPay({ ...pay, method: e.target.value })}>{Object.entries(PAYMENT_METHODS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
             <Field label="رقم العملية / الشيك"><input className={inputCls} value={pay.reference} onChange={(e) => setPay({ ...pay, reference: e.target.value })} maxLength={100} /></Field>
@@ -273,7 +274,7 @@ function Agreements({ isAdmin }: { isAdmin: boolean }) {
           <Field label="الشركة"><select className={inputCls} value={f.broker_id} onChange={(e) => setF({ ...f, broker_id: e.target.value })}><option value="">— اختار —</option>{q.data?.brokers.filter((b) => b.is_active && b.account_type !== "owner").map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></Field>
           <Field label="الصفقات"><select className={inputCls} value={f.deal_type} onChange={(e) => setF({ ...f, deal_type: e.target.value, value: e.target.value === "rent" && f.kind === "rate" && !f.value ? "50" : f.value })}>{Object.entries(DEAL_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
           <Field label="النوع"><select className={inputCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="rate">{f.deal_type === "rent" ? "نسبة من إيجار شهر" : f.deal_type === "summer" ? "نسبة من قيمة الحجز" : "نسبة من قيمة البيع"}</option><option value="fixed">مبلغ ثابت لكل صفقة</option></select></Field>
-          <Field label={f.kind === "rate" ? "النسبة %" : "المبلغ (ج.م)"}><input className={inputCls} inputMode="decimal" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value.replace(/[^\d.]/g, "") })} /></Field>
+          <Field label={f.kind === "rate" ? "النسبة %" : "المبلغ (ج.م)"}><input className={inputCls} inputMode="decimal" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "") })} /></Field>
           <Field label="ساري من"><input type="date" className={inputCls} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></Field>
           <Field label="ملاحظات"><input className={inputCls} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} maxLength={500} /></Field>
           <button disabled={busy} onClick={add} className={`${btnPrimary} lg:col-span-6`}>إضافة الاتفاقية</button>

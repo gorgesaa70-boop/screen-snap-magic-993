@@ -8,6 +8,7 @@ import { dbx } from "@/lib/dbx";
 import { formatPrice, formatDate } from "@/components/site/data";
 import { UNIT_STATUS, UNIT_TYPES, type ProjectRow, type UnitRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** Units table for one project: add/edit/delete, quick status change, and price/status history. */
 export function ProjectUnits({ project, onBack }: { project: ProjectRow; onBack: () => void }) {
@@ -116,7 +117,7 @@ function UnitForm({ projectId, initial, onDone, onCancel }: { projectId: string;
   });
   const [busy, setBusy] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
-  const digits = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "") });
+  const digits = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") });
   const num = (v: string) => (v === "" ? null : Number(v));
 
   async function save() {
