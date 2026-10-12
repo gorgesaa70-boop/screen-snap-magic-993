@@ -64,7 +64,7 @@ function MallPage() {
       <section className="bg-primary px-4 py-8 text-primary-foreground md:px-6">
         <div className="mx-auto flex max-w-6xl items-center gap-4">
           <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-card md:size-28">
-            {m.logo_url ? <img src={m.logo_url} alt={t("لوجو {name}", { name: m.name })} className="size-full object-contain" /> : <Store className="size-10 text-teal" />}
+            {m.logo_url ? <img src={m.logo_url} alt={m.name} className="size-full object-cover" /> : <Store className="size-10 text-teal" />}
           </div>
           <div>
             <h1 className="text-2xl font-extrabold md:text-4xl">{m.name}</h1>

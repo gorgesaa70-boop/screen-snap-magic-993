@@ -10,7 +10,7 @@ import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, FINISHING_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { AlertButton, FavoriteButton, ShareButton, VerifiedBadge } from "@/components/site/CustomerTools";
 import { PropertyCard } from "@/components/site/Sections";
 import { TYPE_GROUPS } from "@/components/site/search";
@@ -94,6 +94,7 @@ function PropertyPage() {
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Maximize className="size-4 text-teal" />{formatPrice(p.size)} {t("م²")}</span>
             {p.rooms && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><BedDouble className="size-4 text-teal" />{formatPrice(p.rooms)} {t("غرف")}</span>}
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{formatPrice(p.baths)} {t("حمام")}</span>}
+            {p.finishing && FINISHING_LABEL[p.finishing] && <span className="rounded-lg bg-secondary px-3 py-1.5">{t(FINISHING_LABEL[p.finishing]!)}</span>}
           </div>
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}

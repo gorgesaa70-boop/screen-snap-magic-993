@@ -50,7 +50,7 @@ export function NotificationBell() {
         {unread > 0 && <span className="absolute -top-0.5 -end-0.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-5 text-destructive-foreground">{unread > 9 ? "9+" : unread}</span>}
       </Button>
       {open && (
-        <div className="fixed inset-x-3 top-16 z-[60] overflow-hidden rounded-2xl border bg-background shadow-card sm:absolute sm:inset-x-auto sm:end-0 sm:top-12 sm:w-96">
+        <div className="fixed inset-x-3 top-24 z-[60] overflow-hidden rounded-2xl border bg-background shadow-card sm:absolute sm:inset-x-auto sm:end-0 sm:top-12 sm:w-96">
           <div className="flex items-center justify-between border-b px-3 py-2.5">
             <span className="font-extrabold text-primary">{t("الإشعارات")}</span>
             {unread > 0 && <Button variant="ghost" onClick={markAll} className="flex items-center gap-1 text-xs font-bold text-teal hover:underline"><CheckCheck className="size-4" /> {t("تحديد الكل كمقروء")}</Button>}

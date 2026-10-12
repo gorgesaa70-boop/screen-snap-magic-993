@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
-import { TYPES_FOR, CITIES, DEFAULT_CITY } from "@/components/site/data";
+import { TYPES_FOR, CITIES, DEFAULT_CITY, FINISHING_LABEL, hasFinishing } from "@/components/site/data";
 import { getAttribution } from "@/lib/attribution";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
@@ -91,7 +91,7 @@ function SellForm() {
   useLang();
   const send = useServerFn(sendWhatsappOtp);
   const submit = useServerFn(submitOwnerListing);
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
+  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", finishing: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
   const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
   const [loc, setLoc] = useState<LatLng | null>(null);
   const [compressing, setCompressing] = useState(false);
@@ -131,6 +131,7 @@ function SellForm() {
     const r = await submit({ data: {
       name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
       city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
+      ...(hasFinishing(f.property_type) && f.finishing ? { finishing: f.finishing as "skeleton" | "semi" | "full" | "super_lux" } : {}),
       rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
       photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}), ...(attr ? { utm: attr } : {}),
     } }).catch(() => ({ ok: false as const, error: "server" }));
@@ -148,6 +149,7 @@ function SellForm() {
     if (!p) { toast.error(t("اكتب رقم موبايل مصري صحيح")); return; }
     if (!f.property_type) { toast.error(t("اختار نوع العقار")); return; }
     if (areas.length > 0 && !f.area) { toast.error(t("اختار المنطقة / الحي")); return; }
+    if (hasFinishing(f.property_type) && !f.finishing) { toast.error(t("اختار حالة التشطيب")); return; }
     if (!Number(f.size)) { toast.error(t("اكتب المساحة")); return; }
     if (!Number(f.price)) { toast.error(t("اكتب السعر")); return; }
     if (photos.length === 0) { toast.error(t("ضيف صورة واحدة على الأقل للعقار")); return; }
@@ -222,7 +224,14 @@ function SellForm() {
           </select>
         </Field>
       )}
-      <Field label={t("المساحة (م²)")}>
+      {hasFinishing(f.property_type) && (
+        <Field label={t("حالة التشطيب")}>
+          <select className={inputCls} value={f.finishing} onChange={set("finishing")}>
+            <option value="">{t("اختر")}</option>{Object.entries(FINISHING_LABEL).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label={t(f.property_type === "بيت" || f.property_type === "عمارة" ? "مساحة الأرض (م²)" : "المساحة (م²)")}>
         <input className={inputCls} inputMode="numeric" dir="ltr" value={f.size} onChange={digits("size")} placeholder="120" />
       </Field>
       <Field label={f.purpose === "sale" ? t("السعر المطلوب (ج.م)") : f.purpose === "rent" ? t("الإيجار الشهري (ج.م)") : t("السعر (ج.م)")}>

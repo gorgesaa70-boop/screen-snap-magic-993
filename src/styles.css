@@ -80,3 +80,18 @@
     font-family: var(--font-sans);
   }
 }
+
+/* News ticker: the line moves from left to right (Arabic reading direction) and stops for reduced-motion users. */
+@keyframes ticker-rtl {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.ticker-line {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker-rtl 22s linear infinite;
+}
+.ticker:hover .ticker-line { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-line { animation: none; transform: none; }
+}

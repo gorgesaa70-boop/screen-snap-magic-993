@@ -38,7 +38,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
         </div>
       </div>
 
-      <div id="search" className="relative z-10 mx-auto -mt-28 max-w-6xl scroll-mt-20 px-4 md:-mt-36 md:px-6">
+      <div id="search" className="relative z-10 mx-auto -mt-28 max-w-6xl scroll-mt-28 px-4 md:-mt-36 md:px-6">
         <div role="tablist" aria-label={t("الغرض")} className="flex w-fit gap-1 rounded-t-2xl bg-card p-1.5 pb-0 shadow-float">
           {TABS.map(([v, label]) => (
             <button key={v || "all"} type="button" role="tab" aria-selected={draft.status === v}

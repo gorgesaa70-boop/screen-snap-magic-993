@@ -63,7 +63,7 @@ function MallsPage() {
         {malls.map((m) => (
           <Link key={m.id} to="/malls/$id" params={{ id: m.id }} className="rounded-2xl border bg-card p-4 text-center shadow-card transition hover:-translate-y-0.5">
             <div className="mx-auto grid size-24 place-items-center overflow-hidden rounded-2xl bg-secondary">
-              {m.logo_url ? <img src={m.logo_url} alt={`لوجو ${m.name}`} className="size-full object-contain" /> : <Store className="size-10 text-teal" />}
+              {m.logo_url ? <img src={m.logo_url} alt={m.name} className="size-full object-cover" /> : <Store className="size-10 text-teal" />}
             </div>
             <h2 className="mt-3 font-extrabold text-primary">{m.name}</h2>
             {units.data && <p className={`mt-0.5 text-xs font-bold ${units.data.get(m.id) ? "text-teal" : "text-muted-foreground"}`}>{units.data.get(m.id) ? `${formatPrice(units.data.get(m.id)!)} ${t("وحدة متاحة")}` : t("قريبًا")}</p>}

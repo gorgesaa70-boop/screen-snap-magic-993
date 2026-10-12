@@ -851,5 +851,21 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await sys(`select set_config('request.jwt.claim.role','',false)`);
   await expectOk("owner offer: admins told it came from an owner, with the owner name", () => sys(`select title, message from public.notifications where user_id='${U.admin}' and related_id='${offer}'`), (r) => r.length === 1 && r[0].title === "عرض عقار جديد من مالك" && r[0].message.includes("محمد المالك"));
   await expectOk("broker listing waiting for review still says it came from a broker", async () => { const id = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${DEV}','شقة وسيط',1,'شقة','الحي الأول','بيع','pending') returning id`))[0].id; return sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${id}'`); }, (r) => r.length === 1 && r[0].title === "طلب عقار جديد من وسيط");
-  await expectOk("audit: a change with no user and no visitor session is labelled النظام", async () => { await sys(`update public.leads set notes='migration' where id='${ownerLead}'`); return sys(`select actor_label from public.audit_log where table_name='leads' and row_id='${ownerLead}' and action='update' order by id desc limit 1`); }, (r) => r[0]?.actor_label === "النظام");
+  console.log("\nPrice index");
+  await expectOk("floor names become levels", () => sys(`select public.floor_level('الأرضي') g, public.floor_level('الدور الأول') f, public.floor_level('التالت') t, public.floor_level('3') n, public.floor_level('السابع') h, public.floor_level('ميزانين') x`),
+    (r) => r[0].g === 0 && r[0].f === 1 && r[0].t === 3 && r[0].n === 3 && r[0].h === 5 && r[0].x === null);
+  const mallId = (await sys(`insert into public.malls (name, kind) values ('مول المؤشر', 'commercial') returning id`))[0].id;
+  const mallUnit = (title, price, size, floor, demo = false) => sys(`insert into public.properties (title, price, size, type, area, status, review_status, category, mall_id, floor, is_demo) values ('${title}', ${price}, ${size}, 'محل تجاري', 'مول المؤشر', 'بيع', 'approved', 'mall', '${mallId}', '${floor}', ${demo})`);
+  await mallUnit("محل 1", 300000, 30, "الأرضي");
+  await mallUnit("محل 2", 400000, 40, "أرضي");
+  await expectOk("two units are not enough to show a price", () => as(null, `select * from public.price_index() where mall_id='${mallId}'`), (r) => r.length === 0);
+  await mallUnit("محل 3", 600000, 50, "الدور الأرضي");
+  await mallUnit("محل تجريبي", 9000000, 30, "الأرضي", true);
+  await expectOk("three real units → visitors see the median price per m², demo ignored", () => as(null, `select price_per_m2, samples, floor_level from public.price_index() where mall_id='${mallId}' and month is null and unit_type = 'محل تجاري'`),
+    (r) => r.length === 1 && Number(r[0].price_per_m2) === 10000 && r[0].samples === 3 && r[0].floor_level === 0);
+  await expectOk("a floor row across all unit types exists for the mall comparison", () => as(null, `select samples from public.price_index() where mall_id='${mallId}' and month is null and unit_type is null`), (r) => r.length === 1 && r[0].samples === 3);
+  await expectOk("monthly rows exist for the trend chart", () => as(null, `select count(*) c from public.price_index() where mall_id='${mallId}' and month is not null`), (r) => Number(r[0].c) === 2);
+  await expectErr("visitors can't write finishing ratios", () => as(null, `update public.app_settings set finishing_ratios='{}'::jsonb returning id`).then((r) => { if (!r.length) throw new Error("blocked"); return r; }));
+  await expectErr("unknown finishing refused", () => sys(`update public.properties set finishing='luxury' where title='محل 1'`));
+  await expectOk("audit: a change with no user and no visitor session is labelled النظام",async () => { await sys(`update public.leads set notes='migration' where id='${ownerLead}'`); return sys(`select actor_label from public.audit_log where table_name='leads' and row_id='${ownerLead}' and action='update' order by id desc limit 1`); }, (r) => r[0]?.actor_label === "النظام");
 }

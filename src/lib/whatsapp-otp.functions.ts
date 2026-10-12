@@ -188,6 +188,7 @@ const listingSchema = z.object({
   area: z.string().trim().min(1).max(80),
   asking_price: z.number().positive().max(1e12),
   size_m2: z.number().positive().max(1e7),
+  finishing: z.enum(["skeleton", "semi", "full", "super_lux"]).optional(),
   rooms: z.number().int().min(0).max(50).optional(),
   baths: z.number().int().min(0).max(50).optional(),
   floor: z.string().trim().max(50).optional(),
@@ -258,7 +259,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       broker_id: null, owner_lead_id: lead.id, review_status: "pending", category: "residential",
       title: `${data.property_type} ${status === "مصيف" ? "للمصيف" : `لل${status}`} في ${place}`.slice(0, 150),
       description: data.details || null, price: data.asking_price, type: data.property_type, status,
-      city: data.city, area: data.area, size: data.size_m2, rooms: data.rooms ?? null, baths: data.baths ?? null,
+      city: data.city, area: data.area, size: data.size_m2, finishing: data.property_type === "أرض" ? null : data.finishing ?? null, rooms: data.rooms ?? null, baths: data.baths ?? null,
       floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
       lat: data.lat ?? null, lng: data.lng ?? null,
     });

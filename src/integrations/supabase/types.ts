@@ -64,6 +64,7 @@ export type Database = {
           android_url: string | null
           featured_month_price: number
           featured_week_price: number
+          finishing_ratios: Json
           id: number
           ios_url: string | null
           last_backup_at: string | null
@@ -81,6 +82,7 @@ export type Database = {
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
+          finishing_ratios?: Json
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
+          finishing_ratios?: Json
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
@@ -1717,6 +1720,7 @@ export type Database = {
           deposit: number | null
           description: string | null
           featured_until: string | null
+          finishing: string | null
           floor: string | null
           furnished: string | null
           guests: number | null
@@ -1771,6 +1775,7 @@ export type Database = {
           deposit?: number | null
           description?: string | null
           featured_until?: string | null
+          finishing?: string | null
           floor?: string | null
           furnished?: string | null
           guests?: number | null
@@ -1825,6 +1830,7 @@ export type Database = {
           deposit?: number | null
           description?: string | null
           featured_until?: string | null
+          finishing?: string | null
           floor?: string | null
           furnished?: string | null
           guests?: number | null
@@ -2194,6 +2200,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      floor_level: { Args: { _floor: string }; Returns: number }
+      price_index: {
+        Args: never
+        Returns: {
+          area: string
+          city: string
+          finishing: string
+          floor_level: number
+          kind: string
+          mall_id: string
+          month: string
+          price_per_m2: number
+          purpose: string
+          samples: number
+          unit_type: string
+        }[]
+      }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
