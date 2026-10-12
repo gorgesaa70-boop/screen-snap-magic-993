@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { NewsTicker } from "@/components/site/NewsTicker";
+import { ThemeToggle } from "@/components/site/ThemeToggle";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { useSessionUser } from "@/hooks/useAuth";
@@ -13,8 +14,13 @@ export function Logo({ light = false }: { light?: boolean }) {
   return (
     // Brand mark (from the brand sheet) + the name in full, Arabic and English, as live text so it stays sharp.
     <a href="/" className="flex shrink-0 items-center gap-2" dir="rtl" aria-label="فاليو عقار — Value Aqar">
-      <img src={light ? "/logo-mark-dark.png" : "/logo-mark.png"} alt="" width={light ? 55 : 52} height={60}
-        className={`h-10 w-auto shrink-0 ${light ? "rounded-lg" : ""}`} />
+      {light ? (
+        <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
+      ) : (<>
+        {/* The navy mark disappears on the dark theme, so dark mode uses the version made for dark backgrounds. */}
+        <img src="/logo-mark.png" alt="" width={52} height={60} className="h-10 w-auto shrink-0 dark:hidden" />
+        <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
+      </>)}
       <span className="flex flex-col leading-none">
         <span className={`text-lg font-extrabold ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>
         <span className="mt-1 text-[10px] font-bold tracking-[0.28em] text-teal" dir="ltr">VALUE AQAR</span>
@@ -71,6 +77,7 @@ export function Navbar() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <LangToggle />
           <NotificationBell />
           <a href={account.href} aria-label={account.label} title={account.label} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
