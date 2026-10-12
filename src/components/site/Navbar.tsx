@@ -67,7 +67,7 @@ export function Navbar() {
   return (
     <header className="pt-safe sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
       <NewsTicker />
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 md:px-6">
         <Logo />
         <nav className="hidden items-center gap-5 lg:flex">
           {links.map((l) => (
@@ -76,8 +76,9 @@ export function Navbar() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* On phones the header has no room for it (the page got 15px wider); it lives in the ☰ menu there. */}
+          <ThemeToggle className="hidden sm:grid" />
           <LangToggle />
           <NotificationBell />
           <a href={account.href} aria-label={account.label} title={account.label} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
@@ -98,6 +99,10 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
+          <div className="flex items-center justify-between border-b py-2 sm:hidden">
+            <span className="text-base font-semibold text-foreground/80">{t("المظهر")}</span>
+            <ThemeToggle />
+          </div>
           <a href={account.href} onClick={() => setOpen(false)} className="flex items-center gap-2 border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
             <UserRound className="size-4" /> {account.label}
           </a>
