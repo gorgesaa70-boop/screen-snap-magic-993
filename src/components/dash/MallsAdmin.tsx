@@ -2,19 +2,21 @@ import { useState } from "react";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Store } from "lucide-react";
+import { Plus, Pencil, Trash2, Store, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { REVIEW, formatPrice, uploadImage, type BrokerRow, type PropertyRow } from "@/components/site/data";
 import { MALL_KINDS, fetchMalls, type MallRow } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MallUnitForm } from "./MallUnitForm";
+import { MallUnitsImport } from "./MallUnitsImport";
 
 export function MallsAdmin({ properties, brokers, reload }: { properties: PropertyRow[]; brokers: BrokerRow[]; reload: () => void }) {
-  const [editing, setEditing] = useState<PropertyRow | "new" | null>(null);
+  const [editing, setEditing] = useState<PropertyRow | "new" | "import" | null>(null);
   const malls = useQuery({ queryKey: ["malls-all"], queryFn: () => fetchMalls(true) });
   const units = properties.filter((p) => p.category === "mall");
   const active = brokers.filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
   const [name, setName] = useState("");
+  if (editing === "import") return <MallUnitsImport brokers={active} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing) return <MallUnitForm brokers={active} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   return (
     <div className="space-y-6">
@@ -32,6 +34,7 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
       </div>
       <div className="space-y-3">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة في مول</button>
+        <button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع وحدات من Excel</button>
         {units.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد وحدات بعد.</p>}
         {units.map((p) => (
           <div key={p.id} className="flex flex-col gap-2 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">

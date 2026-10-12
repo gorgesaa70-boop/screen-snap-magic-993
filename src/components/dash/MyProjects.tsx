@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, Trash2, LayoutGrid, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
 import { REVIEW, formatPrice } from "@/components/site/data";
 import { projectCover, type ProjectRow } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";
 import { ProjectForm } from "@/components/dash/ProjectForm";
+import { ProjectsImport } from "@/components/dash/ProjectsImport";
 import { ProjectUnits } from "@/components/dash/ProjectUnits";
 
 export function MyProjects({ developerId }: { developerId: string }) {
@@ -19,16 +20,20 @@ export function MyProjects({ developerId }: { developerId: string }) {
       if (error) throw error; return data;
     },
   });
-  const [editing, setEditing] = useState<ProjectRow | "new" | null>(null);
+  const [editing, setEditing] = useState<ProjectRow | "new" | "import" | null>(null);
   const [unitsOf, setUnitsOf] = useState<ProjectRow | null>(null);
   const reload = () => q.refetch();
 
+  if (editing === "import") return <ProjectsImport developerId={developerId} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing) return <ProjectForm developerId={developerId} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (unitsOf) return <ProjectUnits project={unitsOf} onBack={() => { setUnitsOf(null); reload(); }} />;
   const list = q.data ?? [];
   return (
     <div className="space-y-3">
-      <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة مشروع</button>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة مشروع</button>
+        <button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع كمبوندات من Excel</button>
+      </div>
       {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه ما ضفتش أي مشروع.</p>}
       {list.map((p) => {
         const available = p.project_units.filter((u) => u.status === "available").length;

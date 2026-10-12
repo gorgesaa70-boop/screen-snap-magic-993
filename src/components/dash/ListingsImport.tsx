@@ -16,11 +16,8 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
   const [publish, setPublish] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  function template() {
-    const sample = ["شقة 3 غرف بحري", "شقة", "بيع", "برج العرب الجديدة", "الحي الأول", "1500000", "120", "3", "2", "تشطيب كامل، دور تاني"];
-    const blob = new Blob(["﻿" + [LISTING_HEADERS.join(","), sample.join(",")].join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "value-aqar-listings-template.csv"; a.click(); URL.revokeObjectURL(a.href);
-  }
+  // Excel template with drop-down lists for type, purpose, city, area and finishing, plus a guide sheet.
+  const template = () => { const a = document.createElement("a"); a.href = "/templates/value-aqar-listings-template.xlsx"; a.download = "value-aqar-listings-template.xlsx"; a.click(); };
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
