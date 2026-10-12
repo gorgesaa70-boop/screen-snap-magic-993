@@ -201,6 +201,7 @@ export type Database = {
       leads: {
         Row: {
           area: string | null
+          asking_price: number | null
           assigned_broker_id: string | null
           budget: number | null
           created_at: string
@@ -211,13 +212,17 @@ export type Database = {
           name: string
           notes: string | null
           phone: string
+          phone_verified: boolean
           property_id: string | null
           property_type: string | null
+          purpose: string | null
+          size_m2: number | null
           stage: Database["public"]["Enums"]["lead_stage"]
           updated_at: string
         }
         Insert: {
           area?: string | null
+          asking_price?: number | null
           assigned_broker_id?: string | null
           budget?: number | null
           created_at?: string
@@ -228,13 +233,17 @@ export type Database = {
           name: string
           notes?: string | null
           phone: string
+          phone_verified?: boolean
           property_id?: string | null
           property_type?: string | null
+          purpose?: string | null
+          size_m2?: number | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           updated_at?: string
         }
         Update: {
           area?: string | null
+          asking_price?: number | null
           assigned_broker_id?: string | null
           budget?: number | null
           created_at?: string
@@ -245,8 +254,11 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string
+          phone_verified?: boolean
           property_id?: string | null
           property_type?: string | null
+          purpose?: string | null
+          size_m2?: number | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           updated_at?: string
         }
