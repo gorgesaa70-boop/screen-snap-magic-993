@@ -241,7 +241,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const { data: lead, error: leadErr } = await db.from("leads").insert({
       kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
       purpose: data.purpose, property_type: data.property_type, area: place,
-      asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null, utm: data.utm ?? null,
+      asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null, original_source: "website", utm: data.utm ?? null,
     }).select("id").single();
     if (leadErr || !lead) { console.error("owner listing lead", leadErr?.code); return { ok: false, error: "server" }; }
 

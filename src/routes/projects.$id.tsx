@@ -148,7 +148,7 @@ function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: st
     setBusy(true);
     const about = `مشروع: ${project}${unit ? ` — وحدة: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
     const { error } = await supabase.from("leads").insert({
-      name: name.trim(), phone: phone.trim(), kind: "request",
+      name: name.trim(), phone: phone.trim(), kind: "request", original_source: "website",
       // Linked to the project (and unit) so the request is traceable, not only written in the details.
       project_id: projectId, project_unit_id: unit?.id ?? null,
       property_type: unit?.unit_type ?? null, budget: unit?.price ?? null,
