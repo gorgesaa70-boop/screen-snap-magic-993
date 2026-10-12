@@ -20,6 +20,8 @@ async function getServerEntry(): Promise<ServerEntry> {
 
 /** Item 37: keep a copy of server crashes in app_errors (admin panel). Never throws. */
 async function logServerError(error: unknown, request: Request) {
+  // The visitor closed the page mid-load ("Error: aborted"): not a crash, so keep it out of the admin list.
+  if (request.signal?.aborted || /^(Error: )?aborted$/i.test(String((error as Error)?.message ?? error))) return;
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const text = describeError(error);

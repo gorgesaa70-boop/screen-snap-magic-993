@@ -40,6 +40,15 @@ function JoinPage() {
     await logAuthEvent("join_requested");
     nav({ to: "/pending", replace: true });
   }
+  // Already has an account (approved or waiting): don't show the form again — a second insert would fail anyway.
+  if (me?.broker && me.memberRole === "owner") return (
+    <DashShell title="طلب الانضمام لفاليو عقار">
+      <p className="max-w-xl rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
+        {me.broker.is_active ? "حسابك متفعّل بالفعل." : "طلبك وصل وبيتراجع دلوقتي."}{" "}
+        <Link to={me.broker.is_active ? "/dashboard" : "/pending"} className="font-bold text-primary underline">{me.broker.is_active ? "لوحتي" : "حالة الطلب"}</Link>
+      </p>
+    </DashShell>
+  );
   if (me && ((me.memberRole && me.memberRole !== "owner") || me.isStaff)) return (
     <DashShell title="طلب الانضمام لفاليو عقار">
       <p className="max-w-xl rounded-2xl border bg-card p-6 text-sm text-muted-foreground">
