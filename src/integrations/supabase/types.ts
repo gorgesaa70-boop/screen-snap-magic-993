@@ -66,6 +66,7 @@ export type Database = {
           ios_url: string | null
           last_backup_at: string | null
           response_sla_minutes: number
+          show_demo: boolean
           updated_at: string
           updated_by: string | null
           work_end_hour: number
@@ -77,6 +78,7 @@ export type Database = {
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
+          show_demo?: boolean
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -88,6 +90,7 @@ export type Database = {
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
+          show_demo?: boolean
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -2139,6 +2142,8 @@ export type Database = {
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
+      delete_demo_data: { Args: never; Returns: Json }
+      demo_visible: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
