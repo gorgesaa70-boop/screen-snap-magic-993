@@ -67,6 +67,7 @@ const EN: Record<string, string> = {
 
   // Location text
   "برج العرب والساحل الشمالي": "Borg El Arab & the North Coast",
+  "عمارات المستثمرين، برج العرب — موقعنا على الخريطة": "Investors' Buildings, Borg El Arab — find us on the map",
   "منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.": "A real estate platform connecting you with properties and brokers in Borg El Arab and the North Coast.",
   "اكتشف العقارات المتاحة في برج العرب والساحل الشمالي، وقارن الخيارات، وتواصل مع الوسيط المناسب بكل سهولة.": "Explore available properties in Borg El Arab and the North Coast, compare your options, and easily reach the right broker.",
 
