@@ -44,7 +44,7 @@ export function LeadsImport({ existingPhones, onDone }: { existingPhones: string
     if (!toAdd.length) return;
     setBusy(true);
     const rows = toAdd.map((l) => ({
-      name: l.name, phone: l.phone, kind: "request", source: l.source, campaign: l.campaign,
+      name: l.name, phone: l.phone, kind: "request", source: l.source, original_source: l.source, campaign: l.campaign,
       source_note: "رفع من Excel", property_type: l.property_type, area: l.area, budget: l.budget, details: l.details,
     }));
     let saved = 0;

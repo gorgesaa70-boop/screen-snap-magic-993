@@ -257,7 +257,7 @@ function RequestForm() {
     e.preventDefault();
     if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, utm: getAttribution() });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, original_source: "website", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(tr("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(true);

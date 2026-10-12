@@ -419,7 +419,7 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
               l={l}
               onStage={(s) => {
                 if (STAGES_WITH_DATA.includes(s)) { toast.info(`مرحلة «${STAGES[s]}» محتاجة بيانات — كمّلها من صفحة العميل`); void nav({ to: "/leads/$id", params: { id: l.id }, search: { stage: s } }); return; }
-                upd(l.id, { stage: s });
+                upd(l.id, { stage: s as NonNullable<TablesUpdate<"leads">["stage"]> });
               }}
               onNotes={(n) => upd(l.id, { notes: n })}
               onAssign={brokers ? (bid) => upd(l.id, { assigned_broker_id: bid }) : undefined}
