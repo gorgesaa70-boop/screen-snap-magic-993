@@ -154,6 +154,182 @@ export type Database = {
           },
         ]
       }
+      commission_payments: {
+        Row: {
+          amount: number
+          commission_id: string
+          created_at: string
+          id: string
+          method: string
+          notes: string | null
+          paid_on: string
+          proof_path: string | null
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          commission_id: string
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          proof_path?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          commission_id?: string
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          proof_path?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payments_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commissions: {
+        Row: {
+          agreement_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          basis_value: number | null
+          broker_id: string | null
+          commission_no: number
+          created_at: string
+          deal_id: string
+          due_date: string | null
+          expected_amount: number | null
+          fixed_amount: number | null
+          id: string
+          paid_amount: number
+          rate: number | null
+          status: string
+          status_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          agreement_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          basis_value?: number | null
+          broker_id?: string | null
+          commission_no?: never
+          created_at?: string
+          deal_id: string
+          due_date?: string | null
+          expected_amount?: number | null
+          fixed_amount?: number | null
+          id?: string
+          paid_amount?: number
+          rate?: number | null
+          status?: string
+          status_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agreement_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          basis_value?: number | null
+          broker_id?: string | null
+          commission_no?: never
+          created_at?: string
+          deal_id?: string
+          due_date?: string | null
+          expected_amount?: number | null
+          fixed_amount?: number | null
+          id?: string
+          paid_amount?: number
+          rate?: number | null
+          status?: string
+          status_note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "company_agreements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_agreements: {
+        Row: {
+          approved_at: string
+          approved_by: string | null
+          broker_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          fixed_amount: number | null
+          id: string
+          notes: string | null
+          rate: number | null
+        }
+        Insert: {
+          approved_at?: string
+          approved_by?: string | null
+          broker_id: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number | null
+          id?: string
+          notes?: string | null
+          rate?: number | null
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string | null
+          broker_id?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          fixed_amount?: number | null
+          id?: string
+          notes?: string | null
+          rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_agreements_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_members: {
         Row: {
           added_by: string | null
@@ -1218,6 +1394,27 @@ export type Database = {
     }
     Functions: {
       admin_exists: { Args: never; Returns: boolean }
+      agreement_for: {
+        Args: { _broker: string; _on: string }
+        Returns: {
+          approved_at: string
+          approved_by: string | null
+          broker_id: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          fixed_amount: number | null
+          id: string
+          notes: string | null
+          rate: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "company_agreements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
       brokers_by_phone: {
@@ -1231,6 +1428,10 @@ export type Database = {
         }[]
       }
       claim_first_admin: { Args: never; Returns: boolean }
+      commission_amount: {
+        Args: { _basis: number; _fixed: number; _rate: number }
+        Returns: number
+      }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
