@@ -328,6 +328,10 @@ export function BrokerServices() {
           <Link to="/auth" className="mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 font-bold text-primary-foreground transition hover:bg-navy-deep">
             {tr("انضم لفاليو عقار")} <ArrowLeft className="size-4" />
           </Link>
+          <a href="/broker-network" className="mt-4 flex items-center gap-2 text-sm font-bold text-primary hover:text-teal">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] text-primary-foreground">{tr("قريبًا")}</span>
+            {tr("سوق الوسطاء")}: {tr("شغّل مع باقي الوسطاء واقسم العمولة بضمان المنصة")} ←
+          </a>
         </div>
         <div className="grid gap-3">
           {feats.map(({ icon: Icon, label }) => (

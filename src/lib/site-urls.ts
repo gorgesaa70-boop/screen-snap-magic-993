@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 /** IndexNow key. Not a secret: the protocol publishes it at /<key>.txt so search engines can check we own the site. */
 export const INDEXNOW_KEY = "7c2634d3ce1140f698df0ac7c20553e1";
 
-const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account", "/shared-housing", "/services"];
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account", "/shared-housing", "/services", "/broker-network"];
 
 export type SiteEntry = { path: string; lastmod?: string };
 

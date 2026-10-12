@@ -27,7 +27,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
   }
   return (
     <div className="min-h-screen bg-secondary/50">
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
+      <header className="pt-safe sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 md:px-6">
           <div className="shrink-0"><Logo /></div>
           <nav className="flex min-w-0 items-center gap-1 text-sm font-bold">

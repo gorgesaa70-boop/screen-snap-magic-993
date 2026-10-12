@@ -95,3 +95,6 @@
 @media (prefers-reduced-motion: reduce) {
   .ticker-line { animation: none; transform: none; }
 }
+
+/* Keeps the header (and the news line) below the phone's status bar in the installed app. */
+.pt-safe { padding-top: max(env(safe-area-inset-top, 0px), var(--native-top, 0px)); }

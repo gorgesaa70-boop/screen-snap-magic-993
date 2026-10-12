@@ -13,7 +13,8 @@ const config: CapacitorConfig = {
     errorPath: "index.html",
     allowNavigation: ["valueaqar.com", "www.valueaqar.com"],
   },
-  android: { allowMixedContent: false },
+  // Android 15 draws the app under the status bar; "auto" adds the bar heights as margins (next native build).
+  android: { allowMixedContent: false, adjustMarginsForEdgeToEdge: "auto" },
   ios: { contentInset: "automatic", limitsNavigationsToAppBoundDomains: false },
 };
 
