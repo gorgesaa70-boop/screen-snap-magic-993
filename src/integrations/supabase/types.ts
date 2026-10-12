@@ -67,6 +67,8 @@ export type Database = {
           last_backup_at: string | null
           response_sla_minutes: number
           show_demo: boolean
+          transfer_enabled: boolean
+          transfer_max_companies: number
           updated_at: string
           updated_by: string | null
           work_end_hour: number
@@ -79,6 +81,8 @@ export type Database = {
           last_backup_at?: string | null
           response_sla_minutes?: number
           show_demo?: boolean
+          transfer_enabled?: boolean
+          transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -91,6 +95,8 @@ export type Database = {
           last_backup_at?: string | null
           response_sla_minutes?: number
           show_demo?: boolean
+          transfer_enabled?: boolean
+          transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
           work_end_hour?: number
@@ -901,6 +907,33 @@ export type Database = {
         }
         Relationships: []
       }
+      job_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: number
+          job: string
+          result: Json | null
+          started_at: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job: string
+          result?: Json | null
+          started_at?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: never
+          job?: string
+          result?: Json | null
+          started_at?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -1011,6 +1044,8 @@ export type Database = {
       }
       leads: {
         Row: {
+          admin_queue_at: string | null
+          admin_queue_reason: string | null
           area: string | null
           asking_price: number | null
           assigned_broker_id: string | null
@@ -1056,12 +1091,15 @@ export type Database = {
           source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at: string | null
+          transfer_deadline_at: string | null
           updated_at: string
           utm: Json | null
           via_broker_id: string | null
           visit_at: string | null
         }
         Insert: {
+          admin_queue_at?: string | null
+          admin_queue_reason?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -1107,12 +1145,15 @@ export type Database = {
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
+          transfer_deadline_at?: string | null
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
         }
         Update: {
+          admin_queue_at?: string | null
+          admin_queue_reason?: string | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -1158,6 +1199,7 @@ export type Database = {
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
+          transfer_deadline_at?: string | null
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
@@ -2032,6 +2074,10 @@ export type Database = {
     }
     Functions: {
       actor_label: { Args: never; Returns: string }
+      add_work_minutes: {
+        Args: { _from: string; _mins: number }
+        Returns: string
+      }
       admin_brokers: {
         Args: never
         Returns: {
@@ -2211,6 +2257,10 @@ export type Database = {
           lead_no: number
         }[]
       }
+      lead_transferable: {
+        Args: { _kind: string; _stage: string }
+        Returns: boolean
+      }
       log_app_error: {
         Args: {
           _kind: string
@@ -2337,6 +2387,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      next_transfer_company: {
+        Args: { _lead: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: string
+      }
       normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
         Args: {
@@ -2406,6 +2460,7 @@ export type Database = {
       }
       owned_company_id: { Args: never; Returns: string }
       prepare_account_deletion: { Args: { _uid: string }; Returns: string }
+      run_lead_transfers: { Args: never; Returns: Json }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }
