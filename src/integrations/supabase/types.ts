@@ -198,6 +198,145 @@ export type Database = {
           },
         ]
       }
+      deal_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          file_name: string
+          file_path: string
+          id: string
+          kind: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          kind: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          kind?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deals: {
+        Row: {
+          broker_id: string | null
+          contract_date: string | null
+          contract_value: number | null
+          created_at: string
+          created_by: string | null
+          deal_no: number
+          id: string
+          lead_id: string
+          project_unit_id: string | null
+          property_id: string | null
+          reservation_amount: number | null
+          reservation_date: string | null
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sale_date: string | null
+          sale_requested_at: string | null
+          sale_value: number | null
+          unit_desc: string | null
+          updated_at: string
+        }
+        Insert: {
+          broker_id?: string | null
+          contract_date?: string | null
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          deal_no?: never
+          id?: string
+          lead_id: string
+          project_unit_id?: string | null
+          property_id?: string | null
+          reservation_amount?: number | null
+          reservation_date?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sale_date?: string | null
+          sale_requested_at?: string | null
+          sale_value?: number | null
+          unit_desc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          broker_id?: string | null
+          contract_date?: string | null
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          deal_no?: never
+          id?: string
+          lead_id?: string
+          project_unit_id?: string | null
+          property_id?: string | null
+          reservation_amount?: number | null
+          reservation_date?: string | null
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sale_date?: string | null
+          sale_requested_at?: string | null
+          sale_value?: number | null
+          unit_desc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_project_unit_id_fkey"
+            columns: ["project_unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industrial_activities: {
         Row: {
           created_at: string
@@ -296,6 +435,7 @@ export type Database = {
           id: string
           kind: string
           lead_no: number
+          lost_reason: string | null
           name: string
           notes: string | null
           original_source: string
@@ -309,7 +449,9 @@ export type Database = {
           source: string
           source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
+          stage_changed_at: string | null
           updated_at: string
+          visit_at: string | null
         }
         Insert: {
           area?: string | null
@@ -325,6 +467,7 @@ export type Database = {
           id?: string
           kind?: string
           lead_no?: never
+          lost_reason?: string | null
           name: string
           notes?: string | null
           original_source: string
@@ -338,7 +481,9 @@ export type Database = {
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
+          stage_changed_at?: string | null
           updated_at?: string
+          visit_at?: string | null
         }
         Update: {
           area?: string | null
@@ -354,6 +499,7 @@ export type Database = {
           id?: string
           kind?: string
           lead_no?: never
+          lost_reason?: string | null
           name?: string
           notes?: string | null
           original_source?: string
@@ -367,7 +513,9 @@ export type Database = {
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
+          stage_changed_at?: string | null
           updated_at?: string
+          visit_at?: string | null
         }
         Relationships: [
           {

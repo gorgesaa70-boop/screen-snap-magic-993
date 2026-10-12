@@ -50,6 +50,13 @@
       "when": 1791763453922,
       "tag": "0006_leads_center",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791763508835,
+      "tag": "0007_lead_pipeline",
+      "breakpoints": true
     }
   ]
 }
