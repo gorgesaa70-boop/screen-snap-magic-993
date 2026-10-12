@@ -19,22 +19,31 @@ export type Database = {
           android_url: string | null
           id: number
           ios_url: string | null
+          response_sla_minutes: number
           updated_at: string
           updated_by: string | null
+          work_end_hour: number
+          work_start_hour: number
         }
         Insert: {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
+          work_end_hour?: number
+          work_start_hour?: number
         }
         Update: {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
+          work_end_hour?: number
+          work_start_hour?: number
         }
         Relationships: []
       }
@@ -706,6 +715,7 @@ export type Database = {
           details: string | null
           first_broker_id: string | null
           first_referred_at: string | null
+          first_response_at: string | null
           follow_up_at: string | null
           id: string
           kind: string
@@ -723,7 +733,10 @@ export type Database = {
           referred_at: string | null
           reminded_follow_up_at: string | null
           reminded_visit_at: string | null
+          routed_rule_id: string | null
           size_m2: number | null
+          sla_alerted_at: string | null
+          sla_escalated_at: string | null
           source: string
           source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
@@ -744,6 +757,7 @@ export type Database = {
           details?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
+          first_response_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -761,7 +775,10 @@ export type Database = {
           referred_at?: string | null
           reminded_follow_up_at?: string | null
           reminded_visit_at?: string | null
+          routed_rule_id?: string | null
           size_m2?: number | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
@@ -782,6 +799,7 @@ export type Database = {
           details?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
+          first_response_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -799,7 +817,10 @@ export type Database = {
           referred_at?: string | null
           reminded_follow_up_at?: string | null
           reminded_visit_at?: string | null
+          routed_rule_id?: string | null
           size_m2?: number | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
@@ -835,6 +856,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_routed_rule_id_fkey"
+            columns: ["routed_rule_id"]
+            isOneToOne: false
+            referencedRelation: "routing_rules"
             referencedColumns: ["id"]
           },
           {
@@ -1305,6 +1333,48 @@ export type Database = {
           },
         ]
       }
+      routing_rules: {
+        Row: {
+          areas: string[] | null
+          broker_ids: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          kinds: string[] | null
+          name: string
+          priority: number
+          property_types: string[] | null
+          sources: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          areas?: string[] | null
+          broker_ids: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          areas?: string[] | null
+          broker_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name?: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           broker_id: string
@@ -1720,6 +1790,8 @@ export type Database = {
       }
       owned_company_id: { Args: never; Returns: string }
       run_reminders: { Args: never; Returns: Json }
+      run_response_alerts: { Args: never; Returns: Json }
+      work_minutes: { Args: { _from: string; _to: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "broker" | "staff"
