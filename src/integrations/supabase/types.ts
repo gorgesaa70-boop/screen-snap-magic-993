@@ -245,6 +245,7 @@ export type Database = {
           created_at: string
           deal_id: string
           due_date: string | null
+          due_reminded_on: string | null
           expected_amount: number | null
           fixed_amount: number | null
           id: string
@@ -264,6 +265,7 @@ export type Database = {
           created_at?: string
           deal_id: string
           due_date?: string | null
+          due_reminded_on?: string | null
           expected_amount?: number | null
           fixed_amount?: number | null
           id?: string
@@ -283,6 +285,7 @@ export type Database = {
           created_at?: string
           deal_id?: string
           due_date?: string | null
+          due_reminded_on?: string | null
           expected_amount?: number | null
           fixed_amount?: number | null
           id?: string
@@ -453,6 +456,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deal_no: number
+          docs_reminded_at: string | null
           id: string
           lead_id: string
           project_unit_id: string | null
@@ -460,6 +464,7 @@ export type Database = {
           reservation_amount: number | null
           reservation_date: string | null
           review_note: string | null
+          review_reminded_at: string | null
           review_status: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -476,6 +481,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          docs_reminded_at?: string | null
           id?: string
           lead_id: string
           project_unit_id?: string | null
@@ -483,6 +489,7 @@ export type Database = {
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
+          review_reminded_at?: string | null
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -499,6 +506,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          docs_reminded_at?: string | null
           id?: string
           lead_id?: string
           project_unit_id?: string | null
@@ -506,6 +514,7 @@ export type Database = {
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
+          review_reminded_at?: string | null
           review_status?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -709,6 +718,8 @@ export type Database = {
           property_type: string | null
           purpose: string | null
           referred_at: string | null
+          reminded_follow_up_at: string | null
+          reminded_visit_at: string | null
           size_m2: number | null
           source: string
           source_note: string | null
@@ -744,6 +755,8 @@ export type Database = {
           property_type?: string | null
           purpose?: string | null
           referred_at?: string | null
+          reminded_follow_up_at?: string | null
+          reminded_visit_at?: string | null
           size_m2?: number | null
           source?: string
           source_note?: string | null
@@ -779,6 +792,8 @@ export type Database = {
           property_type?: string | null
           purpose?: string | null
           referred_at?: string | null
+          reminded_follow_up_at?: string | null
+          reminded_visit_at?: string | null
           size_m2?: number | null
           source?: string
           source_note?: string | null
@@ -1328,6 +1343,56 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          assigned_to: string
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          done_by: string | null
+          due_at: string | null
+          id: string
+          lead_id: string | null
+          notes: string | null
+          reminded_at: string | null
+          title: string
+        }
+        Insert: {
+          assigned_to: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reminded_at?: string | null
+          title: string
+        }
+        Update: {
+          assigned_to?: string
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string | null
+          notes?: string | null
+          reminded_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1449,6 +1514,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      assignable_users: {
+        Args: never
+        Returns: {
+          label: string
+          user_id: string
+        }[]
+      }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
       brokers_by_phone: {
@@ -1523,6 +1595,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_lead_people: {
+        Args: {
+          _lead: Database["public"]["Tables"]["leads"]["Row"]
+          _msg: string
+          _title: string
+        }
+        Returns: undefined
+      }
       notify_team: {
         Args: {
           _msg: string
@@ -1545,6 +1625,7 @@ export type Database = {
         Returns: undefined
       }
       owned_company_id: { Args: never; Returns: string }
+      run_reminders: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "broker" | "staff"
