@@ -8,9 +8,14 @@ import { useSessionUser } from "@/hooks/useAuth";
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
-    <a href="/" className="flex items-baseline gap-1.5" dir="ltr">
-      <span className={`text-xl font-extrabold tracking-[0.18em] ${light ? "text-primary-foreground" : "text-primary"}`}>VALUE</span>
-      <span className="text-xl font-semibold text-teal">Aqar</span>
+    // Brand mark (from the brand sheet) + the name in full, Arabic and English, as live text so it stays sharp.
+    <a href="/" className="flex shrink-0 items-center gap-2" dir="rtl" aria-label="فاليو عقار — Value Aqar">
+      <img src={light ? "/logo-mark-dark.png" : "/logo-mark.png"} alt="" width={light ? 55 : 52} height={60}
+        className={`h-10 w-auto shrink-0 ${light ? "rounded-lg" : ""}`} />
+      <span className="flex flex-col leading-none">
+        <span className={`text-lg font-extrabold ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>
+        <span className="mt-1 text-[10px] font-bold tracking-[0.28em] text-teal" dir="ltr">VALUE AQAR</span>
+      </span>
     </a>
   );
 }
