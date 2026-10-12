@@ -286,20 +286,28 @@ export type Database = {
           area: string | null
           asking_price: number | null
           assigned_broker_id: string | null
+          assigned_member_id: string | null
+          assigned_staff_id: string | null
           budget: number | null
           created_at: string
+          created_by: string | null
           details: string | null
           follow_up_at: string | null
           id: string
           kind: string
+          lead_no: number
           name: string
           notes: string | null
+          original_source: string
           phone: string
+          phone_norm: string | null
           phone_verified: boolean
           property_id: string | null
           property_type: string | null
           purpose: string | null
           size_m2: number | null
+          source: string
+          source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
           updated_at: string
         }
@@ -307,20 +315,28 @@ export type Database = {
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
+          assigned_member_id?: string | null
+          assigned_staff_id?: string | null
           budget?: number | null
           created_at?: string
+          created_by?: string | null
           details?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
+          lead_no?: never
           name: string
           notes?: string | null
+          original_source: string
           phone: string
+          phone_norm?: string | null
           phone_verified?: boolean
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
           size_m2?: number | null
+          source?: string
+          source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           updated_at?: string
         }
@@ -328,20 +344,28 @@ export type Database = {
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
+          assigned_member_id?: string | null
+          assigned_staff_id?: string | null
           budget?: number | null
           created_at?: string
+          created_by?: string | null
           details?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
+          lead_no?: never
           name?: string
           notes?: string | null
+          original_source?: string
           phone?: string
+          phone_norm?: string | null
           phone_verified?: boolean
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
           size_m2?: number | null
+          source?: string
+          source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           updated_at?: string
         }
@@ -351,6 +375,13 @@ export type Database = {
             columns: ["assigned_broker_id"]
             isOneToOne: false
             referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
             referencedColumns: ["id"]
           },
           {
@@ -995,6 +1026,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: never; Returns: boolean }
+      my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
         Returns: {
