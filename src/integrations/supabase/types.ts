@@ -908,6 +908,7 @@ export type Database = {
           id: string
           kind: string
           lead_id: string
+          outcome: string | null
           summary: string
         }
         Insert: {
@@ -916,6 +917,7 @@ export type Database = {
           id?: string
           kind: string
           lead_id: string
+          outcome?: string | null
           summary: string
         }
         Update: {
@@ -924,6 +926,7 @@ export type Database = {
           id?: string
           kind?: string
           lead_id?: string
+          outcome?: string | null
           summary?: string
         }
         Relationships: [
@@ -941,27 +944,45 @@ export type Database = {
           broker_id: string | null
           changed_by: string | null
           created_at: string
+          deadline_at: string | null
+          end_reason: string | null
+          ended_at: string | null
           id: string
           lead_id: string
           member_id: string | null
+          note: string | null
+          outcome: string | null
+          source: string | null
           staff_id: string | null
         }
         Insert: {
           broker_id?: string | null
           changed_by?: string | null
           created_at?: string
+          deadline_at?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
           id?: string
           lead_id: string
           member_id?: string | null
+          note?: string | null
+          outcome?: string | null
+          source?: string | null
           staff_id?: string | null
         }
         Update: {
           broker_id?: string | null
           changed_by?: string | null
           created_at?: string
+          deadline_at?: string | null
+          end_reason?: string | null
+          ended_at?: string | null
           id?: string
           lead_id?: string
           member_id?: string | null
+          note?: string | null
+          outcome?: string | null
+          source?: string | null
           staff_id?: string | null
         }
         Relationships: [
@@ -1005,6 +1026,8 @@ export type Database = {
           first_broker_id: string | null
           first_referred_at: string | null
           first_response_at: string | null
+          first_response_by: string | null
+          first_response_outcome: string | null
           follow_up_at: string | null
           id: string
           kind: string
@@ -1017,6 +1040,8 @@ export type Database = {
           phone: string
           phone_norm: string | null
           phone_verified: boolean
+          project_id: string | null
+          project_unit_id: string | null
           property_id: string | null
           property_type: string | null
           purpose: string | null
@@ -1052,6 +1077,8 @@ export type Database = {
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
+          first_response_by?: string | null
+          first_response_outcome?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -1064,6 +1091,8 @@ export type Database = {
           phone: string
           phone_norm?: string | null
           phone_verified?: boolean
+          project_id?: string | null
+          project_unit_id?: string | null
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
@@ -1099,6 +1128,8 @@ export type Database = {
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
+          first_response_by?: string | null
+          first_response_outcome?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -1111,6 +1142,8 @@ export type Database = {
           phone?: string
           phone_norm?: string | null
           phone_verified?: boolean
+          project_id?: string | null
+          project_unit_id?: string | null
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
@@ -1157,6 +1190,20 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_project_unit_id_fkey"
+            columns: ["project_unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
             referencedColumns: ["id"]
           },
           {

@@ -169,6 +169,13 @@
       "when": 1791764250032,
       "tag": "0023_account_deletion",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791764272947,
+      "tag": "0024_crm_leads",
+      "breakpoints": true
     }
   ]
 }
