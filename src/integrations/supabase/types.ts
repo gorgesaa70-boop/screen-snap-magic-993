@@ -1254,6 +1254,7 @@ export type Database = {
           lead_no: number
         }[]
       }
+      member_user_id: { Args: { _member: string }; Returns: string }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
@@ -1268,6 +1269,27 @@ export type Database = {
       notify_admins: {
         Args: {
           _except?: string
+          _msg: string
+          _related: string
+          _title: string
+          _type: string
+          _url: string
+        }
+        Returns: undefined
+      }
+      notify_company: {
+        Args: {
+          _company: string
+          _msg: string
+          _related: string
+          _title: string
+          _type: string
+          _url: string
+        }
+        Returns: undefined
+      }
+      notify_team: {
+        Args: {
           _msg: string
           _related: string
           _title: string

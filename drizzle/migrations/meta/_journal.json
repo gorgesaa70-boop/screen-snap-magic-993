@@ -64,6 +64,13 @@
       "when": 1791763547219,
       "tag": "0008_referral_proof",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791763592607,
+      "tag": "0009_team_notifications",
+      "breakpoints": true
     }
   ]
 }
