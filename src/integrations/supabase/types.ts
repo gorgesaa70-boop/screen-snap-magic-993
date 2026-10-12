@@ -423,6 +423,174 @@ export type Database = {
         }
         Relationships: []
       }
+      project_unit_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_price: number | null
+          new_status: string | null
+          old_price: number | null
+          old_status: string | null
+          unit_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          unit_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_unit_history_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "project_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_units: {
+        Row: {
+          baths: number | null
+          code: string | null
+          created_at: string
+          floor: string | null
+          id: string
+          notes: string | null
+          price: number | null
+          project_id: string
+          rooms: number | null
+          size: number
+          status: string
+          unit_type: string
+          updated_at: string
+        }
+        Insert: {
+          baths?: number | null
+          code?: string | null
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          project_id: string
+          rooms?: number | null
+          size?: number
+          status?: string
+          unit_type: string
+          updated_at?: string
+        }
+        Update: {
+          baths?: number | null
+          code?: string | null
+          created_at?: string
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          project_id?: string
+          rooms?: number | null
+          size?: number
+          status?: string
+          unit_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_units_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          address: string | null
+          amenities: string[]
+          area: string
+          city: string
+          created_at: string
+          delivery_date: string | null
+          description: string | null
+          developer_id: string
+          id: string
+          images: string[]
+          is_featured: boolean
+          lat: number | null
+          lng: number | null
+          name: string
+          payment_plans: string | null
+          review_note: string | null
+          review_status: Database["public"]["Enums"]["review_status"]
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          amenities?: string[]
+          area: string
+          city: string
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          developer_id: string
+          id?: string
+          images?: string[]
+          is_featured?: boolean
+          lat?: number | null
+          lng?: number | null
+          name: string
+          payment_plans?: string | null
+          review_note?: string | null
+          review_status?: Database["public"]["Enums"]["review_status"]
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          amenities?: string[]
+          area?: string
+          city?: string
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          developer_id?: string
+          id?: string
+          images?: string[]
+          is_featured?: boolean
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          payment_plans?: string | null
+          review_note?: string | null
+          review_status?: Database["public"]["Enums"]["review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           activity_id: string | null
@@ -734,6 +902,7 @@ export type Database = {
       }
       claim_first_admin: { Args: never; Returns: boolean }
       current_broker_id: { Args: never; Returns: string }
+      current_developer_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
