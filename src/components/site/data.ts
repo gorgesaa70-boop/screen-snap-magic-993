@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getLang } from "@/lib/i18n";
+import { UploadError, extensionFor, prepareImage, uploadErrorMessage } from "@/lib/images";
 
 export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
@@ -170,16 +171,22 @@ export const formatDate = (d: string) =>
 
 /** Upload an image to the user's private folder and return a long-lived signed URL. */
 export async function uploadImage(file: File) {
-  const { data: u } = await supabase.auth.getUser();
-  if (!u.user) throw new Error("يجب تسجيل الدخول");
-  if (file.size > 5 * 1024 * 1024) throw new Error("حجم الصورة أكبر من 5 ميجا");
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${u.user.id}/${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from("media").upload(path, file, { contentType: file.type });
-  if (error) throw error;
-  const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (e2) throw e2;
-  return data.signedUrl;
+  // Fresh session first: an expired login shows up as a confusing storage permission error.
+  const { data: sess } = await supabase.auth.getSession();
+  let userId = sess.session?.user.id;
+  if (!userId || (sess.session!.expires_at ?? 0) * 1000 < Date.now() + 60_000) userId = (await supabase.auth.refreshSession()).data.session?.user.id;
+  if (!userId) throw new UploadError("سجّل دخول الأول عشان ترفع صور");
+  const body = await prepareImage(file);
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensionFor(body.type)}`;
+  try {
+    const { error } = await supabase.storage.from("media").upload(path, body, { contentType: body.type, cacheControl: "31536000" });
+    if (error) throw error;
+    const { data, error: e2 } = await supabase.storage.from("media").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    if (e2) throw e2;
+    return data.signedUrl;
+  } catch (e) {
+    throw new UploadError(uploadErrorMessage(e));
+  }
 }
 
 /** Where a lead came from. The original source is fixed; changes are logged on the lead. */
