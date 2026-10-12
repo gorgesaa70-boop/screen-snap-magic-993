@@ -28,7 +28,7 @@ function AuthPage() {
   useLang();
   const nav = useNavigate();
   const [method, setMethod] = useState<"phone" | "email">("phone");
-  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [help, setHelp] = useState(false);
   // First-admin setup is a one-time step: shown only at /auth?setup=1 (read after load to match the server render).
   const [setup, setSetup] = useState(false);
@@ -45,7 +45,33 @@ function AuthPage() {
   };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
+  // After sign-up: waiting for the confirmation e-mail (or the login said the e-mail isn't confirmed yet).
+  const [sentTo, setSentTo] = useState<string | null>(null);
+
+  // Coming back from the confirmation link: the session arrives in the URL; send the user on, or explain an expired link.
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const err = hash.get("error_description");
+    if (err) { setMethod("email"); toast.error(/expired|invalid/i.test(err) ? t("رابط التأكيد انتهى أو اتستخدم قبل كده — ادخل بإيميلك وكلمة السر، ولو طلب تأكيد اطلب رابط جديد") : err); return; }
+    if (!new URLSearchParams(window.location.search).has("confirmed")) return;
+    setMethod("email");
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) { toast.success(t("تم تأكيد الإيميل ✓")); void go(); }
+    });
+    return () => data.subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function resend(to: string) {
+    setBusy(true);
+    const { error } = await supabase.auth.resend({ type: "signup", email: to, options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1` } });
+    setBusy(false);
+    if (error) toast.error(/rate|seconds/i.test(error.message) ? t("استنى دقيقة وجرّب تاني") : t("تعذّر الإرسال، حاول لاحقًا"));
+    else toast.success(t("بعتنا رابط تأكيد جديد"));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,8 +79,33 @@ function AuthPage() {
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       setBusy(false);
-      if (error) { toast.error(error.message.includes("banned") ? "تم إيقاف هذا الحساب، تواصل مع الإدارة" : "البريد أو كلمة المرور غير صحيحة"); return; }
+      if (error) {
+        if (/not confirmed/i.test(error.message)) { setSentTo(email.trim()); toast.error(t("لازم تأكّد إيميلك الأول — افتح رسالة التأكيد")); return; }
+        toast.error(error.message.includes("banned") ? t("تم إيقاف هذا الحساب، تواصل مع الإدارة") : t("الإيميل أو كلمة السر غلط. أول مرة؟ اختار «حساب جديد»"));
+        return;
+      }
       await go();
+    } else if (mode === "signup") {
+      const name = fullName.trim();
+      if (name.length < 2) { setBusy(false); toast.error(t("اكتب اسمك")); return; }
+      if (password.length < 8) { setBusy(false); toast.error(t("كلمة السر لازم 8 حروف أو أرقام على الأقل")); return; }
+      if (password !== password2) { setBusy(false); toast.error(t("كلمتين السر مش زي بعض")); return; }
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(), password,
+        options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=1`, data: { full_name: name.slice(0, 100) } },
+      });
+      setBusy(false);
+      if (error) {
+        if (/already registered|already exists/i.test(error.message)) { toast.error(t("الإيميل ده عليه حساب — ادخل بكلمة السر، أو اختار «نسيت كلمة المرور»")); setMode("login"); return; }
+        if (/rate|seconds/i.test(error.message)) { toast.error(t("محاولات كتير — استنى شوية وجرّب تاني")); return; }
+        if (/password/i.test(error.message)) { toast.error(t("كلمة السر ضعيفة — خليها أطول وفيها حروف وأرقام")); return; }
+        if (/invalid/i.test(error.message)) { toast.error(t("الإيميل ده مش صحيح")); return; }
+        toast.error(t("تعذّر إنشاء الحساب، حاول لاحقًا")); return;
+      }
+      // Existing confirmed e-mail: the API answers without an identity (it doesn't reveal accounts).
+      if (data.user && (data.user.identities?.length ?? 0) === 0) { toast.error(t("الإيميل ده عليه حساب — ادخل بكلمة السر، أو اختار «نسيت كلمة المرور»")); setMode("login"); return; }
+      if (data.session) { toast.success(t("اتعمل حسابك ✓")); await go(); return; }
+      setSentTo(email.trim());
     } else {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
       setBusy(false);
@@ -98,14 +149,40 @@ function AuthPage() {
             </>
           ) : (
             <>
-              <form onSubmit={submit} className="space-y-4">
-                <Field label={t("البريد الإلكتروني")}><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
-                {mode === "login" && <Field label={t("كلمة المرور")}><input type="password" dir="ltr" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>}
-                <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? t("تسجيل الدخول") : t("إرسال رابط إعادة التعيين")}</button>
-              </form>
-              <button onClick={() => setMode(mode === "login" ? "forgot" : "login")} className="mt-4 text-sm font-bold text-primary hover:text-teal">
-                {mode === "login" ? t("نسيت كلمة المرور؟") : t("رجوع لتسجيل الدخول")}
-              </button>
+              {sentTo ? (
+                <div className="space-y-3 rounded-2xl bg-teal-soft p-4 text-sm text-primary">
+                  <p className="font-extrabold">{t("بعتنا لك إيميل تأكيد ✉️")}</p>
+                  <p>{t("افتح الرسالة اللي وصلت على")} <b dir="ltr">{sentTo}</b> {t("واضغط على رابط التأكيد، وهتدخل على طول.")}</p>
+                  <p className="text-xs text-foreground/70">{t("مش لاقيها؟ شوف الـ Spam أو الرسائل غير المرغوب فيها، واستنى دقيقتين.")}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" disabled={busy} onClick={() => resend(sentTo)} className="inline-flex h-10 items-center rounded-xl border border-primary px-4 text-xs font-bold">{t("ابعت الرابط تاني")}</button>
+                    <button type="button" onClick={() => { setSentTo(null); setMode("login"); }} className="inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold text-muted-foreground hover:text-primary">{t("أكّدت — ادخل")}</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {mode !== "forgot" && (
+                    <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border p-1">
+                      {([["login", "عندي حساب"], ["signup", "حساب جديد"]] as const).map(([k, l]) => (
+                        <button key={k} type="button" onClick={() => setMode(k)} className={`h-9 rounded-lg text-sm font-bold transition ${mode === k ? "bg-primary text-primary-foreground" : "text-primary"}`}>{t(l)}</button>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={submit} className="space-y-4">
+                    {mode === "signup" && <Field label={t("الاسم")}><input required className={inputCls} value={fullName} onChange={(e) => setFullName(e.target.value)} maxLength={100} autoComplete="name" /></Field>}
+                    <Field label={t("البريد الإلكتروني")}><input type="email" dir="ltr" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
+                    {mode !== "forgot" && <Field label={mode === "signup" ? t("كلمة السر (8 حروف أو أرقام على الأقل)") : t("كلمة المرور")}><input type="password" dir="ltr" required minLength={mode === "signup" ? 8 : undefined} className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} /></Field>}
+                    {mode === "signup" && <Field label={t("اكتب كلمة السر تاني")}><input type="password" dir="ltr" required className={inputCls} value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" /></Field>}
+                    <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : mode === "login" ? t("تسجيل الدخول") : mode === "signup" ? t("عمل الحساب") : t("إرسال رابط إعادة التعيين")}</button>
+                  </form>
+                  {mode === "signup" && <p className="mt-3 text-xs text-muted-foreground">{t("هيوصلك إيميل تأكيد. لو عندك رقم موبايل، ضيفه بعدين من «حسابي» عشان تدخل بالاتنين على نفس الحساب.")}</p>}
+                  {mode !== "signup" && (
+                    <button onClick={() => setMode(mode === "login" ? "forgot" : "login")} className="mt-4 text-sm font-bold text-primary hover:text-teal">
+                      {mode === "login" ? t("نسيت كلمة المرور؟") : t("رجوع لتسجيل الدخول")}
+                    </button>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>
