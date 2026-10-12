@@ -183,6 +183,13 @@
       "when": 1791764319986,
       "tag": "0025_crm_transfer",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791764370585,
+      "tag": "0026_payments",
+      "breakpoints": true
     }
   ]
 }

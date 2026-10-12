@@ -62,11 +62,14 @@ export type Database = {
       app_settings: {
         Row: {
           android_url: string | null
+          featured_month_price: number
+          featured_week_price: number
           id: number
           ios_url: string | null
           last_backup_at: string | null
           response_sla_minutes: number
           show_demo: boolean
+          subscription_grace_days: number
           transfer_enabled: boolean
           transfer_max_companies: number
           updated_at: string
@@ -76,11 +79,14 @@ export type Database = {
         }
         Insert: {
           android_url?: string | null
+          featured_month_price?: number
+          featured_week_price?: number
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
           show_demo?: boolean
+          subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
           updated_at?: string
@@ -90,11 +96,14 @@ export type Database = {
         }
         Update: {
           android_url?: string | null
+          featured_month_price?: number
+          featured_week_price?: number
           id?: number
           ios_url?: string | null
           last_backup_at?: string | null
           response_sla_minutes?: number
           show_demo?: boolean
+          subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
           updated_at?: string
@@ -1391,6 +1400,100 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          broker_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          failed_reason: string | null
+          feature_days: number | null
+          id: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          payment_no: number
+          period: string | null
+          plan_id: string | null
+          property_id: string | null
+          provider: string
+          provider_order_id: string | null
+          provider_txn_id: string | null
+          purpose: string
+          refunded_at: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_reason?: string | null
+          feature_days?: number | null
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          payment_no?: never
+          period?: string | null
+          plan_id?: string | null
+          property_id?: string | null
+          provider?: string
+          provider_order_id?: string | null
+          provider_txn_id?: string | null
+          purpose: string
+          refunded_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_reason?: string | null
+          feature_days?: number | null
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          payment_no?: never
+          period?: string | null
+          plan_id?: string | null
+          property_id?: string | null
+          provider?: string
+          provider_order_id?: string | null
+          provider_txn_id?: string | null
+          purpose?: string
+          refunded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           code: string
@@ -1401,6 +1504,8 @@ export type Database = {
           max_properties: number
           monthly_price: number
           name: string
+          trial_days: number
+          yearly_price: number
         }
         Insert: {
           code: string
@@ -1411,6 +1516,8 @@ export type Database = {
           max_properties?: number
           monthly_price?: number
           name: string
+          trial_days?: number
+          yearly_price?: number
         }
         Update: {
           code?: string
@@ -1421,6 +1528,8 @@ export type Database = {
           max_properties?: number
           monthly_price?: number
           name?: string
+          trial_days?: number
+          yearly_price?: number
         }
         Relationships: []
       }
@@ -1611,6 +1720,7 @@ export type Database = {
           floor: string | null
           furnished: string | null
           guests: number | null
+          hidden_by_plan: boolean
           highlight_reason: string | null
           highlight_requested_at: string | null
           highlight_yield: number | null
@@ -1664,6 +1774,7 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          hidden_by_plan?: boolean
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
@@ -1717,6 +1828,7 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          hidden_by_plan?: boolean
           highlight_reason?: string | null
           highlight_requested_at?: string | null
           highlight_yield?: number | null
@@ -1880,9 +1992,12 @@ export type Database = {
           created_at: string
           ends_at: string | null
           id: string
+          payment_id: string | null
           plan_id: string
           provider: string | null
           provider_ref: string | null
+          reminded_1d_at: string | null
+          reminded_7d_at: string | null
           starts_at: string
           status: string
         }
@@ -1891,9 +2006,12 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          payment_id?: string | null
           plan_id: string
           provider?: string | null
           provider_ref?: string | null
+          reminded_1d_at?: string | null
+          reminded_7d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -1902,9 +2020,12 @@ export type Database = {
           created_at?: string
           ends_at?: string | null
           id?: string
+          payment_id?: string | null
           plan_id?: string
           provider?: string | null
           provider_ref?: string | null
+          reminded_1d_at?: string | null
+          reminded_7d_at?: string | null
           starts_at?: string
           status?: string
         }
@@ -2232,6 +2353,16 @@ export type Database = {
         Args: { _basis: number; _fixed: number; _rate: number }
         Returns: number
       }
+      create_payment: {
+        Args: {
+          _days?: number
+          _period?: string
+          _plan?: string
+          _property?: string
+          _purpose: string
+        }
+        Returns: string
+      }
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
@@ -2270,6 +2401,14 @@ export type Database = {
           _ua: string
         }
         Returns: undefined
+      }
+      mark_payment_failed: {
+        Args: { _id: string; _reason: string }
+        Returns: string
+      }
+      mark_payment_paid: {
+        Args: { _amount: number; _id: string; _method?: string; _txn: string }
+        Returns: string
       }
       member_user_id: { Args: { _member: string }; Returns: string }
       meta_inbound_lead: {
@@ -2463,6 +2602,7 @@ export type Database = {
       run_lead_transfers: { Args: never; Returns: Json }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      run_subscription_expiry: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
