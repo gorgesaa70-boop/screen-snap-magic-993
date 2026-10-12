@@ -102,3 +102,22 @@ export function useSocialReturn(navigate: (to: string) => void) {
     return () => data.subscription.unsubscribe();
   }, [navigate]);
 }
+
+/** Divider + Google/Apple buttons, shown together at the bottom of the sign-in card. */
+export function SocialRow({ onSignedIn }: { onSignedIn: () => void }) {
+  useLang();
+  const [native, setNative] = useState(false);
+  useEffect(() => {
+    void import("@capacitor/core").then(({ Capacitor }) => setNative(Capacitor.isNativePlatform())).catch(() => {});
+  }, []);
+  if (native) return null;
+  return (
+    <div className="mt-5">
+      <div className="mb-3 flex items-center gap-3 text-xs font-semibold text-muted-foreground"><span className="h-px flex-1 bg-border" />{t("أو")}<span className="h-px flex-1 bg-border" /></div>
+      <div className="grid gap-2.5">
+        <GoogleButton onSignedIn={onSignedIn} />
+        <AppleButton onSignedIn={onSignedIn} />
+      </div>
+    </div>
+  );
+}
