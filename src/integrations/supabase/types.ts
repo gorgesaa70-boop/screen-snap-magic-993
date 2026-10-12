@@ -582,6 +582,32 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          created_at: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          property_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industrial_activities: {
         Row: {
           created_at: string
@@ -921,6 +947,7 @@ export type Database = {
           budget: number | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           details: string | null
           first_broker_id: string | null
           first_referred_at: string | null
@@ -964,6 +991,7 @@ export type Database = {
           budget?: number | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           details?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -1007,6 +1035,7 @@ export type Database = {
           budget?: number | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           details?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
@@ -1463,6 +1492,8 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+          verified_at: string | null
+          verified_note: string | null
           video_urls: string[]
           zone_id: string | null
         }
@@ -1514,6 +1545,8 @@ export type Database = {
           title: string
           type: string
           updated_at?: string
+          verified_at?: string | null
+          verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
         }
@@ -1565,6 +1598,8 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+          verified_at?: string | null
+          verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
         }
@@ -1645,6 +1680,48 @@ export type Database = {
           property_types?: string[] | null
           sources?: string[] | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          area: string | null
+          city: string | null
+          created_at: string
+          id: string
+          label: string | null
+          notify: boolean
+          price_max: number | null
+          price_min: number | null
+          status: string | null
+          types: string[]
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          notify?: boolean
+          price_max?: number | null
+          price_min?: number | null
+          status?: string | null
+          types?: string[]
+          user_id?: string
+        }
+        Update: {
+          area?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          notify?: boolean
+          price_max?: number | null
+          price_min?: number | null
+          status?: string | null
+          types?: string[]
+          user_id?: string
         }
         Relationships: []
       }
@@ -2111,6 +2188,24 @@ export type Database = {
         }
       }
       my_phone: { Args: never; Returns: string }
+      my_requests: {
+        Args: never
+        Returns: {
+          area: string
+          budget: number
+          created_at: string
+          details: string
+          id: string
+          kind: string
+          lead_no: number
+          property_id: string
+          property_title: string
+          property_type: string
+          purpose: string
+          stage: string
+          updated_at: string
+        }[]
+      }
       normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
         Args: {

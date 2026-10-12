@@ -134,6 +134,13 @@
       "when": 1791764052934,
       "tag": "0018_maps",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791764082453,
+      "tag": "0019_customer",
+      "breakpoints": true
     }
   ]
 }
