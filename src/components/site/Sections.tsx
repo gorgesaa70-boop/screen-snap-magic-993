@@ -396,7 +396,7 @@ export function Footer() {
         <div>
           <h4 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h4>
           <ul className="mt-4 space-y-2.5 text-sm">
-            <li className="flex items-center gap-2"><MapPin className="size-4 text-teal" />{tr("برج العرب والساحل الشمالي")}</li>
+            <li><a href="https://maps.google.com/?cid=6237911875878729662" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-teal"><MapPin className="size-4 shrink-0 text-teal" />{tr("عمارات المستثمرين، برج العرب — موقعنا على الخريطة")}</a></li>
             <li><a href={waLink(WHATSAPP_NUMBER, tr("أهلاً فاليو عقار"))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 py-1 hover:text-teal"><MessageCircle className="size-4 text-teal" />{tr("راسلنا على واتساب")}</a></li>
             <li className="flex items-center gap-2"><Mail className="size-4 text-teal" />info@valueaqar.com</li>
           </ul>
