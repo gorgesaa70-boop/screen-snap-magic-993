@@ -945,10 +945,12 @@ export type Database = {
           assigned_member_id: string | null
           assigned_staff_id: string | null
           budget: number | null
+          campaign: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
           details: string | null
+          external_ref: string | null
           first_broker_id: string | null
           first_referred_at: string | null
           first_response_at: string | null
@@ -979,6 +981,7 @@ export type Database = {
           stage: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at: string | null
           updated_at: string
+          utm: Json | null
           via_broker_id: string | null
           visit_at: string | null
         }
@@ -989,10 +992,12 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           budget?: number | null
+          campaign?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
           details?: string | null
+          external_ref?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
@@ -1023,6 +1028,7 @@ export type Database = {
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
         }
@@ -1033,10 +1039,12 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           budget?: number | null
+          campaign?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
           details?: string | null
+          external_ref?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
           first_response_at?: string | null
@@ -1067,6 +1075,7 @@ export type Database = {
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
         }
@@ -2103,6 +2112,18 @@ export type Database = {
         }[]
       }
       member_user_id: { Args: { _member: string }; Returns: string }
+      meta_inbound_lead: {
+        Args: {
+          _ad: string
+          _campaign: string
+          _details: string
+          _name: string
+          _phone: string
+          _platform: string
+          _ref: string
+        }
+        Returns: string
+      }
       my_account: {
         Args: never
         Returns: {
@@ -2276,6 +2297,11 @@ export type Database = {
       owned_company_id: { Args: never; Returns: string }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      source_from_utm: { Args: { _u: Json }; Returns: string }
+      whatsapp_inbound_lead: {
+        Args: { _msg_id: string; _name: string; _phone: string; _text: string }
+        Returns: string
+      }
       work_minutes: { Args: { _from: string; _to: string }; Returns: number }
     }
     Enums: {
