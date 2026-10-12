@@ -98,3 +98,50 @@
 
 /* Keeps the header (and the news line) below the phone's status bar in the installed app. */
 .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), var(--native-top, 0px)); }
+
+/* ---------- Dark mode (class "dark" on <html>, set before paint by the theme script) ---------- */
+.dark {
+  color-scheme: dark;
+  --background: oklch(0.17 0.035 263);
+  --foreground: oklch(0.93 0.015 250);
+  --card: oklch(0.215 0.04 263);
+  --card-foreground: oklch(0.93 0.015 250);
+  --popover: oklch(0.23 0.04 263);
+  --popover-foreground: oklch(0.93 0.015 250);
+  /* Bands and buttons stay navy (a little lighter than the page so they still read as navy blocks). */
+  --primary: oklch(0.36 0.085 263);
+  --primary-foreground: oklch(0.99 0 0);
+  --navy-deep: oklch(0.29 0.075 263);
+  /* Headings and links that are navy in light mode become light. */
+  --primary-text: oklch(0.92 0.03 245);
+  --secondary: oklch(0.26 0.04 263);
+  --secondary-foreground: oklch(0.93 0.015 250);
+  --muted: oklch(0.25 0.035 263);
+  --muted-foreground: oklch(0.74 0.03 255);
+  --teal: oklch(0.79 0.09 172);
+  --teal-soft: oklch(0.31 0.05 175);
+  --accent: oklch(0.79 0.09 172);
+  --accent-foreground: oklch(0.2 0.05 263);
+  --destructive: oklch(0.66 0.2 25);
+  --border: oklch(0.32 0.035 263);
+  --input: oklch(0.32 0.035 263);
+  --ring: oklch(0.79 0.09 172);
+  --shadow-card: 0 10px 30px -15px rgb(0 0 0 / 0.65);
+  --shadow-float: 0 25px 60px -20px rgb(0 0 0 / 0.75);
+}
+/* Unlayered, so these win over the Tailwind utilities they adjust. */
+.dark .text-primary,
+.dark .hover\:text-primary:hover,
+.dark .group:hover .group-hover\:text-primary { color: var(--primary-text); }
+.dark .border-primary { border-color: var(--primary-text); }
+.dark .bg-primary .text-primary,
+.dark .hover\:bg-primary:hover.text-primary { color: var(--primary-foreground); }
+.dark .bg-card,
+.dark .bg-background { color-scheme: dark; }
+
+/* Mint text: the brand mint is too light to read on white (2:1), so text uses a deeper mint (5.2:1) in light mode.
+   On navy bands, photos with the hero overlay, and in dark mode it keeps the bright brand mint. */
+.text-teal { color: oklch(0.52 0.085 172); }
+:where(.dark, .bg-primary, .bg-navy-deep, .bg-hero-overlay, .bg-teal) .text-teal,
+:where(.bg-primary, .bg-navy-deep).text-teal,
+.dark .text-teal { color: var(--teal); }

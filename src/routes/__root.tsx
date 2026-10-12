@@ -1,3 +1,4 @@
+import { THEME_INIT } from "@/lib/theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LangProvider, useLang, t, getLang } from "@/lib/i18n";
 import {
@@ -95,8 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        {/* Sets the dark class before the first paint (see lib/theme). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <HeadContent />
       </head>
       <body>
@@ -140,7 +143,7 @@ function RootInner() {
     <>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster position="top-center" dir={dir} richColors />
+      <Toaster position="top-center" dir={dir} richColors theme="system" />
     </>
   );
 }

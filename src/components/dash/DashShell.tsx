@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
 import { NotificationBell } from "@/components/site/NotificationBell";
+import { ThemeToggle } from "@/components/site/ThemeToggle";
 import { useMe } from "@/hooks/useAuth";
 
 const linkCls = "shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary";
@@ -51,6 +52,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
             <Link to="/account" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>حسابي</Link>
             </>)}
             </div>
+            <ThemeToggle />
             <NotificationBell />
             <button onClick={signOut} aria-label="تسجيل الخروج" className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary"><LogOut className="size-5" /></button>
           </nav>

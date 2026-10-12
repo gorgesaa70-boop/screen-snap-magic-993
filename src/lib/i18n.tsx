@@ -214,6 +214,9 @@ const EN: Record<string, string> = {
   "اسم المكتب أو الشركة (اختياري)": "Office or company name (optional)",
   "شغّل مع باقي الوسطاء واقسم العمولة بضمان المنصة": "Work with other brokers and split commission, guaranteed by the platform",
 
+  "الوضع الداكن": "Dark mode",
+  "الوضع الفاتح": "Light mode",
+
   // Price index
   "مقارنة بآخر 3 شهور": "vs. 3 months ago",
   "لسه مفيش وحدات كفاية هنا.": "Not enough units here yet.",
