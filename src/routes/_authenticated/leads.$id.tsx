@@ -95,7 +95,7 @@ function LeadPage() {
     <DashShell title={`${leadNo(l.lead_no)} · ${l.name}`} isAdmin={!!me?.isAdmin}>
       <Link to="/inquiries" className="mb-3 inline-block text-xs font-bold text-muted-foreground hover:text-primary">→ كل الطلبات</Link>
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <section className={card}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -124,7 +124,7 @@ function LeadPage() {
               {l.property_type && <Row k="نوع العقار" v={l.property_type} />}
               {l.area && <Row k="المنطقة" v={l.area} />}
               {l.budget != null && <Row k="الميزانية" v={`${formatPrice(Number(l.budget))} ج.م`} />}
-              {l.kind === "listing" && <Row k="الغرض" v={l.purpose === "rent" ? "إيجار" : "بيع"} />}
+              {l.kind === "listing" && <Row k="الغرض" v={l.purpose === "rent" ? "إيجار" : l.purpose === "summer" ? "مصيف" : "بيع"} />}
               {l.asking_price != null && <Row k="السعر المطلوب" v={`${formatPrice(Number(l.asking_price))} ج.م`} />}
               {l.size_m2 != null && <Row k="المساحة" v={`${formatPrice(Number(l.size_m2))} م²`} />}
               {l.kind === "listing" && <Row k="الرقم" v={l.phone_verified ? "✓ مؤكَّد بكود واتساب" : "غير مؤكَّد"} />}
@@ -178,7 +178,7 @@ function LeadPage() {
           </section>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           {seeAll && (
             <section className={card}>
               <h2 className={h2}>إثبات مصدر العميل</h2>

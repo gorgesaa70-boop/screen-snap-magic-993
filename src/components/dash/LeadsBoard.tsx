@@ -261,7 +261,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
       </div>
       <div className="mt-2 space-y-1 text-sm text-foreground/80">
         {l.properties?.title && <p>العقار: {l.properties.title}</p>}
-        {l.kind === "listing" && <p className="font-semibold">{[l.purpose === "rent" ? "للإيجار" : "للبيع", l.size_m2 ? `${l.size_m2} م²` : null, l.asking_price ? `${formatPrice(Number(l.asking_price))} ج.م` : null, l.phone_verified ? "✓ رقم مؤكَّد" : "رقم غير مؤكَّد"].filter(Boolean).join(" · ")}</p>}
+        {l.kind === "listing" && <p className="font-semibold">{[l.purpose === "rent" ? "للإيجار" : l.purpose === "summer" ? "مصيف" : "للبيع", l.size_m2 ? `${l.size_m2} م²` : null, l.asking_price ? `${formatPrice(Number(l.asking_price))} ج.م` : null, l.phone_verified ? "✓ رقم مؤكَّد" : "رقم غير مؤكَّد"].filter(Boolean).join(" · ")}</p>}
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
