@@ -14,27 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_errors: {
+        Row: {
+          count: number
+          day: string
+          fingerprint: string
+          first_seen: string
+          id: string
+          kind: string
+          last_seen: string
+          message: string
+          path: string | null
+          stack: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          count?: number
+          day?: string
+          fingerprint: string
+          first_seen?: string
+          id?: string
+          kind: string
+          last_seen?: string
+          message: string
+          path?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          count?: number
+          day?: string
+          fingerprint?: string
+          first_seen?: string
+          id?: string
+          kind?: string
+          last_seen?: string
+          message?: string
+          path?: string | null
+          stack?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           android_url: string | null
           id: number
           ios_url: string | null
+          last_backup_at: string | null
+          response_sla_minutes: number
           updated_at: string
           updated_by: string | null
+          work_end_hour: number
+          work_start_hour: number
         }
         Insert: {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          last_backup_at?: string | null
+          response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
+          work_end_hour?: number
+          work_start_hour?: number
         }
         Update: {
           android_url?: string | null
           id?: number
           ios_url?: string | null
+          last_backup_at?: string | null
+          response_sla_minutes?: number
           updated_at?: string
           updated_by?: string | null
+          work_end_hour?: number
+          work_start_hour?: number
         }
         Relationships: []
       }
@@ -118,6 +175,7 @@ export type Database = {
           plan_id: string | null
           rejected_at: string | null
           review_note: string | null
+          show_contact: boolean
           slug: string
           specialty: string | null
           suspended_at: string | null
@@ -144,6 +202,7 @@ export type Database = {
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
+          show_contact?: boolean
           slug: string
           specialty?: string | null
           suspended_at?: string | null
@@ -170,6 +229,7 @@ export type Database = {
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
+          show_contact?: boolean
           slug?: string
           specialty?: string | null
           suspended_at?: string | null
@@ -325,6 +385,7 @@ export type Database = {
           approved_by: string | null
           broker_id: string
           created_at: string
+          deal_type: string
           effective_from: string
           effective_to: string | null
           fixed_amount: number | null
@@ -337,6 +398,7 @@ export type Database = {
           approved_by?: string | null
           broker_id: string
           created_at?: string
+          deal_type?: string
           effective_from?: string
           effective_to?: string | null
           fixed_amount?: number | null
@@ -349,6 +411,7 @@ export type Database = {
           approved_by?: string | null
           broker_id?: string
           created_at?: string
+          deal_type?: string
           effective_from?: string
           effective_to?: string | null
           fixed_amount?: number | null
@@ -456,11 +519,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           deal_no: number
+          deal_type: string
           docs_reminded_at: string | null
           id: string
           lead_id: string
           project_unit_id: string | null
           property_id: string | null
+          rent_end: string | null
+          rent_monthly: number | null
+          rent_start: string | null
           reservation_amount: number | null
           reservation_date: string | null
           review_note: string | null
@@ -481,11 +548,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          deal_type?: string
           docs_reminded_at?: string | null
           id?: string
           lead_id: string
           project_unit_id?: string | null
           property_id?: string | null
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
@@ -506,11 +577,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          deal_type?: string
           docs_reminded_at?: string | null
           id?: string
           lead_id?: string
           project_unit_id?: string | null
           property_id?: string | null
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
@@ -548,6 +623,32 @@ export type Database = {
           },
           {
             foreignKeyName: "deals_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          property_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
@@ -600,6 +701,200 @@ export type Database = {
           is_active?: boolean
           name?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      investment_opportunities: {
+        Row: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          lat: number | null
+          licenses: string | null
+          lng: number | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity: string
+          area: string
+          broker_id?: string | null
+          built_area?: number | null
+          city: string
+          created_at?: string
+          deal_kind: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind: string
+          land_area?: number | null
+          lat?: number | null
+          licenses?: string | null
+          lng?: number | null
+          location_note?: string | null
+          offered_share?: number | null
+          opp_no?: never
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity?: string
+          area?: string
+          broker_id?: string | null
+          built_area?: number | null
+          city?: string
+          created_at?: string
+          deal_kind?: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind?: string
+          land_area?: number | null
+          lat?: number | null
+          licenses?: string | null
+          lng?: number | null
+          location_note?: string | null
+          offered_share?: number | null
+          opp_no?: never
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_opportunities_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investment_requests: {
+        Row: {
+          budget: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          investor_id: string
+          lead_id: string | null
+          message: string | null
+          name: string
+          opportunity_id: string
+          status: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name: string
+          opportunity_id: string
+          status?: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name?: string
+          opportunity_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investment_requests_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_profiles: {
+        Row: {
+          areas: string[]
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          kinds: string[]
+          name: string
+          notify: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name?: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -698,11 +993,15 @@ export type Database = {
           assigned_member_id: string | null
           assigned_staff_id: string | null
           budget: number | null
+          campaign: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           details: string | null
+          external_ref: string | null
           first_broker_id: string | null
           first_referred_at: string | null
+          first_response_at: string | null
           follow_up_at: string | null
           id: string
           kind: string
@@ -710,6 +1009,7 @@ export type Database = {
           lost_reason: string | null
           name: string
           notes: string | null
+          opportunity_id: string | null
           original_source: string
           phone: string
           phone_norm: string | null
@@ -720,12 +1020,17 @@ export type Database = {
           referred_at: string | null
           reminded_follow_up_at: string | null
           reminded_visit_at: string | null
+          routed_rule_id: string | null
           size_m2: number | null
+          sla_alerted_at: string | null
+          sla_escalated_at: string | null
           source: string
           source_note: string | null
           stage: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at: string | null
           updated_at: string
+          utm: Json | null
+          via_broker_id: string | null
           visit_at: string | null
         }
         Insert: {
@@ -735,11 +1040,15 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           budget?: number | null
+          campaign?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           details?: string | null
+          external_ref?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
+          first_response_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -747,6 +1056,7 @@ export type Database = {
           lost_reason?: string | null
           name: string
           notes?: string | null
+          opportunity_id?: string | null
           original_source: string
           phone: string
           phone_norm?: string | null
@@ -757,12 +1067,17 @@ export type Database = {
           referred_at?: string | null
           reminded_follow_up_at?: string | null
           reminded_visit_at?: string | null
+          routed_rule_id?: string | null
           size_m2?: number | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          utm?: Json | null
+          via_broker_id?: string | null
           visit_at?: string | null
         }
         Update: {
@@ -772,11 +1087,15 @@ export type Database = {
           assigned_member_id?: string | null
           assigned_staff_id?: string | null
           budget?: number | null
+          campaign?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           details?: string | null
+          external_ref?: string | null
           first_broker_id?: string | null
           first_referred_at?: string | null
+          first_response_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -784,6 +1103,7 @@ export type Database = {
           lost_reason?: string | null
           name?: string
           notes?: string | null
+          opportunity_id?: string | null
           original_source?: string
           phone?: string
           phone_norm?: string | null
@@ -794,12 +1114,17 @@ export type Database = {
           referred_at?: string | null
           reminded_follow_up_at?: string | null
           reminded_visit_at?: string | null
+          routed_rule_id?: string | null
           size_m2?: number | null
+          sla_alerted_at?: string | null
+          sla_escalated_at?: string | null
           source?: string
           source_note?: string | null
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          utm?: Json | null
+          via_broker_id?: string | null
           visit_at?: string | null
         }
         Relationships: [
@@ -825,10 +1150,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_routed_rule_id_fkey"
+            columns: ["routed_rule_id"]
+            isOneToOne: false
+            referencedRelation: "routing_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_via_broker_id_fkey"
+            columns: ["via_broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
             referencedColumns: ["id"]
           },
         ]
@@ -839,6 +1185,9 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          kind: string
+          lat: number | null
+          lng: number | null
           location: string | null
           logo_url: string | null
           name: string
@@ -849,6 +1198,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           logo_url?: string | null
           name: string
@@ -859,6 +1211,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           logo_url?: string | null
           name?: string
@@ -1150,26 +1505,41 @@ export type Database = {
           activity_id: string | null
           address: string | null
           area: string
+          available_from: string | null
+          available_to: string | null
           baths: number | null
           broker_id: string | null
           built_size: number | null
           category: string
           city: string
           created_at: string
+          deposit: number | null
           description: string | null
           featured_until: string | null
           floor: string | null
+          furnished: string | null
+          guests: number | null
+          highlight_reason: string | null
+          highlight_requested_at: string | null
+          highlight_yield: number | null
           id: string
           image_url: string | null
           images: string[]
           is_demo: boolean
           is_featured: boolean
+          is_highlight: boolean
           land_size: number | null
           lat: number | null
           lng: number | null
           mall_id: string | null
+          min_months: number | null
           owner_lead_id: string | null
           price: number
+          price_month: number | null
+          price_night: number | null
+          price_season: number | null
+          price_unit: string | null
+          price_week: number | null
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
           rooms: number | null
@@ -1179,6 +1549,8 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+          verified_at: string | null
+          verified_note: string | null
           video_urls: string[]
           zone_id: string | null
         }
@@ -1186,26 +1558,41 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area: string
+          available_from?: string | null
+          available_to?: string | null
           baths?: number | null
           broker_id?: string | null
           built_size?: number | null
           category?: string
           city?: string
           created_at?: string
+          deposit?: number | null
           description?: string | null
           featured_until?: string | null
           floor?: string | null
+          furnished?: string | null
+          guests?: number | null
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
           is_demo?: boolean
           is_featured?: boolean
+          is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          min_months?: number | null
           owner_lead_id?: string | null
           price: number
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
@@ -1215,6 +1602,8 @@ export type Database = {
           title: string
           type: string
           updated_at?: string
+          verified_at?: string | null
+          verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
         }
@@ -1222,26 +1611,41 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area?: string
+          available_from?: string | null
+          available_to?: string | null
           baths?: number | null
           broker_id?: string | null
           built_size?: number | null
           category?: string
           city?: string
           created_at?: string
+          deposit?: number | null
           description?: string | null
           featured_until?: string | null
           floor?: string | null
+          furnished?: string | null
+          guests?: number | null
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
           is_demo?: boolean
           is_featured?: boolean
+          is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          min_months?: number | null
           owner_lead_id?: string | null
           price?: number
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
@@ -1251,6 +1655,8 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+          verified_at?: string | null
+          verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
         }
@@ -1291,6 +1697,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      routing_rules: {
+        Row: {
+          areas: string[] | null
+          broker_ids: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          kinds: string[] | null
+          name: string
+          priority: number
+          property_types: string[] | null
+          sources: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          areas?: string[] | null
+          broker_ids: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          areas?: string[] | null
+          broker_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kinds?: string[] | null
+          name?: string
+          priority?: number
+          property_types?: string[] | null
+          sources?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          area: string | null
+          city: string | null
+          created_at: string
+          id: string
+          label: string | null
+          notify: boolean
+          price_max: number | null
+          price_min: number | null
+          status: string | null
+          types: string[]
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          notify?: boolean
+          price_max?: number | null
+          price_min?: number | null
+          status?: string | null
+          types?: string[]
+          user_id?: string
+        }
+        Update: {
+          area?: string | null
+          city?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          notify?: boolean
+          price_max?: number | null
+          price_min?: number | null
+          status?: string | null
+          types?: string[]
+          user_id?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
@@ -1492,28 +1982,127 @@ export type Database = {
     }
     Functions: {
       actor_label: { Args: never; Returns: string }
-      admin_exists: { Args: never; Returns: boolean }
-      agreement_for: {
-        Args: { _broker: string; _on: string }
+      admin_brokers: {
+        Args: never
         Returns: {
-          approved_at: string
-          approved_by: string | null
-          broker_id: string
+          account_type: string
+          address: string | null
+          areas: string[]
+          bio: string | null
+          commercial_register: string | null
+          contact_person: string | null
           created_at: string
-          effective_from: string
-          effective_to: string | null
-          fixed_amount: number | null
+          email: string | null
+          facebook: string | null
           id: string
-          notes: string | null
-          rate: number | null
-        }
+          is_active: boolean
+          is_demo: boolean
+          name: string
+          phone: string | null
+          photo_url: string | null
+          plan_id: string | null
+          rejected_at: string | null
+          review_note: string | null
+          show_contact: boolean
+          slug: string
+          specialty: string | null
+          suspended_at: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }[]
         SetofOptions: {
           from: "*"
-          to: "company_agreements"
-          isOneToOne: true
-          isSetofReturn: false
+          to: "brokers"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
+      admin_exists: { Args: never; Returns: boolean }
+      admin_opportunities: {
+        Args: never
+        Returns: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          lat: number | null
+          licenses: string | null
+          lng: number | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "investment_opportunities"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      agreement_for:
+        | {
+            Args: { _broker: string; _on: string }
+            Returns: {
+              approved_at: string
+              approved_by: string | null
+              broker_id: string
+              created_at: string
+              deal_type: string
+              effective_from: string
+              effective_to: string | null
+              fixed_amount: number | null
+              id: string
+              notes: string | null
+              rate: number | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "company_agreements"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _broker: string; _on: string; _type: string }
+            Returns: {
+              approved_at: string
+              approved_by: string | null
+              broker_id: string
+              created_at: string
+              deal_type: string
+              effective_from: string
+              effective_to: string | null
+              fixed_amount: number | null
+              id: string
+              notes: string | null
+              rate: number | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "company_agreements"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       assignable_users: {
         Args: never
         Returns: {
@@ -1523,6 +2112,15 @@ export type Database = {
       }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
+      broker_contacts: {
+        Args: { _ids: string[] }
+        Returns: {
+          email: string
+          id: string
+          phone: string
+          whatsapp: string
+        }[]
+      }
       brokers_by_phone: {
         Args: { _phone: string }
         Returns: {
@@ -1561,7 +2159,65 @@ export type Database = {
           lead_no: number
         }[]
       }
+      log_app_error: {
+        Args: {
+          _kind: string
+          _message: string
+          _path: string
+          _stack: string
+          _ua: string
+        }
+        Returns: undefined
+      }
       member_user_id: { Args: { _member: string }; Returns: string }
+      meta_inbound_lead: {
+        Args: {
+          _ad: string
+          _campaign: string
+          _details: string
+          _name: string
+          _phone: string
+          _platform: string
+          _ref: string
+        }
+        Returns: string
+      }
+      my_account: {
+        Args: never
+        Returns: {
+          account_type: string
+          address: string | null
+          areas: string[]
+          bio: string | null
+          commercial_register: string | null
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          facebook: string | null
+          id: string
+          is_active: boolean
+          is_demo: boolean
+          name: string
+          phone: string | null
+          photo_url: string | null
+          plan_id: string | null
+          rejected_at: string | null
+          review_note: string | null
+          show_contact: boolean
+          slug: string
+          specialty: string | null
+          suspended_at: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "brokers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
@@ -1571,7 +2227,64 @@ export type Database = {
           role: string
         }[]
       }
+      my_opportunities: {
+        Args: never
+        Returns: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          lat: number | null
+          licenses: string | null
+          lng: number | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "investment_opportunities"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       my_phone: { Args: never; Returns: string }
+      my_requests: {
+        Args: never
+        Returns: {
+          area: string
+          budget: number
+          created_at: string
+          details: string
+          id: string
+          kind: string
+          lead_no: number
+          property_id: string
+          property_title: string
+          property_type: string
+          purpose: string
+          stage: string
+          updated_at: string
+        }[]
+      }
       normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
         Args: {
@@ -1624,8 +2337,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      opportunity_location: {
+        Args: { _id: string }
+        Returns: {
+          lat: number
+          lng: number
+        }[]
+      }
+      opportunity_private: {
+        Args: { _id: string }
+        Returns: {
+          details: string
+          licenses: string
+          location_note: string
+        }[]
+      }
       owned_company_id: { Args: never; Returns: string }
       run_reminders: { Args: never; Returns: Json }
+      run_response_alerts: { Args: never; Returns: Json }
+      source_from_utm: { Args: { _u: Json }; Returns: string }
+      whatsapp_inbound_lead: {
+        Args: { _msg_id: string; _name: string; _phone: string; _text: string }
+        Returns: string
+      }
+      work_minutes: { Args: { _from: string; _to: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "broker" | "staff"

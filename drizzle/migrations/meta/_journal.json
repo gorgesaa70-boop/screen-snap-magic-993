@@ -92,6 +92,69 @@
       "when": 1791763734307,
       "tag": "0012_tasks_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791763828430,
+      "tag": "0013_contact_policy",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791763849422,
+      "tag": "0014_deal_units",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791763889171,
+      "tag": "0015_lead_routing",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791763931308,
+      "tag": "0016_rentals",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791764037426,
+      "tag": "0017_investments",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791764052934,
+      "tag": "0018_maps",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791764082453,
+      "tag": "0019_customer",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791764106090,
+      "tag": "0020_lead_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791764121925,
+      "tag": "0021_app_errors",
+      "breakpoints": true
     }
   ]
 }
