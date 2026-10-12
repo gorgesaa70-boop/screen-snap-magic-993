@@ -100,7 +100,7 @@ export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<strin
 /** Minimal CSV reader (quotes, commas, CRLF) for files saved from Excel as CSV. */
 export function parseCsv(text: string): string[][] {
   const out: string[][] = []; let row: string[] = []; let cur = ""; let q = false;
-  const src = text.replace(/^﻿/, "");
+  const src = text.replace(/^\uFEFF/, "");
   for (let i = 0; i < src.length; i++) {
     const ch = src[i]!;
     if (q) {

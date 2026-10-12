@@ -151,7 +151,7 @@ function CommissionDetail({ c, isAdmin, reload }: { c: Row; isAdmin: boolean; re
       if (/\.pdf$/i.test(proof.name) && proof.size > 10 * 1024 * 1024) { setBusy(false); toast.error("ملف الـ PDF أكبر من 10 ميجا"); return; }
       let doc: Awaited<ReturnType<typeof prepareDocument>>;
       try { doc = await prepareDocument(proof); } catch (err) { setBusy(false); toast.error(uploadErrorMessage(err)); return; }
-      proof_path = `${c.id}/${Date.now()}-${doc.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
+      proof_path = `${c.id}/${Date.now()}-${doc.name.replace(/[^\w.-]+/g, "_").slice(-80)}`;
       const up = await supabase.storage.from("commission-docs").upload(proof_path, doc.body, { contentType: doc.type });
       if (up.error) { setBusy(false); toast.error(uploadErrorMessage(up.error)); return; }
     }

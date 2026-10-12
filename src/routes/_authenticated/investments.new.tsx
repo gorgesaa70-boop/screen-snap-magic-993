@@ -54,7 +54,7 @@ function NewOpportunityPage() {
     }).select("id").single();
     if (error || !data) { setBusy(false); toast.error(error?.message ?? "تعذّر الحفظ"); return; }
     for (const d of docs) {
-      const up = await supabase.storage.from("investment-docs").upload(`${data.id}/${Date.now()}-${d.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`, d, { contentType: d.type });
+      const up = await supabase.storage.from("investment-docs").upload(`${data.id}/${Date.now()}-${d.name.replace(/[^\w.-]+/g, "_").slice(-80)}`, d, { contentType: d.type });
       if (up.error) toast.error(`${d.name}: ${up.error.message}`);
     }
     setBusy(false);
