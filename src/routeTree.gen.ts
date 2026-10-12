@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BrokerNetworkRouteImport } from './routes/broker-network'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -74,6 +75,11 @@ const AppRoute = AppRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrokerNetworkRoute = BrokerNetworkRouteImport.update({
+  id: '/broker-network',
+  path: '/broker-network',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
@@ -301,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
@@ -349,6 +356,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
@@ -399,6 +407,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/privacy': typeof PrivacyRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/broker-network'
     | '/delete-account'
     | '/map'
     | '/privacy'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/broker-network'
     | '/delete-account'
     | '/map'
     | '/privacy'
@@ -546,6 +557,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/app'
     | '/auth'
+    | '/broker-network'
     | '/delete-account'
     | '/map'
     | '/privacy'
@@ -596,6 +608,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRoute
+  BrokerNetworkRoute: typeof BrokerNetworkRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   MapRoute: typeof MapRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -653,6 +666,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/broker-network': {
+      id: '/broker-network'
+      path: '/broker-network'
+      fullPath: '/broker-network'
+      preLoaderRoute: typeof BrokerNetworkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delete-account': {
@@ -1005,6 +1025,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AppRoute: AppRoute,
   AuthRoute: AuthRoute,
+  BrokerNetworkRoute: BrokerNetworkRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   MapRoute: MapRoute,
   PrivacyRoute: PrivacyRoute,

@@ -4,6 +4,7 @@ const OWN_HOSTS = new Set(["valueaqar.com", "www.valueaqar.com"]);
 export async function initNativeShell() {
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) return;
+  reserveStatusBar(Capacitor.getPlatform());
   const [{ Browser }, { App }] = await Promise.all([import("@capacitor/browser"), import("@capacitor/app")]);
 
   document.addEventListener("click", (e) => {
@@ -68,4 +69,20 @@ export function installOfflineGuard() {
   window.addEventListener("offline", show);
   window.addEventListener("online", async () => { if (await check()) hide(); });
   if (!navigator.onLine) show();
+}
+
+/**
+ * Installed Android builds draw the page under the status bar (edge-to-edge) without reporting
+ * env(safe-area-inset-top). When that happens, push the header down by a typical status bar height.
+ * Builds with adjustMarginsForEdgeToEdge already move the page, so the window is shorter than the screen and nothing changes.
+ */
+function reserveStatusBar(platform: string) {
+  if (platform !== "android") return;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;top:0;visibility:hidden;padding-top:env(safe-area-inset-top)";
+  document.body.appendChild(probe);
+  const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+  probe.remove();
+  const underStatusBar = screen.height - window.innerHeight < 20;
+  if (!inset && underStatusBar) document.documentElement.style.setProperty("--native-top", "28px");
 }

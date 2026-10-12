@@ -197,6 +197,23 @@ const EN: Record<string, string> = {
   "تخصصك (مثال: سباكة، تشطيبات...)": "Your speciality (e.g. plumbing, finishing...)",
   "محتاج إيه بالظبط؟": "What exactly do you need?",
 
+  // Broker network (coming soon)
+  "سوق الوسطاء": "Broker network",
+  "عندك مشتري ومعندكش الوحدة؟ أو عندك وحدة ومحتاج مشتري؟ اشتغل مع باقي وسطاء برج العرب على فاليو عقار، والعمولة بتتقسم بضمان المنصة.": "Have a buyer but not the unit? Or a unit but no buyer? Work with other Borg El Arab brokers on Value Aqar, with the commission split guaranteed by the platform.",
+  "وحدات أكتر لعملائك": "More units for your clients",
+  "شوف الوحدات اللي الوسطاء التانيين عارضينها في برج العرب، وبيانات صاحبها محمية.": "See units other brokers list in Borg El Arab, with the owner's details protected.",
+  "إنت بتحدد القسمة": "You set the split",
+  "كل وسيط بيحدد نسبة العمولة اللي هيقسمها على وحدته، وبتبان للكل قبل أي طلب.": "Each broker sets the commission share on their unit, visible to everyone before any request.",
+  "مشتريك محفوظ باسمك": "Your buyer stays yours",
+  "لما صاحب الوحدة يوافق، المشتري بيتسجل باسمك بالتاريخ والساعة، ومحدش يقدر ياخده.": "Once the unit's broker accepts, the buyer is recorded under your name with date and time, and nobody can take them.",
+  "العمولة بتتقسم لوحدها": "The commission splits itself",
+  "الصفقة بوسيطين، والعمولة بتتحسب وتتقسم أوتوماتيك بعد اعتماد الإدارة، وكل خطوة متسجلة.": "The deal has two brokers; the commission is calculated and split automatically after admin approval, and every step is recorded.",
+  "عندي وحدات أعرضها للوسطاء": "I have units to offer to brokers",
+  "بدوّر على وحدات لعملائي": "I'm looking for units for my clients",
+  "الاتنين": "Both",
+  "اسم المكتب أو الشركة (اختياري)": "Office or company name (optional)",
+  "شغّل مع باقي الوسطاء واقسم العمولة بضمان المنصة": "Work with other brokers and split commission, guaranteed by the platform",
+
   // Price index
   "مقارنة بآخر 3 شهور": "vs. 3 months ago",
   "لسه مفيش وحدات كفاية هنا.": "Not enough units here yet.",
