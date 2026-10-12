@@ -5,7 +5,7 @@ import { MapPin, Search, Users } from "lucide-react";
 import { PageShell, Avatar, inputCls } from "@/components/site/ui";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { AREAS, fetchPublicBrokers, formatPrice } from "@/components/site/data";
+import { CITIES, CITY_NAMES, areasOf, fetchPublicBrokers, formatPrice } from "@/components/site/data";
 
 export const Route = createFileRoute("/brokers/")({
   head: () => ({
@@ -27,12 +27,14 @@ function BrokersPage() {
   useLang();
   const { data = [], isLoading, isError, refetch } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
   const [q, setQ] = useState("");
+  const [city, setCity] = useState("");
   const [area, setArea] = useState("");
-  const filtered = !!(q.trim() || area);
-  const list = useMemo(
-    () => data.filter((b) => (!area || b.areas.includes(area)) && (!q || b.name.includes(q.trim()) || (b.specialty ?? "").includes(q.trim()))),
-    [data, q, area],
-  );
+  const filtered = !!(q.trim() || city || area);
+  const list = useMemo(() => {
+    const wanted = area ? [area] : city ? [city, ...areasOf(city)] : null;
+    return data.filter((b) => (!wanted || b.areas.some((a) => wanted.includes(a))) && (!q || b.name.includes(q.trim()) || (b.specialty ?? "").includes(q.trim())));
+  }, [data, q, city, area]);
+  const cityAreas = CITIES[city] ?? [];
   return (
     <PageShell>
       <section className="bg-primary">
@@ -40,14 +42,18 @@ function BrokersPage() {
           <p className="text-sm font-bold text-teal">{t("دليل فاليو عقار")}</p>
           <h1 className="mt-2 text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("الوسطاء العقاريون")}</h1>
           <p className="mt-3 max-w-xl text-sm text-primary-foreground/80 md:text-base">{t("اختار الوسيط المناسب حسب المنطقة والتخصص، وكلّمه من خلال فاليو عقار.")}</p>
-          <div className="mt-6 grid gap-2.5 rounded-2xl bg-card p-3 sm:grid-cols-[1fr_220px]">
+          <div className="mt-6 grid gap-2.5 rounded-2xl bg-card p-3 sm:grid-cols-[1fr_170px_170px]">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <input className={`${inputCls} ps-9`} placeholder={t("ابحث بالاسم أو التخصص")} value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
-            <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)} aria-label={t("المنطقة")}>
+            <select className={inputCls} value={city} onChange={(e) => { setCity(e.target.value); setArea(""); }} aria-label={t("المدينة")}>
+              <option value="">{t("كل المدن")}</option>
+              {CITY_NAMES.map((c) => <option key={c} value={c}>{t(c)}</option>)}
+            </select>
+            <select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)} aria-label={t("المنطقة")} disabled={!cityAreas.length}>
               <option value="">{t("كل المناطق")}</option>
-              {AREAS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
+              {cityAreas.map((a) => <option key={a} value={a}>{t(a)}</option>)}
             </select>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { cleanPhone } from "@/lib/phone";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getAttribution } from "@/lib/attribution";
@@ -13,9 +14,9 @@ export function BrokerInquiry({ brokerId, brokerName }: { brokerId: string; brok
   const [done, setDone] = useState(false);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
+    if (f.name.trim().length < 2 || !cleanPhone(f.phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), details: f.details.trim().slice(0, 1000) || null, via_broker_id: brokerId, kind: "inquiry", original_source: "website", utm: getAttribution() });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: cleanPhone(f.phone)!, details: f.details.trim().slice(0, 1000) || null, via_broker_id: brokerId, kind: "inquiry", original_source: "website", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);

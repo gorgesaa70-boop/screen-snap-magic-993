@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { useMe } from "@/hooks/useAuth";
 
 export type TaskRow = Tables<"tasks"> & { leads?: { name: string; lead_no: number } | null };
 
@@ -14,6 +15,20 @@ export const useAssignable = () => useQuery({
   queryFn: async () => (await supabase.rpc("assignable_users")).data ?? [],
   staleTime: 5 * 60_000,
 });
+
+/** Name for any task assignee. Admins also see brokers' own tasks, so their account names are added for them. */
+export function usePersonName(me: string | undefined) {
+  const people = useAssignable();
+  const { me: who } = useMe();
+  const brokers = useQuery({
+    queryKey: ["task-broker-names"],
+    enabled: !!who?.isAdmin,
+    queryFn: async () => (await supabase.rpc("admin_brokers")).data ?? [],
+    staleTime: 5 * 60_000,
+  });
+  return (id: string) => (id === me ? "أنا"
+    : people.data?.find((p) => p.user_id === id)?.label ?? brokers.data?.find((b) => b.user_id === id)?.name ?? "عضو في فريق");
+}
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" }) : "من غير ميعاد");
 
@@ -52,8 +67,7 @@ export function NewTask({ leadId, onDone }: { leadId?: string; onDone: () => voi
 
 /** Task rows with a done checkbox; overdue ones are highlighted. */
 export function TaskItems({ tasks, me, reload, showLead = true }: { tasks: TaskRow[]; me: string | undefined; reload: () => void; showLead?: boolean }) {
-  const people = useAssignable();
-  const name = (id: string) => (id === me ? "أنا" : people.data?.find((p) => p.user_id === id)?.label ?? "عضو");
+  const name = usePersonName(me);
   async function toggle(t: TaskRow) {
     const { error } = await supabase.from("tasks").update({ done_at: t.done_at ? null : new Date().toISOString() }).eq("id", t.id);
     if (error) toast.error(error.message); else reload();

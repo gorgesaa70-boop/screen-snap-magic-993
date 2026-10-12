@@ -4,15 +4,15 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { AREAS, CITY_NAMES, LEAD_KINDS, LEAD_SOURCES, TYPES } from "@/components/site/data";
+import { LEAD_KINDS, LEAD_SOURCES, TYPES } from "@/components/site/data";
 import { UNIT_TYPES } from "@/components/site/projects";
+import { AreaPicker } from "@/components/site/AreaPicker";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Rule = Tables<"routing_rules">;
 type Draft = { id?: string; name: string; areas: string[]; property_types: string[]; kinds: string[]; sources: string[]; broker_ids: string[] };
 const EMPTY: Draft = { name: "", areas: [], property_types: [], kinds: [], sources: [], broker_ids: [] };
-const AREA_OPTIONS = [...new Set([...AREAS, ...CITY_NAMES])];
 const TYPE_OPTIONS = [...new Set([...TYPES, ...UNIT_TYPES])];
 
 /** Chip multi-select; empty = "any". */
@@ -97,7 +97,7 @@ export function RoutingRules() {
       {draft && (
         <div className="space-y-4 rounded-2xl border bg-card p-4">
           <Field label="اسم القاعدة"><input className={inputCls} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} maxLength={100} placeholder="مثال: شقق الحي الأول" /></Field>
-          <Chips label="المنطقة" anyLabel="أي منطقة" options={AREA_OPTIONS.map((a) => [a, a])} value={draft.areas} onChange={(v) => setDraft({ ...draft, areas: v })} />
+          <div><p className="mb-1.5 text-sm font-bold text-primary">المنطقة <span className="text-xs font-semibold text-muted-foreground">({draft.areas.length ? `${draft.areas.length} مختار` : "أي منطقة"})</span></p><AreaPicker small value={draft.areas} onChange={(v) => setDraft({ ...draft, areas: v })} /></div>
           <Chips label="نوع العقار" anyLabel="أي نوع" options={TYPE_OPTIONS.map((t) => [t, t])} value={draft.property_types} onChange={(v) => setDraft({ ...draft, property_types: v })} />
           <Chips label="نوع الطلب" anyLabel="أي طلب" options={Object.entries(LEAD_KINDS)} value={draft.kinds} onChange={(v) => setDraft({ ...draft, kinds: v })} />
           <Chips label="المصدر" anyLabel="أي مصدر" options={Object.entries(LEAD_SOURCES)} value={draft.sources} onChange={(v) => setDraft({ ...draft, sources: v })} />

@@ -1,3 +1,4 @@
+import { cleanPhone } from "@/lib/phone";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -144,11 +145,11 @@ function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: st
   const [done, setDone] = useState(false);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(phone.trim())) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
+    if (name.trim().length < 2 || !cleanPhone(phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
     const about = `مشروع: ${project}${unit ? ` — وحدة: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
     const { error } = await supabase.from("leads").insert({
-      name: name.trim(), phone: phone.trim(), kind: "request", original_source: "website",
+      name: name.trim(), phone: cleanPhone(phone)!, kind: "request", original_source: "website",
       // Linked to the project (and unit) so the request is traceable, not only written in the details.
       project_id: projectId, project_unit_id: unit?.id ?? null,
       property_type: unit?.unit_type ?? null, budget: unit?.price ?? null,

@@ -14,7 +14,8 @@ import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { AreaPicker } from "@/components/site/AreaPicker";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
@@ -242,9 +243,7 @@ function NewBroker({ plans, onDone }: { plans: PlanRow[]; onDone: () => void }) 
       <Field label="الباقة"><select className={inputCls} value={f.planId} onChange={(e) => setF({ ...f, planId: e.target.value })}><option value="">المجانية (افتراضي)</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
       <Field label="طريقة الإنشاء"><select className={inputCls} value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value as "invite" | "password" })}><option value="invite">إرسال دعوة بالبريد</option><option value="password">إنشاء بكلمة مرور</option></select></Field>
       {f.mode === "password" && <Field label="كلمة المرور المؤقتة"><input dir="ltr" minLength={8} required className={inputCls} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>}
-      <div className="sm:col-span-2 flex flex-wrap gap-2">
-        {AREAS.map((a) => { const on = f.areas.includes(a); return <button key={a} type="button" onClick={() => setF({ ...f, areas: on ? f.areas.filter((x) => x !== a) : [...f.areas, a] })} className={`h-9 rounded-full border px-3 text-xs font-bold ${on ? "border-primary bg-primary text-primary-foreground" : "text-primary"}`}>{a}</button>; })}
-      </div>
+      <div className="sm:col-span-2"><AreaPicker small value={f.areas} onChange={(areas) => setF({ ...f, areas })} /></div>
       <button disabled={busy} className={`${btnPrimary} sm:col-span-2`}>{busy ? "..." : "حفظ"}</button>
     </form>
   );
@@ -276,7 +275,7 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
             {p.owner_lead_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
-            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م · {p.type} · {p.area} · {p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
+            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`} · {p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
             {p.owner && (
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 <span className="font-bold text-primary">المالك: {p.owner.name}</span>

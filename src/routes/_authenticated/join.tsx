@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
-import { AREAS } from "@/components/site/data";
+import { AreaPicker } from "@/components/site/AreaPicker";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
 import { useMe } from "@/hooks/useAuth";
 import { Link } from "@tanstack/react-router";
@@ -71,9 +71,7 @@ function JoinPage() {
         <Field label="البريد الإلكتروني (اختياري)"><input type="email" dir="ltr" className={inputCls} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         <div>
           <p className="mb-2 text-sm font-bold text-primary">مناطق العمل</p>
-          <div className="flex flex-wrap gap-2">
-            {AREAS.map((a) => { const on = f.areas.includes(a); return <button key={a} type="button" onClick={() => setF({ ...f, areas: on ? f.areas.filter((x) => x !== a) : [...f.areas, a] })} className={`h-10 rounded-full border px-4 text-sm font-bold ${on ? "border-primary bg-primary text-primary-foreground" : "text-primary hover:border-teal"}`}>{a}</button>; })}
-          </div>
+          <AreaPicker value={f.areas} onChange={(areas) => setF({ ...f, areas })} />
         </div>
         <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : "إرسال الطلب"}</button>
       </form>

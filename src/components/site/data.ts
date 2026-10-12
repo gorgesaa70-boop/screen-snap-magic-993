@@ -63,10 +63,14 @@ export const CITIES: Record<string, string[]> = {
   "برج العرب الجديدة": AREAS,
   "كينج مريوط": [],
   "مدينة العلمين": ["العلمين الجديدة", "الحي اللاتيني", "داون تاون", "الأبراج الشاطئية", "الحي السكني"],
-  "الساحل الشمالي": [],
+  "الساحل الشمالي": ["سيدي عبد الرحمن", "رأس الحكمة", "الضبعة", "مراسي", "الحمام", "العلمين القديمة", "مرسى مطروح"],
 };
 export const CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
+/** Every selectable area across all cities (a city with no areas counts as one). */
+export const ALL_AREAS = CITY_NAMES.flatMap(areasOf);
+/** The city an area belongs to ("" if unknown). */
+export const cityOfArea = (area: string) => CITY_NAMES.find((c) => c === area || areasOf(c).includes(area)) ?? "";
 export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", company: "شركة تسويق / وساطة", developer: "شركة تطوير" };
 
 const num = (v: number | null | undefined) => (v == null ? undefined : Number(v));
