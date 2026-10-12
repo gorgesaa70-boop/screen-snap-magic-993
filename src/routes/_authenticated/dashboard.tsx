@@ -15,6 +15,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
+import { MallUnitsImport } from "@/components/dash/MallUnitsImport";
 import { MyProjects } from "@/components/dash/MyProjects";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
@@ -165,9 +166,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
 }
 
 function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: string; list: PropertyRow[]; maxProperties: number | null; reload: () => void }) {
-  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall" | "import">(null);
+  const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall" | "import" | "import-mall">(null);
   if (editing === "import")
     return <ListingsImport brokerId={brokerId} remaining={maxProperties != null ? maxProperties - list.length : null} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+  if (editing === "import-mall")
+    return <MallUnitsImport brokerId={brokerId} remaining={maxProperties != null ? maxProperties - list.length : null} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-mall" || (editing && typeof editing !== "string" && editing.category === "mall"))
     return <MallUnitForm brokerId={brokerId} initial={editing === "new-mall" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-ind" || (editing && typeof editing !== "string" && editing.category === "industrial"))
@@ -175,7 +178,7 @@ function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: str
   if (editing) return <PropertyForm brokerId={brokerId} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button><button onClick={() => setEditing("new-mall")} className={btnOutline}><Store className="size-4" />إضافة وحدة في مول</button><button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع من Excel</button></div>
+      <div className="flex flex-wrap gap-2"><button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة عقار</button><button onClick={() => setEditing("new-ind")} className={btnOutline}><Factory className="size-4" />إضافة عقار صناعي</button><button onClick={() => setEditing("new-mall")} className={btnOutline}><Store className="size-4" />إضافة وحدة في مول</button><button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع من Excel</button><button onClick={() => setEditing("import-mall")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع وحدات مولات من Excel</button></div>
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لم تضف أي عقار بعد.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">

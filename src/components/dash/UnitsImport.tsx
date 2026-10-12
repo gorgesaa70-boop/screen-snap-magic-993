@@ -12,11 +12,8 @@ export function UnitsImport({ projectId, existingCodes, onDone }: { projectId: s
   const [result, setResult] = useState<(ImportResult & { file: string }) | null>(null);
   const [busy, setBusy] = useState(false);
 
-  function template() {
-    const sample = ["A-101", "شقة", "120", "3", "2", "الأول", "1500000", "متاحة", ""];
-    const blob = new Blob(["﻿" + [TEMPLATE_HEADERS.join(","), sample.join(",")].join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "value-aqar-units-template.csv"; a.click(); URL.revokeObjectURL(a.href);
-  }
+  // Excel template with drop-downs for type and status, plus a guide sheet.
+  const template = () => { const a = document.createElement("a"); a.href = "/templates/value-aqar-project-units-template.xlsx"; a.download = "value-aqar-project-units-template.xlsx"; a.click(); };
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
