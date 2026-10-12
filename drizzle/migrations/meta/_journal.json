@@ -8,6 +8,90 @@
       "when": 1791761969634,
       "tag": "0000_release_0_lead_stage_values",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791763279408,
+      "tag": "0001_owner_listings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791763292262,
+      "tag": "0002_owner_photos_broker_autopublish",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791763331410,
+      "tag": "0003_developers_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791763379393,
+      "tag": "0004_companies_staff",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791763397415,
+      "tag": "0005_app_store_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791763453922,
+      "tag": "0006_leads_center",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791763508835,
+      "tag": "0007_lead_pipeline",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791763547219,
+      "tag": "0008_referral_proof",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791763592607,
+      "tag": "0009_team_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791763653192,
+      "tag": "0010_commissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791763686661,
+      "tag": "0011_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791763734307,
+      "tag": "0012_tasks_reminders",
+      "breakpoints": true
     }
   ]
 }
