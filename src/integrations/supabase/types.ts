@@ -337,6 +337,7 @@ export type Database = {
           approved_by: string | null
           broker_id: string
           created_at: string
+          deal_type: string
           effective_from: string
           effective_to: string | null
           fixed_amount: number | null
@@ -349,6 +350,7 @@ export type Database = {
           approved_by?: string | null
           broker_id: string
           created_at?: string
+          deal_type?: string
           effective_from?: string
           effective_to?: string | null
           fixed_amount?: number | null
@@ -361,6 +363,7 @@ export type Database = {
           approved_by?: string | null
           broker_id?: string
           created_at?: string
+          deal_type?: string
           effective_from?: string
           effective_to?: string | null
           fixed_amount?: number | null
@@ -468,11 +471,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           deal_no: number
+          deal_type: string
           docs_reminded_at: string | null
           id: string
           lead_id: string
           project_unit_id: string | null
           property_id: string | null
+          rent_end: string | null
+          rent_monthly: number | null
+          rent_start: string | null
           reservation_amount: number | null
           reservation_date: string | null
           review_note: string | null
@@ -493,11 +500,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          deal_type?: string
           docs_reminded_at?: string | null
           id?: string
           lead_id: string
           project_unit_id?: string | null
           property_id?: string | null
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
@@ -518,11 +529,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_no?: never
+          deal_type?: string
           docs_reminded_at?: string | null
           id?: string
           lead_id?: string
           project_unit_id?: string | null
           property_id?: string | null
+          rent_end?: string | null
+          rent_monthly?: number | null
+          rent_start?: string | null
           reservation_amount?: number | null
           reservation_date?: string | null
           review_note?: string | null
@@ -1191,15 +1206,20 @@ export type Database = {
           activity_id: string | null
           address: string | null
           area: string
+          available_from: string | null
+          available_to: string | null
           baths: number | null
           broker_id: string | null
           built_size: number | null
           category: string
           city: string
           created_at: string
+          deposit: number | null
           description: string | null
           featured_until: string | null
           floor: string | null
+          furnished: string | null
+          guests: number | null
           id: string
           image_url: string | null
           images: string[]
@@ -1209,8 +1229,14 @@ export type Database = {
           lat: number | null
           lng: number | null
           mall_id: string | null
+          min_months: number | null
           owner_lead_id: string | null
           price: number
+          price_month: number | null
+          price_night: number | null
+          price_season: number | null
+          price_unit: string | null
+          price_week: number | null
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
           rooms: number | null
@@ -1227,15 +1253,20 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area: string
+          available_from?: string | null
+          available_to?: string | null
           baths?: number | null
           broker_id?: string | null
           built_size?: number | null
           category?: string
           city?: string
           created_at?: string
+          deposit?: number | null
           description?: string | null
           featured_until?: string | null
           floor?: string | null
+          furnished?: string | null
+          guests?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
@@ -1245,8 +1276,14 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          min_months?: number | null
           owner_lead_id?: string | null
           price: number
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
@@ -1263,15 +1300,20 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area?: string
+          available_from?: string | null
+          available_to?: string | null
           baths?: number | null
           broker_id?: string | null
           built_size?: number | null
           category?: string
           city?: string
           created_at?: string
+          deposit?: number | null
           description?: string | null
           featured_until?: string | null
           floor?: string | null
+          furnished?: string | null
+          guests?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
@@ -1281,8 +1323,14 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           mall_id?: string | null
+          min_months?: number | null
           owner_lead_id?: string | null
           price?: number
+          price_month?: number | null
+          price_night?: number | null
+          price_season?: number | null
+          price_unit?: string | null
+          price_week?: number | null
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           rooms?: number | null
@@ -1612,27 +1660,51 @@ export type Database = {
         }
       }
       admin_exists: { Args: never; Returns: boolean }
-      agreement_for: {
-        Args: { _broker: string; _on: string }
-        Returns: {
-          approved_at: string
-          approved_by: string | null
-          broker_id: string
-          created_at: string
-          effective_from: string
-          effective_to: string | null
-          fixed_amount: number | null
-          id: string
-          notes: string | null
-          rate: number | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "company_agreements"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      agreement_for:
+        | {
+            Args: { _broker: string; _on: string }
+            Returns: {
+              approved_at: string
+              approved_by: string | null
+              broker_id: string
+              created_at: string
+              deal_type: string
+              effective_from: string
+              effective_to: string | null
+              fixed_amount: number | null
+              id: string
+              notes: string | null
+              rate: number | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "company_agreements"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _broker: string; _on: string; _type: string }
+            Returns: {
+              approved_at: string
+              approved_by: string | null
+              broker_id: string
+              created_at: string
+              deal_type: string
+              effective_from: string
+              effective_to: string | null
+              fixed_amount: number | null
+              id: string
+              notes: string | null
+              rate: number | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "company_agreements"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       assignable_users: {
         Args: never
         Returns: {
