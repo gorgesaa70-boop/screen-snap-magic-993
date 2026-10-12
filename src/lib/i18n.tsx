@@ -428,7 +428,8 @@ const EN: Record<string, string> = {
   // Sign-in and app download
   "أو": "or",
   "الرجوع للموقع": "Back to site",
-  "المتابعة بحساب Google": "Continue with Google",
+"المتابعة بحساب Google": "Continue with Google",
+  "المتابعة بحساب Apple": "Continue with Apple",
   "تعذّر الدخول بحساب Google، حاول تاني": "Couldn't sign in with Google, please try again",
   "هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة": "This account is suspended. Please contact the administration.",
   "حمّل تطبيق Value Aqar": "Get the Value Aqar app",

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { PhoneOtp, destinationFor } from "@/components/auth/PhoneOtp";
-import { GoogleButton } from "@/components/auth/SocialLogin";
+import { AppleButton, GoogleButton } from "@/components/auth/SocialLogin";
 import { AppDownload } from "@/components/site/AppDownload";
 import { t, useLang } from "@/lib/i18n";
 
@@ -126,7 +126,10 @@ function AuthPage() {
         <h1 className="mt-6 text-2xl font-extrabold text-primary">{t("تسجيل الدخول")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("ادخل برقم موبايلك — للعملاء والوسطاء والشركات. أول مرة؟ هيتعملك حساب على طول.")}</p>
         <div className="mt-5">
-          <GoogleButton onSignedIn={go} />
+          <div className="grid gap-2.5">
+            <GoogleButton onSignedIn={go} />
+            <AppleButton onSignedIn={go} />
+          </div>
           <div className="my-4 flex items-center gap-3 text-xs font-semibold text-muted-foreground"><span className="h-px flex-1 bg-border" />{t("أو")}<span className="h-px flex-1 bg-border" /></div>
         </div>
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
