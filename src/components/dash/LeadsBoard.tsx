@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { draftWhatsappReply, analyzeInquiry, type LeadAnalysis } from "@/lib/ai-reply.functions";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Phone, MessageCircle, Search, X, Download, Bell, Sparkles, Copy, History, Brain, LayoutGrid, Table2, ArrowUpDown, Users } from "lucide-react";
+import { Phone, MessageCircle, Search, X, Download, Bell, History, LayoutGrid, Table2, ArrowUpDown, Users } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
@@ -70,38 +68,6 @@ function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
   a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
-}
-
-function AiReply({ l }: { l: LeadWithProp }) {
-  const draft = useServerFn(draftWhatsappReply);
-  const [inquiry, setInquiry] = useState(l.details ?? "");
-  const [prop, setProp] = useState([l.properties?.title, l.property_type, l.area, l.budget ? `السعر/الميزانية: ${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join("\n"));
-  const [reply, setReply] = useState("");
-  const [busy, setBusy] = useState(false);
-  const run = async () => {
-    if (inquiry.trim().length < 3) { toast.error("اكتب نص استفسار العميل"); return; }
-    setBusy(true);
-    try {
-      const r = await draft({ data: { inquiry, property: prop, customerName: l.name } });
-      if (r.ok) setReply(r.text); else toast.error(r.error);
-    } catch { toast.error("تعذر صياغة الرد حاليًا"); } finally { setBusy(false); }
-  };
-  return (
-    <div className="mt-3 space-y-2 rounded-xl bg-secondary/60 p-3">
-      <textarea aria-label="نص استفسار العميل" className={`${inputCls} h-auto min-h-20 py-2`} placeholder="نص استفسار العميل" value={inquiry} onChange={(e) => setInquiry(e.target.value)} maxLength={2000} />
-      <textarea aria-label="معلومات العقار" className={`${inputCls} h-auto min-h-20 py-2`} placeholder="معلومات العقار (السعر، المساحة، الموقع، المميزات…)" value={prop} onChange={(e) => setProp(e.target.value)} maxLength={2000} />
-      <button className={btnOutline} onClick={run} disabled={busy}><Sparkles className="size-4" />{busy ? "جاري الصياغة…" : "صياغة الرد"}</button>
-      {reply && (
-        <>
-          <textarea aria-label="الرد المقترح" className={`${inputCls} h-auto min-h-28 py-2`} value={reply} onChange={(e) => setReply(e.target.value)} />
-          <div className="flex flex-wrap gap-2">
-            <a onClick={() => logActivity(l.id, "whatsapp", reply.slice(0, 1000))} href={waLink(l.phone, reply)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />إرسال عبر واتساب</a>
-            <button className={btnOutline} onClick={() => { navigator.clipboard.writeText(reply); toast.success("تم النسخ"); }}><Copy className="size-4" />نسخ</button>
-          </div>
-        </>
-      )}
-    </div>
-  );
 }
 
 const ACT: Record<string, string> = { call: "مكالمة", whatsapp: "واتساب", status: "تغيير المرحلة", note: "ملاحظة", follow_up: "موعد متابعة", assign: "إسناد", source: "تغيير المصدر", deal: "الصفقة" };
@@ -183,45 +149,6 @@ export function Timeline({ leadId }: { leadId: string }) {
   );
 }
 
-const INTENT: Record<LeadAnalysis["intent"], string> = { buy: "شراء", rent: "إيجار", sell: "بيع", invest: "استثمار", info: "استعلام", other: "أخرى" };
-const URG: Record<LeadAnalysis["urgency"], [string, string]> = { high: ["عاجل", "bg-destructive/10 text-destructive"], medium: ["متوسط", "bg-teal-soft text-primary"], low: ["منخفض", "bg-secondary text-primary"] };
-
-function AiAnalysis({ l, onFollowUp }: { l: LeadWithProp; onFollowUp: (iso: string) => void }) {
-  const analyze = useServerFn(analyzeInquiry);
-  const [inquiry, setInquiry] = useState(l.details ?? "");
-  const [prop, setProp] = useState([l.properties?.title, l.property_type, l.area, l.budget ? `السعر/الميزانية: ${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join("\n"));
-  const [res, setRes] = useState<LeadAnalysis | null>(null);
-  const [busy, setBusy] = useState(false);
-  const run = async () => {
-    if (inquiry.trim().length < 3) { toast.error("اكتب نص استفسار العميل"); return; }
-    setBusy(true);
-    try {
-      const r = await analyze({ data: { inquiry, property: prop, customerName: l.name } });
-      if (r.ok) setRes(r.analysis); else toast.error(r.error);
-    } catch { toast.error("تعذر التحليل حاليًا"); } finally { setBusy(false); }
-  };
-  return (
-    <div className="mt-3 space-y-2 rounded-xl bg-secondary/60 p-3">
-      <textarea aria-label="نص استفسار العميل" className={`${inputCls} h-auto min-h-20 py-2`} placeholder="نص استفسار العميل" value={inquiry} onChange={(e) => setInquiry(e.target.value)} maxLength={2000} />
-      <textarea aria-label="معلومات العقار" className={`${inputCls} h-auto min-h-20 py-2`} placeholder="معلومات العقار" value={prop} onChange={(e) => setProp(e.target.value)} maxLength={2000} />
-      <button className={btnOutline} onClick={run} disabled={busy}><Brain className="size-4" />{busy ? "جاري التحليل…" : "تحليل الاستفسار"}</button>
-      {res && (
-        <div className="space-y-1.5 rounded-xl border bg-card p-3 text-sm">
-          <p className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">النية: {INTENT[res.intent]}</span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${URG[res.urgency][1]}`}>العجلة: {URG[res.urgency][0]}</span>
-          </p>
-          <p className="text-foreground/80">{res.reason}</p>
-          <p><span className="font-bold text-primary">الإجراء التالي: </span>{res.next_action}</p>
-          <button className={btnOutline} onClick={() => onFollowUp(new Date(Date.now() + res.follow_up_in_hours * 3600000).toISOString())}>
-            تحديد موعد متابعة بعد {res.follow_up_in_hours} ساعة
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dups, onChanged }: {
   l: LeadWithProp;
   onChanged?: () => void;
@@ -235,9 +162,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
 }) {
   const [notes, setNotes] = useState(l.notes ?? "");
   const [fu, setFu] = useState(toLocalInput(l.follow_up_at));
-  const [ai, setAi] = useState(false);
   const [tl, setTl] = useState(false);
-  const [an, setAn] = useState(false);
   return (
     <div className={`rounded-2xl border bg-card p-4 ${due ? "border-destructive ring-1 ring-destructive" : ""}`}>
       {due && <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-bold text-destructive"><Bell className="size-3.5" />حان موعد المتابعة</p>}
@@ -283,13 +208,9 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
         <input id={`fu-${l.id}`} type="datetime-local" className={`${inputCls} h-10 w-auto`} value={fu} onChange={(e) => setFu(e.target.value)} />
         <button className={btnOutline} onClick={() => onFollowUp(fu ? new Date(fu).toISOString() : null)}>حفظ الموعد</button>
         {l.follow_up_at && <button className={btnOutline} onClick={() => { setFu(""); onFollowUp(null); }}>إلغاء</button>}
-        <button className={btnOutline} onClick={() => setAi((v) => !v)} aria-expanded={ai}><Sparkles className="size-4" />رد ذكي</button>
-        <button className={btnOutline} onClick={() => setAn((v) => !v)} aria-expanded={an}><Brain className="size-4" />تحليل ذكي</button>
         <button className={btnOutline} onClick={() => setTl((v) => !v)} aria-expanded={tl}><History className="size-4" />سجل النشاط</button>
         <Link to="/leads/$id" params={{ id: l.id }} className={btnOutline}>التفاصيل</Link>
       </div>
-      {ai && <AiReply l={l} />}
-      {an && <AiAnalysis l={l} onFollowUp={(iso) => { setFu(toLocalInput(iso)); onFollowUp(iso); }} />}
       {tl && <Timeline leadId={l.id} />}
       {onNotes && (
         <div className="mt-3 flex gap-2">
