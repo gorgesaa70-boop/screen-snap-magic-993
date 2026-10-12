@@ -2348,6 +2348,8 @@ export type Database = {
           user_id: string
         }[]
       }
+      can_read_investment_doc: { Args: { _folder: string }; Returns: boolean }
+      can_upload_investment_doc: { Args: { _folder: string }; Returns: boolean }
       claim_first_admin: { Args: never; Returns: boolean }
       commission_amount: {
         Args: { _basis: number; _fixed: number; _rate: number }
