@@ -835,4 +835,13 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("the submitter uploads investment documents", () => as(U.owner, `insert into storage.objects (bucket_id, name) values ('investment-docs', 'f0000000-0000-0000-0000-000000000001/plan.pdf') returning id`), (r) => r.length === 1);
   await expectErr("others can't upload to that opportunity", () => as(U.outsider, `insert into storage.objects (bucket_id, name) values ('investment-docs', 'f0000000-0000-0000-0000-000000000001/x.pdf')`));
   await expectOk("odd folder names don't break other buckets", () => as(U.sales, `select count(*) c from storage.objects where bucket_id = 'media'`), (r) => Number(r[0].c) >= 1);
+
+  console.log("\nWho can download deal papers and payment proofs");
+  await sys(`insert into storage.objects (bucket_id, name) values ('deal-docs', '${dealId}/contract.pdf'), ('commission-docs', '${cid}/receipt.jpg')`);
+  const seesDoc = (who, bucket) => as(who, `select name from storage.objects where bucket_id='${bucket}'`).then((r) => r.length);
+  await expectOk("deal papers: the admin and the company's manager can open them", async () => [await seesDoc(U.admin, "deal-docs"), await seesDoc(U.manager, "deal-docs")], (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("deal papers: an outsider, a customer or another company can't", async () => [await seesDoc(U.outsider, "deal-docs"), await seesDoc(U.applicant, "deal-docs"), await seesDoc(U.dev, "deal-docs")], (r) => r.every((n) => n === 0));
+  await expectOk("deal papers: visitors (not signed in) can't", () => as(null, `select name from storage.objects where bucket_id='deal-docs'`), (r) => r.length === 0);
+  await expectOk("payment proofs: admin and the company owner can open them", async () => [await seesDoc(U.admin, "commission-docs"), await seesDoc(U.owner, "commission-docs")], (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("payment proofs: outsiders, sales staff and other companies can't", async () => [await seesDoc(U.outsider, "commission-docs"), await seesDoc(U.sales, "commission-docs"), await seesDoc(U.dev, "commission-docs")], (r) => r.every((n) => n === 0));
 }
