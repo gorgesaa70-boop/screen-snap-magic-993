@@ -825,4 +825,14 @@ export default async function ({ as, sys, expectOk, expectErr }) {
     await svc(`select public.run_subscription_expiry()`);
     return [(await sys(`select is_featured from public.properties where id='${myProp}'`))[0].is_featured, (await sys(`select status from public.payments where id='${id}'`))[0].status];
   }, (r) => r[0] === false && r[1] === "expired");
+
+  console.log("\nFile uploads (storage rules)");
+  await expectOk("a user uploads their own photo to media", () => as(U.sales, `insert into storage.objects (bucket_id, name) values ('media', '${U.sales}/avatar.jpg') returning id`), (r) => r.length === 1);
+  await expectErr("…but not into someone else's folder", () => as(U.sales, `insert into storage.objects (bucket_id, name) values ('media', '${U.owner}/x.jpg')`));
+  await sys(`set session_replication_role = replica`);
+  await sys(`insert into public.investment_opportunities (id, title, kind, activity, deal_kind, city, area, teaser, submitted_by) values ('f0000000-0000-0000-0000-000000000001', 'فرصة اختبار للرفع', 'running_business', 'مول', 'full_sale', 'برج العرب الجديدة', 'الحي الأول', 'فرصة استثمارية للاختبار فقط في قاعدة البيانات', '${U.owner}')`);
+  await sys(`set session_replication_role = origin`);
+  await expectOk("the submitter uploads investment documents", () => as(U.owner, `insert into storage.objects (bucket_id, name) values ('investment-docs', 'f0000000-0000-0000-0000-000000000001/plan.pdf') returning id`), (r) => r.length === 1);
+  await expectErr("others can't upload to that opportunity", () => as(U.outsider, `insert into storage.objects (bucket_id, name) values ('investment-docs', 'f0000000-0000-0000-0000-000000000001/x.pdf')`));
+  await expectOk("odd folder names don't break other buckets", () => as(U.sales, `select count(*) c from storage.objects where bucket_id = 'media'`), (r) => Number(r[0].c) >= 1);
 }
