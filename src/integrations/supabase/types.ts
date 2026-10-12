@@ -118,6 +118,7 @@ export type Database = {
           plan_id: string | null
           rejected_at: string | null
           review_note: string | null
+          show_contact: boolean
           slug: string
           specialty: string | null
           suspended_at: string | null
@@ -144,6 +145,7 @@ export type Database = {
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
+          show_contact?: boolean
           slug: string
           specialty?: string | null
           suspended_at?: string | null
@@ -170,6 +172,7 @@ export type Database = {
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
+          show_contact?: boolean
           slug?: string
           specialty?: string | null
           suspended_at?: string | null
@@ -726,6 +729,7 @@ export type Database = {
           stage: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at: string | null
           updated_at: string
+          via_broker_id: string | null
           visit_at: string | null
         }
         Insert: {
@@ -763,6 +767,7 @@ export type Database = {
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          via_broker_id?: string | null
           visit_at?: string | null
         }
         Update: {
@@ -800,6 +805,7 @@ export type Database = {
           stage?: Database["public"]["Enums"]["lead_stage"]
           stage_changed_at?: string | null
           updated_at?: string
+          via_broker_id?: string | null
           visit_at?: string | null
         }
         Relationships: [
@@ -829,6 +835,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_via_broker_id_fkey"
+            columns: ["via_broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
             referencedColumns: ["id"]
           },
         ]
@@ -1492,6 +1505,42 @@ export type Database = {
     }
     Functions: {
       actor_label: { Args: never; Returns: string }
+      admin_brokers: {
+        Args: never
+        Returns: {
+          account_type: string
+          address: string | null
+          areas: string[]
+          bio: string | null
+          commercial_register: string | null
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          facebook: string | null
+          id: string
+          is_active: boolean
+          is_demo: boolean
+          name: string
+          phone: string | null
+          photo_url: string | null
+          plan_id: string | null
+          rejected_at: string | null
+          review_note: string | null
+          show_contact: boolean
+          slug: string
+          specialty: string | null
+          suspended_at: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "brokers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       admin_exists: { Args: never; Returns: boolean }
       agreement_for: {
         Args: { _broker: string; _on: string }
@@ -1523,6 +1572,15 @@ export type Database = {
       }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
+      broker_contacts: {
+        Args: { _ids: string[] }
+        Returns: {
+          email: string
+          id: string
+          phone: string
+          whatsapp: string
+        }[]
+      }
       brokers_by_phone: {
         Args: { _phone: string }
         Returns: {
@@ -1562,6 +1620,42 @@ export type Database = {
         }[]
       }
       member_user_id: { Args: { _member: string }; Returns: string }
+      my_account: {
+        Args: never
+        Returns: {
+          account_type: string
+          address: string | null
+          areas: string[]
+          bio: string | null
+          commercial_register: string | null
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          facebook: string | null
+          id: string
+          is_active: boolean
+          is_demo: boolean
+          name: string
+          phone: string | null
+          photo_url: string | null
+          plan_id: string | null
+          rejected_at: string | null
+          review_note: string | null
+          show_contact: boolean
+          slug: string
+          specialty: string | null
+          suspended_at: string | null
+          updated_at: string
+          user_id: string | null
+          whatsapp: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "brokers"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
