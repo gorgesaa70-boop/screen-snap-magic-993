@@ -18,6 +18,7 @@ import { Route as MapRouteImport } from './routes/map'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SellRouteImport } from './routes/sell'
+import { Route as SharedHousingRouteImport } from './routes/shared-housing'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -43,11 +44,14 @@ import { Route as InvestmentsIndexRouteImport } from './routes/investments.index
 import { Route as InvestmentsIdRouteImport } from './routes/investments.$id'
 import { Route as MallsIndexRouteImport } from './routes/malls.index'
 import { Route as MallsIdRouteImport } from './routes/malls.$id'
+import { Route as PricesIndexRouteImport } from './routes/prices.index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as PricesAreasAreaRouteImport } from './routes/prices.areas.$area'
+import { Route as PricesMallsIdRouteImport } from './routes/prices.malls.$id'
 import { Route as ApiPublicMetaLeadsRouteImport } from './routes/api/public/meta/leads'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
@@ -94,6 +98,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SharedHousingRoute = SharedHousingRouteImport.update({
+  id: '/shared-housing',
+  path: '/shared-housing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -223,6 +232,11 @@ const MallsIdRoute = MallsIdRouteImport.update({
   path: '/malls/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricesIndexRoute = PricesIndexRouteImport.update({
+  id: '/prices/',
+  path: '/prices/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
@@ -248,6 +262,16 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   id: '/leads/$id',
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const PricesAreasAreaRoute = PricesAreasAreaRouteImport.update({
+  id: '/prices/areas/$area',
+  path: '/prices/areas/$area',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricesMallsIdRoute = PricesMallsIdRouteImport.update({
+  id: '/prices/malls/$id',
+  path: '/prices/malls/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicMetaLeadsRoute = ApiPublicMetaLeadsRouteImport.update({
   id: '/api/public/meta/leads',
@@ -276,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
@@ -303,9 +328,12 @@ export interface FileRoutesByFullPath {
   '/industrial/': typeof IndustrialIndexRoute
   '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/prices/areas/$area': typeof PricesAreasAreaRoute
+  '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -319,6 +347,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRoute
@@ -346,9 +375,12 @@ export interface FileRoutesByTo {
   '/industrial': typeof IndustrialIndexRoute
   '/investments': typeof InvestmentsIndexRoute
   '/malls': typeof MallsIndexRoute
+  '/prices': typeof PricesIndexRoute
   '/projects': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/prices/areas/$area': typeof PricesAreasAreaRoute
+  '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -364,6 +396,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
+  '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
@@ -391,9 +424,12 @@ export interface FileRoutesById {
   '/industrial/': typeof IndustrialIndexRoute
   '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
+  '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/prices/areas/$area': typeof PricesAreasAreaRoute
+  '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
@@ -409,6 +445,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
     | '/account'
@@ -436,9 +473,12 @@ export interface FileRouteTypes {
     | '/industrial/'
     | '/investments/'
     | '/malls/'
+    | '/prices/'
     | '/projects/'
     | '/investments/new'
     | '/leads/$id'
+    | '/prices/areas/$area'
+    | '/prices/malls/$id'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -452,6 +492,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
     | '/account'
@@ -479,9 +520,12 @@ export interface FileRouteTypes {
     | '/industrial'
     | '/investments'
     | '/malls'
+    | '/prices'
     | '/projects'
     | '/investments/new'
     | '/leads/$id'
+    | '/prices/areas/$area'
+    | '/prices/malls/$id'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -496,6 +540,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
+    | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
     | '/_authenticated/account'
@@ -523,9 +568,12 @@ export interface FileRouteTypes {
     | '/industrial/'
     | '/investments/'
     | '/malls/'
+    | '/prices/'
     | '/projects/'
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
+    | '/prices/areas/$area'
+    | '/prices/malls/$id'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/whatsapp/webhook'
@@ -541,6 +589,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SellRoute: typeof SellRoute
+  SharedHousingRoute: typeof SharedHousingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
@@ -554,7 +603,10 @@ export interface RootRouteChildren {
   IndustrialIndexRoute: typeof IndustrialIndexRoute
   InvestmentsIndexRoute: typeof InvestmentsIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
+  PricesIndexRoute: typeof PricesIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  PricesAreasAreaRoute: typeof PricesAreasAreaRoute
+  PricesMallsIdRoute: typeof PricesMallsIdRoute
   ApiPublicMetaLeadsRoute: typeof ApiPublicMetaLeadsRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
@@ -623,6 +675,13 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shared-housing': {
+      id: '/shared-housing'
+      path: '/shared-housing'
+      fullPath: '/shared-housing'
+      preLoaderRoute: typeof SharedHousingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -800,6 +859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MallsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/prices/': {
+      id: '/prices/'
+      path: '/prices'
+      fullPath: '/prices/'
+      preLoaderRoute: typeof PricesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/': {
       id: '/projects/'
       path: '/projects'
@@ -834,6 +900,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/leads/$id'
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/prices/areas/$area': {
+      id: '/prices/areas/$area'
+      path: '/prices/areas/$area'
+      fullPath: '/prices/areas/$area'
+      preLoaderRoute: typeof PricesAreasAreaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prices/malls/$id': {
+      id: '/prices/malls/$id'
+      path: '/prices/malls/$id'
+      fullPath: '/prices/malls/$id'
+      preLoaderRoute: typeof PricesMallsIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/meta/leads': {
       id: '/api/public/meta/leads'
@@ -910,6 +990,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SellRoute: SellRoute,
+  SharedHousingRoute: SharedHousingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   BrokersSlugRoute: BrokersSlugRoute,
@@ -923,7 +1004,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndustrialIndexRoute: IndustrialIndexRoute,
   InvestmentsIndexRoute: InvestmentsIndexRoute,
   MallsIndexRoute: MallsIndexRoute,
+  PricesIndexRoute: PricesIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  PricesAreasAreaRoute: PricesAreasAreaRoute,
+  PricesMallsIdRoute: PricesMallsIdRoute,
   ApiPublicMetaLeadsRoute: ApiPublicMetaLeadsRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:
     ApiPublicNotificationsWhatsappDispatchRoute,

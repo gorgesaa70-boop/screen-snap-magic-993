@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES_FOR, FURNISHED_LABEL, uploadImage, type PropertyRow } from "@/components/site/data";
+import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES_FOR, FURNISHED_LABEL, FINISHING_LABEL, hasFinishing, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
@@ -26,6 +26,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     source_url: initial?.source_url ?? "",
     price_night: initial?.price_night?.toString() ?? "", price_week: initial?.price_week?.toString() ?? "",
     price_month: initial?.price_month?.toString() ?? "", price_season: initial?.price_season?.toString() ?? "",
+    finishing: initial?.finishing ?? "",
     furnished: initial?.furnished ?? "", min_months: initial?.min_months?.toString() ?? "", deposit: initial?.deposit?.toString() ?? "",
     guests: initial?.guests?.toString() ?? "", available_from: initial?.available_from ?? "", available_to: initial?.available_to ?? "",
   });
@@ -51,6 +52,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   async function save(submit: boolean) {
     const anySummerPrice = !!(f.price_night || f.price_week || f.price_month || f.price_season);
     if (f.title.trim().length < 3 || (summer ? !anySummerPrice : !f.price)) { toast.error(summer ? "أدخل العنوان وسعر واحد على الأقل (الليلة أو الأسبوع أو الشهر أو الموسم)" : "أدخل العنوان والسعر"); return; }
+    if (submit && hasFinishing(f.type) && !f.finishing) { toast.error("اختار حالة التشطيب"); return; }
     const src = f.source_url.trim();
     if (src && !/^https:\/\/[a-z0-9-]+\.engazcrm\.net\//i.test(src)) { toast.error("رابط إنجاز غير صحيح — يجب أن يبدأ بـ https://…engazcrm.net/"); return; }
     setBusy(true);
@@ -62,6 +64,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       furnished: rent ? f.furnished || null : null, min_months: f.status === "إيجار" ? num(f.min_months) : null,
       deposit: rent ? num(f.deposit) : null, guests: summer ? num(f.guests) : null,
       available_from: rent ? f.available_from || null : null, available_to: summer ? f.available_to || null : null, city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, size: Number(f.size || 0),
+      finishing: hasFinishing(f.type) ? f.finishing || null : null,
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.images[0] ?? null, images: f.images, source_url: src || null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
@@ -107,7 +110,8 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         )}
         <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="المساحة (م²)"><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+        <Field label={f.type === "بيت" || f.type === "عمارة" ? "مساحة الأرض (م²)" : "المساحة (م²)"}><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+        {hasFinishing(f.type) && <Field label="حالة التشطيب"><select className={inputCls} value={f.finishing} onChange={set("finishing")}><option value="">اختار</option>{Object.entries(FINISHING_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>}
         <div className="grid grid-cols-2 gap-3">
           <Field label="الغرف"><input className={inputCls} inputMode="numeric" value={f.rooms} onChange={(e) => setF({ ...f, rooms: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
           <Field label="الحمامات"><input className={inputCls} inputMode="numeric" value={f.baths} onChange={(e) => setF({ ...f, baths: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>

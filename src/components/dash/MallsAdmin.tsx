@@ -65,11 +65,14 @@ function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
   return (
     <div className="rounded-xl border p-3">
       <div className="flex items-center gap-3">
-        <label className="grid size-16 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-xl border bg-secondary" title="رفع اللوجو">
-          {f.logo_url ? <img src={f.logo_url} alt={`لوجو ${m.name}`} className="size-full object-contain" /> : <Store className="size-6 text-muted-foreground" />}
+        <label className="flex w-24 shrink-0 cursor-pointer flex-col items-center gap-1" title="صورة المول">
+          <span className="grid size-20 place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-teal/60 bg-secondary">
+            {f.logo_url ? <img src={f.logo_url} alt={`صورة ${m.name}`} className="size-full object-cover" /> : <Store className="size-6 text-muted-foreground" />}
+          </span>
+          <span className="text-[11px] font-bold text-primary">{f.logo_url ? "غيّر الصورة" : "ارفع صورة المول"}</span>
           <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
             const file = e.target.files?.[0]; if (!file) return;
-            try { setBusy(true); const url = await uploadImage(file); setF((x) => ({ ...x, logo_url: url })); } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
+            try { setBusy(true); const url = await uploadImage(file); setF((x) => ({ ...x, logo_url: url })); toast.success("الصورة اترفعت — اضغط حفظ"); } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
           }} />
         </label>
         <div className="grid flex-1 gap-2">

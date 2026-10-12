@@ -120,7 +120,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   if (searchKey !== lastKey) { setLastKey(searchKey); setShown(step); }
   const located = results.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).length;
   return (
-    <section id="properties" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-12 md:px-6 md:pt-24">
+    <section id="properties" className="mx-auto max-w-7xl scroll-mt-28 px-4 pt-12 md:px-6 md:pt-24">
       <SectionHead eyebrow={filtered ? tr("نتائج البحث") : tr("مختارات فاليو عقار")} title={filtered ? tr("العقارات المطابقة") : tr("العقارات المميزة")} />
       {filtered && (
         <div className="-mt-4 mb-6 flex items-center justify-between gap-3 rounded-xl bg-teal-soft px-4 py-3" aria-live="polite">
@@ -234,7 +234,7 @@ export function HighlightsStrip() {
 export function RequestCTA() {
   useLang();
   return (
-    <section id="request" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
+    <section id="request" className="mx-auto max-w-7xl scroll-mt-28 px-4 pt-16 md:px-6 md:pt-24">
       <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-12 md:px-14 md:py-16">
         <div className="absolute -top-20 -left-20 size-64 rounded-full bg-teal/20 blur-3xl" />
         <div className="relative grid items-start gap-8 md:grid-cols-2 md:items-center">
@@ -289,7 +289,7 @@ export function Brokers() {
   useLang();
   const { data: brokers = [] } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
   return (
-    <section id="brokers" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
+    <section id="brokers" className="mx-auto max-w-7xl scroll-mt-28 px-4 pt-16 md:px-6 md:pt-24">
       <SectionHead eyebrow={tr("شركاء موثوقون")} title={tr("تواصل مع الوسيط المناسب")}
         action={<Link to="/brokers" className="-my-2 inline-block shrink-0 py-3 text-sm font-bold text-primary hover:text-teal">{tr("كل الوسطاء ←")}</Link>} />
       <div className="grid gap-5 md:grid-cols-3">
@@ -319,7 +319,7 @@ export function BrokerServices() {
     { icon: BarChart3, label: "متابعة الأداء" },
   ];
   return (
-    <section id="broker-services" className="mx-auto max-w-7xl scroll-mt-20 px-4 pt-16 md:px-6 md:pt-24">
+    <section id="broker-services" className="mx-auto max-w-7xl scroll-mt-28 px-4 pt-16 md:px-6 md:pt-24">
       <div className="grid items-center gap-8 rounded-3xl bg-teal-soft p-6 md:grid-cols-2 md:p-14">
         <div>
           <p className="text-sm font-bold text-primary/70">{tr("للوسطاء والمكاتب العقارية")}</p>

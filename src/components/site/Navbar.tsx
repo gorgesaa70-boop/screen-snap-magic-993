@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
+import { NewsTicker } from "@/components/site/NewsTicker";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { useSessionUser } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPriceIndex, hasData } from "@/components/site/prices";
 
 export function Logo({ light = false }: { light?: boolean }) {
   return (
@@ -38,6 +41,8 @@ export function Navbar() {
   useLang();
   const [open, setOpen] = useState(false);
   const { user } = useSessionUser();
+  // The prices page shows in the menu only once enough real units exist to show a price.
+  const prices = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
   const links = [
     { label: t("الرئيسية"), href: "/#top" },
     { label: t("سكني"), href: "/?cat=residential#properties" },
@@ -48,10 +53,13 @@ export function Navbar() {
     { label: t("المشروعات"), href: "/projects" },
     { label: t("استثمار"), href: "/investments" },
     { label: t("الوسطاء"), href: "/brokers" },
+    { label: `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing" },
+    ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices" }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
   return (
     <header className="sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
+      <NewsTicker />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
         <Logo />
         <nav className="hidden items-center gap-5 lg:flex">

@@ -41,10 +41,11 @@ export type Property = {
   updated: string;
   isDemo: boolean;
   featured: boolean;
+  finishing?: string | undefined;
   brokerId: string | null;
 };
 
-export const TYPES = ["شقة", "دوبلكس", "فيلا", "استوديو", "شاليه", "أرض", "محل", "مكتب", "عيادة"];
+export const TYPES = ["شقة", "دوبلكس", "فيلا", "بيت", "عمارة", "استوديو", "شاليه", "أرض", "محل", "مكتب", "عيادة"];
 /** Listing purpose (properties.status): sale, monthly rent, or summer / holiday rent. */
 export const PURPOSES = ["بيع", "إيجار", "مصيف"] as const;
 export const PURPOSE_LABEL: Record<string, string> = { "بيع": "للبيع", "إيجار": "للإيجار", "مصيف": "مصيف" };
@@ -56,6 +57,10 @@ export const TYPES_FOR: Record<string, string[]> = {
 };
 export const PRICE_UNIT_LABEL: Record<string, string> = { night: " / الليلة", week: " / الأسبوع", month: " / شهريًا", season: " / الموسم" };
 export const FURNISHED_LABEL: Record<string, string> = { furnished: "مفروش", semi: "نص فرش", unfurnished: "مش مفروش" };
+/** properties.finishing. Asked for every built unit (not land); older listings may have none. */
+export const FINISHING_LABEL: Record<string, string> = { skeleton: "عمدان / طوب أحمر", semi: "نص تشطيب", full: "تشطيب كامل", super_lux: "سوبر لوكس" };
+/** Types that are built, so finishing applies. */
+export const hasFinishing = (type: string) => !!type && type !== "أرض";
 export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس", "الحي السادس", "الحي السابع", "الحي الثامن", "الحي التاسع"];
 export const DEFAULT_CITY = "برج العرب الجديدة";
 /** City -> its areas. Cities with no areas store the city name as the area. */
@@ -93,6 +98,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   status: r.status as Property["status"],
   updated: r.updated_at,
   isDemo: r.is_demo,
+  finishing: r.finishing ?? undefined,
   featured: r.is_featured,
   brokerId: r.broker_id,
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),

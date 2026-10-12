@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 /** IndexNow key. Not a secret: the protocol publishes it at /<key>.txt so search engines can check we own the site. */
 export const INDEXNOW_KEY = "7c2634d3ce1140f698df0ac7c20553e1";
 
-const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account"];
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account", "/shared-housing"];
 
 export type SiteEntry = { path: string; lastmod?: string };
 
@@ -31,7 +31,15 @@ export async function publicPages(): Promise<SiteEntry[]> {
     collect("malls", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}` })),
     collect("projects", "id,updated_at", (q) => q.eq("review_status", "approved"), (r) => ({ path: `/projects/${r.id}`, lastmod: r.updated_at })),
   ]);
-  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...projects];
+  // Price pages only once they have numbers (empty ones are noindex anyway).
+  const { data: idx } = await (await import("@/integrations/supabase/client")).supabase.rpc("price_index");
+  const totals = (idx ?? []).filter((r) => r.month === null);
+  const prices: SiteEntry[] = totals.length
+    ? [{ path: "/prices" },
+       ...[...new Set(totals.filter((r) => r.kind === "mall").map((r) => r.mall_id))].map((id) => ({ path: `/prices/malls/${id}` })),
+       ...[...new Set(totals.filter((r) => r.kind === "residential").map((r) => r.area))].map((a) => ({ path: `/prices/areas/${encodeURIComponent(a)}` }))]
+    : [];
+  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...projects, ...prices];
 }
 
 export const absoluteUrl = (path: string) => SITE_URL + (path === "/" ? "/" : path);

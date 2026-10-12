@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadImage, type PropertyRow } from "@/components/site/data";
-import { MALL_UNIT_TYPES, fetchMalls } from "@/components/site/malls";
+import { MALL_FLOORS, MALL_UNIT_TYPES, fetchMalls } from "@/components/site/malls";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
@@ -30,6 +30,7 @@ export function MallUnitForm({ brokerId, brokers, initial, onDone, onCancel }: P
   async function save(submit: boolean) {
     const mall = malls.data?.find((m) => m.id === f.mall_id);
     if (f.title.trim().length < 3 || !f.price || !f.size || !mall) { toast.error("أدخل اسم الوحدة والمول والمساحة والسعر"); return; }
+    if (submit && !f.floor) { toast.error("اختار الدور"); return; }
     if (brokers && !f.broker_id) { toast.error("اختر الوسيط المسؤول"); return; }
     setBusy(true);
     const payload = {
@@ -56,7 +57,7 @@ export function MallUnitForm({ brokerId, brokers, initial, onDone, onCancel }: P
         <div className="sm:col-span-2"><Field label="اسم الوحدة"><input className={inputCls} value={f.title} onChange={set("title")} maxLength={150} placeholder="مثال: محل واجهة رئيسية" /></Field></div>
         <Field label="المول"><select className={inputCls} value={f.mall_id} onChange={set("mall_id")}><option value="">اختر المول</option>{malls.data?.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
         <Field label="نوع الوحدة"><select className={inputCls} value={f.type} onChange={set("type")}>{MALL_UNIT_TYPES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="الدور"><input className={inputCls} value={f.floor} onChange={set("floor")} maxLength={50} placeholder="مثال: الأرضي" /></Field>
+        <Field label="الدور"><select className={inputCls} value={f.floor} onChange={set("floor")}><option value="">اختار الدور</option>{[...MALL_FLOORS, ...(f.floor && !MALL_FLOORS.includes(f.floor) ? [f.floor] : [])].map((x) => <option key={x} value={x}>{x}</option>)}</select></Field>
         <Field label="الحالة"><select className={inputCls} value={f.status} onChange={set("status")}><option value="بيع">للبيع</option><option value="إيجار">للإيجار</option></select></Field>
         <Field label="المساحة (م²)"><input className={inputCls} inputMode="decimal" value={f.size} onChange={num("size")} /></Field>
         <Field label="السعر (ج.م)"><input className={inputCls} inputMode="numeric" value={f.price} onChange={num("price")} /></Field>

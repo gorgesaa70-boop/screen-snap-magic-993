@@ -6,7 +6,7 @@ export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", 
 /** Category groups shown on the home page and header. Values are canonical Arabic property types. */
 export const TYPE_GROUPS: Record<string, string[]> = {
   land: ["أرض"],
-  residential: ["شقة", "فيلا", "دوبلكس", "استوديو", "شاليه"],
+  residential: ["شقة", "فيلا", "دوبلكس", "بيت", "عمارة", "استوديو", "شاليه"],
   commercial: ["محل"],
   office: ["مكتب", "عيادة"],
 };

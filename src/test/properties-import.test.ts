@@ -37,3 +37,20 @@ describe("listings import (item 32)", () => {
     expect(sheet(["", "", "", "", "", "", "", "", "", ""]).listings).toHaveLength(0);
   });
 });
+
+describe("listings import: finishing", () => {
+  it("reads the finishing column and ignores it for land", () => {
+    const r = sheet(
+      ["", "شقة", "بيع", "برج العرب الجديدة", "الحي الأول", "900000", "100", "", "", "", "نص تشطيب"],
+      ["", "بيت", "بيع", "برج العرب الجديدة", "الحي الثاني", "2000000", "200", "", "", "", "على الطوب"],
+      ["", "أرض", "بيع", "برج العرب الجديدة", "الحي الثالث", "500000", "300", "", "", "", "كامل"],
+    );
+    expect(r.errors).toEqual([]);
+    expect(r.listings.map((l) => l.finishing)).toEqual(["semi", "skeleton", null]);
+  });
+  it("reports an unknown finishing word", () => {
+    const r = sheet(["", "شقة", "بيع", "برج العرب الجديدة", "الحي الأول", "900000", "100", "", "", "", "فاخر جدا"]);
+    expect(r.listings).toHaveLength(0);
+    expect(r.errors[0]!.message).toContain("التشطيب");
+  });
+});
