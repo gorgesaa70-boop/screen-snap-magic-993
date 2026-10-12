@@ -1,8 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { LangProvider, useLang } from "@/lib/i18n";
+import { LangProvider, useLang, t, getLang } from "@/lib/i18n";
 import {
   Outlet,
-  Link,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -17,25 +16,31 @@ import { Toaster } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
-function NotFoundComponent() {
+/** Shared frame for the 404 and error screens: logo, message, and ways back into the site (Arabic / English). */
+function FallbackScreen({ code, title, text, children }: { code?: string; title: string; text: string; children: ReactNode }) {
+  useEffect(() => { document.title = `${title} | ${t("فاليو عقار")}`; }, [title]);
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+    <div dir={getLang() === "en" ? "ltr" : "rtl"} className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-10 text-center">
+      <a href="/" className="mb-8 text-2xl font-extrabold text-primary">{t("فاليو عقار")} <span className="text-teal">Value Aqar</span></a>
+      <div className="w-full max-w-md rounded-3xl border bg-card p-8 shadow-card">
+        {code && <p className="text-6xl font-extrabold text-primary">{code}</p>}
+        <h1 className="mt-3 text-xl font-extrabold text-primary">{title}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">{children}</div>
       </div>
     </div>
+  );
+}
+const fallbackBtn = "inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground hover:brightness-110";
+const fallbackBtnOutline = "inline-flex h-11 items-center justify-center rounded-xl border border-primary px-5 text-sm font-bold text-primary hover:bg-secondary";
+
+function NotFoundComponent() {
+  return (
+    <FallbackScreen code="404" title={t("الصفحة دي مش موجودة")} text={t("يمكن الرابط اتغيّر أو العقار اتشال. تقدر ترجع للرئيسية أو تتصفح العقارات المتاحة.")}>
+      <a href="/" className={fallbackBtn}>{t("الرئيسية")}</a>
+      <a href="/#properties" className={fallbackBtnOutline}>{t("تصفّح العقارات")}</a>
+      <a href="/#request" className={fallbackBtnOutline}>{t("اطلب عقارك")}</a>
+    </FallbackScreen>
   );
 }
 
@@ -48,33 +53,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
+    <FallbackScreen title={t("الصفحة ما حمّلتش")} text={t("حصل خطأ عندنا واتسجّل عشان نصلّحه. جرّب تاني، أو ارجع للرئيسية.")}>
+      <button type="button" onClick={() => { router.invalidate(); reset(); }} className={fallbackBtn}>{t("جرّب تاني")}</button>
+      <a href="/" className={fallbackBtnOutline}>{t("الرئيسية")}</a>
+    </FallbackScreen>
   );
 }
 

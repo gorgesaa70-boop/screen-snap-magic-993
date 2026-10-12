@@ -644,6 +644,20 @@ const EN: Record<string, string> = {
   "مش لاقيها؟ شوف الـ Spam أو الرسائل غير المرغوب فيها، واستنى دقيقتين.": "Can't find it? Check Spam / Junk and wait a couple of minutes.",
   "هيوصلك إيميل تأكيد. لو عندك رقم موبايل، ضيفه بعدين من «حسابي» عشان تدخل بالاتنين على نفس الحساب.": "You'll get a confirmation email. If you have a mobile number, add it later from “My account” to sign in with both on the same account.",
   "واضغط على رابط التأكيد، وهتدخل على طول.": "and tap the confirmation link — you'll be signed in right away.",
+  // 404 / error screens
+  "الصفحة دي مش موجودة": "This page doesn't exist",
+  "يمكن الرابط اتغيّر أو العقار اتشال. تقدر ترجع للرئيسية أو تتصفح العقارات المتاحة.": "The link may have changed or the listing was removed. Go back home or browse available properties.",
+  "تصفّح العقارات": "Browse properties",
+  "الصفحة ما حمّلتش": "This page didn't load",
+  "حصل خطأ عندنا واتسجّل عشان نصلّحه. جرّب تاني، أو ارجع للرئيسية.": "Something went wrong on our side and it was logged so we can fix it. Try again, or go back home.",
+  // Password reset
+  "تعيين كلمة مرور جديدة": "Set a new password",
+  "الصفحة دي بتشتغل من الرابط اللي بيوصلك على الإيميل. الرابط ده مش موجود أو انتهى — اطلب رابط جديد.": "This page works from the link we email you. The link is missing or expired — request a new one.",
+  "اطلب رابط جديد": "Request a new link",
+  "كلمة السر الجديدة (8 حروف أو أرقام على الأقل)": "New password (at least 8 characters)",
+  "انتهت صلاحية الرابط، اطلب رابطًا جديدًا": "The link expired — request a new one",
+  "تم حفظ كلمة المرور": "Password saved",
+  "حفظ": "Save",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */

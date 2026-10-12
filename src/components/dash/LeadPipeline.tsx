@@ -172,7 +172,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
     setBusy(true);
     let doc: Awaited<ReturnType<typeof prepareDocument>>;
     try { doc = await prepareDocument(file); } catch (err) { setBusy(false); toast.error(uploadErrorMessage(err)); return; }
-    const path = `${deal.id}/${Date.now()}-${doc.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
+    const path = `${deal.id}/${Date.now()}-${doc.name.replace(/[^\w.-]+/g, "_").slice(-80)}`;
     const up = await supabase.storage.from("deal-docs").upload(path, doc.body, { contentType: doc.type });
     if (up.error) { setBusy(false); toast.error(uploadErrorMessage(up.error)); return; }
     const { data: u } = await supabase.auth.getUser();
