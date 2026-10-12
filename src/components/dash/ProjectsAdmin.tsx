@@ -7,6 +7,9 @@ import { dbx } from "@/lib/dbx";
 import { REVIEW, formatPrice, type BrokerRow } from "@/components/site/data";
 import { projectCover } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";
+import { useState } from "react";
+import { FileSpreadsheet } from "lucide-react";
+import { ProjectsImport } from "@/components/dash/ProjectsImport";
 
 /** Admin view of every project: approve hidden ones, hide with a note, or feature. */
 export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
@@ -22,9 +25,14 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
     if (error) toast.error(error.message); else { toast.success(msg); q.refetch(); }
   };
   const list = q.data ?? [];
-  if (!q.isLoading && list.length === 0) return <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد مشروعات بعد. شركات التطوير المعتمدة تضيف مشروعاتها من لوحتها.</p>;
+  const [importing, setImporting] = useState(false);
+  const developers = brokers.filter((b) => b.account_type === "developer" && b.is_active).map((b) => ({ id: b.id, name: b.name }));
+  if (importing) return <ProjectsImport developers={developers} onCancel={() => setImporting(false)} onDone={() => { setImporting(false); q.refetch(); }} />;
+  const importBtn = developers.length > 0 && <button onClick={() => setImporting(true)} className={btnOutline}><FileSpreadsheet className="size-4" />رفع كمبوندات من Excel</button>;
+  if (!q.isLoading && list.length === 0) return <div className="space-y-3">{importBtn}<p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد مشروعات بعد. شركات التطوير المعتمدة تضيف مشروعاتها من لوحتها.</p></div>;
   return (
     <div className="space-y-3">
+      {importBtn}
       {list.map((p) => {
         const dev = brokers.find((b) => b.id === p.developer_id);
         return (
