@@ -197,6 +197,13 @@
       "when": 1791837607894,
       "tag": "0027_release_15_admin_review_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791837622715,
+      "tag": "0028_release_16_price_index",
+      "breakpoints": true
     }
   ]
 }
