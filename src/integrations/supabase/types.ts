@@ -420,6 +420,58 @@ export type Database = {
           },
         ]
       }
+      lead_assignments: {
+        Row: {
+          broker_id: string | null
+          changed_by: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          member_id: string | null
+          staff_id: string | null
+        }
+        Insert: {
+          broker_id?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          member_id?: string | null
+          staff_id?: string | null
+        }
+        Update: {
+          broker_id?: string | null
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          member_id?: string | null
+          staff_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_assignments_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_assignments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           area: string | null
@@ -431,6 +483,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           details: string | null
+          first_broker_id: string | null
+          first_referred_at: string | null
           follow_up_at: string | null
           id: string
           kind: string
@@ -445,6 +499,7 @@ export type Database = {
           property_id: string | null
           property_type: string | null
           purpose: string | null
+          referred_at: string | null
           size_m2: number | null
           source: string
           source_note: string | null
@@ -463,6 +518,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           details?: string | null
+          first_broker_id?: string | null
+          first_referred_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -477,6 +534,7 @@ export type Database = {
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
+          referred_at?: string | null
           size_m2?: number | null
           source?: string
           source_note?: string | null
@@ -495,6 +553,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           details?: string | null
+          first_broker_id?: string | null
+          first_referred_at?: string | null
           follow_up_at?: string | null
           id?: string
           kind?: string
@@ -509,6 +569,7 @@ export type Database = {
           property_id?: string | null
           property_type?: string | null
           purpose?: string | null
+          referred_at?: string | null
           size_m2?: number | null
           source?: string
           source_note?: string | null
@@ -530,6 +591,13 @@ export type Database = {
             columns: ["assigned_member_id"]
             isOneToOne: false
             referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_first_broker_id_fkey"
+            columns: ["first_broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
             referencedColumns: ["id"]
           },
           {
@@ -1174,6 +1242,18 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: never; Returns: boolean }
+      lead_alerts: {
+        Args: never
+        Returns: {
+          broker_name: string
+          detail: string
+          happened_at: string
+          kind: string
+          lead_id: string
+          lead_name: string
+          lead_no: number
+        }[]
+      }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
