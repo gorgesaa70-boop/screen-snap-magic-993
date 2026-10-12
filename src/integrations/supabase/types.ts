@@ -2358,6 +2358,7 @@ export type Database = {
         }[]
       }
       owned_company_id: { Args: never; Returns: string }
+      prepare_account_deletion: { Args: { _uid: string }; Returns: string }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }

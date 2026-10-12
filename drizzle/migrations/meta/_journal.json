@@ -162,6 +162,13 @@
       "when": 1791764236587,
       "tag": "0022_demo_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791764250032,
+      "tag": "0023_account_deletion",
+      "breakpoints": true
     }
   ]
 }
