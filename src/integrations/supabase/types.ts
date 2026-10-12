@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor: string | null
+          actor_label: string | null
+          at: string
+          changes: Json
+          id: number
+          row_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          actor_label?: string | null
+          at?: string
+          changes?: Json
+          id?: never
+          row_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          actor_label?: string | null
+          at?: string
+          changes?: Json
+          id?: never
+          row_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       auth_events: {
         Row: {
           created_at: string
@@ -1393,6 +1426,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      actor_label: { Args: never; Returns: string }
       admin_exists: { Args: never; Returns: boolean }
       agreement_for: {
         Args: { _broker: string; _on: string }
