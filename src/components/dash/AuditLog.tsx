@@ -8,6 +8,17 @@ const TABLES: Record<string, string> = {
   deal_documents: "مستندات الصفقات", commissions: "العمولات", commission_payments: "دفعات العمولات", company_agreements: "اتفاقيات العمولة",
   app_settings: "إعدادات التطبيق", plans: "الباقات", subscriptions: "الاشتراكات", properties: "العقارات", projects: "المشروعات",
 };
+/** Arabic names for the columns that change most; anything else shows its database name. */
+const FIELDS: Record<string, string> = {
+  is_active: "مفعّل", suspended: "موقوف", plan_id: "الباقة", account_type: "نوع الحساب", show_contact: "إظهار التواصل", name: "الاسم", phone: "التليفون",
+  whatsapp: "واتساب", email: "البريد", facebook: "فيسبوك", bio: "النبذة", photo_url: "الصورة", specialty: "التخصص", areas: "مناطق العمل",
+  stage: "المرحلة", assigned_broker_id: "الشركة المسؤولة", assigned_member_id: "الموظف المسؤول", follow_up_at: "موعد المتابعة", notes: "الملاحظات",
+  first_response_at: "وقت أول تواصل", first_response_by: "أول تواصل بواسطة", first_response_outcome: "نتيجة التواصل", transfer_deadline_at: "آخر موعد للرد",
+  referred_at: "وقت الإسناد", admin_queue_at: "دخل طابور الإدارة", title: "العنوان", description: "الوصف", price: "السعر", price_unit: "وحدة السعر",
+  status: "الحالة", review_status: "حالة المراجعة", review_note: "سبب الرفض", is_featured: "مميز", images: "الصور", role: "الدور", amount: "المبلغ",
+  sale_value: "قيمة البيع", value: "القيمة",
+};
+const field = (k: string) => FIELDS[k] ?? k;
 const ACTIONS: Record<string, string> = { insert: "إضافة", update: "تعديل", delete: "حذف" };
 const PAGE = 100;
 
@@ -64,14 +75,14 @@ export function AuditLog() {
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.action === "delete" ? "bg-destructive/10 text-destructive" : r.action === "insert" ? "bg-teal-soft text-primary" : "bg-secondary text-primary"}`}>{ACTIONS[r.action] ?? r.action}</span>
                 <span className="font-bold text-primary">{TABLES[r.table_name] ?? r.table_name}</span>
                 <span className="text-foreground/80">{r.actor_label ?? "—"}</span>
-                {r.action === "update" && <span className="text-xs text-muted-foreground">{Object.keys(r.changes).join("، ")}</span>}
+                {r.action === "update" && <span className="text-xs text-muted-foreground">{Object.keys(r.changes).map(field).join("، ")}</span>}
               </summary>
               <div className="mt-2 space-y-1 border-t pt-2 text-xs" dir="ltr">
                 <p className="text-muted-foreground">{r.table_name} / {r.row_id}</p>
                 {r.action === "update"
                   ? Object.entries(r.changes).map(([k, v]) => {
                       const [o, n] = Array.isArray(v) ? v : [undefined, v];
-                      return <p key={k}><b>{k}</b>: <span className="text-destructive line-through">{show(o)}</span> → <span className="font-semibold text-primary">{show(n)}</span></p>;
+                      return <p key={k}><b>{field(k)}</b> <span className="text-muted-foreground">({k})</span>: <span className="text-destructive line-through">{show(o)}</span> → <span className="font-semibold text-primary">{show(n)}</span></p>;
                     })
                   : <pre className="whitespace-pre-wrap break-all text-foreground/80">{JSON.stringify(r.changes, null, 1)}</pre>}
               </div>

@@ -20,6 +20,8 @@ type Scope = { seeAll: boolean; isAdmin: boolean; companyId: string | null };
 type Period = "month" | "3m" | "year" | "all" | "custom";
 const ORDER = ["new", "contacted", "qualified", "visit_scheduled", "visited", "reserved", "contracted", "sold"];
 const REACHED = (stage: string, step: string) => ORDER.indexOf(stage) >= ORDER.indexOf(step);
+/** Really contacted: a "reached"/"callback" outcome was logged, or the lead moved to "contacted" or later. One rule for every report. */
+const CONTACTED = (l: { stage: string; first_response_at: string | null }) => !!l.first_response_at || REACHED(l.stage, "contacted");
 const money = (n: number) => `${formatPrice(Math.round(n))} ج.م`;
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
 const month = (d: string) => d.slice(0, 7);
@@ -206,8 +208,8 @@ export function Reports({ scope }: { scope: Scope }) {
         <Stat label="إيرادات فاليو عقار (محصّلة)" value={money(collected)} hint="دفعات العمولات في الفترة" />
         <Stat label="عمولات اتعتمدت" value={money(approvedComm)} />
         <Stat label="متبقي للتحصيل" value={money(outstanding)} hint={overdue ? `منها ${money(overdue)} متأخرة` : undefined} />
-        <Stat label="اتواصلوا فعليًا" value={L.filter((l) => l.first_response_at).length} hint="نتيجة «رد» أو «طلب نكلمه تاني» أو مرحلة تم التواصل" />
-        <Stat label="ما ردوش لسه" value={L.filter((l) => noAnswer.has(l.id) && !l.first_response_at).length} hint="سجّلوا «ما ردش» ومفيش تواصل فعلي" />
+        <Stat label="اتواصلوا فعليًا" value={L.filter(CONTACTED).length} hint="نتيجة «رد» أو «طلب نكلمه تاني» أو مرحلة تم التواصل" />
+        <Stat label="ما ردوش لسه" value={L.filter((l) => noAnswer.has(l.id) && !CONTACTED(l)).length} hint="سجّلوا «ما ردش» ومفيش تواصل فعلي" />
         {scope.seeAll && <Stat label="اتنقلوا بسبب المهلة" value={timedOut.size} hint={`متوسط ${avgCompanies} شركة لكل عميل اتوزّع`} />}
         {scope.seeAll && <Stat label="في طابور الإدارة دلوقتي" value={d.leads.filter((l) => l.admin_queue_at && !l.assigned_broker_id).length} />}
         {scope.seeAll
@@ -256,7 +258,7 @@ export function Reports({ scope }: { scope: Scope }) {
       {tab === "sources" && (
         <Table name="lead-sources" head={["المصدر", "العملاء", "اتواصل معاهم", "زيارات", "حجز أو أكتر", "بيع مؤكد", "التحويل", "لم يكتمل"]}
           rows={group(L, (l) => l.source).sort((a, b) => b[1].length - a[1].length).map(([s, ls]) => [
-            LEAD_SOURCES[s] ?? s, ls.length, ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => REACHED(l.stage, "visited")).length,
+            LEAD_SOURCES[s] ?? s, ls.length, ls.filter((l) => CONTACTED(l)).length, ls.filter((l) => REACHED(l.stage, "visited")).length,
             ls.filter((l) => REACHED(l.stage, "reserved")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length), ls.filter((l) => l.stage === "lost").length,
           ])} />
       )}
@@ -265,7 +267,7 @@ export function Reports({ scope }: { scope: Scope }) {
           <h3 className="mb-2 font-extrabold text-primary">الحملات الإعلانية</h3>
           <Table name="lead-campaigns" head={["الحملة", "المصدر", "العملاء", "اتواصل معاهم", "زيارات", "بيع مؤكد", "التحويل"]}
             rows={group(L.filter((l) => l.campaign), (l) => `${l.campaign}|${l.source}`).sort((a, b) => b[1].length - a[1].length).map(([k, ls]) => [
-              k.slice(0, k.lastIndexOf("|")), LEAD_SOURCES[ls[0]!.source] ?? ls[0]!.source, ls.length, ls.filter((l) => REACHED(l.stage, "contacted")).length,
+              k.slice(0, k.lastIndexOf("|")), LEAD_SOURCES[ls[0]!.source] ?? ls[0]!.source, ls.length, ls.filter((l) => CONTACTED(l)).length,
               ls.filter((l) => REACHED(l.stage, "visited")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
             ])} />
         </div>
@@ -276,7 +278,7 @@ export function Reports({ scope }: { scope: Scope }) {
           rows={group(L.filter((l) => l.assigned_broker_id), (l) => l.assigned_broker_id!).map(([id, ls]) => {
             const ds = view.sales.filter((x) => x.broker_id === id);
             const cs = view.comms.filter((c) => c.broker_id === id && !["expected", "pending_review", "cancelled"].includes(c.status));
-            return [nameOf(id), ls.length, ...response(ls), d.periods.filter((x) => x.broker_id === id && x.end_reason === "timeout" && view.inRange(x.created_at)).length, ls.filter((l) => REACHED(l.stage, "contacted")).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
+            return [nameOf(id), ls.length, ...response(ls), d.periods.filter((x) => x.broker_id === id && x.end_reason === "timeout" && view.inRange(x.created_at)).length, ls.filter((l) => CONTACTED(l)).length, ls.filter((l) => l.stage === "sold").length, pct(ls.filter((l) => l.stage === "sold").length, ls.length),
               money(ds.reduce((s, x) => s + Number(x.sale_value ?? 0), 0)), money(cs.reduce((s, c) => s + Number(c.expected_amount ?? 0), 0)),
               money(cs.reduce((s, c) => s + Number(c.paid_amount), 0)), money(cs.reduce((s, c) => s + remaining(c), 0))];
           }).sort((a, b) => Number(b[1]) - Number(a[1]))} />

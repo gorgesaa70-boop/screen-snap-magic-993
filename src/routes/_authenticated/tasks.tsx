@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
-import { NewTask, TaskItems, useAssignable, type TaskRow } from "@/components/dash/Tasks";
+import { NewTask, TaskItems, usePersonName, type TaskRow } from "@/components/dash/Tasks";
 import { Stat } from "@/components/site/ui";
 import { CLOSED_STAGES, STAGES, leadNo } from "@/components/site/data";
 
@@ -39,7 +39,7 @@ function TasksPage() {
     queryKey: ["tasks-all"], enabled: allowed,
     queryFn: async () => (await fetchAll((a, b) => supabase.from("tasks").select("*, leads(name, lead_no)").order("due_at", { nullsFirst: false }).order("id").range(a, b))) as TaskRow[],
   });
-  const people = useAssignable();
+  const personName = usePersonName(user?.id);
 
   const { today, overdue, visits } = useMemo(() => {
     const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -109,7 +109,7 @@ function TasksPage() {
             <div className="mb-3 flex flex-wrap gap-2">
               {byPerson.map(([id, s]) => (
                 <span key={id} className={`rounded-full px-3 py-1 text-xs font-bold ${s.late ? "bg-destructive/10 text-destructive" : "bg-secondary text-primary"}`}>
-                  {people.data?.find((p) => p.user_id === id)?.label ?? "عضو"}: {s.open} مفتوحة{s.late ? ` · ${s.late} متأخرة` : ""}
+                  {personName(id)}: {s.open} مفتوحة{s.late ? ` · ${s.late} متأخرة` : ""}
                 </span>
               ))}
             </div>

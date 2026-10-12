@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,7 +19,8 @@ import { MyProjects } from "@/components/dash/MyProjects";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, leadNo, ACCOUNT_LABEL, AREAS, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { AreaPicker } from "@/components/site/AreaPicker";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "لوحة التحكم | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -32,21 +33,16 @@ function Dashboard() {
 
   if (!me.broker) {
     if (!me.isAdmin && !me.isStaff && me.adminExists) return <CustomerHome />;
+    if (me.isAdmin) return <Navigate to="/admin" replace />;
     return (
       <DashShell title="لوحة التحكم" isAdmin={me.isAdmin}>
         <div className="max-w-lg rounded-2xl border bg-card p-6">
-          {me.isStaff && !me.isAdmin ? (
+          {me.isStaff ? (
             <>
               <ShieldCheck className="size-10 text-teal" />
               <p className="mt-3 font-bold text-primary">أنت في فريق فاليو عقار.</p>
               <p className="mt-2 text-sm text-muted-foreground">تقدر تتابع كل طلبات العملاء وتوزّعها على الوسطاء والشركات.</p>
               <Link to="/inquiries" className={`${btnPrimary} mt-5`}>طلبات العملاء</Link>
-            </>
-          ) : me.isAdmin ? (
-            <>
-              <ShieldCheck className="size-10 text-teal" />
-              <p className="mt-3 font-bold text-primary">أنت مسجّل كمدير للمنصة.</p>
-              <Link to="/admin" className={`${btnPrimary} mt-5`}>الذهاب للوحة الإدارة</Link>
             </>
           ) : !me.adminExists ? (
             <>
@@ -191,7 +187,7 @@ function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: str
               {p.hidden_by_plan && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive" title="باقتك انتهت والعقار ده زيادة عن حد الباقة المجانية — بيرجع يظهر لما تجدد">مخفي — جدّد باقتك</span>}
             </div>
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
-            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م · {p.type} · {p.area}</p>
+            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`}</p>
             {p.review_status === "rejected" && p.review_note && <p className="mt-1 text-xs text-destructive">{p.review_note}</p>}
           </div>
           <div className="flex gap-2">
@@ -296,11 +292,7 @@ function ProfileForm({ broker }: { broker: BrokerRow }) {
       <Field label="نبذة تعريفية"><textarea className={`${inputCls} h-28 py-2`} value={f.bio} onChange={set("bio")} maxLength={2000} /></Field>
       <div>
         <p className="mb-2 text-sm font-bold text-primary">مناطق العمل</p>
-        <div className="flex flex-wrap gap-2">
-          {AREAS.map((a) => { const on = f.areas.includes(a); return (
-            <button key={a} type="button" onClick={() => setF({ ...f, areas: on ? f.areas.filter((x) => x !== a) : [...f.areas, a] })} className={`h-10 rounded-full border px-4 text-sm font-bold transition ${on ? "border-primary bg-primary text-primary-foreground" : "bg-card text-primary hover:border-teal"}`}>{a}</button>
-          ); })}
-        </div>
+        <AreaPicker value={f.areas} onChange={(areas) => setF({ ...f, areas })} />
       </div>
       <button disabled={busy} onClick={save} className={btnPrimary}>حفظ التغييرات</button>
     </div>

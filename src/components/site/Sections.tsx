@@ -1,3 +1,4 @@
+import { cleanPhone } from "@/lib/phone";
 import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, AREAS, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, WHATSAPP_NUMBER, TYPES_FOR, CITIES, CITY_NAMES, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
@@ -250,15 +251,15 @@ export function RequestCTA() {
 
 function RequestForm() {
   useLang();
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", property_type: "", area: "", budget: "", details: "" });
+  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", property_type: "", city: "", area: "", budget: "", details: "" });
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
+    if (f.name.trim().length < 2 || !cleanPhone(f.phone)) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: f.phone.trim(), kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, original_source: "website", utm: getAttribution() });
+    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: cleanPhone(f.phone)!, kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: f.area || f.city || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, original_source: "website", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(tr("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(true);
@@ -274,8 +275,9 @@ function RequestForm() {
             className={`h-10 rounded-xl border text-sm font-bold transition ${f.purpose === v ? "border-teal bg-teal/10 text-primary" : "text-muted-foreground hover:border-teal/50"}`}>{tr(l)}</button>
         ))}
       </div>
-      <select className={inputCls} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
-      <select className={inputCls} value={f.area} onChange={set("area")}><option value="">{tr("المنطقة")}</option>{AREAS.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
+      <select className={`${inputCls} sm:col-span-2`} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
+      <select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: "" })} aria-label={tr("المدينة")}><option value="">{tr("المدينة")}</option>{CITY_NAMES.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
+      <select className={inputCls} value={f.area} onChange={set("area")} aria-label={tr("المنطقة")} disabled={!CITIES[f.city]?.length}><option value="">{tr("المنطقة")}</option>{(CITIES[f.city] ?? []).map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
       <input className={`${inputCls} sm:col-span-2`} placeholder={tr(f.purpose === "rent" ? "الميزانية الشهرية (ج.م)" : f.purpose === "summer" ? "الميزانية لليلة (ج.م)" : "الميزانية (ج.م)")} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} />
       <textarea className={`${inputCls} h-20 py-2 sm:col-span-2`} placeholder={tr("تفاصيل إضافية")} value={f.details} onChange={set("details")} maxLength={1000} />
       <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? tr("بيتبعت...") : tr("ابعت طلبك")} <ArrowLeft className="size-4" /></button>

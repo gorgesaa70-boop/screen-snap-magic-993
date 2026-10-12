@@ -4,7 +4,7 @@
  * filters that exist in the residential search (Filters) are returned.
  * No SQL or query text is ever produced from model output.
  */
-import { TYPES, AREAS } from "@/components/site/data";
+import { TYPES, ALL_AREAS } from "@/components/site/data";
 import type { Filters } from "@/components/site/search";
 
 export const STATUSES = ["بيع", "إيجار"] as const;
@@ -76,7 +76,7 @@ export function validateParsed(raw: unknown): ParsedSearch {
   const filters: Filters = {
     type: category === "industrial" ? "" : matchAllowed(r.type, TYPES),
     status: matchAllowed(r.status, STATUSES),
-    area: category === "industrial" ? "" : matchAllowed(r.area, AREAS),
+    area: category === "industrial" ? "" : matchAllowed(r.area, ALL_AREAS),
     min: min === null ? "" : String(min),
     max: max === null ? "" : String(max),
   };

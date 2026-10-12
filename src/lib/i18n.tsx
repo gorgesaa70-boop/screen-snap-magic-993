@@ -183,6 +183,14 @@ const EN: Record<string, string> = {
   "داون تاون": "Downtown",
   "الأبراج الشاطئية": "Beach Towers",
   "الحي السكني": "Residential District",
+  "سيدي عبد الرحمن": "Sidi Abdel Rahman",
+  "رأس الحكمة": "Ras El Hekma",
+  "الضبعة": "El Dabaa",
+  "مراسي": "Marassi",
+  "الحمام": "El Hammam",
+  "العلمين القديمة": "Old Alamein",
+  "مرسى مطروح": "Marsa Matrouh",
+  "إلغاء الكل": "Clear all",
 
   // Account labels
   "وسيط عقاري": "Real estate broker",

@@ -1,3 +1,4 @@
+import { cleanPhone } from "@/lib/phone";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -126,9 +127,9 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
   const [done, setDone] = useState(false);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(phone.trim())) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
+    if (name.trim().length < 2 || !cleanPhone(phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: phone.trim(), details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry", original_source: "website", utm: getAttribution() });
+    const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: cleanPhone(phone)!, details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry", original_source: "website", utm: getAttribution() });
     setBusy(false);
     if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);

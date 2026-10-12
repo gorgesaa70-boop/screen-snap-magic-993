@@ -1,3 +1,4 @@
+import { cleanPhone } from "@/lib/phone";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,9 +31,9 @@ export function CompanyTeam({ companyId }: { companyId: string }) {
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    if (f.name.trim().length < 2 || !/^[0-9+\s]{8,20}$/.test(f.phone.trim())) { toast.error("اكتب الاسم ورقم موبايل صحيح"); return; }
+    if (f.name.trim().length < 2 || !cleanPhone(f.phone)) { toast.error("اكتب الاسم ورقم موبايل صحيح"); return; }
     setBusy(true);
-    const { error } = await db.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: f.phone.trim(), role: f.role });
+    const { error } = await db.from("company_members").insert({ company_id: companyId, name: f.name.trim(), phone: cleanPhone(f.phone)!, role: f.role });
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? "الرقم ده مضاف بالفعل لفريق شركة" : error.message); return; }
     toast.success("تمت الإضافة — يقدر يدخل برقمه دلوقتي");

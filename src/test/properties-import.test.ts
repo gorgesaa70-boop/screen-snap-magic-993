@@ -10,8 +10,13 @@ describe("listings import (item 32)", () => {
     expect(r.listings[0]).toMatchObject({ row: 2, type: "شقة", status: "بيع", city: "برج العرب الجديدة", area: "الحي الأول", price: 1500000, size: 120, rooms: 3, title: "شقة للبيع في الحي الأول" });
   });
   it("cities without districts use the city as the area", () => {
-    const r = sheet(["شاليه على البحر", "شاليه", "مصيف", "الساحل الشمالي", "", "3000", "", "", "", ""]);
-    expect(r.listings[0]).toMatchObject({ area: "الساحل الشمالي", status: "مصيف", size: 0, title: "شاليه على البحر" });
+    const r = sheet(["شقة قريبة من الطريق", "شقة", "بيع", "كينج مريوط", "", "3000", "", "", "", ""]);
+    expect(r.listings[0]).toMatchObject({ area: "كينج مريوط", status: "بيع", size: 0, title: "شقة قريبة من الطريق" });
+  });
+  it("North Coast listings need one of its areas", () => {
+    const ok = sheet(["شاليه على البحر", "شاليه", "مصيف", "الساحل الشمالي", "مراسي", "3000", "", "", "", ""]);
+    expect(ok.listings[0]).toMatchObject({ area: "مراسي", status: "مصيف" });
+    expect(sheet(["شاليه", "شاليه", "مصيف", "الساحل الشمالي", "", "3000", "", "", "", ""]).listings).toHaveLength(0);
   });
   it("reports every problem with the sheet row number", () => {
     const r = sheet(

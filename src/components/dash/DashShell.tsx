@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Logo } from "@/components/site/Navbar";
 import { logAuthEvent } from "@/components/auth/PhoneOtp";
 import { NotificationBell } from "@/components/site/NotificationBell";
+import { useMe } from "@/hooks/useAuth";
 
 const linkCls = "shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary";
 const activeCls = { className: "text-primary bg-secondary" };
@@ -14,6 +15,9 @@ const activeCls = { className: "text-primary bg-secondary" };
 export function DashShell({ title, children, isAdmin, customer }: { title: string; children: ReactNode; isAdmin?: boolean; customer?: boolean }) {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const { me } = useMe();
+  // An admin with no broker account has nothing on /dashboard (it sends them to /admin), so the link is hidden.
+  const adminOnly = !!me?.isAdmin && !me.broker;
   async function signOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -37,7 +41,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
                 <a href="/" className={linkCls}>تصفّح العقارات</a>
               </>
             ) : (<>
-            <Link to="/dashboard" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>لوحتي</Link>
+            {!adminOnly && <Link to="/dashboard" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>لوحتي</Link>}
             {isAdmin && <Link to="/admin" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الإدارة</Link>}
             <Link to="/tasks" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>متابعاتي</Link>
             <Link to="/inquiries" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العملاء والطلبات</Link>

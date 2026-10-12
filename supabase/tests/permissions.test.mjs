@@ -844,4 +844,12 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("deal papers: visitors (not signed in) can't", () => as(null, `select name from storage.objects where bucket_id='deal-docs'`), (r) => r.length === 0);
   await expectOk("payment proofs: admin and the company owner can open them", async () => [await seesDoc(U.admin, "commission-docs"), await seesDoc(U.owner, "commission-docs")], (r) => r[0] === 1 && r[1] === 1);
   await expectOk("payment proofs: outsiders, sales staff and other companies can't", async () => [await seesDoc(U.outsider, "commission-docs"), await seesDoc(U.sales, "commission-docs"), await seesDoc(U.dev, "commission-docs")], (r) => r.every((n) => n === 0));
+  console.log("\nAdmin review fixes");
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  const ownerLead = (await sys(`insert into public.leads (name, phone, kind) values ('محمد المالك','01012340000','request') returning id`))[0].id;
+  const offer = (await sys(`insert into public.properties (title, price, type, area, status, review_status, owner_lead_id) values ('دوبلكس مالك',1,'دوبلكس','مراسي','بيع','pending','${ownerLead}') returning id`))[0].id;
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("owner offer: admins told it came from an owner, with the owner name", () => sys(`select title, message from public.notifications where user_id='${U.admin}' and related_id='${offer}'`), (r) => r.length === 1 && r[0].title === "عرض عقار جديد من مالك" && r[0].message.includes("محمد المالك"));
+  await expectOk("broker listing waiting for review still says it came from a broker", async () => { const id = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${DEV}','شقة وسيط',1,'شقة','الحي الأول','بيع','pending') returning id`))[0].id; return sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${id}'`); }, (r) => r.length === 1 && r[0].title === "طلب عقار جديد من وسيط");
+  await expectOk("audit: a change with no user and no visitor session is labelled النظام", async () => { await sys(`update public.leads set notes='migration' where id='${ownerLead}'`); return sys(`select actor_label from public.audit_log where table_name='leads' and row_id='${ownerLead}' and action='update' order by id desc limit 1`); }, (r) => r[0]?.actor_label === "النظام");
 }
