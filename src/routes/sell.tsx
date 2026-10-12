@@ -9,6 +9,7 @@ import { getAttribution } from "@/lib/attribution";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { t, useLang } from "@/lib/i18n";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -55,7 +56,7 @@ async function compressPhoto(file: File): Promise<{ b64: string; preview: string
 
 /** Egyptian mobile -> 20XXXXXXXXXX, or null. */
 function egPhone(raw: string) {
-  let d = raw.replace(/\D/g, "");
+  let d = raw.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   if (d.startsWith("0020")) d = d.slice(2);
   if (d.startsWith("20")) d = d.slice(2);
   if (d.startsWith("0")) d = d.slice(1);
@@ -101,7 +102,7 @@ function SellForm() {
   const [resendIn, setResendIn] = useState(0);
   const codeRef = useRef<HTMLInputElement>(null);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  const digits = (k: "price" | "size" | "rooms" | "baths", max = 13) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(/\D/g, "").slice(0, max) });
+  const digits = (k: "price" | "size" | "rooms" | "baths", max = 13) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, max) });
 
   async function addPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])].filter((x) => x.type.startsWith("image/"));
@@ -178,7 +179,7 @@ function SellForm() {
         <p className="text-sm text-foreground/80">{t("بعتنالك رمز من 6 أرقام على واتساب للرقم")} <span dir="ltr" className="font-bold">+{phone}</span></p>
         <Field label={t("رمز التحقق")}>
           <input ref={codeRef} className={`${inputCls} text-center text-lg tracking-[0.5em]`} dir="ltr" inputMode="numeric" autoComplete="one-time-code"
-            value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} disabled={busy} />
+            value={code} onChange={(e) => setCode(e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 6))} disabled={busy} />
         </Field>
         <button disabled={busy || code.length !== 6} className={`${btnTeal} w-full`}>{busy ? t("بيتبعت...") : t("تأكيد وإرسال")}</button>
         <div className="flex items-center justify-between text-sm">
@@ -225,10 +226,10 @@ function SellForm() {
         <input className={inputCls} inputMode="numeric" dir="ltr" value={f.size} onChange={digits("size")} placeholder="120" />
       </Field>
       <Field label={f.purpose === "sale" ? t("السعر المطلوب (ج.م)") : f.purpose === "rent" ? t("الإيجار الشهري (ج.م)") : t("السعر (ج.م)")}>
-        <div className="flex gap-2">
-          <input className={inputCls} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} required />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input className={`${inputCls} min-w-0 text-lg sm:flex-1`} inputMode="numeric" dir="ltr" value={f.price} onChange={digits("price")} placeholder={f.purpose === "summer" ? "1500" : f.purpose === "rent" ? "8000" : "1500000"} required />
           {f.purpose === "summer" && (
-            <select aria-label={t("السعر لكل")} className={`${inputCls} w-36 shrink-0`} value={f.price_unit} onChange={(e) => setF({ ...f, price_unit: e.target.value as typeof f.price_unit })}>
+            <select aria-label={t("السعر لكل")} className={`${inputCls} sm:w-40 sm:shrink-0`} value={f.price_unit} onChange={(e) => setF({ ...f, price_unit: e.target.value as typeof f.price_unit })}>
               <option value="night">{t("الليلة")}</option><option value="week">{t("الأسبوع")}</option><option value="month">{t("الشهر")}</option><option value="season">{t("الموسم")}</option>
             </select>
           )}

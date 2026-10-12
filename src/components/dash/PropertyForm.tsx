@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES_FOR, FURNISHED_LABEL, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
 
@@ -82,33 +83,34 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Field label="عنوان الإعلان"><input className={inputCls} value={f.title} onChange={set("title")} maxLength={150} /></Field></div>
         <Field label="الغرض"><select className={inputCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value, type: TYPES_FOR[e.target.value]!.includes(f.type) ? f.type : TYPES_FOR[e.target.value]![0]! })}><option value="بيع">بيع</option><option value="إيجار">إيجار شهري</option><option value="مصيف">مصيف (يومي / أسبوعي / موسم)</option></select></Field>
-        {!summer && <Field label={f.status === "إيجار" ? "الإيجار الشهري (ج.م)" : "السعر (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(/\D/g, "") })} /></Field>}
+        {!summer && <Field label={f.status === "إيجار" ? "الإيجار الشهري (ج.م)" : "السعر (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>}
         <Field label="النوع"><select className={inputCls} value={f.type} onChange={set("type")}>{TYPES_FOR[f.status]!.map((t) => <option key={t}>{t}</option>)}</select></Field>
         {summer && (
-          <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-4">
-            <Field label="سعر الليلة"><input className={inputCls} inputMode="numeric" value={f.price_night} onChange={(e) => setF({ ...f, price_night: e.target.value.replace(/\D/g, "") })} /></Field>
-            <Field label="سعر الأسبوع"><input className={inputCls} inputMode="numeric" value={f.price_week} onChange={(e) => setF({ ...f, price_week: e.target.value.replace(/\D/g, "") })} /></Field>
-            <Field label="سعر الشهر"><input className={inputCls} inputMode="numeric" value={f.price_month} onChange={(e) => setF({ ...f, price_month: e.target.value.replace(/\D/g, "") })} /></Field>
-            <Field label="سعر الموسم كله"><input className={inputCls} inputMode="numeric" value={f.price_season} onChange={(e) => setF({ ...f, price_season: e.target.value.replace(/\D/g, "") })} /></Field>
+          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+            <p className="text-xs font-semibold text-muted-foreground sm:col-span-2">أسعار المصيف (ج.م) — اكتب سعر واحد على الأقل، والباقي اختياري:</p>
+            <Field label="سعر الليلة"><input className={`${inputCls} text-lg`} inputMode="numeric" dir="ltr" value={f.price_night} onChange={(e) => setF({ ...f, price_night: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+            <Field label="سعر الأسبوع"><input className={`${inputCls} text-lg`} inputMode="numeric" dir="ltr" value={f.price_week} onChange={(e) => setF({ ...f, price_week: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+            <Field label="سعر الشهر"><input className={`${inputCls} text-lg`} inputMode="numeric" dir="ltr" value={f.price_month} onChange={(e) => setF({ ...f, price_month: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+            <Field label="سعر الموسم كله"><input className={`${inputCls} text-lg`} inputMode="numeric" dir="ltr" value={f.price_season} onChange={(e) => setF({ ...f, price_season: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
           </div>
         )}
         {rent && (
           <div className="grid grid-cols-2 gap-3 sm:col-span-2 sm:grid-cols-4">
             <Field label="الفرش"><select className={inputCls} value={f.furnished} onChange={set("furnished")}><option value="">—</option>{Object.entries(FURNISHED_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
             {summer
-              ? <Field label="عدد الأفراد"><input className={inputCls} inputMode="numeric" value={f.guests} onChange={(e) => setF({ ...f, guests: e.target.value.replace(/\D/g, "") })} /></Field>
-              : <Field label="أقل مدة (شهور)"><input className={inputCls} inputMode="numeric" value={f.min_months} onChange={(e) => setF({ ...f, min_months: e.target.value.replace(/\D/g, "") })} /></Field>}
-            <Field label="التأمين (ج.م)"><input className={inputCls} inputMode="numeric" value={f.deposit} onChange={(e) => setF({ ...f, deposit: e.target.value.replace(/\D/g, "") })} /></Field>
+              ? <Field label="عدد الأفراد"><input className={inputCls} inputMode="numeric" value={f.guests} onChange={(e) => setF({ ...f, guests: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+              : <Field label="أقل مدة (شهور)"><input className={inputCls} inputMode="numeric" value={f.min_months} onChange={(e) => setF({ ...f, min_months: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>}
+            <Field label="التأمين (ج.م)"><input className={inputCls} inputMode="numeric" value={f.deposit} onChange={(e) => setF({ ...f, deposit: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
             <Field label="متاح من"><input type="date" className={inputCls} value={f.available_from} onChange={set("available_from")} /></Field>
             {summer && <Field label="متاح لحد"><input type="date" className={inputCls} value={f.available_to} onChange={set("available_to")} /></Field>}
           </div>
         )}
         <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="المساحة (م²)"><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(/\D/g, "") })} /></Field>
+        <Field label="المساحة (م²)"><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="الغرف"><input className={inputCls} inputMode="numeric" value={f.rooms} onChange={(e) => setF({ ...f, rooms: e.target.value.replace(/\D/g, "") })} /></Field>
-          <Field label="الحمامات"><input className={inputCls} inputMode="numeric" value={f.baths} onChange={(e) => setF({ ...f, baths: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="الغرف"><input className={inputCls} inputMode="numeric" value={f.rooms} onChange={(e) => setF({ ...f, rooms: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+          <Field label="الحمامات"><input className={inputCls} inputMode="numeric" value={f.baths} onChange={(e) => setF({ ...f, baths: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
         </div>
         <div className="sm:col-span-2"><Field label="رابط العقار في إنجاز (اختياري)"><input className={inputCls} dir="ltr" inputMode="url" placeholder="https://valuegroup.engazcrm.net/consumer/unit/..." value={f.source_url} onChange={set("source_url")} maxLength={500} /></Field></div>
         <div className="sm:col-span-2"><Field label="الوصف"><textarea className={`${inputCls} h-28 py-2`} value={f.description} onChange={set("description")} maxLength={3000} /></Field></div>

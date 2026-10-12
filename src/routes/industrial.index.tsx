@@ -6,6 +6,7 @@ import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { formatPrice } from "@/components/site/data";
 import { IND_TYPES, applyInd, emptyInd, fetchActivities, fetchIndustrialProperties, fetchZones, type IndFilters } from "@/components/site/industrial";
 import { t, useLang } from "@/lib/i18n";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/industrial/")({
   head: () => ({
@@ -32,7 +33,7 @@ function IndustrialPage() {
   const rows = useMemo(() => applyInd(list.data ?? [], f), [list.data, f]);
   const actName = (id: string | null) => acts.data?.find((a) => a.id === id)?.name;
   const set = (k: keyof IndFilters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setF({ ...f, [k]: k.startsWith("min") || k.startsWith("max") ? e.target.value.replace(/\D/g, "") : e.target.value });
+    setF({ ...f, [k]: k.startsWith("min") || k.startsWith("max") ? e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") : e.target.value });
   const dirty = Object.values(f).some((v) => v !== "");
 
   return (

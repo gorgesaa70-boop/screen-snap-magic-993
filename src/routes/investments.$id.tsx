@@ -11,6 +11,7 @@ import { formatPrice } from "@/components/site/data";
 import { DEAL_KINDS, OPP_KINDS, fetchOpportunity, investmentRange, oppNo } from "@/lib/investments";
 import { pageHead, unavailableHead, breadcrumbs } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/investments/$id")({
   loader: ({ params, context }) => context.queryClient.ensureQueryData({ queryKey: ["opportunity", params.id], queryFn: () => fetchOpportunity(params.id) }),
@@ -132,7 +133,7 @@ function RequestForm({ opportunityId, onDone }: { opportunityId: string; onDone:
     <form onSubmit={submit} className="space-y-3 rounded-2xl border bg-card p-5">
       <h2 className="font-bold text-primary">{t("اطلب التفاصيل الكاملة")}</h2>
       <Field label={t("الاسم أو اسم الشركة")}><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={100} required /></Field>
-      <Field label={t("الميزانية المتاحة (ج.م) — اختياري")}><input className={inputCls} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} /></Field>
+      <Field label={t("الميزانية المتاحة (ج.م) — اختياري")}><input className={inputCls} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       <Field label={t("رسالتك — اختياري")}><textarea className={`${inputCls} h-20 py-2`} value={f.message} onChange={(e) => setF({ ...f, message: e.target.value })} maxLength={1000} /></Field>
       <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : t("إرسال الطلب")}</button>
       <p className="text-xs text-muted-foreground">{t("رقم موبايلك بيتسجل مع الطلب، وفريق فاليو عقار بس هو اللي بيشوفه.")}</p>

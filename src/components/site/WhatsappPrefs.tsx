@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionUser } from "@/hooks/useAuth";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 const CUSTOMER_TYPES = [
   { id: "broker_reply", label: "رد الوسيط عليّ" },
@@ -31,7 +32,7 @@ export function WhatsappPrefs({ isBroker }: { isBroker: boolean }) {
   }, [user]);
   async function save() {
     if (!user) return;
-    let d = phone.replace(/\D/g, "");
+    let d = phone.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
     if (/^01\d{9}$/.test(d)) d = "2" + d;
     if (d && !/^\d{8,15}$/.test(d)) { toast.error("رقم واتساب غير صحيح"); return; }
     setSaving(true);

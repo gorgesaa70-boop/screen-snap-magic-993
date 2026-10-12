@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LEAD_SOURCES, leadNo, type BrokerRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { normalizePhone } from "@/lib/broker-login";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** Admins and Value Aqar staff record leads from calls, ads, walk-ins, referrals… with their real source. */
 export function NewLeadForm({ brokers, onDone }: { brokers: BrokerRow[]; onDone: () => void }) {
@@ -44,7 +45,7 @@ export function NewLeadForm({ brokers, onDone }: { brokers: BrokerRow[]; onDone:
       <Field label="تفاصيل المصدر (اسم الحملة / المُرشِّح)"><input className={inputCls} value={f.source_note} onChange={set("source_note")} maxLength={200} /></Field>
       <Field label="نوع العقار المطلوب"><input className={inputCls} value={f.property_type} onChange={set("property_type")} maxLength={60} /></Field>
       <Field label="المنطقة"><input className={inputCls} value={f.area} onChange={set("area")} maxLength={60} /></Field>
-      <Field label="الميزانية (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(/\D/g, "") })} /></Field>
+      <Field label="الميزانية (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       <Field label="إسناد لشركة / وسيط"><select className={inputCls} value={f.assigned_broker_id} onChange={set("assigned_broker_id")}><option value="">غير مُسند</option>{brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></Field>
       <div className="sm:col-span-2 lg:col-span-3"><Field label="تفاصيل الطلب"><textarea className={`${inputCls} h-20 py-2`} value={f.details} onChange={set("details")} maxLength={1000} /></Field></div>
       <div className="flex gap-2 sm:col-span-2 lg:col-span-3">

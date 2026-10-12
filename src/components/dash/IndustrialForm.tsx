@@ -7,6 +7,7 @@ import { uploadImage, type PropertyRow } from "@/components/site/data";
 import { IND_TYPES, indType, fetchZones, fetchActivities, uploadVideo } from "@/components/site/industrial";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Props = {
   brokerId?: string | undefined;
@@ -16,7 +17,7 @@ type Props = {
   onCancel: () => void;
 };
 
-const digits = (v: string) => v.replace(/[^\d.]/g, "");
+const digits = (v: string) => v.replace(ARABIC_DIGITS, latinDigit).replace(/٫/g, ".").replace(/[^\d.]/g, "");
 
 export function IndustrialForm({ brokerId, brokers, initial, onDone, onCancel }: Props) {
   const zones = useQuery({ queryKey: ["ind-zones"], queryFn: () => fetchZones() });

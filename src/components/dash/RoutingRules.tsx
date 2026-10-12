@@ -7,6 +7,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { AREAS, CITY_NAMES, LEAD_KINDS, LEAD_SOURCES, TYPES } from "@/components/site/data";
 import { UNIT_TYPES } from "@/components/site/projects";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Rule = Tables<"routing_rules">;
 type Draft = { id?: string; name: string; areas: string[]; property_types: string[]; kinds: string[]; sources: string[]; broker_ids: string[] };
@@ -157,10 +158,10 @@ function SlaSettings({ settings, onSaved }: { settings: { response_sla_minutes: 
       </label>
       <p className="mt-1 text-xs text-muted-foreground">{f.transfer ? "الشركة بيجيلها تنبيه قبل النقل بربع المدة. بعد أقصى عدد شركات (أو لو مفيش شركة تانية مؤهلة، أو الرقم غلط) العميل بيروح لطابور الإدارة ويجيلكم إشعار." : "النقل مقفول: الشركة بيجيلها تنبيه بعد المدة، والإدارة بعد ضعفها، والإسناد بيتغير يدوي."}</p>
       <div className="mt-3 flex flex-wrap items-end gap-3">
-        <Field label="المدة (دقيقة)"><input className={`${inputCls} w-28`} inputMode="numeric" value={f.sla} onChange={(e) => setF({ ...f, sla: e.target.value.replace(/\D/g, "") })} /></Field>
-        <Field label="ساعات العمل من"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value.replace(/\D/g, "") })} /></Field>
-        <Field label="لحد"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value.replace(/\D/g, "") })} /></Field>
-        {f.transfer && <Field label="أقصى عدد شركات"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.max} onChange={(e) => setF({ ...f, max: e.target.value.replace(/\D/g, "") })} /></Field>}
+        <Field label="المدة (دقيقة)"><input className={`${inputCls} w-28`} inputMode="numeric" value={f.sla} onChange={(e) => setF({ ...f, sla: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+        <Field label="ساعات العمل من"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+        <Field label="لحد"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+        {f.transfer && <Field label="أقصى عدد شركات"><input className={`${inputCls} w-20`} inputMode="numeric" value={f.max} onChange={(e) => setF({ ...f, max: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>}
         <button disabled={busy} onClick={save} className={btnOutline}>حفظ</button>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">بتوقيت القاهرة، كل يوم. مثال: 9 لـ 21 يعني من 9 الصبح لـ 9 بالليل.</p>

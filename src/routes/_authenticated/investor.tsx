@@ -8,6 +8,7 @@ import { useMe } from "@/hooks/useAuth";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { CITY_NAMES } from "@/components/site/data";
 import { OPP_KINDS } from "@/lib/investments";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/_authenticated/investor")({
   head: () => ({ meta: [{ title: "سجّل كمستثمر | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -44,8 +45,8 @@ function InvestorPage() {
         <p className="text-sm text-muted-foreground">قولنا بتدوّر على إيه، وأول ما فاليو عقار تنشر فرصة تناسبك هيجيلك إشعار. بياناتك مش بتظهر لحد.</p>
         <Field label="الاسم أو اسم الشركة"><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={100} /></Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="الميزانية من (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget_min} onChange={(e) => setF({ ...f, budget_min: e.target.value.replace(/\D/g, "") })} /></Field>
-          <Field label="لحد (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget_max} onChange={(e) => setF({ ...f, budget_max: e.target.value.replace(/\D/g, "") })} /></Field>
+          <Field label="الميزانية من (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget_min} onChange={(e) => setF({ ...f, budget_min: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+          <Field label="لحد (ج.م)"><input className={inputCls} inputMode="numeric" value={f.budget_max} onChange={(e) => setF({ ...f, budget_max: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
         </div>
         <div><p className="mb-2 text-sm font-bold text-primary">مهتم بـ (فاضي = الكل)</p><div className="flex flex-wrap gap-2">{Object.entries(OPP_KINDS).map(([k, v]) => <button key={k} type="button" onClick={() => toggle("kinds", k)} className={chip(f.kinds.includes(k))}>{v}</button>)}</div></div>
         <div><p className="mb-2 text-sm font-bold text-primary">المناطق (فاضي = الكل)</p><div className="flex flex-wrap gap-2">{CITY_NAMES.map((c) => <button key={c} type="button" onClick={() => toggle("areas", c)} className={chip(f.areas.includes(c))}>{c}</button>)}</div></div>

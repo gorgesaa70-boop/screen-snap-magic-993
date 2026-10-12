@@ -8,6 +8,7 @@ import { formatPrice, formatDate } from "./data";
 import { GROUP_LABELS, TYPE_GROUPS, type Filters } from "./search";
 import { inputCls } from "./ui";
 import { t, useLang } from "@/lib/i18n";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** Favourites of the signed-in user (ids only), shared by every heart on the page. */
 export function useFavorites() {
@@ -144,11 +145,11 @@ export function InstallmentCalc({ price: initial }: { price?: number | null | un
       <h2 className="flex items-center gap-1.5 text-lg font-extrabold text-primary"><Calculator className="size-5 text-teal" />{t("احسب القسط")}</h2>
       <div className="mt-3 grid gap-3 sm:grid-cols-3">
         <label className="block"><span className="mb-1 block text-xs font-bold text-primary">{t("سعر الوحدة (ج.م)")}</span>
-          <input className={inputCls} inputMode="numeric" dir="ltr" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 12))} /></label>
+          <input className={inputCls} inputMode="numeric" dir="ltr" value={price} onChange={(e) => setPrice(e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 12))} /></label>
         <label className="block"><span className="mb-1 block text-xs font-bold text-primary">{t("المقدم %")}</span>
-          <input className={inputCls} inputMode="numeric" dir="ltr" value={down} onChange={(e) => setDown(e.target.value.replace(/\D/g, "").slice(0, 3))} /></label>
+          <input className={inputCls} inputMode="numeric" dir="ltr" value={down} onChange={(e) => setDown(e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 3))} /></label>
         <label className="block"><span className="mb-1 block text-xs font-bold text-primary">{t("عدد السنين")}</span>
-          <input className={inputCls} inputMode="numeric" dir="ltr" value={years} onChange={(e) => setYears(e.target.value.replace(/\D/g, "").slice(0, 2))} /></label>
+          <input className={inputCls} inputMode="numeric" dir="ltr" value={years} onChange={(e) => setYears(e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 2))} /></label>
       </div>
       {r ? (
         <div className="mt-3 grid grid-cols-3 gap-2 text-center">

@@ -1,3 +1,4 @@
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 // Pure helpers for the WhatsApp Cloud API webhook (no secrets, no DB) — unit-testable.
 
 export function verifyChallenge(params: URLSearchParams, verifyToken: string | undefined): string | null {
@@ -25,7 +26,7 @@ export async function verifySignature(rawBody: string, header: string | null, ap
 }
 
 export function maskPhone(p: string | undefined | null) {
-  const d = (p ?? "").replace(/\D/g, "");
+  const d = (p ?? "").replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   return d.length < 6 ? null : d.slice(0, 3) + "*".repeat(d.length - 5) + d.slice(-2);
 }
 
@@ -85,7 +86,7 @@ export function parseInbound(payload: unknown): InboundMessage[] {
     const names = new Map<string, string>();
     for (const ct of v.contacts ?? []) if (ct?.wa_id && ct?.profile?.name) names.set(String(ct.wa_id), String(ct.profile.name).slice(0, 100));
     for (const m of v.messages ?? []) {
-      const phone = String(m?.from ?? "").replace(/\D/g, "");
+      const phone = String(m?.from ?? "").replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
       if (!m?.id || phone.length < 8) continue;
       const text = m.type === "text" ? m.text?.body : m.type === "button" ? m.button?.text : m.type === "interactive" ? (m.interactive?.button_reply?.title ?? m.interactive?.list_reply?.title) : null;
       out.push({ wa_message_id: String(m.id), phone, name: names.get(phone) ?? null, text: text ? String(text).slice(0, 500) : m.type ? `(${String(m.type).slice(0, 20)})` : null });

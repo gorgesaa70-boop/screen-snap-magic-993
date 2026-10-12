@@ -29,6 +29,7 @@ import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "لوحة الإدارة | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -385,12 +386,12 @@ function PlanCard({ p, reload }: { p: PlanRow; reload: () => void }) {
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4">
       <Field label="اسم الباقة"><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-      <Field label="الحد الأقصى للعقارات"><input className={inputCls} inputMode="numeric" value={f.max_properties} onChange={(e) => setF({ ...f, max_properties: e.target.value.replace(/\D/g, "") })} /></Field>
-      <Field label="الإعلانات المميزة"><input className={inputCls} inputMode="numeric" value={f.featured_slots} onChange={(e) => setF({ ...f, featured_slots: e.target.value.replace(/\D/g, "") })} /></Field>
-      <Field label="السعر الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.monthly_price} onChange={(e) => setF({ ...f, monthly_price: e.target.value.replace(/\D/g, "") })} /></Field>
-      <Field label="السعر السنوي (ج.م)"><input className={inputCls} inputMode="numeric" value={f.yearly_price} onChange={(e) => setF({ ...f, yearly_price: e.target.value.replace(/\D/g, "") })} /></Field>
+      <Field label="الحد الأقصى للعقارات"><input className={inputCls} inputMode="numeric" value={f.max_properties} onChange={(e) => setF({ ...f, max_properties: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+      <Field label="الإعلانات المميزة"><input className={inputCls} inputMode="numeric" value={f.featured_slots} onChange={(e) => setF({ ...f, featured_slots: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+      <Field label="السعر الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.monthly_price} onChange={(e) => setF({ ...f, monthly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
+      <Field label="السعر السنوي (ج.م)"><input className={inputCls} inputMode="numeric" value={f.yearly_price} onChange={(e) => setF({ ...f, yearly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       {Number(f.monthly_price) > 0 && Number(f.yearly_price) > 0 && Number(f.yearly_price) < Number(f.monthly_price) * 12 && <p className="-mt-2 text-xs font-bold text-teal">توفير {Math.round((1 - Number(f.yearly_price) / (Number(f.monthly_price) * 12)) * 100)}% على السنوي</p>}
-      <Field label="أيام التجربة المجانية"><input className={inputCls} inputMode="numeric" value={f.trial_days} onChange={(e) => setF({ ...f, trial_days: e.target.value.replace(/\D/g, "").slice(0, 2) })} /></Field>
+      <Field label="أيام التجربة المجانية"><input className={inputCls} inputMode="numeric" value={f.trial_days} onChange={(e) => setF({ ...f, trial_days: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 2) })} /></Field>
       <button className={`${btnPrimary} w-full`} onClick={async () => {
         const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0), yearly_price: Number(f.yearly_price || 0), trial_days: Math.min(Number(f.trial_days || 0), 60) }).eq("id", p.id);
         if (error) toast.error(error.message); else { toast.success("تم الحفظ"); reload(); }
@@ -405,7 +406,7 @@ function PaymentSettings() {
   const [f, setF] = useState<{ week: string; month: string; grace: string } | null>(null);
   const v = f ?? (q.data ? { week: String(q.data.featured_week_price), month: String(q.data.featured_month_price), grace: String(q.data.subscription_grace_days) } : null);
   if (!v) return null;
-  const num = (x: string) => x.replace(/\D/g, "");
+  const num = (x: string) => x.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4">
       <p className="font-bold text-primary">تمييز العقار والتجديد</p>
