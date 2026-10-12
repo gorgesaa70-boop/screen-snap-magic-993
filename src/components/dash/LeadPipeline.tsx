@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Check, FileText, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
+import { prepareDocument, uploadErrorMessage } from "@/lib/images";
 import type { Tables } from "@/integrations/supabase/types";
 import { STAGES, DEAL_TYPE_LABEL, stageLabel, formatDate, formatPrice } from "@/components/site/data";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
@@ -165,12 +166,14 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { toast.error("حجم الملف أكبر من 10 ميجا"); return; }
-    if (!/^(application\/pdf|image\/)/.test(file.type)) { toast.error("ارفع PDF أو صورة"); return; }
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (isPdf && file.size > 10 * 1024 * 1024) { toast.error("حجم ملف الـ PDF أكبر من 10 ميجا"); return; }
     setBusy(true);
-    const path = `${deal.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
-    const up = await supabase.storage.from("deal-docs").upload(path, file, { contentType: file.type });
-    if (up.error) { setBusy(false); toast.error(up.error.message); return; }
+    let doc: Awaited<ReturnType<typeof prepareDocument>>;
+    try { doc = await prepareDocument(file); } catch (err) { setBusy(false); toast.error(uploadErrorMessage(err)); return; }
+    const path = `${deal.id}/${Date.now()}-${doc.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
+    const up = await supabase.storage.from("deal-docs").upload(path, doc.body, { contentType: doc.type });
+    if (up.error) { setBusy(false); toast.error(uploadErrorMessage(up.error)); return; }
     const { data: u } = await supabase.auth.getUser();
     const { error } = await dbx.from("deal_documents").insert({ deal_id: deal.id, kind, file_path: path, file_name: file.name.slice(0, 200), uploaded_by: u.user?.id ?? null });
     setBusy(false);

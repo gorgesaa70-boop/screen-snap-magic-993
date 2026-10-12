@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { FileText, Upload } from "lucide-react";
 import { dbx } from "@/lib/dbx";
 import { supabase } from "@/integrations/supabase/client";
+import { prepareDocument, uploadErrorMessage } from "@/lib/images";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
@@ -146,10 +147,12 @@ function CommissionDetail({ c, isAdmin, reload }: { c: Row; isAdmin: boolean; re
     setBusy(true);
     let proof_path: string | null = null;
     if (proof) {
-      if (proof.size > 10 * 1024 * 1024 || !/^(application\/pdf|image\/)/.test(proof.type)) { setBusy(false); toast.error("الإثبات لازم PDF أو صورة أقل من 10 ميجا"); return; }
-      proof_path = `${c.id}/${Date.now()}-${proof.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
-      const up = await supabase.storage.from("commission-docs").upload(proof_path, proof, { contentType: proof.type });
-      if (up.error) { setBusy(false); toast.error(up.error.message); return; }
+      if (/\.pdf$/i.test(proof.name) && proof.size > 10 * 1024 * 1024) { setBusy(false); toast.error("ملف الـ PDF أكبر من 10 ميجا"); return; }
+      let doc: Awaited<ReturnType<typeof prepareDocument>>;
+      try { doc = await prepareDocument(proof); } catch (err) { setBusy(false); toast.error(uploadErrorMessage(err)); return; }
+      proof_path = `${c.id}/${Date.now()}-${doc.name.replace(/[^\w.\-]+/g, "_").slice(-80)}`;
+      const up = await supabase.storage.from("commission-docs").upload(proof_path, doc.body, { contentType: doc.type });
+      if (up.error) { setBusy(false); toast.error(uploadErrorMessage(up.error)); return; }
     }
     const { data: u } = await supabase.auth.getUser();
     const { error } = await dbx.from("commission_payments").insert({
