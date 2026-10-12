@@ -25,7 +25,7 @@ export const Route = createFileRoute("/brokers/$slug")({
     const title = `${b.name}${b.specialty ? ` – ${b.specialty}` : ""} | وسيط عقاري على ${SITE_NAME}`;
     const description = `${b.name} وسيط عقاري${areas ? ` في ${areas}` : ""}. ${b.bio ?? "تعرّف على عقاراته المعتمدة وتواصل معه مباشرة."}`;
     return pageHead({
-      path, title, description, image: b.photo_url, type: "profile",
+      path, title, description, image: b.photo_url, type: "profile", noindex: !!b.is_demo,
       jsonLd: [
         {
           "@context": "https://schema.org", "@type": "RealEstateAgent", name: b.name, url: `${SITE_URL}${path}`,

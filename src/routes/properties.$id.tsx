@@ -37,15 +37,15 @@ export const Route = createFileRoute("/properties/$id")({
     const { p, broker } = loaderData;
     const price = priceText(p.price, p.status);
     const purpose = p.status === "مصيف" ? "للإيجار المصيفي" : `لل${p.status}`;
-    const title = `${p.title} ${purpose} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
+    const title = `${p.title}${p.title.includes(purpose) ? "" : ` ${purpose}`} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
     const description = `${p.type} ${purpose} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
     return pageHead({
-      path, title, description, image: p.image, type: "article",
+      path, title, description, image: p.image, type: "article", noindex: p.isDemo,
       jsonLd: [
         {
           "@context": "https://schema.org", "@type": "RealEstateListing", name: p.title, url: `${SITE_URL}${path}`,
           description: p.description || undefined, datePosted: loaderData.createdAt,
-          image: /^https:/.test(p.image) ? p.image : undefined,
+          image: /^https:/.test(p.image) ? p.image : p.image.startsWith("/") ? `${SITE_URL}${p.image}` : undefined,
           offers: p.price ? { "@type": "Offer", price: p.price, priceCurrency: "EGP" } : undefined,
           address: { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG" },
           ...(broker ? { provider: { "@type": "RealEstateAgent", name: broker.name, url: `${SITE_URL}/brokers/${broker.slug}` } } : {}),

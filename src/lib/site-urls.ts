@@ -1,0 +1,37 @@
+import { SITE_URL } from "@/lib/seo";
+
+/** IndexNow key. Not a secret: the protocol publishes it at /<key>.txt so search engines can check we own the site. */
+export const INDEXNOW_KEY = "7c2634d3ce1140f698df0ac7c20553e1";
+
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account"];
+
+export type SiteEntry = { path: string; lastmod?: string };
+
+async function collect(table: string, cols: string, apply: (q: any) => any, toEntry: (r: any) => SiteEntry) {
+  const { supabase } = await import("@/integrations/supabase/client");
+  const out: SiteEntry[] = [];
+  const size = 1000;
+  for (let from = 0; ; ) {
+    const { data, error } = await apply((supabase as any).from(table).select(cols)).order("id").range(from, from + size - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    out.push(...data.map(toEntry));
+    from += data.length;
+    if (data.length < size) break;
+  }
+  return out;
+}
+
+/** Every public page search engines should know about. Demo listings and demo brokers are never included. */
+export async function publicPages(): Promise<SiteEntry[]> {
+  const [res, ind, brokers, malls, projects] = await Promise.all([
+    collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "residential").eq("is_demo", false), (r) => ({ path: `/properties/${r.id}`, lastmod: r.updated_at })),
+    collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "industrial").eq("is_demo", false), (r) => ({ path: `/industrial/${r.id}`, lastmod: r.updated_at })),
+    collect("brokers", "id,slug", (q) => q.eq("is_active", true).eq("is_demo", false), (r) => ({ path: `/brokers/${encodeURIComponent(r.slug)}` })),
+    collect("malls", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}` })),
+    collect("projects", "id,updated_at", (q) => q.eq("review_status", "approved"), (r) => ({ path: `/projects/${r.id}`, lastmod: r.updated_at })),
+  ]);
+  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...projects];
+}
+
+export const absoluteUrl = (path: string) => SITE_URL + (path === "/" ? "/" : path);

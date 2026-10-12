@@ -183,3 +183,20 @@ export const exportBackup = createServerFn({ method: "POST" })
     // Sent as text: the browser saves it as a file as-is.
     return { ok: true as const, at, missing, json: JSON.stringify({ generated_at: at, tables }) };
   });
+
+/** Admin: tell Bing, Yandex and other IndexNow engines about every public page (Google reads the sitemap instead). */
+export const notifySearchEngines = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context as Ctx);
+    const { INDEXNOW_KEY, absoluteUrl, publicPages } = await import("@/lib/site-urls");
+    const { SITE_URL } = await import("@/lib/seo");
+    const urlList = (await publicPages()).map((e) => absoluteUrl(e.path));
+    const res = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ host: new URL(SITE_URL).host, key: INDEXNOW_KEY, keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`, urlList }),
+    });
+    // 200 = accepted, 202 = accepted while the key is being checked; anything else is a problem worth showing.
+    return { ok: res.status === 200 || res.status === 202, status: res.status, count: urlList.length };
+  });
