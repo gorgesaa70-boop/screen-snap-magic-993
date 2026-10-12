@@ -20,7 +20,8 @@ type PageMeta = {
 export function pageHead(m: PageMeta) {
   const url = `${SITE_URL}${m.path}`;
   const description = clip(m.description);
-  const image = m.image && /^https:\/\//.test(m.image) ? m.image : null;
+  // Site images (e.g. /demo/p1.jpg) need the full address; anything else must already be https.
+  const image = !m.image ? null : m.image.startsWith("/") && !m.image.startsWith("//") ? `${SITE_URL}${m.image}` : /^https:\/\//.test(m.image) ? m.image : null;
   const meta: Record<string, string>[] = [
     { title: m.title },
     { name: "description", content: description },

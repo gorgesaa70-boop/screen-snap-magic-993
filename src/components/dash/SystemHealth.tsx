@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { exportBackup } from "@/lib/admin.functions";
+import { exportBackup, notifySearchEngines } from "@/lib/admin.functions";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
 import { formatDate } from "@/components/site/data";
 
@@ -40,6 +40,7 @@ export function SystemHealth() {
   return (
     <div className="space-y-6">
       <DemoData />
+      <SearchEngines />
       <section className={`rounded-2xl border p-5 ${stale ? "border-destructive/40 bg-destructive/5" : "bg-card"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -120,6 +121,30 @@ function DemoData() {
       <div className="mt-3 flex flex-wrap gap-2">
         <button onClick={toggle} className={show ? btnPrimary : btnOutline}>{show ? "إخفاء البيانات التجريبية من الموقع" : "إظهارها تاني"}</button>
         {!show && <button onClick={remove} className="h-11 rounded-xl px-4 text-sm font-bold text-destructive hover:bg-destructive/10">مسحها نهائيًا</button>}
+      </div>
+    </section>
+  );
+}
+
+/** Push every public page to Bing/Yandex (IndexNow). Google picks pages up from the sitemap in Search Console. */
+function SearchEngines() {
+  const notify = useServerFn(notifySearchEngines);
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    const r = await notify().catch(() => null);
+    setBusy(false);
+    if (r?.ok) toast.success(`اتبعت ${r.count} صفحة لمحركات البحث ✓`);
+    else toast.error(r ? `محركات البحث رفضت الطلب (كود ${r.status})` : "تعذّر الإرسال");
+  }
+  return (
+    <section className="rounded-2xl border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-bold text-primary">محركات البحث</p>
+          <p className="text-sm text-muted-foreground">بيبلّغ Bing وYandex بكل صفحات الموقع العامة (العقارات والوسطاء والمولات) عشان تتفهرس بسرعة. اضغطه بعد ما تنزل عقارات جديدة. جوجل بيقرا خريطة الموقع من Search Console.</p>
+        </div>
+        <button disabled={busy} onClick={run} className={btnOutline}>{busy ? "بيتبعت..." : "بلّغ محركات البحث"}</button>
       </div>
     </section>
   );
