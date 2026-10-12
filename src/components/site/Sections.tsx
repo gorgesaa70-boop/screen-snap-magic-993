@@ -174,7 +174,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
         )}
         </>
       )}
-      <p className="mt-4 text-xs text-muted-foreground">{tr("* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.")}</p>
+      {results.slice(0, shown).some((p) => p.isDemo) && <p className="mt-4 text-xs text-muted-foreground">{tr("* العقارات التي تحمل علامة «إعلان تجريبي» بيانات توضيحية فقط.")}</p>}
     </section>
   );
 }
