@@ -48,6 +48,43 @@ export function GoogleButton({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
+function AppleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 shrink-0 fill-foreground">
+      <path d="M17.05 12.54c-.03-2.89 2.36-4.27 2.47-4.34-1.35-1.97-3.44-2.24-4.18-2.27-1.78-.18-3.47 1.05-4.37 1.05-.9 0-2.29-1.02-3.77-1-1.94.03-3.72 1.13-4.72 2.86-2.01 3.49-.51 8.66 1.45 11.49.96 1.39 2.1 2.94 3.6 2.88 1.45-.06 1.99-.93 3.74-.93s2.24.93 3.77.9c1.56-.03 2.54-1.41 3.49-2.81 1.09-1.6 1.54-3.15 1.57-3.23-.03-.02-3.01-1.16-3.05-4.6zM14.16 4.06c.8-.97 1.34-2.32 1.19-3.66-1.15.05-2.55.77-3.38 1.73-.74.86-1.39 2.23-1.22 3.55 1.29.1 2.61-.65 3.41-1.62z" />
+    </svg>
+  );
+}
+
+/**
+ * "Continue with Apple" through Lovable Cloud's managed OAuth (works on the published site).
+ * Hidden inside the native app: Apple refuses sign-in from embedded app web views.
+ */
+export function AppleButton({ onSignedIn }: { onSignedIn: () => void }) {
+  useLang();
+  const [busy, setBusy] = useState(false);
+  const [native, setNative] = useState(false);
+  useEffect(() => {
+    void import("@capacitor/core").then(({ Capacitor }) => setNative(Capacitor.isNativePlatform())).catch(() => {});
+  }, []);
+  if (native) return null;
+  async function go() {
+    setBusy(true);
+    try { sessionStorage.setItem(RETURN_FLAG, String(Date.now())); } catch { /* storage blocked: user lands on the home page signed in */ }
+    const r = await lovable.auth.signInWithOAuth("apple");
+    if (r.redirected) return;
+    setBusy(false);
+    try { sessionStorage.removeItem(RETURN_FLAG); } catch { /* ignore */ }
+    if (r.error) { toast.error(t("تعذّر الدخول بحساب Apple، حاول تاني")); return; }
+    onSignedIn();
+  }
+  return (
+    <button type="button" onClick={go} disabled={busy} className="flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border bg-card text-sm font-bold text-foreground transition hover:bg-secondary disabled:opacity-60">
+      <AppleIcon />{busy ? "..." : t("المتابعة بحساب Apple")}
+    </button>
+  );
+}
+
 /** After returning from Google: send the user where their account belongs (same rules as phone/email sign-in). */
 export function useSocialReturn(navigate: (to: string) => void) {
   useEffect(() => {
