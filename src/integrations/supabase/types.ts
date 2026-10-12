@@ -630,6 +630,194 @@ export type Database = {
         }
         Relationships: []
       }
+      investment_opportunities: {
+        Row: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          licenses: string | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity: string
+          area: string
+          broker_id?: string | null
+          built_area?: number | null
+          city: string
+          created_at?: string
+          deal_kind: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind: string
+          land_area?: number | null
+          licenses?: string | null
+          location_note?: string | null
+          offered_share?: number | null
+          opp_no?: never
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity?: string
+          area?: string
+          broker_id?: string | null
+          built_area?: number | null
+          city?: string
+          created_at?: string
+          deal_kind?: string
+          details?: string | null
+          expected_return?: number | null
+          id?: string
+          images?: string[]
+          investment_max?: number | null
+          investment_min?: number | null
+          is_featured?: boolean
+          kind?: string
+          land_area?: number | null
+          licenses?: string | null
+          location_note?: string | null
+          offered_share?: number | null
+          opp_no?: never
+          review_note?: string | null
+          review_status?: string
+          submitted_by?: string | null
+          teaser?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_opportunities_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investment_requests: {
+        Row: {
+          budget: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          investor_id: string
+          lead_id: string | null
+          message: string | null
+          name: string
+          opportunity_id: string
+          status: string
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name: string
+          opportunity_id: string
+          status?: string
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          investor_id?: string
+          lead_id?: string | null
+          message?: string | null
+          name?: string
+          opportunity_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investment_requests_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      investor_profiles: {
+        Row: {
+          areas: string[]
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          kinds: string[]
+          name: string
+          notify: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          areas?: string[]
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          kinds?: string[]
+          name?: string
+          notify?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -738,6 +926,7 @@ export type Database = {
           lost_reason: string | null
           name: string
           notes: string | null
+          opportunity_id: string | null
           original_source: string
           phone: string
           phone_norm: string | null
@@ -780,6 +969,7 @@ export type Database = {
           lost_reason?: string | null
           name: string
           notes?: string | null
+          opportunity_id?: string | null
           original_source: string
           phone: string
           phone_norm?: string | null
@@ -822,6 +1012,7 @@ export type Database = {
           lost_reason?: string | null
           name?: string
           notes?: string | null
+          opportunity_id?: string | null
           original_source?: string
           phone?: string
           phone_norm?: string | null
@@ -867,6 +1058,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "investment_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
@@ -895,6 +1093,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          kind: string
           location: string | null
           logo_url: string | null
           name: string
@@ -905,6 +1104,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
           location?: string | null
           logo_url?: string | null
           name: string
@@ -915,6 +1115,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          kind?: string
           location?: string | null
           logo_url?: string | null
           name?: string
@@ -1220,11 +1421,15 @@ export type Database = {
           floor: string | null
           furnished: string | null
           guests: number | null
+          highlight_reason: string | null
+          highlight_requested_at: string | null
+          highlight_yield: number | null
           id: string
           image_url: string | null
           images: string[]
           is_demo: boolean
           is_featured: boolean
+          is_highlight: boolean
           land_size: number | null
           lat: number | null
           lng: number | null
@@ -1267,11 +1472,15 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
           is_demo?: boolean
           is_featured?: boolean
+          is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
@@ -1314,11 +1523,15 @@ export type Database = {
           floor?: string | null
           furnished?: string | null
           guests?: number | null
+          highlight_reason?: string | null
+          highlight_requested_at?: string | null
+          highlight_yield?: number | null
           id?: string
           image_url?: string | null
           images?: string[]
           is_demo?: boolean
           is_featured?: boolean
+          is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           lng?: number | null
@@ -1660,6 +1873,43 @@ export type Database = {
         }
       }
       admin_exists: { Args: never; Returns: boolean }
+      admin_opportunities: {
+        Args: never
+        Returns: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          licenses: string | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "investment_opportunities"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       agreement_for:
         | {
             Args: { _broker: string; _on: string }
@@ -1807,6 +2057,43 @@ export type Database = {
           role: string
         }[]
       }
+      my_opportunities: {
+        Args: never
+        Returns: {
+          activity: string
+          area: string
+          broker_id: string | null
+          built_area: number | null
+          city: string
+          created_at: string
+          deal_kind: string
+          details: string | null
+          expected_return: number | null
+          id: string
+          images: string[]
+          investment_max: number | null
+          investment_min: number | null
+          is_featured: boolean
+          kind: string
+          land_area: number | null
+          licenses: string | null
+          location_note: string | null
+          offered_share: number | null
+          opp_no: number
+          review_note: string | null
+          review_status: string
+          submitted_by: string | null
+          teaser: string
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "investment_opportunities"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       my_phone: { Args: never; Returns: string }
       normalize_phone: { Args: { _p: string }; Returns: string }
       notify_admins: {
@@ -1859,6 +2146,14 @@ export type Database = {
           _user: string
         }
         Returns: undefined
+      }
+      opportunity_private: {
+        Args: { _id: string }
+        Returns: {
+          details: string
+          licenses: string
+          location_note: string
+        }[]
       }
       owned_company_id: { Args: never; Returns: string }
       run_reminders: { Args: never; Returns: Json }

@@ -120,6 +120,13 @@
       "when": 1791763931308,
       "tag": "0016_rentals",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791764037426,
+      "tag": "0017_investments",
+      "breakpoints": true
     }
   ]
 }
