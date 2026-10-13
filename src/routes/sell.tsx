@@ -281,7 +281,7 @@ function SellForm() {
       </div>
       <div className="sm:col-span-2">
         <Field label={t("حدد موقع عقارك على الخريطة — اختياري")}>
-          <MapPicker value={loc} onChange={setLoc} allowSearch={false} />
+          <MapPicker value={loc} onChange={setLoc} />
         </Field>
         <p className="mt-1.5 text-xs text-muted-foreground">{t("دوس على مكان العقار في الخريطة، أو «موقعي الحالي» لو إنت في العقار دلوقتي.")}</p>
       </div>

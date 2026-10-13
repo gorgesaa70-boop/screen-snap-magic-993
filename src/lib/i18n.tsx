@@ -483,6 +483,7 @@ const EN: Record<string, string> = {
   // Property detail
   "الموقع على الخريطة": "Location on map",
   "موقع العقار على الخريطة": "Property location on the map",
+  "افتح في جوجل ماب": "Open in Google Maps",
   "مفيش وصف إضافي.": "No additional description.",
   "عرض التفاصيل من المصدر": "View details at source",
   "آخر تحديث:": "Last updated:",
