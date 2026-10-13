@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Building2, MapPin, SlidersHorizontal, CalendarClock, Wallet, X } from "lucide-react";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { formatPrice } from "@/components/site/data";
+import { AreaFilter } from "@/components/site/AreaFilter";
 import {
   AMENITIES, UNIT_TYPES, EMPTY_COMPOUND_FILTERS, compoundCover, compoundWhere, developerLabel, fetchCompoundCards, filterCompounds,
   isReady, matchingUnits, startingPrice, type CompoundFilters,
@@ -26,7 +27,6 @@ function CompoundsPage() {
   const [f, setF] = useState<CompoundFilters>(EMPTY_COMPOUND_FILTERS);
   const [more, setMore] = useState(false);
   const all = useMemo(() => q.data ?? [], [q.data]);
-  const areas = useMemo(() => [...new Set(all.map((c) => c.area).filter((a): a is string => !!a))].sort(), [all]);
   const developers = useMemo(() => [...new Set(all.map((c) => developerLabel(c, c.developer)).filter((d): d is string => !!d))].sort(), [all]);
   const types = useMemo(() => UNIT_TYPES.filter((ty) => all.some((c) => c.compound_units.some((u) => u.unit_type === ty))), [all]);
   const rows = useMemo(() => filterCompounds(all, f), [all, f]);
@@ -46,10 +46,8 @@ function CompoundsPage() {
 
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
         <div className="rounded-2xl border bg-card p-3 md:p-4">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            <select aria-label={t("المنطقة")} className={inputCls} value={f.area} onChange={(e) => set("area", e.target.value)}>
-              <option value="">{t("كل المناطق")}</option>{areas.map((a) => <option key={a} value={a}>{t(a)}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <AreaFilter city={f.city} area={f.area} onChange={(v) => setF((x) => ({ ...x, ...v }))} />
             <select aria-label={t("نوع الوحدة")} className={inputCls} value={f.type} onChange={(e) => set("type", e.target.value)}>
               <option value="">{t("كل الأنواع")}</option>{types.map((ty) => <option key={ty} value={ty}>{t(ty)}</option>)}
             </select>
