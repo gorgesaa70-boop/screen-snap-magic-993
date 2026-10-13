@@ -58,10 +58,10 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
       )}
       <div className="flex flex-wrap items-center gap-2">
         <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel"}<input type="file" accept=".xlsx" className="hidden" disabled={busy || !owner} onChange={read} /></label>
-        <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج الكمبوندات</button>
+        <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج المشروعات</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {PROJECT_HEADERS.join("، ")}. الإجباري: اسم الكمبوند والمدينة (والمنطقة للمدن اللي فيها أحياء). المميزات من القايمة، مفصولة بـ «،». لحد {MAX_PROJECTS} كمبوند. الصور والوحدات بتتضاف بعدين لكل كمبوند.
+        الأعمدة: {PROJECT_HEADERS.join("، ")}. الإجباري: اسم المشروع والمدينة (والمنطقة للمدن اللي فيها أحياء). المميزات من القايمة، مفصولة بـ «،». لحد {MAX_PROJECTS} كمبوند. الصور والوحدات بتتضاف بعدين لكل كمبوند.
       </p>
       {result && (
         <div className="space-y-3 border-t pt-3">
@@ -74,7 +74,7 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
           {result.projects.length > 0 && (
             <div className="max-h-64 overflow-auto rounded-xl border">
               <table className="w-full min-w-[560px] text-xs">
-                <thead className="sticky top-0 bg-secondary text-primary"><tr>{["صف", "الكمبوند", "المدينة", "المنطقة", "التسليم", "المميزات"].map((h) => <th key={h} className="p-2 text-start">{h}</th>)}</tr></thead>
+                <thead className="sticky top-0 bg-secondary text-primary"><tr>{["صف", "المشروع", "المدينة", "المنطقة", "التسليم", "المميزات"].map((h) => <th key={h} className="p-2 text-start">{h}</th>)}</tr></thead>
                 <tbody>
                   {result.projects.map((p) => (
                     <tr key={p.row} className="border-t"><td className="p-2">{p.row}</td><td className="p-2">{p.name}</td><td className="p-2">{p.city}</td><td className="p-2">{p.area}</td><td className="p-2">{p.delivery_date ?? "—"}</td><td className="p-2">{p.amenities.length}</td></tr>

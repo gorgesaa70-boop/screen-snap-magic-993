@@ -11,7 +11,7 @@ import { t, useLang } from "@/lib/i18n";
 export const Route = createFileRoute("/projects/")({
   head: () => pageHead({
     path: "/projects",
-    title: "المشروعات والكمبوندات | فاليو عقار",
+    title: "المشروعات | فاليو عقار",
     description: "مشروعات شركات التطوير العقاري في برج العرب والساحل الشمالي: الوحدات المتاحة، أنظمة التقسيط، ومواعيد التسليم.",
   }),
   component: ProjectsPage,
