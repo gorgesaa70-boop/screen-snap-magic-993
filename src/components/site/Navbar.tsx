@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound } from "lucide-react";
+import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { NewsTicker } from "@/components/site/NewsTicker";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
@@ -13,7 +13,7 @@ import { fetchPriceIndex, hasData } from "@/components/site/prices";
 export function Logo({ light = false }: { light?: boolean }) {
   return (
     // Brand mark (from the brand sheet) + the name in full, Arabic and English, as live text so it stays sharp.
-    <a href="/" className="flex shrink-0 items-center gap-2" dir="rtl" aria-label="فاليو عقار — Value Aqar">
+    <a href="/" className="flex shrink-0 items-center gap-2 max-[359px]:gap-1.5" dir="rtl" aria-label="فاليو عقار — Value Aqar">
       {light ? (
         <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
       ) : (<>
@@ -22,8 +22,8 @@ export function Logo({ light = false }: { light?: boolean }) {
         <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
       </>)}
       <span className="flex flex-col leading-none">
-        <span className={`text-lg font-extrabold ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>
-        <span className="mt-1 text-[10px] font-bold tracking-[0.28em] text-teal" dir="ltr">VALUE AQAR</span>
+        <span className={`text-lg font-extrabold max-[359px]:text-base ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>
+        <span className="mt-1 text-[10px] font-bold tracking-[0.28em] text-teal max-[359px]:text-[9px] max-[359px]:tracking-[0.18em]" dir="ltr">VALUE AQAR</span>
       </span>
     </a>
   );
@@ -36,7 +36,7 @@ export function LangToggle() {
       onClick={() => setLang(lang === "ar" ? "en" : "ar")}
       aria-label={lang === "ar" ? "Switch to English" : "التبديل إلى العربية"}
       title={lang === "ar" ? "English" : "العربية"}
-      className="grid h-10 min-w-10 place-items-center rounded-full border border-primary/25 px-2 text-xs font-extrabold text-primary transition-colors hover:bg-secondary"
+      className="grid h-9 min-w-9 place-items-center rounded-full border border-primary/25 px-2 text-xs font-extrabold text-primary transition-colors hover:bg-secondary sm:h-10 sm:min-w-10"
     >
       {lang === "ar" ? "EN" : "ع"}
     </Button>
@@ -69,7 +69,7 @@ export function Navbar() {
   return (
     <header className="pt-safe sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
       <NewsTicker />
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 md:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-3 sm:gap-4 md:px-6">
         <Logo />
         <nav className="hidden items-center gap-5 lg:flex">
           {links.map((l) => (
@@ -78,18 +78,21 @@ export function Navbar() {
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* On phones the header has no room for it (the page got 15px wider); it lives in the ☰ menu there. */}
-          <ThemeToggle className="hidden sm:grid" />
+        <div className="flex items-center gap-0.5 sm:gap-2">
+          {/* Search, theme and account stay visible on phones too (smaller buttons there); «بحث» left the bottom bar for «الخدمات». */}
+          <a href="/#search" aria-label={t("بحث")} title={t("بحث")} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
+            <Search className="size-5" />
+          </a>
+          <ThemeToggle className="grid size-9 sm:size-10" />
           <LangToggle />
           <NotificationBell />
-          <a href={account.href} aria-label={account.label} title={account.label} className="grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
+          <a href={account.href} aria-label={account.label} title={account.label} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <UserRound className="size-5" />
           </a>
           <a href="/sell" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> {t("اعرض عقارك")}
           </a>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </Button>
         </div>
@@ -101,10 +104,6 @@ export function Navbar() {
               {l.label}
             </a>
           ))}
-          <div className="flex items-center justify-between border-b py-2 sm:hidden">
-            <span className="text-base font-semibold text-foreground/80">{t("المظهر")}</span>
-            <ThemeToggle />
-          </div>
           <a href={account.href} onClick={() => setOpen(false)} className="flex items-center gap-2 border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
             <UserRound className="size-4" /> {account.label}
           </a>
@@ -124,7 +123,7 @@ export function MobileBar() {
   const short = (ar: string, en: string) => (lang === "en" ? en : t(ar));
   const items = [
     { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },
-    { id: "search", label: t("بحث"), href: "/#search", icon: Search },
+    { id: "services", label: t("الخدمات"), href: "/services", icon: Wrench },
     { id: "sell", label: short("اعرض عقارك", "List"), href: "/sell", icon: Plus },
     { id: "brokers", label: t("الوسطاء"), href: "/brokers", icon: Building2 },
     { id: "request", label: short("اطلب عقارك", "Request"), href: "/#request", icon: FileSearch },
@@ -132,7 +131,8 @@ export function MobileBar() {
   const active =
     pathname === "/sell" ? "sell"
     : pathname.startsWith("/brokers") ? "brokers"
-    : pathname === "/" ? (hash === "search" || hash === "request" ? hash : "home")
+    : pathname.startsWith("/services") ? "services"
+    : pathname === "/" ? (hash === "request" ? hash : "home")
     : null;
   return (
     <nav aria-label={t("تنقل سريع")} className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
