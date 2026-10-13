@@ -39,6 +39,8 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as BrokersIndexRouteImport } from './routes/brokers.index'
 import { Route as BrokersSlugRouteImport } from './routes/brokers.$slug'
+import { Route as CompoundsIndexRouteImport } from './routes/compounds.index'
+import { Route as CompoundsIdRouteImport } from './routes/compounds.$id'
 import { Route as DemoCentralPointRouteImport } from './routes/demo.central-point'
 import { Route as IndustrialIndexRouteImport } from './routes/industrial.index'
 import { Route as IndustrialIdRouteImport } from './routes/industrial.$id'
@@ -209,6 +211,16 @@ const BrokersSlugRoute = BrokersSlugRouteImport.update({
   path: '/brokers/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompoundsIndexRoute = CompoundsIndexRouteImport.update({
+  id: '/compounds/',
+  path: '/compounds/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompoundsIdRoute = CompoundsIdRouteImport.update({
+  id: '/compounds/$id',
+  path: '/compounds/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoCentralPointRoute = DemoCentralPointRouteImport.update({
   id: '/demo/central-point',
   path: '/demo/central-point',
@@ -332,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/compounds/$id': typeof CompoundsIdRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/investments/$id': typeof InvestmentsIdRoute
@@ -339,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
+  '/compounds/': typeof CompoundsIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
@@ -381,6 +395,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/compounds/$id': typeof CompoundsIdRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/investments/$id': typeof InvestmentsIdRoute
@@ -388,6 +403,7 @@ export interface FileRoutesByTo {
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers': typeof BrokersIndexRoute
+  '/compounds': typeof CompoundsIndexRoute
   '/industrial': typeof IndustrialIndexRoute
   '/investments': typeof InvestmentsIndexRoute
   '/malls': typeof MallsIndexRoute
@@ -432,6 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/brokers/$slug': typeof BrokersSlugRoute
+  '/compounds/$id': typeof CompoundsIdRoute
   '/demo/central-point': typeof DemoCentralPointRoute
   '/industrial/$id': typeof IndustrialIdRoute
   '/investments/$id': typeof InvestmentsIdRoute
@@ -439,6 +456,7 @@ export interface FileRoutesById {
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
   '/brokers/': typeof BrokersIndexRoute
+  '/compounds/': typeof CompoundsIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
   '/investments/': typeof InvestmentsIndexRoute
   '/malls/': typeof MallsIndexRoute
@@ -483,6 +501,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/tasks'
     | '/brokers/$slug'
+    | '/compounds/$id'
     | '/demo/central-point'
     | '/industrial/$id'
     | '/investments/$id'
@@ -490,6 +509,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
+    | '/compounds/'
     | '/industrial/'
     | '/investments/'
     | '/malls/'
@@ -532,6 +552,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/tasks'
     | '/brokers/$slug'
+    | '/compounds/$id'
     | '/demo/central-point'
     | '/industrial/$id'
     | '/investments/$id'
@@ -539,6 +560,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers'
+    | '/compounds'
     | '/industrial'
     | '/investments'
     | '/malls'
@@ -582,6 +604,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/tasks'
     | '/brokers/$slug'
+    | '/compounds/$id'
     | '/demo/central-point'
     | '/industrial/$id'
     | '/investments/$id'
@@ -589,6 +612,7 @@ export interface FileRouteTypes {
     | '/projects/$id'
     | '/properties/$id'
     | '/brokers/'
+    | '/compounds/'
     | '/industrial/'
     | '/investments/'
     | '/malls/'
@@ -619,6 +643,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
+  CompoundsIdRoute: typeof CompoundsIdRoute
   DemoCentralPointRoute: typeof DemoCentralPointRoute
   IndustrialIdRoute: typeof IndustrialIdRoute
   InvestmentsIdRoute: typeof InvestmentsIdRoute
@@ -626,6 +651,7 @@ export interface RootRouteChildren {
   ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
+  CompoundsIndexRoute: typeof CompoundsIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
   InvestmentsIndexRoute: typeof InvestmentsIndexRoute
   MallsIndexRoute: typeof MallsIndexRoute
@@ -850,6 +876,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrokersSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compounds/': {
+      id: '/compounds/'
+      path: '/compounds'
+      fullPath: '/compounds/'
+      preLoaderRoute: typeof CompoundsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compounds/$id': {
+      id: '/compounds/$id'
+      path: '/compounds/$id'
+      fullPath: '/compounds/$id'
+      preLoaderRoute: typeof CompoundsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/central-point': {
       id: '/demo/central-point'
       path: '/demo/central-point'
@@ -1036,6 +1076,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   BrokersSlugRoute: BrokersSlugRoute,
+  CompoundsIdRoute: CompoundsIdRoute,
   DemoCentralPointRoute: DemoCentralPointRoute,
   IndustrialIdRoute: IndustrialIdRoute,
   InvestmentsIdRoute: InvestmentsIdRoute,
@@ -1043,6 +1084,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
+  CompoundsIndexRoute: CompoundsIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
   InvestmentsIndexRoute: InvestmentsIndexRoute,
   MallsIndexRoute: MallsIndexRoute,

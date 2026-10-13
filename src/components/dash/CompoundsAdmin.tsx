@@ -31,7 +31,6 @@ export function CompoundsAdmin({ properties, reload }: { properties: PropertyRow
       </div>
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">وحدات الكمبوندات بتتضاف من نموذج العقار العادي باختيار «الكمبوند» — وبتظهر هنا وبتنزل للمراجعة زي أي عقار.</p>
-        <button onClick={() => setEditing(null) /* editing handled from the listings tab or the form below */} className="hidden" aria-hidden />
         {units.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد وحدات بعد.</p>}
         {units.map((p) => (
           <div key={p.id} className="flex flex-col gap-2 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
