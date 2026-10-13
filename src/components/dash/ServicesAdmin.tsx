@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, BadgeCheck, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { Field, Stat, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { cleanPhone } from "@/lib/phone";
 import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, serviceRequestNo } from "@/components/site/data";
@@ -62,7 +62,7 @@ function RequestsAdmin() {
 
 function RequestRow({ r, providers, onChanged }: { r: Tables<"service_requests">; providers: Provider[]; onChanged: () => void }) {
   const [notes, setNotes] = useState(r.notes ?? "");
-  async function save(patch: Partial<Tables<"service_requests">>, ok = "اتحفظ") {
+  async function save(patch: TablesUpdate<"service_requests">, ok = "اتحفظ") {
     const { error } = await supabase.from("service_requests").update(patch).eq("id", r.id);
     if (error) toast.error(error.message); else { toast.success(ok); onChanged(); }
   }
@@ -143,7 +143,7 @@ function AddProvider({ onDone }: { onDone: () => void }) {
 function ProviderRow({ p, plans, onChanged }: { p: Provider; plans: Plan[]; onChanged: () => void }) {
   const [sub, setSub] = useState({ plan: "", months: "1" });
   const plan = plans.find((x) => x.id === p.plan_id);
-  async function update(patch: Partial<Provider>, ok: string) {
+  async function update(patch: TablesUpdate<"service_providers">, ok: string) {
     const { error } = await supabase.from("service_providers").update(patch).eq("id", p.id);
     if (error) toast.error(error.message); else { toast.success(ok); onChanged(); }
   }
