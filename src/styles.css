@@ -28,8 +28,6 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-teal: var(--teal);
   --color-teal-soft: var(--teal-soft);
-  --color-teal-pale: var(--teal-pale);
-  --color-teal-strong: var(--teal-strong);
   --color-navy-deep: var(--navy-deep);
   --color-whatsapp: var(--whatsapp);
   --color-destructive: var(--destructive);
@@ -40,10 +38,9 @@
 
 :root {
   --radius: 0.875rem;
-  /* Soft cool-gray page with lighter cards on top: calmer on the eyes than pure white. */
-  --background: oklch(0.94 0.008 260);
+  --background: oklch(0.985 0.004 250);
   --foreground: oklch(0.27 0.06 262);
-  --card: oklch(0.975 0.005 260);
+  --card: oklch(1 0 0);
   --card-foreground: oklch(0.27 0.06 262);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.27 0.06 262);
@@ -51,22 +48,19 @@
   --primary: oklch(0.29 0.075 263);
   --primary-foreground: oklch(0.99 0 0);
   --navy-deep: oklch(0.22 0.06 263);
-  --secondary: oklch(0.91 0.01 260);
+  --secondary: oklch(0.955 0.01 250);
   --secondary-foreground: oklch(0.29 0.075 263);
-  --muted: oklch(0.925 0.009 260);
-  --muted-foreground: oklch(0.48 0.03 260);
+  --muted: oklch(0.96 0.008 250);
+  --muted-foreground: oklch(0.52 0.03 260);
   /* #76C7B0 */
   --teal: oklch(0.77 0.085 172);
   --teal-soft: oklch(0.95 0.03 172);
-  /* Pale mint for the big search button, deeper mint for the «اعرض عقارك» button. */
-  --teal-pale: oklch(0.86 0.07 168);
-  --teal-strong: oklch(0.7 0.12 166);
   --accent: oklch(0.77 0.085 172);
   --accent-foreground: oklch(0.22 0.06 263);
   --whatsapp: oklch(0.68 0.16 150);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.012 260);
-  --input: oklch(0.88 0.012 260);
+  --border: oklch(0.92 0.01 255);
+  --input: oklch(0.92 0.01 255);
   --ring: oklch(0.77 0.085 172);
   --shadow-card: 0 10px 30px -15px color-mix(in oklab, var(--primary) 25%, transparent);
   --shadow-float: 0 25px 60px -20px color-mix(in oklab, var(--primary) 45%, transparent);
@@ -76,14 +70,6 @@
 @utility shadow-card { box-shadow: var(--shadow-card); }
 @utility shadow-float { box-shadow: var(--shadow-float); }
 @utility bg-hero-overlay { background: var(--gradient-hero); }
-/* Light hero: the page color fades over the photo, so the title reads in navy on a bright image (dark mode: on navy). */
-@utility bg-hero-soft {
-  background: linear-gradient(180deg,
-    color-mix(in oklab, var(--background) 78%, transparent) 0%,
-    color-mix(in oklab, var(--background) 72%, transparent) 50%,
-    color-mix(in oklab, var(--background) 15%, transparent) 85%,
-    transparent 100%);
-}
 
 @layer base {
   * { border-color: var(--color-border); }
@@ -134,8 +120,6 @@
   --muted-foreground: oklch(0.74 0.03 255);
   --teal: oklch(0.79 0.09 172);
   --teal-soft: oklch(0.31 0.05 175);
-  --teal-pale: oklch(0.8 0.08 168);
-  --teal-strong: oklch(0.74 0.12 166);
   --accent: oklch(0.79 0.09 172);
   --accent-foreground: oklch(0.2 0.05 263);
   --destructive: oklch(0.66 0.2 25);
