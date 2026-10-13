@@ -13,7 +13,7 @@ import { ContactOutcome, OUTCOME_LABEL, Timeline, logActivity } from "@/componen
 import { DeadlineBadge } from "@/components/dash/Deadline";
 import { MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Field, inputCls, btnOutline, btnPrimary } from "@/components/site/ui";
-import { stageLabel, LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink } from "@/components/site/data";
+import { stageLabel, LEAD_KINDS, LEAD_SOURCES, STAGES, formatDate, formatPrice, leadNo, waLink, leadKindLabel } from "@/components/site/data";
 import { staffDirectory } from "@/lib/admin.functions";
 import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPipeline";
 import { ReferralProof } from "@/components/dash/ReferralProof";
@@ -101,7 +101,7 @@ function LeadPage() {
               <div>
                 <p className="text-xl font-extrabold text-primary">{l.name}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  <span dir="ltr">{leadNo(l.lead_no)}</span> · {LEAD_KINDS[l.kind] ?? l.kind} · {formatDate(l.created_at)}
+                  <span dir="ltr">{leadNo(l.lead_no)}</span> · {leadKindLabel(l)} · {formatDate(l.created_at)}
                 </p>
               </div>
               <span className="rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{stageLabel(l.stage, l.purpose)}</span>

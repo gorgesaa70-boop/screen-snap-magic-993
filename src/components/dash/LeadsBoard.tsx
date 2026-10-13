@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
 import { DeadlineBadge } from "./Deadline";
-import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow } from "@/components/site/data";
+import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow, leadKindLabel } from "@/components/site/data";
 
 export type LeadWithProp = {
   id: string;
@@ -57,7 +57,7 @@ function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
   const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
   const head = ["رقم العميل", "المصدر", "الاسم", "الهاتف", "النوع", "المرحلة", "العقار", "نوع العقار", "المنطقة", "الميزانية", "التفاصيل", "الملاحظات", "موعد المتابعة", "الوسيط", "تاريخ الطلب"];
   const lines = rows.map((l) => [
-    leadNo(l.lead_no), LEAD_SOURCES[l.source ?? ""] ?? l.source ?? "", l.name, l.phone, LEAD_KINDS[l.kind] ?? l.kind, STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
+    leadNo(l.lead_no), LEAD_SOURCES[l.source ?? ""] ?? l.source ?? "", l.name, l.phone, leadKindLabel(l), STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
     l.properties?.title, l.property_type, l.area, l.budget, l.details, l.notes,
     l.follow_up_at ? new Date(l.follow_up_at).toLocaleString("ar-EG") : "",
     brokers?.find((b) => b.id === l.assigned_broker_id)?.name ?? "", new Date(l.created_at).toLocaleString("ar-EG"),
@@ -171,7 +171,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
           <p className="font-bold text-primary">
             {l.name}{" "}
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${l.kind === "inquiry" ? "bg-teal-soft text-primary" : l.kind === "listing" ? "bg-primary text-primary-foreground" : "bg-secondary text-primary"}`}>
-              {LEAD_KINDS[l.kind] ?? l.kind}
+              {leadKindLabel(l)}
             </span>
           </p>
           <p className="text-xs text-muted-foreground">
@@ -393,7 +393,7 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
           <li key={l.id}>
             <Link to="/leads/$id" params={{ id: l.id }} className="block rounded-2xl border bg-card p-4 active:bg-secondary/40">
               <div className="flex items-start justify-between gap-2">
-                <p className="min-w-0 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind} · <span dir="ltr">{leadNo(l.lead_no)}</span></span></p>
+                <p className="min-w-0 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{leadKindLabel(l)} · <span dir="ltr">{leadNo(l.lead_no)}</span></span></p>
                 <span className="shrink-0 rounded-full bg-teal-soft px-2.5 py-0.5 text-[11px] font-bold text-primary">{stageLabel(l.stage, l.purpose)}</span>
               </div>
               <p className="mt-2 text-sm" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive">×{dups + 1}</span>}</p>
@@ -419,7 +419,7 @@ function LeadsTable({ list, brokers, counts }: { list: LeadWithProp[]; brokers?:
             return (
               <tr key={l.id} className="border-t hover:bg-secondary/40">
                 <td className="p-3"><Link to="/leads/$id" params={{ id: l.id }} className="font-bold text-primary hover:text-teal" dir="ltr">{leadNo(l.lead_no)}</Link></td>
-                <td className="p-3 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{LEAD_KINDS[l.kind] ?? l.kind}</span></td>
+                <td className="p-3 font-bold text-primary">{l.name}<span className="block text-xs font-normal text-muted-foreground">{leadKindLabel(l)}</span></td>
                 <td className="p-3" dir="ltr">{l.phone}{dups > 0 && <span className="ms-1 rounded-full bg-destructive/10 px-1.5 text-[10px] font-bold text-destructive" title="الرقم مكرر">×{dups + 1}</span>}</td>
                 <td className="p-3">{LEAD_SOURCES[l.source ?? ""] ?? l.source}</td>
                 <td className="p-3">{stageLabel(l.stage, l.purpose)}{l.transfer_deadline_at && !l.first_response_at && <span className="mt-1 block"><DeadlineBadge at={l.transfer_deadline_at} compact /></span>}{l.admin_queue_at && <span className="mt-1 block text-xs font-bold text-destructive">طابور الإدارة</span>}</td>

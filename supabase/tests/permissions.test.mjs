@@ -11,7 +11,7 @@ const U = {
 const CO = "c0000000-0000-0000-0000-000000000001";
 const DEV = "d0000000-0000-0000-0000-000000000001";
 
-export default async function ({ as, sys, expectOk, expectErr }) {
+export default async function ({ as, sys, expectOk, expectErr, exec }) {
   await sys(`insert into auth.users (id, phone) values
     ('${U.admin}','201000000010'), ('${U.owner}','201000000001'), ('${U.sales}','201000000002'), ('${U.manager}','201000000003'),
     ('${U.staff}','201000000004'), ('${U.outsider}','201000000005'), ('${U.dev}','201000000006'), ('${U.applicant}','201000000007')`);
@@ -182,8 +182,8 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   const nl = (await sys(`select id from public.leads where name='إشعار'`))[0].id;
   await expectOk("new lead for a company → owner and manager notified (not sales)", () => sys(`select user_id from public.notifications where related_id='${nl}'`),
     (r) => [U.owner, U.manager].every((u) => r.some((x) => x.user_id === u)) && !r.some((x) => x.user_id === U.sales));
-  await expectOk("assigned to a team member → that member notified", async () => { await as(U.manager, `update public.leads set assigned_member_id='${salesId}' where id='${nl}'`); return [await notes(U.sales, "تم إسناد عميل لك")]; }, (r) => r[0] >= 1);
-  await expectOk("assigned to a Value Aqar employee → employee notified", async () => { await as(U.admin, `update public.leads set assigned_staff_id='${U.staff}' where id='${nl}'`); return sys(`select count(*) c from public.notifications where user_id='${U.staff}' and related_id='${nl}' and title='تم إسناد عميل لك'`); }, (r) => Number(r[0].c) === 1);
+  await expectOk("assigned to a team member → that member notified", async () => { await as(U.manager, `update public.leads set assigned_member_id='${salesId}' where id='${nl}'`); return [await notes(U.sales, "اتحوّل لك: ")]; }, (r) => r[0] >= 1);
+  await expectOk("assigned to a Value Aqar employee → employee notified", async () => { await as(U.admin, `update public.leads set assigned_staff_id='${U.staff}' where id='${nl}'`); return sys(`select count(*) c from public.notifications where user_id='${U.staff}' and related_id='${nl}' and title like 'اتحوّل لك: %'`); }, (r) => Number(r[0].c) === 1);
   await expectOk("quick 'lost' → admins and staff alerted", async () => [await notes(U.admin, "تنبيه: عميل اتقفل بسرعة"), await notes(U.staff, "تنبيه: عميل اتقفل بسرعة")], (r) => r[0] >= 1 && r[1] >= 1);
   await expectOk("nobody is notified about their own action", () => sys(`select count(*) c from public.notifications where user_id='${U.manager}' and related_id='${nl}' and title='تم إسناد عميل لك'`), (r) => Number(r[0].c) === 0);
 
@@ -519,7 +519,7 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
   await expectOk("WhatsApp from a new number → lead (source whatsapp), admins notified", async () => {
     const r = await sys(`select public.whatsapp_inbound_lead('201055550010','منى','عايزة شقة 3 غرف','wamid.1') r`);
-    return [r[0].r, await src("منى"), await notes(U.admin, "طلب عقاري جديد")];
+    return [r[0].r, await src("منى"), await notes(U.admin, "طلب عقار")];
   }, (r) => r[0] === "created" && r[1].source === "whatsapp" && r[1].external_ref === "wa:wamid.1" && r[2] >= 1);
   await expectOk("second message from the same customer → one note, no new lead", async () => {
     const a = await sys(`select public.whatsapp_inbound_lead('+20 105 555 0010','منى','لسه مستنية','wamid.2') r`);
@@ -921,4 +921,74 @@ export default async function ({ as, sys, expectOk, expectErr }) {
   await expectOk("admin hides a compound, visitors lose it, developer edit sends it to review", async () => { await as(U.admin, `update public.compounds set review_status='rejected' where id='${cmp}'`); const pub = await as(null, `select id from public.compounds where id='${cmp}'`); const r = await as(U.dev, `update public.compounds set description='جديد' where id='${cmp}' returning review_status`); return [pub, r]; }, (r) => r[0].length === 0 && r[1][0].review_status === "pending");
   await expectOk("developer's mall: admin links it", async () => { const m = (await sys(`insert into public.malls (name) values ('مول المطور') returning id`))[0].id; return as(U.admin, `update public.malls set developer_id='${DEV}' where id='${m}' returning developer_id`); }, (r) => r[0].developer_id === DEV);
   await expectOk("developer can't edit the mall", () => as(U.dev, `update public.malls set name='x' where name='مول المطور' returning id`), (r) => r.length === 0);
+
+  console.log("\nUnit requests reach the developer and Value Aqar together");
+  const vaUnit = (await sys(`select id from public.compound_units where compound_id='${va}' limit 1`))[0].id;
+  await as(null, `insert into public.leads (name, phone, kind, compound_id, compound_unit_id) values ('سارة الطالبة','01077778888','request','${va}','${vaUnit}')`);
+  await expectOk("compound unit request: developer told (no customer name), admins told too", async () => [
+    await sys(`select title, message from public.notifications where user_id='${U.dev}' and title='طلب وحدة في كمبوند النخيل' order by created_at desc limit 1`),
+    await sys(`select count(*) c from public.notifications where user_id='${U.admin}' and message like '%سارة الطالبة%'`)],
+    (r) => r[0].length === 1 && r[0][0].message.includes("فيلا") && !r[0][0].message.includes("سارة") && Number(r[1][0].c) >= 1);
+  const pj = (await sys(`insert into public.projects (developer_id, name, city, area) values ('${DEV}','برج الياسمين','برج العرب الجديدة','الحي الأول') returning id`))[0].id;
+  await as(null, `insert into public.leads (name, phone, kind, project_id) values ('عميل مشروع','01077779999','request','${pj}')`);
+  await expectOk("project request: developer told at once (short notice, or the full request when it is routed to him)", () => sys(`select title, message from public.notifications where user_id='${U.dev}' and (title='طلب وحدة في برج الياسمين' or message like '%عميل مشروع%')`), (r) => r.length >= 1);
+  await expectOk("a broker's listing inquiry still goes to the broker and the admins", async () => {
+    const pid = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${CO}','شقة الوسيط',1,'شقة','الحي الأول','بيع','approved') returning id`))[0].id;
+    await as(null, `insert into public.leads (name, phone, kind, property_id) values ('مستفسر','01066665555','inquiry','${pid}')`);
+    return [await sys(`select count(*) c from public.notifications where user_id='${U.owner}' and message like '%مستفسر%'`), await sys(`select count(*) c from public.notifications where user_id='${U.admin}' and message like '%مستفسر%'`)];
+  }, (r) => Number(r[0][0].c) >= 1 && Number(r[1][0].c) >= 1);
+
+  await expectOk("notifications carry the request's name: unit in a compound, inquiry on a listing", async () => [
+    await sys(`select count(*) c from public.notifications where user_id='${U.admin}' and title='طلب وحدة في كمبوند النخيل'`),
+    await sys(`select count(*) c from public.notifications where user_id='${U.admin}' and title='استفسار عن شقة الوسيط'`),
+    await sys(`select count(*) c from public.notifications where user_id='${U.owner}' and title='استفسار عن شقة الوسيط'`)],
+    (r) => Number(r[0][0].c) >= 1 && Number(r[1][0].c) === 1 && Number(r[2][0].c) === 1);
+
+  console.log("\nServices: providers, requests, subscriptions");
+  const PV = "00000000-0000-0000-0000-0000000000e1", PV2 = "00000000-0000-0000-0000-0000000000e2";
+  await sys(`insert into auth.users (id, phone) values ('${PV}','201000000071'), ('${PV2}','201000000072')`);
+  await expectOk("visitor registers as a provider; approval fields are ignored", async () => { await as(null, `insert into public.service_providers (kind, category, name, phone, status, verified) values ('technician','media','استوديو فوتو','01000000071','approved', true)`); return sys(`select status, verified, phone from public.service_providers where name='استوديو فوتو'`); }, (r) => r[0].status === "pending" && r[0].verified === false && r[0].phone === "201000000071");
+  const prov = (await sys(`select id from public.service_providers where name='استوديو فوتو'`))[0].id;
+  await expectOk("admins told a provider is waiting", () => sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${prov}'`), (r) => r.some((n) => n.title === "مقدم خدمة جديد مستني الموافقة"));
+  await expectErr("same phone can't register twice", () => as(null, `insert into public.service_providers (category, name, phone) values ('crafts','تاني','+20 100 000 0071')`));
+  await expectOk("provider signs in with that phone and sees own profile", () => as(PV, `select id, status from public.service_providers`), (r) => r.length === 1 && r[0].id === prov);
+  await expectOk("provider edits bio but can't approve himself", () => as(PV, `update public.service_providers set bio='تصوير عقارات ودرون', status='approved', verified=true where id='${prov}' returning bio, status, verified`), (r) => r[0].bio === "تصوير عقارات ودرون" && r[0].status === "pending" && r[0].verified === false);
+  await expectOk("outsiders can't see providers", () => as(U.outsider, `select id from public.service_providers`), (r) => r.length === 0);
+  await expectOk("visitors can't see providers", () => as(null, `select id from public.service_providers`).catch(() => []), (r) => r.length === 0);
+
+  await expectOk("visitor asks for a service; status and assignment are ignored", async () => { await as(null, `insert into public.service_requests (name, phone, category, details, status) values ('عميل خدمة','01011112222','media','تصوير شقة','done')`); return sys(`select status, assigned_provider_id from public.service_requests where name='عميل خدمة'`); }, (r) => r[0].status === "new" && r[0].assigned_provider_id === null);
+  const sreq = (await sys(`select id from public.service_requests where name='عميل خدمة'`))[0].id;
+  await expectOk("admins and staff told about the service request (not as a real-estate lead)", async () => [await sys(`select title from public.notifications where user_id='${U.staff}' and related_id='${sreq}'`), await sys(`select count(*) c from public.leads where name='عميل خدمة'`)], (r) => r[0].some((n) => n.title === "طلب خدمة جديد — تصوير وميديا") && Number(r[1][0].c) === 0);
+  await expectErr("can't assign to a provider who isn't approved", () => as(U.admin, `update public.service_requests set assigned_provider_id='${prov}' where id='${sreq}'`));
+  await expectOk("admin approves; provider is told", async () => { await as(U.admin, `update public.service_providers set status='approved', verified=true where id='${prov}'`); return sys(`select title from public.notifications where user_id='${PV}' and related_id='${prov}'`); }, (r) => r.some((n) => n.title === "حسابك كمقدم خدمة اتفعّل"));
+  await expectOk("admin assigns: provider and Value Aqar told at the same time", async () => { await as(U.admin, `update public.service_requests set assigned_provider_id='${prov}' where id='${sreq}'`); return [await sys(`select title from public.notifications where user_id='${PV}' and related_id='${sreq}'`), await sys(`select title from public.notifications where user_id='${U.staff}' and related_id='${sreq}'`), await sys(`select status from public.service_requests where id='${sreq}'`)]; },
+    (r) => r[0].some((n) => n.title === "طلب خدمة جديد ليك") && r[1].some((n) => n.title.startsWith("طلب خدمة اتحوّل لـ استوديو فوتو")) && r[2][0].status === "assigned");
+  await expectOk("provider sees the assigned request with the customer's phone", () => as(PV, `select phone from public.service_requests`), (r) => r.length === 1 && r[0].phone === "201011112222");
+  await expectOk("another provider sees nothing", async () => { await sys(`insert into public.service_providers (category, name, phone, status) values ('media','منافس','201000000072','approved')`); return as(PV2, `select id from public.service_requests`); }, (r) => r.length === 0);
+  await expectOk("provider can't reassign or edit the customer, but marks it done", () => as(PV, `update public.service_requests set assigned_provider_id=null, phone='0', status='done', notes='اتصورت' where id='${sreq}' returning assigned_provider_id, phone, status, notes`), (r) => r[0].assigned_provider_id === prov && r[0].phone === "201011112222" && r[0].status === "done" && r[0].notes === "اتصورت");
+  await expectOk("admins told the provider finished", () => sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${sreq}'`), (r) => r.some((n) => n.title === "مقدم خدمة خلّص طلب"));
+  await expectErr("can't assign a craftsmen request to a photographer", async () => { const id = (await sys(`insert into public.service_requests (name, phone, category) values ('سباكة','01022221111','crafts') returning id`))[0].id; return as(U.admin, `update public.service_requests set assigned_provider_id='${prov}' where id='${id}'`); });
+  await expectOk("outsiders can't read service requests", () => as(U.outsider, `select id from public.service_requests`), (r) => r.length === 0);
+
+  const basic = (await sys(`select id from public.service_plans where code='basic'`))[0].id;
+  await expectOk("three plans exist, prices not set yet", () => as(null, `select code, monthly_price from public.service_plans order by sort_order`), (r) => r.map((x) => x.code).join() === "free,basic,featured" && r.every((x) => x.monthly_price === null));
+  await expectErr("provider can't give himself a subscription", () => as(PV, `insert into public.service_subscriptions (provider_id, plan_id, ends_at) values ('${prov}','${basic}', now() + interval '30 days')`));
+  await expectOk("admin activates a plan; provider row and notification follow", async () => { await as(U.admin, `insert into public.service_subscriptions (provider_id, plan_id, ends_at) values ('${prov}','${basic}', now() + interval '30 days')`); return [await sys(`select plan_id from public.service_providers where id='${prov}'`), await sys(`select title from public.notifications where user_id='${PV}' and title='اشتراكك اتفعّل'`)]; }, (r) => r[0][0].plan_id === basic && r[1].length === 1);
+  await expectOk("3 days before the end: provider and admins reminded once", async () => { await sys(`update public.service_subscriptions set ends_at = now() + interval '2 days' where provider_id='${prov}'`); await sys(`select public.run_service_subscriptions()`); await sys(`select public.run_service_subscriptions()`); return [await sys(`select count(*) c from public.notifications where user_id='${PV}' and title='اشتراكك قرّب يخلص'`), await sys(`select count(*) c from public.notifications where user_id='${U.admin}' and title='اشتراك مقدم خدمة قرّب يخلص'`)]; }, (r) => Number(r[0][0].c) === 1 && Number(r[1][0].c) === 1);
+  await expectOk("after the end: expired and back to the free plan", async () => { await sys(`update public.service_subscriptions set starts_at = now() - interval '40 days', ends_at = now() - interval '1 minute' where provider_id='${prov}'`); await sys(`select public.run_service_subscriptions()`); return sys(`select p.plan_id, (select status from public.service_subscriptions where provider_id=p.id) st from public.service_providers p where p.id='${prov}'`); }, (r) => r[0].plan_id === null && r[0].st === "expired");
+  await expectOk("provider asks for a plan; admins told", async () => { await as(PV, `select public.request_service_plan('${basic}')`); return sys(`select title from public.notifications where user_id='${U.admin}' and title='طلب اشتراك من مقدم خدمة'`); }, (r) => r.length === 1);
+  await expectErr("non-provider can't ask for a plan", () => as(U.outsider, `select public.request_service_plan('${basic}')`));
+  await expectOk("old service requests saved as leads are copied once (re-running the file is safe)", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`insert into public.leads (name, phone, kind, details) values ('قديم طالب','01055556666','request','دليل الخدمات (قريبًا) — طالب خدمة — صنايعية — سباك'), ('قديم فني','01055557777','request','دليل الخدمات (قريبًا) — مقدم خدمة — شركات التصوير والميديا — درون')`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261013700000_services.sql", import.meta.url), "utf8");
+    await exec(`begin;
+${sql}
+commit;`);
+    await exec(`begin;
+${sql}
+commit;`);
+    return [await sys(`select category, details from public.service_requests where name='قديم طالب'`), await sys(`select category, status from public.service_providers where name='قديم فني'`)];
+  }, (r) => r[0].length === 1 && r[0][0].category === "crafts" && r[0][0].details === "سباك" && r[1].length === 1 && r[1][0].category === "media" && r[1][0].status === "pending");
 }

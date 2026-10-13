@@ -14,10 +14,11 @@ import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow, leadKindLabel } from "@/components/site/data";
 import { AreaPicker } from "@/components/site/AreaPicker";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { CompoundsAdmin } from "@/components/dash/CompoundsAdmin";
+import { ServicesAdmin } from "@/components/dash/ServicesAdmin";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "app" | "audit" | "health" | "routing" | "investments";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "app" | "audit" | "health" | "routing" | "investments";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -74,12 +75,13 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", app: "التطبيق", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", app: "التطبيق", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = [
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing"] },
           { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "compounds", "industrial"] },
+          { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
           { id: "settings", label: "الإعدادات", tabs: ["app", "health"] },
         ];
@@ -116,6 +118,7 @@ function AdminPage() {
           {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
+          {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
       )}
@@ -348,7 +351,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
           <div key={l.id} className="rounded-2xl border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-bold text-primary">{l.name} <span className="text-xs text-muted-foreground">· {LEAD_KINDS[l.kind] ?? l.kind} · {STAGES[l.stage]}</span></p>
+                <p className="font-bold text-primary">{l.name} <span className="text-xs text-muted-foreground">· {leadKindLabel(l)} · {STAGES[l.stage]}</span></p>
                 <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
               </div>
               <a href={`tel:${l.phone}`} dir="ltr" className="inline-flex h-9 items-center gap-1 rounded-lg bg-secondary px-3 text-sm font-bold text-primary"><Phone className="size-3.5" />{l.phone}</a>

@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
-import { LEAD_KINDS, formatDate, formatPrice, leadNo } from "@/components/site/data";
+import { LEAD_KINDS, formatDate, formatPrice, leadNo, leadKindLabel } from "@/components/site/data";
 
 export const Route = createFileRoute("/_authenticated/my-requests")({
   head: () => ({ meta: [{ title: "طلباتي | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -41,7 +41,7 @@ function MyRequestsPage() {
               return (
                 <li key={r.id} className="rounded-2xl border bg-card p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-bold text-primary">{LEAD_KINDS[r.kind] ?? "طلب"} <span className="text-xs text-muted-foreground" dir="ltr">{leadNo(r.lead_no)}</span></p>
+                    <p className="font-bold text-primary">{leadKindLabel(r)} <span className="text-xs text-muted-foreground" dir="ltr">{leadNo(r.lead_no)}</span></p>
                     <span className={`rounded-full px-3 py-1 text-xs font-bold ${st.cls}`}>{st.label}</span>
                   </div>
                   {r.property_id && r.property_title && <Link to="/properties/$id" params={{ id: r.property_id }} className="mt-1 block text-sm font-bold text-teal hover:underline">{r.property_title}</Link>}
