@@ -38,6 +38,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
                 <Link to="/dashboard" className={linkCls} activeProps={activeCls}>صفحتي</Link>
                 <Link to="/favorites" className={linkCls} activeProps={activeCls}>المفضلة</Link>
                 <Link to="/my-requests" className={linkCls} activeProps={activeCls}>طلباتي</Link>
+                <Link to="/messages" className={linkCls} activeProps={activeCls}>الرسايل</Link>
                 <Link to="/account" className={linkCls} activeProps={activeCls}>حسابي</Link>
                 <a href="/" className={linkCls}>تصفّح العقارات</a>
               </>
@@ -46,6 +47,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
             {isAdmin && <Link to="/admin" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الإدارة</Link>}
             <Link to="/tasks" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>متابعاتي</Link>
             <Link to="/inquiries" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العملاء والطلبات</Link>
+            <Link to="/messages" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الرسايل</Link>
             <Link to="/reports" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>التقارير</Link>
             <Link to="/deals" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الصفقات</Link>
             <Link to="/commissions" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العمولات</Link>

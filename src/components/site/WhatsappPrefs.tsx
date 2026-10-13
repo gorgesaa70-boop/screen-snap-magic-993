@@ -7,12 +7,14 @@ import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 const CUSTOMER_TYPES = [
   { id: "broker_reply", label: "رد الوسيط عليّ" },
+  { id: "new_message", label: "رسالة جديدة في طلباتي" },
   { id: "request_status", label: "تحديث حالة طلبي" },
   { id: "saved_search_match", label: "عقار جديد مطابق لبحثي" },
 ];
 const BROKER_TYPES = [
   { id: "new_inquiry", label: "استفسار جديد عن عقار" },
   { id: "new_request", label: "طلب عقاري جديد" },
+  { id: "new_message", label: "رسالة جديدة من عميل" },
 ];
 
 /** Per-user WhatsApp delivery preferences. Brokers/admins see broker types, everyone else customer types. */

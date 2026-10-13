@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
+import { MessagesButton, MessagesMenuLink } from "@/components/site/MessagesButton";
 import { NewsTicker } from "@/components/site/NewsTicker";
 import { AnnouncementBar } from "@/components/site/SiteAnnouncement";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
@@ -86,6 +87,7 @@ export function Navbar() {
           </a>
           <ThemeToggle className="grid size-9 sm:size-10" />
           <LangToggle />
+          <MessagesButton />
           <NotificationBell />
           <a href={account.href} aria-label={account.label} title={account.label} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <UserRound className="size-5" />
@@ -108,6 +110,7 @@ export function Navbar() {
           <a href={account.href} onClick={() => setOpen(false)} className="flex items-center gap-2 border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
             <UserRound className="size-4" /> {account.label}
           </a>
+          <MessagesMenuLink onClick={() => setOpen(false)} className="flex items-center gap-2 border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary" />
           <a href="/sell" onClick={() => setOpen(false)} className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-primary py-3 font-bold text-primary-foreground">
             <Plus className="size-4" /> {t("اعرض عقارك")}
           </a>

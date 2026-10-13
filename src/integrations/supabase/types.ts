@@ -1213,6 +1213,78 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_message_reads: {
+        Row: {
+          lead_id: string
+          user_id: string
+          side: string
+          last_read_at: string
+        }
+        Insert: {
+          lead_id: string
+          user_id: string
+          side: string
+          last_read_at?: string
+        }
+        Update: {
+          lead_id?: string
+          user_id?: string
+          side?: string
+          last_read_at?: string
+        }
+        Relationships: []
+      }
+      lead_messages: {
+        Row: {
+          id: string
+          lead_id: string
+          sender_id: string
+          sender_side: string
+          sender_label: string
+          body: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_type: string | null
+          masked: boolean
+          reported_at: string | null
+          reported_by: string | null
+          report_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id?: string
+          sender_id?: string
+          sender_side?: string
+          sender_label?: string
+          body?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_type?: string | null
+          masked?: boolean
+          reported_at?: string | null
+          reported_by?: string | null
+          report_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          sender_id?: string
+          sender_side?: string
+          sender_label?: string
+          body?: string | null
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_type?: string | null
+          masked?: boolean
+          reported_at?: string | null
+          reported_by?: string | null
+          report_reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -1323,6 +1395,8 @@ export type Database = {
       }
       leads: {
         Row: {
+          chat_closed_at: string | null
+          chat_closed_by: string | null
           admin_queue_at: string | null
           admin_queue_reason: string | null
           area: string | null
@@ -1379,6 +1453,8 @@ export type Database = {
           visit_at: string | null
         }
         Insert: {
+          chat_closed_at?: string | null
+          chat_closed_by?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -1435,6 +1511,8 @@ export type Database = {
           visit_at?: string | null
         }
         Update: {
+          chat_closed_at?: string | null
+          chat_closed_by?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -3071,6 +3149,37 @@ export type Database = {
         }
       }
       my_phone: { Args: never; Returns: string }
+      lead_chat_side: { Args: { _lead: string }; Returns: string }
+      mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
+      my_conversations: {
+        Args: never
+        Returns: {
+          closed: boolean
+          last_at: string
+          last_body: string
+          last_side: string
+          lead_id: string
+          lead_no: number
+          other_label: string
+          side: string
+          stage: string
+          title: string
+          unread: number
+        }[]
+      }
+      my_unread_messages: { Args: never; Returns: number }
+      report_lead_message: { Args: { _message: string; _reason: string }; Returns: undefined }
+      send_lead_message: {
+        Args: {
+          _lead: string
+          _body: string | null
+          _attachment_path?: string | null
+          _attachment_name?: string | null
+          _attachment_type?: string | null
+        }
+        Returns: string
+      }
+      set_lead_chat_closed: { Args: { _lead: string; _closed: boolean }; Returns: undefined }
       my_requests: {
         Args: never
         Returns: {
