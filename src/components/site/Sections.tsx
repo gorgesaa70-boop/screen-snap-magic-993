@@ -1,5 +1,5 @@
 import { cleanPhone } from "@/lib/phone";
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -57,6 +57,10 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
         <Link to="/malls" className={card}>
           <span className={icon}><Landmark className="size-5 md:size-6" /></span>
           <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("المولات")}</span>
+        </Link>
+        <Link to="/compounds" className={card}>
+          <span className={icon}><House className="size-5 md:size-6" /></span>
+          <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("الكمبوندات")}</span>
         </Link>
       </div>
     </section>
@@ -138,6 +142,12 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
       {filters.group === "commercial" && (
         <Link to="/malls" className="-mt-3 mb-6 flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-bold text-primary transition hover:border-teal">
           <span className="flex items-center gap-2"><Landmark className="size-4 text-teal" />{tr("تصفّح المحلات والوحدات داخل المولات التجارية")}</span>
+          <ArrowLeft className="size-4" />
+        </Link>
+      )}
+      {filters.group === "residential" && (
+        <Link to="/compounds" className="-mt-3 mb-6 flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-bold text-primary transition hover:border-teal">
+          <span className="flex items-center gap-2"><House className="size-4 text-teal" />{tr("تصفّح الوحدات داخل الكمبوندات السكنية")}</span>
           <ArrowLeft className="size-4" />
         </Link>
       )}

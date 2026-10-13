@@ -1,0 +1,114 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { Building2, MapPin, Maximize, BedDouble, MessageCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
+import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, PRICE_UNIT_LABEL, type PublicBroker } from "@/components/site/data";
+import { fetchCompoundUnits } from "@/components/site/compounds";
+import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { PlaceMap } from "@/components/site/Gallery";
+import { t, useLang } from "@/lib/i18n";
+
+async function fetchCompound(id: string) {
+  const { data, error } = await supabase.from("compounds").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+export const Route = createFileRoute("/compounds/$id")({
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData({ queryKey: ["compound", params.id], queryFn: () => fetchCompound(params.id) }),
+  head: ({ params, loaderData: c }) => {
+    const path = `/compounds/${params.id}`;
+    if (!c || !c.is_active) return unavailableHead(path, "الكمبوند غير متاح");
+    const where = c.location ? ` في ${c.location}` : "";
+    const title = `${c.name}${where} – شقق وفيلات وشاليهات للبيع والإيجار | ${SITE_NAME}`;
+    const description = `الوحدات المتاحة للبيع والإيجار والمصيف داخل ${c.name}${where}. ${c.description ?? ""}`;
+    return pageHead({
+      path, title, description, image: c.logo_url,
+      jsonLd: [
+        {
+          "@context": "https://schema.org", "@type": "ApartmentComplex", name: c.name, url: `${SITE_URL}${path}`,
+          description: c.description || undefined, logo: c.logo_url && /^https:/.test(c.logo_url) ? c.logo_url : undefined,
+          address: c.location ? { "@type": "PostalAddress", addressLocality: c.location, addressCountry: "EG" } : undefined,
+        },
+        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "الكمبوندات", path: "/compounds" }, { name: c.name, path }]),
+      ],
+    });
+  },
+  component: CompoundPage,
+});
+
+function CompoundPage() {
+  useLang();
+  const { id } = Route.useParams();
+  const initial = Route.useLoaderData();
+  const compound = useQuery({ queryKey: ["compound", id], queryFn: () => fetchCompound(id), initialData: initial });
+  const units = useQuery({ queryKey: ["compound-units", id], queryFn: () => fetchCompoundUnits(id) });
+  const brokerIds = [...new Set((units.data ?? []).map((u) => u.broker_id).filter(Boolean))] as string[];
+  const brokers = useQuery({
+    queryKey: ["compound-brokers", brokerIds], enabled: brokerIds.length > 0,
+    queryFn: async () => (await withContacts((await supabase.from("brokers").select(PUBLIC_BROKER_COLS).in("id", brokerIds)).data ?? [])) as PublicBroker[],
+  });
+  const [status, setStatus] = useState("");
+  const [type, setType] = useState("");
+  const types = useMemo(() => [...new Set((units.data ?? []).map((u) => u.type).filter(Boolean))], [units.data]);
+  const rows = useMemo(() => (units.data ?? []).filter((u) => (!status || u.status === status) && (!type || u.type === type)), [units.data, status, type]);
+
+  if (compound.isLoading) return <PageShell><div className="mx-auto mt-6 h-60 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
+  const c = compound.data;
+  if (!c) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">{t("الكمبوند غير متاح")}</p><Link to="/compounds" className={`${btnOutline} mt-4`}>{t("كل الكمبوندات")}</Link></div></PageShell>;
+
+  return (
+    <PageShell>
+      <section className="bg-primary px-4 py-8 text-primary-foreground md:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-4">
+          <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-card md:size-28">
+            {c.logo_url ? <img src={c.logo_url} alt={c.name} className="size-full object-cover" /> : <Building2 className="size-10 text-teal" />}
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold md:text-4xl">{c.name}</h1>
+            {c.location && <p className="mt-1 flex items-center gap-1 text-sm text-primary-foreground/80"><MapPin className="size-4 text-teal" />{c.location}</p>}
+          </div>
+        </div>
+        {c.description && <p className="mx-auto mt-4 max-w-6xl text-sm whitespace-pre-line text-primary-foreground/80">{c.description}</p>}
+      </section>
+      <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
+        <div className="grid grid-cols-2 gap-2">
+          <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{types.map((x) => <option key={x} value={x}>{t(x)}</option>)}</select>
+          <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("كل الأغراض")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option><option value="مصيف">{t("مصيف")}</option></select>
+        </div>
+        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("بيحمّل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
+        {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("مفيش وحدات متاحة في الكمبوند ده دلوقتي.")}</p>}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((u) => {
+            const b = brokers.data?.find((x) => x.id === u.broker_id);
+            return (
+              <div key={u.id} className="overflow-hidden rounded-2xl border bg-card shadow-card">
+                <div className="relative aspect-[4/3] bg-muted">
+                  {u.image_url ? <img src={u.image_url} alt={u.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Building2 className="size-12 text-muted-foreground" /></div>}
+                  <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${u.status === "بيع" ? "bg-primary text-primary-foreground" : u.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>{t(u.status)}</span>
+                </div>
+                <div className="p-4">
+                  <p className="text-xs font-bold text-teal">{t(u.type)}</p>
+                  <h2 className="mt-1 font-extrabold text-primary">{u.title}</h2>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-primary">
+                    <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><Maximize className="size-3.5" />{formatPrice(Number(u.size))} {t("م²")}</span>
+                    {u.rooms ? <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><BedDouble className="size-3.5" />{formatPrice(u.rooms)} {t("غرف")}</span> : null}
+                  </div>
+                  {u.description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{u.description}</p>}
+                  <p className="mt-3 text-lg font-extrabold text-primary">
+                    {formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">{t("ج.م")}{u.price_unit ? t(PRICE_UNIT_LABEL[u.price_unit] ?? "") : u.status === "إيجار" ? t(" / شهريًا") : ""}</span>
+                  </p>
+                  <a href={waLink(b?.whatsapp || b?.phone, t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: c.name }))} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("استفسر واتساب")}</a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {c.lat != null && c.lng != null && <PlaceMap lat={c.lat} lng={c.lng} label={t("موقع الكمبوند على الخريطة")} />}
+      </div>
+    </PageShell>
+  );
+}

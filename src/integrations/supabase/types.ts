@@ -494,6 +494,45 @@ export type Database = {
           },
         ]
       }
+      compounds: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          lat: number | null
+          lng: number | null
+          location: string | null
+          logo_url: string | null
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: string | null
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: string | null
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       deal_documents: {
         Row: {
           created_at: string
@@ -1716,6 +1755,7 @@ export type Database = {
           built_size: number | null
           category: string
           city: string
+          compound_id: string | null
           created_at: string
           deposit: number | null
           description: string | null
@@ -1771,6 +1811,7 @@ export type Database = {
           built_size?: number | null
           category?: string
           city?: string
+          compound_id?: string | null
           created_at?: string
           deposit?: number | null
           description?: string | null
@@ -1826,6 +1867,7 @@ export type Database = {
           built_size?: number | null
           category?: string
           city?: string
+          compound_id?: string | null
           created_at?: string
           deposit?: number | null
           description?: string | null
@@ -1883,6 +1925,13 @@ export type Database = {
             columns: ["broker_id"]
             isOneToOne: false
             referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
             referencedColumns: ["id"]
           },
           {
