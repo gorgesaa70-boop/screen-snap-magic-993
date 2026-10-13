@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, HardHat, Wrench } from "lucide-react";
+import { BadgeCheck, Camera, HardHat, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
 import { cleanPhone } from "@/lib/phone";
@@ -12,8 +12,8 @@ import { PageShell, inputCls, btnPrimary } from "@/components/site/ui";
 export const Route = createFileRoute("/services")({
   head: () => pageHead({
     path: "/services",
-    title: "مكاتب هندسية ومقاولين وصنايعية في برج العرب — قريبًا | فاليو عقار",
-    description: "دليل مكاتب هندسية معتمدة من فاليو عقار، وشركات مقاولات وتشطيبات، وصنايعية بتقييمات السكان في برج العرب. سجّل اهتمامك كعميل أو كمقدم خدمة.",
+    title: "مكاتب هندسية ومقاولين وصنايعية وشركات تصوير وميديا في برج العرب — قريبًا | فاليو عقار",
+    description: "دليل مكاتب هندسية معتمدة من فاليو عقار، وشركات مقاولات وتشطيبات، وصنايعية بتقييمات السكان، وشركات تصوير عقاري وميديا في برج العرب. سجّل اهتمامك كعميل أو كمقدم خدمة.",
     jsonLd: [breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "الخدمات", path: "/services" }])],
   }),
   component: Services,
@@ -23,9 +23,10 @@ const GROUPS = [
   { id: "engineering", label: "مكاتب هندسية معتمدة من فاليو عقار", hint: "تصميم، رخص، إشراف، معاينة قبل الشراء", icon: BadgeCheck },
   { id: "contracting", label: "شركات مقاولات وتشطيبات", hint: "بناء، تشطيب كامل أو نص تشطيب، ترميم", icon: HardHat },
   { id: "crafts", label: "صنايعية", hint: "سباك، كهربائي، نجار، نقاش، ألوميتال، تكييف", icon: Wrench },
+  { id: "media", label: "شركات التصوير والميديا", hint: "تصوير عقاري احترافي، فيديو ودرون، جولات 360°، إعلانات وسوشيال ميديا", icon: Camera },
 ] as const;
 
-/** Services directory (engineering offices, contractors, craftsmen): "coming soon" page collecting interest as leads. */
+/** Services directory (engineering offices, contractors, craftsmen, photography & media): "coming soon" page collecting interest as leads. */
 function Services() {
   useLang();
   const [f, setF] = useState({ role: "customer" as "customer" | "provider", group: "crafts" as (typeof GROUPS)[number]["id"], what: "", name: "", phone: "" });
@@ -53,8 +54,8 @@ function Services() {
       <section className="bg-primary">
         <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
           <span className="inline-block rounded-full bg-teal px-3 py-1 text-xs font-extrabold text-accent-foreground">{t("قريبًا")}</span>
-          <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("مكاتب هندسية ومقاولين وصنايعية")}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("كل اللي محتاجه لبيتك أو وحدتك في برج العرب في مكان واحد: مكاتب هندسية معتمدة من فاليو عقار، ومقاولين، وصنايعية بتقييمات السكان. بنجهّز الخدمة دلوقتي — سجّل اهتمامك.")}</p>
+          <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("مكاتب هندسية ومقاولين وصنايعية وتصوير وميديا")}</h1>
+          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("كل اللي محتاجه لبيتك أو وحدتك أو مشروعك في برج العرب في مكان واحد: مكاتب هندسية معتمدة من فاليو عقار، ومقاولين، وصنايعية بتقييمات السكان، وشركات تصوير وميديا تعرض عقارك بأحسن شكل. بنجهّز الخدمة دلوقتي — سجّل اهتمامك.")}</p>
         </div>
       </section>
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-2 md:px-6">

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { PUBLIC_BROKER_COLS } from "@/components/site/data";
+import { matchesArea } from "@/components/site/AreaFilter";
 
 export type CompoundRow = Tables<"compounds">;
 export type CompoundUnitRow = Tables<"compound_units">;
@@ -73,11 +74,11 @@ export async function fetchCompoundUnits(compoundId: string) {
 }
 
 export type CompoundFilters = {
-  area: string; developer: string; type: string; minPrice: string; maxPrice: string; minSize: string;
+  city: string; area: string; developer: string; type: string; minPrice: string; maxPrice: string; minSize: string;
   maxDown: string; minYears: string; delivery: string; amenities: string[]; availableOnly: boolean;
 };
 export const EMPTY_COMPOUND_FILTERS: CompoundFilters = {
-  area: "", developer: "", type: "", minPrice: "", maxPrice: "", minSize: "", maxDown: "", minYears: "", delivery: "", amenities: [], availableOnly: false,
+  city: "", area: "", developer: "", type: "", minPrice: "", maxPrice: "", minSize: "", maxDown: "", minYears: "", delivery: "", amenities: [], availableOnly: false,
 };
 
 /** Units of a compound that match the unit-level filters (type, price, size, availability). */
@@ -95,7 +96,7 @@ const unitFilterOn = (f: CompoundFilters) => !!(f.type || f.minPrice || f.maxPri
 export function filterCompounds(list: CompoundCard[], f: CompoundFilters) {
   const year = new Date().getFullYear();
   return list.filter((c) =>
-    (!f.area || c.area === f.area) &&
+    matchesArea(c, f) &&
     (!f.developer || (developerLabel(c, c.developer) ?? "") === f.developer) &&
     (!f.maxDown || (c.down_payment_pct != null && Number(c.down_payment_pct) <= Number(f.maxDown))) &&
     (!f.minYears || (c.installment_years != null && c.installment_years >= Number(f.minYears))) &&
