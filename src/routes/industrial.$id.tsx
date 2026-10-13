@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
-import { t, useLang } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { PlaceMap } from "@/components/site/Gallery";
 
 async function fetchIndustrial(id: string) {
   const { data: p, error } = await supabase.from("properties").select("*, industrial_activities(name)").eq("id", id).eq("category", "industrial").maybeSingle();
@@ -46,14 +47,12 @@ export const Route = createFileRoute("/industrial/$id")({
 });
 
 function Page() {
-  const { lang } = useLang();
   const { id } = Route.useParams();
   const initial = Route.useLoaderData();
   const q = useQuery({ queryKey: ["industrial", id], queryFn: () => fetchIndustrial(id), initialData: initial });
   if (q.isLoading) return <PageShell><div className="mx-auto mt-6 h-80 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">{t("العقار غير متاح")}</p><Link to="/industrial" className={`${btnOutline} mt-4`}>{t("كل العقارات الصناعية")}</Link></div></PageShell>;
   const { p, broker } = q.data;
-  const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
   const chip = "flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5";
   return (
     <PageShell>
@@ -79,12 +78,7 @@ function Page() {
               {p.video_urls.map((v) => <video key={v} src={v} controls preload="metadata" className="aspect-video w-full rounded-2xl bg-muted" />)}
             </div>
           )}
-          {p.lat != null && p.lng != null && key && (
-            <div className="mt-6">
-              <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />{t("الموقع على الخريطة")}</h2>
-              <iframe title={t("موقع العقار على الخريطة")} src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${p.lat},${p.lng}&zoom=15&language=${lang === "ar" ? "ar" : "en"}&region=EG`} className="h-64 w-full rounded-2xl border bg-muted md:h-80" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />
-            </div>
-          )}
+          {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}
           <p className="mt-3 text-xs text-muted-foreground">{t("آخر تحديث:")} {formatDate(p.updated_at)}</p>
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">

@@ -1,22 +1,31 @@
-import { useState } from "react";
-import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
-import { t, useLang } from "@/lib/i18n";
+import { useEffect, useRef, useState } from "react";
+import { MapPin, ChevronLeft, ChevronRight, Navigation } from "lucide-react";
+import { brandPin, createMap, googleMapsLink, loadLeaflet } from "@/lib/osm";
+import { t } from "@/lib/i18n";
 
+/** Read-only map with the brand pin (free OpenStreetMap) and a link that opens Google Maps for directions. */
 export function PlaceMap({ lat, lng, label }: { lat: number; lng: number; label?: string }) {
-  const { lang } = useLang();
-  const key = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"] as string | undefined;
-  if (!key) return null;
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let map: { remove: () => void } | null = null, cancelled = false;
+    loadLeaflet()
+      .then((L) => {
+        if (cancelled || !boxRef.current) return;
+        const m = createMap(L, boxRef.current, { lat, lng }, 15);
+        L.marker({ lat, lng }, { icon: brandPin(L), keyboard: false }).addTo(m);
+        map = m;
+      })
+      .catch(() => setFailed(true));
+    return () => { cancelled = true; map?.remove(); };
+  }, [lat, lng]);
   return (
     <div className="mt-6">
       <h2 className="mb-2 flex items-center gap-1.5 text-lg font-extrabold text-primary"><MapPin className="size-5 text-teal" />{t("الموقع على الخريطة")}</h2>
-      <iframe
-        title={label ?? t("موقع العقار على الخريطة")}
-        src={`https://www.google.com/maps/embed/v1/place?key=${key}&q=${lat},${lng}&zoom=15&language=${lang}&region=EG`}
-        className="h-64 w-full rounded-2xl border bg-muted md:h-80"
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        allowFullScreen
-      />
+      {!failed && <div ref={boxRef} dir="ltr" role="img" aria-label={label ?? t("موقع العقار على الخريطة")} className="h-64 w-full overflow-hidden rounded-2xl border bg-muted md:h-80" />}
+      <a href={googleMapsLink({ lat, lng })} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-secondary px-3 py-2 text-sm font-bold text-primary hover:bg-teal-soft">
+        <Navigation className="size-4 text-teal" />{t("افتح في جوجل ماب")}
+      </a>
     </div>
   );
 }

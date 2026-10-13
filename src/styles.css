@@ -145,3 +145,8 @@
 :where(.dark, .bg-primary, .bg-navy-deep, .bg-hero-overlay, .bg-teal) .text-teal,
 :where(.bg-primary, .bg-navy-deep).text-teal,
 .dark .text-teal { color: var(--teal); }
+
+/* Leaflet maps (src/lib/osm.ts): keep their panes under the sticky header / bottom bar, use the site font, dim tiles in dark mode. */
+.leaflet-container { z-index: 0; font-family: inherit; }
+.dark .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1); }
+.dark .leaflet-container { background: var(--muted); }
