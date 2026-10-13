@@ -45,7 +45,7 @@ export function NotificationBell() {
   return (
     <div ref={ref} className="relative">
       <Button variant="ghost" onClick={() => setOpen(!open)} aria-label={`${t("الإشعارات")}${unread ? ` (${unread} ${t("غير مقروء")})` : ""}`} aria-expanded={open}
-        className="relative grid size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
+        className="relative grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
         <Bell className="size-5" />
         {unread > 0 && <span className="absolute -top-0.5 -end-0.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-5 text-destructive-foreground">{unread > 9 ? "9+" : unread}</span>}
       </Button>
