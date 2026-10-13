@@ -28,7 +28,8 @@ function CompoundsPage() {
   const [more, setMore] = useState(false);
   const all = useMemo(() => q.data ?? [], [q.data]);
   const developers = useMemo(() => [...new Set(all.map((c) => developerLabel(c, c.developer)).filter((d): d is string => !!d))].sort(), [all]);
-  const types = useMemo(() => UNIT_TYPES.filter((ty) => all.some((c) => c.compound_units.some((u) => u.unit_type === ty))), [all]);
+  // Every unit type is always offered (like areas), so the filter never looks empty before compounds load or exist.
+  const types = UNIT_TYPES;
   const rows = useMemo(() => filterCompounds(all, f), [all, f]);
   const year = new Date().getFullYear();
   const set = <K extends keyof CompoundFilters>(k: K, v: CompoundFilters[K]) => setF((x) => ({ ...x, [k]: v }));
