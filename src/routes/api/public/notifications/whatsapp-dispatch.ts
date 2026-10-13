@@ -44,6 +44,13 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           await db.rpc("log_app_error", { _kind: "server", _message: `run_subscription_expiry: ${expiryError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
         }
 
+        // Service providers' plans: reminder 3 days before the end, back to the free plan after it.
+        const { error: serviceSubsError } = await db.rpc("run_service_subscriptions");
+        if (serviceSubsError) {
+          console.error("run_service_subscriptions", serviceSubsError.message);
+          await db.rpc("log_app_error", { _kind: "server", _message: `run_service_subscriptions: ${serviceSubsError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
+        }
+
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 

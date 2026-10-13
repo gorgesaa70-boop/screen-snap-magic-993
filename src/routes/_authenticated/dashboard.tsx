@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
+import { ProviderHome } from "@/components/dash/ProviderHome";
 import { BrokerGuide } from "@/components/dash/BrokerGuide";
 import { DeadlineBadge } from "@/components/dash/Deadline";
 import { ContactOutcome } from "@/components/dash/LeadsBoard";
@@ -34,6 +35,8 @@ function Dashboard() {
   if (loading || !me) return <DashShell title="لوحة التحكم"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
 
   if (!me.broker) {
+    // Service providers (companies / technicians) have their own dashboard.
+    if (me.provider && !me.isAdmin && !me.isStaff) return <ProviderHome provider={me.provider} refetch={refetch} />;
     if (!me.isAdmin && !me.isStaff && me.adminExists) return <CustomerHome />;
     if (me.isAdmin) return <Navigate to="/admin" replace />;
     return (

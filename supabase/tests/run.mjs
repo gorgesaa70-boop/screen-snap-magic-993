@@ -59,6 +59,6 @@ async function expectErr(name, fn) {
   catch (e) { pass++; console.log("  ok   " + name + "  [" + String(e.message).split("\n")[0].slice(0, 90) + "]"); }
 }
 const { default: tests } = await import(toUrl(testFile));
-await tests({ as, sys, expectOk, expectErr });
+await tests({ as, sys, expectOk, expectErr, exec: (sql) => db.exec(sql) });
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -28,11 +28,14 @@ export function useMe() {
     queryKey: ["me", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const [roles, own, adminExists] = await Promise.all([
+      const [roles, own, adminExists, providerId] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", user!.id),
         supabase.rpc("my_account"),
         supabase.rpc("admin_exists"),
+        supabase.rpc("my_service_provider_id"),
       ]);
+      // Service provider (company or technician) matched by account or sign-in phone.
+      const provider = providerId.data ? (await supabase.from("service_providers").select("*").eq("id", providerId.data).maybeSingle()).data : null;
       const list = (roles.data ?? []).map((r) => r.role);
       // my_account(): the user's own account (any status) or the company they work for — full row incl. contacts.
       const account = own.data?.[0] ?? null;
@@ -45,7 +48,7 @@ export function useMe() {
       }
       return {
         isAdmin: list.includes("admin"), isStaff: list.includes("staff"), isBroker: list.includes("broker"),
-        broker, memberRole, memberName, adminExists: !!adminExists.data,
+        broker, memberRole, memberName, adminExists: !!adminExists.data, provider,
       };
     },
   });

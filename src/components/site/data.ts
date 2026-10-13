@@ -143,6 +143,24 @@ export async function fetchPublicBrokers() {
 /** Lead kind -> Arabic label. listing = owner offering a property via /sell. */
 export const LEAD_KINDS: Record<string, string> = { request: "طلب عقار", inquiry: "استفسار عقار", listing: "عرض مالك" };
 
+/** Services section (separate from real-estate leads): categories, request and provider statuses. */
+export const SERVICE_CATEGORIES: Record<string, string> = { engineering: "مكاتب هندسية", contracting: "مقاولات وتشطيبات", crafts: "صنايعية", media: "تصوير وميديا" };
+export const SERVICE_REQUEST_STATUS: Record<string, { label: string; cls: string }> = {
+  new: { label: "جديد", cls: "bg-teal-soft text-primary" },
+  contacted: { label: "اتواصلنا", cls: "bg-secondary text-primary" },
+  assigned: { label: "اتحوّل لمقدم خدمة", cls: "bg-[#f2b84b]/25 text-primary" },
+  done: { label: "اتنفّذ", cls: "bg-primary text-primary-foreground" },
+  closed: { label: "اتقفل", cls: "bg-muted text-muted-foreground" },
+};
+export const PROVIDER_STATUS: Record<string, { label: string; cls: string }> = {
+  pending: { label: "قيد المراجعة", cls: "bg-[#f2b84b]/25 text-primary" },
+  approved: { label: "معتمد", cls: "bg-teal-soft text-primary" },
+  rejected: { label: "مرفوض", cls: "bg-destructive/10 text-destructive" },
+  suspended: { label: "موقوف", cls: "bg-destructive/10 text-destructive" },
+};
+export const PROVIDER_KIND: Record<string, string> = { company: "شركة", technician: "فني" };
+export const serviceRequestNo = (n?: number | null) => (n == null ? "" : `S-${String(n).padStart(6, "0")}`);
+
 /** Short names for the services directory groups (/services), keyed by the group's full title written in the request. */
 const SERVICE_SHORT: [string, string][] = [
   ["مكاتب هندسية", "مكاتب هندسية"], ["شركات مقاولات", "مقاولات وتشطيبات"], ["صنايعية", "صنايعية"], ["شركات التصوير", "تصوير وميديا"],
