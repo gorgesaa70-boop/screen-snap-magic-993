@@ -56,6 +56,7 @@ export function Navbar() {
     { label: t("إداري"), href: "/?cat=office#properties" },
     { label: t("أراضي"), href: "/?cat=land#properties" },
     { label: t("صناعي"), href: "/industrial" },
+    { label: t("المولات"), href: "/malls" },
     { label: t("المشروعات"), href: "/projects" },
     { label: t("استثمار"), href: "/investments" },
     { label: t("الوسطاء"), href: "/brokers" },
