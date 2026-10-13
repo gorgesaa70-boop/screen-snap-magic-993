@@ -63,11 +63,18 @@ export function MapPicker({ value, onChange, allowSearch = true }: Props) {
 
   function useMyLocation() {
     if (!navigator.geolocation) { toast.error("المتصفح لا يدعم تحديد الموقع"); return; }
-    navigator.geolocation.getCurrentPosition(
-      (p) => setMarker({ lat: p.coords.latitude, lng: p.coords.longitude }, 17),
-      () => toast.error("تعذّر تحديد موقعك، تأكد من السماح بالوصول للموقع"),
-      { enableHighAccuracy: true, timeout: 10000 },
+    const ok = (p: GeolocationPosition) => setMarker({ lat: p.coords.latitude, lng: p.coords.longitude }, 17);
+    const fail = (e: GeolocationPositionError) => toast.error(
+      e.code === e.PERMISSION_DENIED
+        ? "الموقع مش مسموح للصفحة دي. اسمح بالموقع من علامة القفل جنب العنوان فوق (أو من إعدادات التطبيق)، أو دوس على مكان العقار على الخريطة."
+        : "مش قادرين نحدد موقعك دلوقتي. اتأكد إن الـ Location مفتوح في الموبايل، أو دوس على مكان العقار على الخريطة.",
+      { duration: 8000 },
     );
+    // GPS often times out indoors: retry once with network location before giving up.
+    navigator.geolocation.getCurrentPosition(ok, (e) => {
+      if (e.code === e.PERMISSION_DENIED) { fail(e); return; }
+      navigator.geolocation.getCurrentPosition(ok, fail, { enableHighAccuracy: false, timeout: 15000, maximumAge: 120000 });
+    }, { enableHighAccuracy: true, timeout: 10000 });
   }
 
   // The picker sits inside other forms, so search runs on Enter / button instead of a nested <form> (whose submit would bubble to the outer form).
