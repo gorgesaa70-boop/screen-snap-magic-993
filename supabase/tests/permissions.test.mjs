@@ -1004,4 +1004,101 @@ ${sql}
 commit;`);
     return [await sys(`select category, details from public.service_requests where name='قديم طالب'`), await sys(`select category, status from public.service_providers where name='قديم فني'`)];
   }, (r) => r[0].length === 1 && r[0][0].category === "crafts" && r[0][0].details === "سباك" && r[1].length === 1 && r[1][0].category === "media" && r[1][0].status === "pending");
+
+  console.log("\nMessages inside the platform");
+  const MU = {
+    cust: "00000000-0000-0000-0000-00000000a0e1", owner: "00000000-0000-0000-0000-00000000a0e2",
+    sales: "00000000-0000-0000-0000-00000000a0e3", owner2: "00000000-0000-0000-0000-00000000a0e4",
+  };
+  const MX = "c0000000-0000-0000-0000-00000000a0e1", MY = "c0000000-0000-0000-0000-00000000a0e2";
+  await sys(`insert into auth.users (id, phone) values ('${MU.cust}','201022220001'), ('${MU.owner}','201022220002'),
+    ('${MU.sales}','201022220003'), ('${MU.owner2}','201022220004')`);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values
+    ('${MX}','${MU.owner}','msg-x','شركة الرسايل','201022220002','company', true),
+    ('${MY}','${MU.owner2}','msg-y','شركة تانية','201022220004','company', true)`);
+  await sys(`insert into public.company_members (company_id, name, phone, role) values ('${MX}','بياع','201022220003','sales')`);
+  const ml = (await sys(`insert into public.leads (name, phone, kind, assigned_broker_id, assigned_member_id)
+    values ('عميل رسايل','01022220001','request','${MX}',(select id from public.company_members where phone='201022220003')) returning id`))[0].id;
+  const inv = (await sys(`insert into public.leads (name, phone, kind) values ('مستثمر','01022220001','investment') returning id`))[0].id;
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  const seq = async (fns) => { const out = []; for (const f of fns) out.push(await f()); return out; };
+  const send = (u, body) => as(u, `select public.send_lead_message('${ml}', $$${body}$$) id`);
+  const msgNotes = (u) => sys(`select title, message, related_url, is_read from public.notifications where user_id='${u}' and type='new_message' and related_id='${ml}' order by created_at`);
+
+  await expectOk("each side is recognised (customer by verified phone, assigned sales, owner, Value Aqar)", () => seq([
+    () => as(MU.cust, `select public.lead_chat_side('${ml}') s`), () => as(MU.sales, `select public.lead_chat_side('${ml}') s`),
+    () => as(MU.owner, `select public.lead_chat_side('${ml}') s`), () => as(U.staff, `select public.lead_chat_side('${ml}') s`),
+    () => as(MU.owner2, `select public.lead_chat_side('${ml}') s`), () => as(U.outsider, `select public.lead_chat_side('${ml}') s`)]),
+    (r) => r.map((x) => x[0].s).join() === "customer,company,company,platform,,");
+  await expectOk("customer sends a message", () => send(MU.cust, "عايز أعرف تفاصيل الشقة"), (r) => !!r[0].id);
+  await expectOk("the company hears about it (owner + assigned sales)", async () => [await msgNotes(MU.owner), await msgNotes(MU.sales)],
+    (r) => r[0].length === 1 && r[1].length === 1 && r[0][0].title.startsWith("رسالة جديدة: ") && r[0][0].related_url === `/leads/${ml}#messages`);
+  await expectOk("a second message within 5 minutes doesn't notify again", async () => { await send(MU.cust, "ومتاح معاينة إمتى؟"); return msgNotes(MU.owner); }, (r) => r.length === 1);
+  await expectOk("a phone number from the customer is hidden", async () => { await send(MU.cust, "كلمني على 0101 234 5678 أو ٠١١٢٣٤٥٦٧٨٩"); return as(MU.cust, `select body, masked from public.lead_messages where lead_id='${ml}' order by created_at desc limit 1`); },
+    (r) => r[0].masked === true && !/[0-9٠-٩]{4}/.test(r[0].body.replace("[رقم مخفي]", "")) && r[0].body.includes("[رقم مخفي]"));
+  await expectOk("a WhatsApp link is hidden", async () => { await send(MU.cust, "ابعتلي على https://wa.me/201012345678 بسرعة"); return as(MU.cust, `select body from public.lead_messages where lead_id='${ml}' order by created_at desc limit 1`); },
+    (r) => r[0].body.includes("[رابط مخفي]") && !r[0].body.includes("wa.me"));
+  await expectOk("prices and areas are not hidden", async () => { await send(MU.cust, "ميزانيتي 2500000 والمساحة 120 متر"); return as(MU.cust, `select body, masked from public.lead_messages where lead_id='${ml}' order by created_at desc limit 1`); },
+    (r) => r[0].masked === false && r[0].body.includes("2500000"));
+  await expectOk("the company reply counts as the first contact", async () => { await send(MU.sales, "أهلا بحضرتك، الشقة متاحة"); return sys(`select first_response_outcome o, first_response_by b from public.leads where id='${ml}'`); },
+    (r) => r[0].o === "message" && r[0].b === MU.sales);
+  await expectOk("the customer hears the reply, with a link to their messages", () => msgNotes(MU.cust), (r) => r.length === 1 && r[0].related_url === `/messages?lead=${ml}` && r[0].message.startsWith("شركة الرسايل: "));
+  await expectOk("the lead file shows the conversation", () => sys(`select summary from public.lead_activities where lead_id='${ml}' and kind='message' order by created_at`), (r) => r.length === 2);
+  await expectOk("Value Aqar can write numbers (not hidden)", async () => { await as(U.admin, `select public.send_lead_message('${ml}', 'كلمونا على 01000000000')`); return sys(`select masked, sender_label from public.lead_messages where lead_id='${ml}' order by created_at desc limit 1`); },
+    (r) => r[0].masked === false && r[0].sender_label === "فاليو عقار");
+  await expectOk("an outsider reads nothing", () => as(U.outsider, `select id from public.lead_messages`), (r) => r.length === 0);
+  await expectErr("an outsider can't send", () => send(U.outsider, "سلام"));
+  await expectErr("nobody writes to the table directly", () => as(MU.cust, `insert into public.lead_messages (lead_id, sender_id, sender_side, sender_label, body) values ('${ml}','${MU.cust}','platform','فاليو عقار','مزيف')`));
+  await expectErr("messages can't be edited", () => as(MU.cust, `update public.lead_messages set body='تعديل' where lead_id='${ml}'`));
+  await expectErr("messages can't be deleted", () => as(MU.cust, `delete from public.lead_messages where lead_id='${ml}'`));
+  await expectOk("inbox shows the conversation with unread count", () => as(MU.cust, `select * from public.my_conversations()`),
+    (r) => r.length === 1 && r[0].unread === 2 && r[0].other_label === "شركة الرسايل" && r[0].side === "customer");
+  await expectOk("opening it marks it read (messages and bell)", async () => { await as(MU.cust, `select public.mark_lead_messages_read('${ml}')`); return [await as(MU.cust, `select public.my_unread_messages() n`), await msgNotes(MU.cust)]; },
+    (r) => r[0][0].n === 0 && r[1].every((n) => n.is_read));
+  await expectOk("the company sees that the customer read it", () => as(MU.sales, `select side from public.lead_message_reads where lead_id='${ml}'`), (r) => r.some((x) => x.side === "customer"));
+
+  await expectOk("customer reports a message, admins are told", async () => {
+    const m = (await as(MU.cust, `select id from public.lead_messages where lead_id='${ml}' and sender_side='company' limit 1`))[0].id;
+    await as(MU.cust, `select public.report_lead_message('${m}', 'كلام مش لطيف')`);
+    return [await sys(`select reported_by from public.lead_messages where id='${m}'`), await sys(`select count(*)::int c from public.notifications where user_id='${U.admin}' and title='بلاغ عن رسالة'`)];
+  }, (r) => r[0][0].reported_by === MU.cust && r[1][0].c === 1);
+  await expectErr("you can't report your own message", async () => { const m = (await as(MU.cust, `select id from public.lead_messages where lead_id='${ml}' and sender_id='${MU.cust}' limit 1`))[0].id; return as(MU.cust, `select public.report_lead_message('${m}', 'x')`); });
+
+  await expectOk("attachments: the customer uploads to the conversation folder", () => as(MU.cust, `insert into storage.objects (bucket_id, name) values ('lead-messages', '${ml}/photo.jpg') returning name`), (r) => r.length === 1);
+  await expectErr("attachments: an outsider can't upload there", () => as(U.outsider, `insert into storage.objects (bucket_id, name) values ('lead-messages', '${ml}/x.jpg')`));
+  await expectErr("attachments: a folder that isn't a conversation is refused", () => as(MU.cust, `insert into storage.objects (bucket_id, name) values ('lead-messages', 'other/x.jpg')`));
+  await expectOk("attachments: the company reads the file, an outsider doesn't", () => seq([
+    () => as(MU.owner, `select name from storage.objects where bucket_id='lead-messages'`), () => as(U.outsider, `select name from storage.objects where bucket_id='lead-messages'`)]),
+    (r) => r[0].length === 1 && r[1].length === 0);
+  await expectOk("attachments: sending a photo", () => as(MU.cust, `select public.send_lead_message('${ml}', null, '${ml}/photo.jpg', 'photo.jpg', 'image') id`), (r) => !!r[0].id);
+  await expectErr("attachments: a file from another conversation is refused", () => as(MU.cust, `select public.send_lead_message('${ml}', null, '${inv}/x.pdf', 'x.pdf', 'pdf')`));
+
+  await expectOk("after a transfer the new company sees the history and the old one doesn't", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`update public.leads set assigned_broker_id='${MY}', assigned_member_id=null where id='${ml}'`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    return [await as(MU.owner2, `select count(*)::int c from public.lead_messages where lead_id='${ml}'`), await as(MU.owner, `select count(*)::int c from public.lead_messages`), await as(MU.sales, `select count(*)::int c from public.lead_messages`)];
+  }, (r) => r[0][0].c >= 8 && r[1][0].c === 0 && r[2][0].c === 0);
+  await expectOk("from «reserved» numbers are shown", async () => {
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await sys(`update public.leads set stage='reserved' where id='${ml}'`);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    await send(MU.owner2, "رقم المكتب 01099998888");
+    return sys(`select masked, body from public.lead_messages where lead_id='${ml}' order by created_at desc limit 1`);
+  }, (r) => r[0].masked === false && r[0].body.includes("01099998888"));
+
+  await expectErr("a company can't close a conversation", () => as(MU.owner2, `select public.set_lead_chat_closed('${ml}', true)`));
+  await expectErr("after Value Aqar closes it, the customer can't send", async () => { await as(U.admin, `select public.set_lead_chat_closed('${ml}', true)`); return send(MU.cust, "سلام"); });
+  await expectErr("…and can't upload files", () => as(MU.cust, `insert into storage.objects (bucket_id, name) values ('lead-messages', '${ml}/late.jpg')`));
+  await expectOk("…but still reads the history, and Value Aqar can still write", async () => { await as(U.admin, `select public.send_lead_message('${ml}', 'المحادثة اتقفلت')`); return as(MU.cust, `select closed from public.my_conversations()`); }, (r) => r[0].closed === true);
+  await expectOk("investment requests have no conversation (for now)", () => as(MU.cust, `select public.lead_chat_side('${inv}') s`), (r) => r[0].s === null);
+  await expectErr("flood guard: 20 messages a minute", async () => { await as(U.admin, `select public.set_lead_chat_closed('${ml}', false)`); for (let i = 0; i < 21; i++) await send(MU.cust, `رسالة ${i}`); });
+  await expectOk("release-21 can be re-run safely (messages stay)", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261013900000_lead-messages.sql", import.meta.url), "utf8");
+    const before = (await sys(`select count(*)::int c from public.lead_messages`))[0].c;
+    await exec(`begin;\n${sql}\ncommit;`);
+    await exec(`begin;\n${sql}\ncommit;`);
+    return [before, (await sys(`select count(*)::int c from public.lead_messages`))[0].c];
+  }, (r) => r[0] > 0 && r[0] === r[1]);
 }

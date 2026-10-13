@@ -19,6 +19,7 @@ import { DealPanel, PipelineSteps, StageChanger } from "@/components/dash/LeadPi
 import { ReferralProof } from "@/components/dash/ReferralProof";
 import { LeadTasks } from "@/components/dash/Tasks";
 import { ResponseStatus } from "@/components/dash/ResponseStatus";
+import { LeadChat } from "@/components/site/LeadChat";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -141,6 +142,13 @@ function LeadPage() {
                   <li key={d.id}><Link to="/leads/$id" params={{ id: d.id }} className="font-bold text-primary underline" dir="ltr">{leadNo(d.lead_no)}</Link> · {d.name} · {STAGES[d.stage] ?? d.stage} · {formatDate(d.created_at)}</li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {(l.kind === "request" || l.kind === "inquiry") && !(l.details ?? "").startsWith("دليل الخدمات") && (
+            <section id="messages" className={`${card} scroll-mt-24`}>
+              <h2 className={h2}>الرسايل مع العميل</h2>
+              <LeadChat leadId={l.id} closed={!!l.chat_closed_at} stage={l.stage} />
             </section>
           )}
 

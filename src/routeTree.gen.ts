@@ -32,6 +32,7 @@ import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authenticated/inquiries'
 import { Route as AuthenticatedInvestorRouteImport } from './routes/_authenticated/investor'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
+import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedMyRequestsRouteImport } from './routes/_authenticated/my-requests'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
@@ -174,6 +175,11 @@ const AuthenticatedInvestorRoute = AuthenticatedInvestorRouteImport.update({
 const AuthenticatedJoinRoute = AuthenticatedJoinRouteImport.update({
   id: '/join',
   path: '/join',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMyRequestsRoute = AuthenticatedMyRequestsRouteImport.update({
@@ -345,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
+  '/messages': typeof AuthenticatedMessagesRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -397,6 +404,7 @@ export interface FileRoutesByTo {
   '/inquiries': typeof AuthenticatedInquiriesRoute
   '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
+  '/messages': typeof AuthenticatedMessagesRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -451,6 +459,7 @@ export interface FileRoutesById {
   '/_authenticated/inquiries': typeof AuthenticatedInquiriesRoute
   '/_authenticated/investor': typeof AuthenticatedInvestorRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
+  '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/my-requests': typeof AuthenticatedMyRequestsRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
@@ -505,6 +514,7 @@ export interface FileRouteTypes {
     | '/inquiries'
     | '/investor'
     | '/join'
+    | '/messages'
     | '/my-requests'
     | '/notifications'
     | '/pending'
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/inquiries'
     | '/investor'
     | '/join'
+    | '/messages'
     | '/my-requests'
     | '/notifications'
     | '/pending'
@@ -610,6 +621,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inquiries'
     | '/_authenticated/investor'
     | '/_authenticated/join'
+    | '/_authenticated/messages'
     | '/_authenticated/my-requests'
     | '/_authenticated/notifications'
     | '/_authenticated/pending'
@@ -840,6 +852,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedJoinRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/messages': {
+      id: '/_authenticated/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof AuthenticatedMessagesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/my-requests': {
       id: '/_authenticated/my-requests'
       path: '/my-requests'
@@ -1049,6 +1068,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInquiriesRoute: typeof AuthenticatedInquiriesRoute
   AuthenticatedInvestorRoute: typeof AuthenticatedInvestorRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
+  AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedMyRequestsRoute: typeof AuthenticatedMyRequestsRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
@@ -1069,6 +1089,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInquiriesRoute: AuthenticatedInquiriesRoute,
   AuthenticatedInvestorRoute: AuthenticatedInvestorRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
+  AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedMyRequestsRoute: AuthenticatedMyRequestsRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,

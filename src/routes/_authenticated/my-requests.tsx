@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { LEAD_KINDS, formatDate, formatPrice, leadNo, leadKindLabel } from "@/components/site/data";
@@ -27,7 +28,7 @@ function MyRequestsPage() {
   const q = useQuery({ queryKey: ["my-requests"], queryFn: async () => (await supabase.rpc("my_requests")).data ?? [] });
   return (
     <DashShell title="طلباتي" customer>
-      <p className="mb-4 max-w-3xl text-sm text-muted-foreground">كل الطلبات والاستفسارات اللي بعتها من حسابك أو من نفس رقم موبايلك. أول ما طلبك يتحرك خطوة هيوصلك إشعار.</p>
+      <p className="mb-4 max-w-3xl text-sm text-muted-foreground">كل الطلبات والاستفسارات اللي بعتها من حسابك أو من نفس رقم موبايلك. أول ما طلبك يتحرك خطوة هيوصلك إشعار، وتقدر تراسل الشركة اللي ماسكة طلبك من «رسايل الطلب».</p>
       {q.isLoading ? <div className="h-40 animate-pulse rounded-2xl bg-muted" />
         : !q.data?.length ? (
           <div className="max-w-3xl rounded-2xl border border-dashed bg-card p-8 text-center">
@@ -47,7 +48,14 @@ function MyRequestsPage() {
                   {r.property_id && r.property_title && <Link to="/properties/$id" params={{ id: r.property_id }} className="mt-1 block text-sm font-bold text-teal hover:underline">{r.property_title}</Link>}
                   <p className="mt-1 text-sm text-foreground/80">{[r.property_type, r.area, r.budget && `ميزانية ${formatPrice(Number(r.budget))} ج.م`].filter(Boolean).join(" · ")}</p>
                   {r.details && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground whitespace-pre-line">{r.details}</p>}
-                  <p className="mt-2 text-[11px] text-muted-foreground">اتبعت {formatDate(r.created_at)}</p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">اتبعت {formatDate(r.created_at)}</p>
+                    {(r.kind === "request" || r.kind === "inquiry") && !(r.details ?? "").startsWith("دليل الخدمات") && (
+                      <Link to="/messages" search={{ lead: r.id }} className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-secondary px-3 text-xs font-bold text-primary hover:bg-teal-soft">
+                        <MessageCircle className="size-4" />رسايل الطلب
+                      </Link>
+                    )}
+                  </div>
                 </li>
               );
             })}

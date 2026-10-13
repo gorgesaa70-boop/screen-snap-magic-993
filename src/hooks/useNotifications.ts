@@ -16,6 +16,7 @@ export const NOTIF_TYPES: Record<string, string> = {
   broker_reply: "رد الوسيط",
   request_status: "تحديث حالة",
   admin: "إداري",
+  new_message: "رسالة",
 };
 
 /** Notifications of the signed-in user, kept live via Realtime. RLS limits rows to the owner. */
