@@ -560,6 +560,7 @@ const EN: Record<string, string> = {
   // Notifications
   "الإشعارات": "Notifications",
   "غير مقروء": "unread",
+  "فعّل الإشعارات على الجهاز ده": "Turn on notifications on this device",
   "الرسايل": "Messages",
   "تحديد الكل كمقروء": "Mark all as read",
   "مفيش إشعارات": "No notifications",

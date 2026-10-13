@@ -54,6 +54,14 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 
+        // Device pushes the database couldn't send right away (safety net for the immediate path).
+        try {
+          const { dispatchPush } = await import("@/lib/push.server");
+          await dispatchPush(db);
+        } catch (e) {
+          console.error("push dispatch", e instanceof Error ? e.message : e);
+        }
+
         // Expire stale items so a late activation doesn't flood users.
         await db.from("notifications").update({ whatsapp_status: "skipped", whatsapp_error: "expired" })
           .eq("whatsapp_status", "pending").lt("created_at", new Date(Date.now() - 864e5).toISOString());

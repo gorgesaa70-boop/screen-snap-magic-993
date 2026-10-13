@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { Bell, Check, CheckCheck, Trash2 } from "lucide-react";
 import { useNotifications, timeAgo, NOTIF_TYPES, type Notification } from "@/hooks/useNotifications";
+import { PushNudge } from "@/components/site/PushPrefs";
 
 export function NotificationItem({ n, onOpen, onRead, onDelete }: { n: Notification; onOpen: () => void; onRead: () => void; onDelete: () => void }) {
   useLang();
@@ -60,6 +61,7 @@ export function NotificationBell() {
               {items.map((n) => <NotificationItem key={n.id} n={n} onOpen={() => openNotification(n, markRead)} onRead={() => markRead(n.id)} onDelete={() => remove(n.id)} />)}
             </ul>
           )}
+          <PushNudge />
           <a href="/notifications" className="block border-t py-2.5 text-center text-sm font-bold text-primary hover:bg-secondary">{t("عرض كل الإشعارات")}</a>
         </div>
       )}

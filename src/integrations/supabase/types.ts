@@ -1703,6 +1703,7 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          push_types: string[] | null
           created_at: string
           updated_at: string
           user_id: string
@@ -1711,6 +1712,7 @@ export type Database = {
           whatsapp_types: string[]
         }
         Insert: {
+          push_types?: string[] | null
           created_at?: string
           updated_at?: string
           user_id: string
@@ -1719,6 +1721,7 @@ export type Database = {
           whatsapp_types?: string[]
         }
         Update: {
+          push_types?: string[] | null
           created_at?: string
           updated_at?: string
           user_id?: string
@@ -1730,6 +1733,8 @@ export type Database = {
       }
       notifications: {
         Row: {
+          push_status: string | null
+          push_sent_at: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -1746,6 +1751,8 @@ export type Database = {
           whatsapp_status: string | null
         }
         Insert: {
+          push_status?: string | null
+          push_sent_at?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1762,6 +1769,8 @@ export type Database = {
           whatsapp_status?: string | null
         }
         Update: {
+          push_status?: string | null
+          push_sent_at?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -2293,6 +2302,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_config: {
+        Row: {
+          id: number
+          secret: string
+          site_url: string
+          vapid_public: string | null
+          vapid_private: Json | null
+          vapid_subject: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          secret: string
+          site_url?: string
+          vapid_public?: string | null
+          vapid_private?: Json | null
+          vapid_subject?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          secret?: string
+          site_url?: string
+          vapid_public?: string | null
+          vapid_private?: Json | null
+          vapid_subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent: string | null
+          failed_count: number
+          created_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent?: string | null
+          failed_count?: number
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          user_agent?: string | null
+          failed_count?: number
+          created_at?: string
+          last_used_at?: string | null
+        }
+        Relationships: []
       }
       routing_rules: {
         Row: {
@@ -2987,6 +3062,7 @@ export type Database = {
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
       delete_demo_data: { Args: never; Returns: Json }
+      delete_push_subscription: { Args: { _endpoint: string }; Returns: undefined }
       demo_visible: { Args: never; Returns: boolean }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
@@ -3169,6 +3245,10 @@ export type Database = {
       }
       my_unread_messages: { Args: never; Returns: number }
       report_lead_message: { Args: { _message: string; _reason: string }; Returns: undefined }
+      save_push_subscription: {
+        Args: { _auth: string; _endpoint: string; _p256dh: string; _ua?: string | null }
+        Returns: string
+      }
       send_lead_message: {
         Args: {
           _lead: string

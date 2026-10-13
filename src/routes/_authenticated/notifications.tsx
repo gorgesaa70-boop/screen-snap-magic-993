@@ -6,6 +6,7 @@ import { NotificationItem } from "@/components/site/NotificationBell";
 import { useNotifications, NOTIF_TYPES } from "@/hooks/useNotifications";
 import { useMe } from "@/hooks/useAuth";
 import { WhatsappPrefs } from "@/components/site/WhatsappPrefs";
+import { PushPrefs } from "@/components/site/PushPrefs";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
   head: () => ({
@@ -30,6 +31,7 @@ function NotificationsPage() {
   const list = filter === "unread" ? items.filter((n) => !n.is_read) : items;
   return (
     <DashShell title="الإشعارات" isAdmin={!!me?.isAdmin}>
+      <PushPrefs />
       <WhatsappPrefs isBroker={!!(me?.isBroker || me?.isAdmin)} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(["all", "unread"] as const).map((f) => (
