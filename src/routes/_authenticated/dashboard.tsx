@@ -21,7 +21,7 @@ import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
 import { AreaPicker } from "@/components/site/AreaPicker";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -224,7 +224,7 @@ function LeadCard({ l, onStage, onNotes, extra, onChanged }: { l: LeadWithProp; 
     <div className="rounded-2xl border bg-card p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="font-bold text-primary">{l.name} <span className="text-xs font-semibold text-muted-foreground">· {LEAD_KINDS[l.kind] ?? l.kind}</span></p>
+          <p className="font-bold text-primary">{l.name} <span className="text-xs font-semibold text-muted-foreground">· {leadKindLabel(l)}</span></p>
           <p className="text-xs text-muted-foreground"><span dir="ltr">{leadNo(l.lead_no)}</span> · {formatDate(l.created_at)}</p>
         </div>
         <select aria-label="مرحلة المتابعة" value={l.stage} onChange={(e) => onStage(e.target.value)} className={`${inputCls} h-10 w-auto`}>

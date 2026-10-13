@@ -143,6 +143,31 @@ export async function fetchPublicBrokers() {
 /** Lead kind -> Arabic label. listing = owner offering a property via /sell. */
 export const LEAD_KINDS: Record<string, string> = { request: "طلب عقار", inquiry: "استفسار عقار", listing: "عرض مالك" };
 
+/** Short names for the services directory groups (/services), keyed by the group's full title written in the request. */
+const SERVICE_SHORT: [string, string][] = [
+  ["مكاتب هندسية", "مكاتب هندسية"], ["شركات مقاولات", "مقاولات وتشطيبات"], ["صنايعية", "صنايعية"], ["شركات التصوير", "تصوير وميديا"],
+];
+
+/** What the request is about, by name: a service from the services directory, shared housing, the brokers' market,
+ * a price estimate, a compound or project — otherwise the plain kind («طلب عقار» …). These forms all save kind = request,
+ * so the name comes from the first part of the details they write (old requests read correctly too). */
+export function leadKindLabel(l: { kind: string; details?: string | null; compound_id?: string | null; project_id?: string | null }) {
+  const d = l.details ?? "";
+  if (d.startsWith("دليل الخدمات")) {
+    const [, role = "", group = ""] = d.split(" — ");
+    const name = SERVICE_SHORT.find(([k]) => group.startsWith(k))?.[1] ?? (group || "خدمات");
+    return `${role === "مقدم خدمة" ? "مقدم خدمة" : "طلب خدمة"} — ${name}`;
+  }
+  if (d.startsWith("سكن مشترك") || d.startsWith("سوق الوسطاء")) {
+    const [head = "", who] = d.split(" — ");
+    return `${head.replace(" (قريبًا)", "")}${who ? ` — ${who}` : ""}`;
+  }
+  if (d.startsWith("طلب تقييم")) return "طلب تقييم";
+  if (l.kind === "request" && l.compound_id) return "طلب كمبوند";
+  if (l.kind === "request" && l.project_id) return "طلب مشروع";
+  return LEAD_KINDS[l.kind] ?? l.kind;
+}
+
 /** The 10-stage customer pipeline, in order. */
 export const STAGES: Record<string, string> = {
   new: "جديد",
