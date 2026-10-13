@@ -64,7 +64,7 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
       {initial?.review_status === "rejected" && <p className="mb-4 rounded-xl bg-teal-soft p-3 text-xs font-semibold text-primary">المشروع ده مخفي من الإدارة؛ بعد التعديل هيرجع للمراجعة قبل ما يظهر.</p>}
       {initial?.review_note && <p className="mb-4 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">ملاحظة الإدارة: {initial.review_note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2"><Field label="اسم المشروع / الكمبوند"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={150} /></Field></div>
+        <div className="sm:col-span-2"><Field label="اسم المشروع"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={150} /></Field></div>
         <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((c) => <option key={c}>{c}</option>)}</select></Field>
         <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((a) => <option key={a}>{a}</option>)}</select></Field>
         <Field label="العنوان التفصيلي (اختياري)"><input className={inputCls} value={f.address} onChange={set("address")} maxLength={300} /></Field>

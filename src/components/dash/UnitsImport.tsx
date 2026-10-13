@@ -7,8 +7,9 @@ import { UNIT_STATUS } from "@/components/site/projects";
 import { formatPrice } from "@/components/site/data";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
 
-/** Import units from Excel (.xlsx) or CSV: validate everything first, show errors by row, then insert the valid rows. */
-export function UnitsImport({ projectId, existingCodes, onDone }: { projectId: string; existingCodes: string[]; onDone: () => void }) {
+/** Import units from Excel (.xlsx) or CSV: validate everything first, show errors by row, then insert the valid rows.
+ * Works for a project's units or a compound's units (pass one of the two ids). */
+export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { projectId?: string; compoundId?: string; existingCodes: string[]; onDone: () => void }) {
   const [result, setResult] = useState<(ImportResult & { file: string }) | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -32,18 +33,21 @@ export function UnitsImport({ projectId, existingCodes, onDone }: { projectId: s
   async function save() {
     if (!result?.units.length) return;
     setBusy(true);
-    const rows = result.units.map(({ row: _row, ...u }) => ({ ...u, project_id: projectId }));
-    for (let i = 0; i < rows.length; i += 200) {
-      const { error } = await dbx.from("project_units").insert(rows.slice(i, i + 200));
+    const units = result.units.map(({ row: _row, ...u }) => u);
+    for (let i = 0; i < units.length; i += 200) {
+      const chunk = units.slice(i, i + 200);
+      const { error } = compoundId
+        ? await dbx.from("compound_units").insert(chunk.map((u) => ({ ...u, compound_id: compoundId })))
+        : await dbx.from("project_units").insert(chunk.map((u) => ({ ...u, project_id: projectId! })));
       if (error) {
         setBusy(false);
-        toast.error(error.code === "23505" ? "فيه كود اتضاف من شوية لنفس المشروع — اقرا الملف تاني" : error.message);
+        toast.error(error.code === "23505" ? (compoundId ? "فيه كود اتضاف من شوية لنفس الكمبوند — اقرا الملف تاني" : "فيه كود اتضاف من شوية لنفس المشروع — اقرا الملف تاني") : error.message);
         if (i > 0) { toast.info(`اتضاف ${i} وحدة قبل الخطأ`); onDone(); }
         return;
       }
     }
     setBusy(false);
-    toast.success(`اتضافت ${rows.length} وحدة`);
+    toast.success(`اتضافت ${units.length} وحدة`);
     setResult(null); onDone();
   }
 

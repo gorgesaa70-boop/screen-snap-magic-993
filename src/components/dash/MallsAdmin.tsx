@@ -15,6 +15,7 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
   const malls = useQuery({ queryKey: ["malls-all"], queryFn: () => fetchMalls(true) });
   const units = properties.filter((p) => p.category === "mall");
   const active = brokers.filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
+  const developers = brokers.filter((b) => b.account_type === "developer" && b.is_active).map((b) => ({ id: b.id, name: b.name }));
   const [name, setName] = useState("");
   if (editing === "import") return <MallUnitsImport brokers={active} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing) return <MallUnitForm brokers={active} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
@@ -30,7 +31,7 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
           <input className={inputCls} placeholder="اسم مول جديد" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
           <button className={btnOutline}>إضافة</button>
         </form>
-        <div className="space-y-3">{malls.data?.map((m) => <MallEditor key={m.id} m={m} onSaved={() => malls.refetch()} />)}</div>
+        <div className="space-y-3">{malls.data?.map((m) => <MallEditor key={m.id} m={m} developers={developers} onSaved={() => malls.refetch()} />)}</div>
       </div>
       <div className="space-y-3">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة في مول</button>
@@ -54,14 +55,14 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
   );
 }
 
-function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
-  const [f, setF] = useState({ name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
+function MallEditor({ m, developers, onSaved }: { m: MallRow; developers: { id: string; name: string }[]; onSaved: () => void }) {
+  const [f, setF] = useState({ developer_id: m.developer_id ?? "", name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
   const [loc, setLoc] = useState<LatLng | null>(m.lat != null && m.lng != null ? { lat: m.lat, lng: m.lng } : null);
   const [showMap, setShowMap] = useState(false);
   const [busy, setBusy] = useState(false);
   async function save(patch?: Partial<MallRow>) {
     setBusy(true);
-    const { error } = await supabase.from("malls").update(patch ?? { name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null, lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", m.id);
+    const { error } = await supabase.from("malls").update(patch ?? { developer_id: f.developer_id || null, name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null, lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", m.id);
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("تم الحفظ"); onSaved(); }
   }
@@ -82,6 +83,10 @@ function MallEditor({ m, onSaved }: { m: MallRow; onSaved: () => void }) {
           <input aria-label="اسم المول" className={`${inputCls} h-10`} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={120} />
           <select aria-label="نوع المول" className={`${inputCls} h-10`} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{Object.entries(MALL_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           <input aria-label="الموقع" className={`${inputCls} h-10`} placeholder="الموقع" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} maxLength={300} />
+          <select aria-label="المطور صاحب المول" className={`${inputCls} h-10`} value={f.developer_id} onChange={(e) => setF({ ...f, developer_id: e.target.value })}>
+            <option value="">المطور: مش مربوط بحساب</option>
+            {developers.map((d) => <option key={d.id} value={d.id}>المطور: {d.name}</option>)}
+          </select>
         </div>
       </div>
       <textarea aria-label="الوصف" className={`${inputCls} mt-2 h-16 py-2`} placeholder="وصف المول" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} />

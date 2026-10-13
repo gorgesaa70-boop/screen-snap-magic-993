@@ -1,91 +1,94 @@
 import { useState } from "react";
-import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Plus, Pencil, Trash2, LayoutDashboard, ArrowLeftRight, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { REVIEW, formatPrice, uploadImage, type PropertyRow } from "@/components/site/data";
-import { fetchCompounds, type CompoundRow } from "@/components/site/compounds";
+import { formatPrice, type BrokerRow } from "@/components/site/data";
+import { compoundCover, compoundWhere, type CompoundRow } from "@/components/site/compounds";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { PropertyForm } from "./PropertyForm";
+import { CompoundForm } from "./CompoundForm";
 
-export function CompoundsAdmin({ properties, reload }: { properties: PropertyRow[]; reload: () => void }) {
-  const [editing, setEditing] = useState<PropertyRow | null>(null);
-  const compounds = useQuery({ queryKey: ["compounds-all"], queryFn: () => fetchCompounds(true) });
-  const units = properties.filter((p) => p.compound_id);
-  const [name, setName] = useState("");
-  if (editing) return <PropertyForm brokerId={editing.broker_id ?? ""} initial={editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+type Row = CompoundRow & { compound_units: { status: string }[] };
+
+/** Admin: every compound — developer-owned or run by Value Aqar — hide/feature, hand over to a developer, open its dashboard. */
+export function CompoundsAdmin({ brokers }: { brokers: BrokerRow[] }) {
+  const developers = brokers.filter((b) => b.account_type === "developer" && b.is_active && !b.suspended_at).map((b) => ({ id: b.id, name: b.name }));
+  const devName = (id: string | null) => brokers.find((b) => b.id === id)?.name;
+  const q = useQuery({
+    queryKey: ["compounds-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("compounds").select("*, compound_units(status)").order("created_at", { ascending: false });
+      if (error) throw error; return data as Row[];
+    },
+  });
+  const [editing, setEditing] = useState<Row | "new" | null>(null);
+  const [owner, setOwner] = useState("");
+  const [search, setSearch] = useState("");
+  const reload = () => q.refetch();
+
+  if (editing) return <CompoundForm developers={developers} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+
+  async function update(c: Row, patch: Partial<CompoundRow>, ok: string) {
+    const { error } = await supabase.from("compounds").update(patch).eq("id", c.id);
+    if (error) toast.error(error.message); else { toast.success(ok); reload(); }
+  }
+  const list = (q.data ?? []).filter((c) =>
+    (!owner || (owner === "va" ? !c.developer_id : c.developer_id === owner)) && (!search || c.name.includes(search.trim())));
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border bg-card p-4">
-        <h3 className="mb-3 font-extrabold text-primary">الكمبوندات</h3>
-        <form className="mb-4 flex gap-2" onSubmit={async (e) => {
-          e.preventDefault(); const n = name.trim(); if (n.length < 2) return;
-          const { error } = await supabase.from("compounds").insert({ name: n, sort_order: (compounds.data?.length ?? 0) + 1 });
-          if (error) toast.error(error.message.includes("duplicate") ? "الكمبوند موجود بالفعل" : error.message); else { setName(""); compounds.refetch(); }
-        }}>
-          <input className={inputCls} placeholder="اسم كمبوند جديد" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
-          <button className={btnOutline}>إضافة</button>
-        </form>
-        <div className="space-y-3">{compounds.data?.map((c) => <CompoundEditor key={c.id} c={c} onSaved={() => compounds.refetch()} />)}</div>
+    <div className="space-y-3">
+      <p className="max-w-3xl text-sm text-muted-foreground">
+        الكمبوند ملك المطور. لو المطور لسه مش مشترك، ضيف الكمبوند واختار «فاليو عقار بتديره» واكتب اسم المطور، ووزّع عليه موظفين فاليو عقار.
+        أول ما المطور يفتح حساب، اختار حسابه من «تسليم للمطور» — كل الوحدات والطلبات والسجل بيفضلوا زي ما هم.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة كمبوند</button>
+        <input aria-label="بحث" className={`${inputCls} w-auto min-w-40 flex-1`} placeholder="ابحث باسم الكمبوند" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select aria-label="صاحب الكمبوند" className={`${inputCls} w-auto`} value={owner} onChange={(e) => setOwner(e.target.value)}>
+          <option value="">كل الكمبوندات</option><option value="va">اللي فاليو عقار بتديرها</option>
+          {developers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
       </div>
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">وحدات الكمبوندات بتتضاف من نموذج العقار العادي باختيار «الكمبوند» — وبتظهر هنا وبتنزل للمراجعة زي أي عقار.</p>
-        {units.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد وحدات بعد.</p>}
-        {units.map((p) => (
-          <div key={p.id} className="flex flex-col gap-2 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
+      {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش كمبوندات.</p>}
+      {list.map((c) => {
+        const u = c.compound_units;
+        const visible = c.is_active && c.review_status === "approved";
+        return (
+          <div key={c.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 lg:flex-row lg:items-center">
+            <img src={compoundCover(c)} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover lg:h-20 lg:w-28" />
             <div className="min-w-0 flex-1">
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
-              <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
-              <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م · {p.type} · {p.area}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${visible ? "bg-teal-soft text-primary" : "bg-destructive/10 text-destructive"}`}>{visible ? "ظاهر" : c.review_status === "rejected" ? "مخفي من الإدارة" : c.review_status === "pending" ? "رجع للمراجعة" : "مخفي"}</span>
+                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{c.developer_id ? `المطور: ${devName(c.developer_id) ?? "—"}` : `فاليو عقار بتديره${c.developer_name ? ` لـ ${c.developer_name}` : ""}`}</span>
+                {c.is_featured && <span className="rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-bold text-accent-foreground">مميز</span>}
+              </div>
+              <p className="mt-1 truncate font-bold text-primary">{c.name}</p>
+              <p className="text-sm text-muted-foreground">{compoundWhere(c)} · {formatPrice(u.length)} وحدة ({formatPrice(u.filter((x) => x.status === "available").length)} متاحة، {formatPrice(u.filter((x) => x.status === "sold").length)} مباعة)</p>
             </div>
-            <div className="flex gap-2">
-              <button aria-label="تعديل" onClick={() => setEditing(p)} className="grid size-11 place-items-center rounded-xl border text-primary hover:bg-secondary"><Pencil className="size-4" /></button>
-              <button aria-label="حذف" onClick={async () => { if (!confirm("حذف الوحدة؟")) return; const { error } = await supabase.from("properties").delete().eq("id", p.id); if (error) toast.error(error.message); else reload(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link to="/my-compounds/$id" params={{ id: c.id }} className={btnOutline}><LayoutDashboard className="size-4" />لوحة الكمبوند</Link>
+              {!c.developer_id && developers.length > 0 && (
+                <label className="flex items-center gap-1 text-xs font-bold text-primary">
+                  <ArrowLeftRight className="size-4" />
+                  <select aria-label="تسليم للمطور" className={`${inputCls} h-11 w-auto text-xs`} value="" onChange={(e) => {
+                    const d = developers.find((x) => x.id === e.target.value);
+                    if (d && confirm(`تسليم «${c.name}» لحساب ${d.name}؟ فريق فاليو عقار هيتشال من الكمبوند، والمطور هيوصله إشعار.`)) update(c, { developer_id: d.id, developer_name: null }, "اتسلم الكمبوند للمطور");
+                  }}>
+                    <option value="">تسليم للمطور…</option>{developers.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </label>
+              )}
+              <button title="مميز" aria-label="مميز" onClick={() => update(c, { is_featured: !c.is_featured }, c.is_featured ? "اتشال من المميز" : "بقى مميز")} className={`grid size-11 place-items-center rounded-xl border ${c.is_featured ? "bg-teal text-accent-foreground" : "text-primary hover:bg-secondary"}`}><Star className="size-4" /></button>
+              {visible
+                ? <button className={btnOutline} onClick={() => { const note = prompt("سبب الإخفاء (بيوصل للمطور):") ?? ""; update(c, { review_status: "rejected", review_note: note.trim().slice(0, 500) || null }, "اتخفى الكمبوند"); }}>إخفاء</button>
+                : <button className={btnOutline} onClick={() => update(c, { review_status: "approved", review_note: null, is_active: true }, "الكمبوند ظاهر")}>إظهار</button>}
+              <button aria-label="تعديل" onClick={() => setEditing(c)} className="grid size-11 place-items-center rounded-xl border text-primary hover:bg-secondary"><Pencil className="size-4" /></button>
+              <button aria-label="حذف" onClick={async () => { if (!confirm(`حذف «${c.name}» وكل وحداته وسجله؟ الطلبات بتفضل بس من غير ربط بالكمبوند.`)) return; const { error } = await supabase.from("compounds").delete().eq("id", c.id); if (error) toast.error(error.message); else reload(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CompoundEditor({ c, onSaved }: { c: CompoundRow; onSaved: () => void }) {
-  const [f, setF] = useState({ name: c.name, location: c.location ?? "", description: c.description ?? "", logo_url: c.logo_url ?? "" });
-  const [loc, setLoc] = useState<LatLng | null>(c.lat != null && c.lng != null ? { lat: c.lat, lng: c.lng } : null);
-  const [showMap, setShowMap] = useState(false);
-  const [busy, setBusy] = useState(false);
-  async function save(patch?: Partial<CompoundRow>) {
-    setBusy(true);
-    const { error } = await supabase.from("compounds").update(patch ?? { name: f.name.trim(), location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null, lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", c.id);
-    setBusy(false);
-    if (error) toast.error(error.message); else { toast.success("تم الحفظ"); onSaved(); }
-  }
-  return (
-    <div className="rounded-xl border p-3">
-      <div className="flex items-center gap-3">
-        <label className="flex w-24 shrink-0 cursor-pointer flex-col items-center gap-1" title="صورة الكمبوند">
-          <span className="grid size-20 place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-teal/60 bg-secondary">
-            {f.logo_url ? <img src={f.logo_url} alt={`صورة ${c.name}`} className="size-full object-cover" /> : <Building2 className="size-6 text-muted-foreground" />}
-          </span>
-          <span className="text-[11px] font-bold text-primary">{f.logo_url ? "غيّر الصورة" : "ارفع صورة الكمبوند"}</span>
-          <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
-            const file = e.target.files?.[0]; if (!file) return;
-            try { setBusy(true); const url = await uploadImage(file); setF((x) => ({ ...x, logo_url: url })); toast.success("الصورة اترفعت — اضغط حفظ"); } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
-          }} />
-        </label>
-        <div className="grid flex-1 gap-2">
-          <input aria-label="اسم الكمبوند" className={`${inputCls} h-10`} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={120} />
-          <input aria-label="الموقع" className={`${inputCls} h-10`} placeholder="الموقع" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} maxLength={300} />
-        </div>
-      </div>
-      <textarea aria-label="الوصف" className={`${inputCls} mt-2 h-16 py-2`} placeholder="وصف الكمبوند" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} />
-      <button type="button" onClick={() => setShowMap(!showMap)} className="mt-2 text-xs font-bold text-primary underline">📍 {loc ? "الموقع على الخريطة (متحدد)" : "حدد موقع الكمبوند على الخريطة"}</button>
-      {showMap && <div className="mt-2"><MapPicker value={loc} onChange={setLoc} /><p className="mt-1 text-xs text-muted-foreground">وحدات الكمبوند اللي ملهاش موقع خاص بتاخد موقع الكمبوند.</p></div>}
-      <div className="mt-2 flex gap-2">
-        <button disabled={busy} onClick={() => save()} className={`${btnPrimary} h-10`}>حفظ</button>
-        <button disabled={busy} onClick={() => save({ is_active: !c.is_active })} className={`h-10 rounded-xl px-3 text-xs font-bold ${c.is_active ? "bg-teal-soft text-primary" : "bg-muted text-muted-foreground"}`}>{c.is_active ? "ظاهر" : "مخفي"}</button>
-      </div>
+        );
+      })}
     </div>
   );
 }

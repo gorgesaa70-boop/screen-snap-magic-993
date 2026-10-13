@@ -7,7 +7,19 @@ import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PropertyCard } from "@/components/site/Sections";
 import { PUBLIC_BROKER_COLS, fetchPublicProperties, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { BrokerInquiry } from "@/components/site/BrokerInquiry";
+import { compoundCover, compoundWhere } from "@/components/site/compounds";
+import { projectCover } from "@/components/site/projects";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+/** A developer's compounds, malls and projects (public ones only — the database hides the rest). */
+async function fetchDeveloperPortfolio(id: string) {
+  const [c, m, p] = await Promise.all([
+    supabase.from("compounds").select("id,name,images,logo_url,area,city,location").eq("developer_id", id).eq("is_active", true).eq("review_status", "approved").order("sort_order"),
+    supabase.from("malls").select("id,name,logo_url,location").eq("developer_id", id).eq("is_active", true).order("sort_order"),
+    supabase.from("projects").select("id,name,images,area").eq("developer_id", id).eq("review_status", "approved").order("created_at", { ascending: false }),
+  ]);
+  return { compounds: c.data ?? [], malls: m.data ?? [], projects: p.data ?? [] };
+}
 
 async function fetchBroker(slug: string) {
   const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("slug", slug).eq("is_active", true).maybeSingle();
@@ -46,6 +58,9 @@ function BrokerProfile() {
   const broker = useQuery({ queryKey: ["broker", slug], queryFn: () => fetchBroker(slug), initialData: initial });
   const b = broker.data;
   const props = useQuery({ queryKey: ["broker-props", b?.id], enabled: !!b, queryFn: () => b ? fetchPublicProperties(b.id) : Promise.resolve([]) });
+  const portfolio = useQuery({ queryKey: ["developer-portfolio", b?.id], enabled: b?.account_type === "developer", queryFn: () => fetchDeveloperPortfolio(b!.id) });
+  const pf = portfolio.data;
+  const card = "flex items-center gap-3 rounded-2xl border bg-card p-3 transition hover:border-teal";
 
   if (broker.isLoading) return <PageShell><div className="mx-auto max-w-5xl p-6"><div className="h-48 animate-pulse rounded-2xl bg-muted" /></div></PageShell>;
   if (!b) return (
@@ -80,6 +95,43 @@ function BrokerProfile() {
           {!b.phone && <BrokerInquiry brokerId={b.id} brokerName={b.name} />}
         </aside>
         <section>
+          {pf && pf.compounds.length + pf.malls.length + pf.projects.length > 0 && (
+            <div className="mb-8 space-y-6">
+              {pf.compounds.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-xl font-extrabold text-primary">{t("الكمبوندات")} ({pf.compounds.length})</h2>
+                  <div className="grid gap-3 sm:grid-cols-2">{pf.compounds.map((c) => (
+                    <Link key={c.id} to="/compounds/$id" params={{ id: c.id }} className={card}>
+                      <img src={compoundCover(c)} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <div className="min-w-0"><p className="truncate font-bold text-primary">{c.name}</p><p className="truncate text-xs text-muted-foreground">{t(compoundWhere(c))}</p></div>
+                    </Link>))}
+                  </div>
+                </div>
+              )}
+              {pf.malls.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-xl font-extrabold text-primary">{t("المولات")} ({pf.malls.length})</h2>
+                  <div className="grid gap-3 sm:grid-cols-2">{pf.malls.map((m) => (
+                    <Link key={m.id} to="/malls/$id" params={{ id: m.id }} className={card}>
+                      <img src={m.logo_url || "/demo/p2.jpg"} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <div className="min-w-0"><p className="truncate font-bold text-primary">{m.name}</p>{m.location && <p className="truncate text-xs text-muted-foreground">{m.location}</p>}</div>
+                    </Link>))}
+                  </div>
+                </div>
+              )}
+              {pf.projects.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-xl font-extrabold text-primary">{t("المشروعات")} ({pf.projects.length})</h2>
+                  <div className="grid gap-3 sm:grid-cols-2">{pf.projects.map((p) => (
+                    <Link key={p.id} to="/projects/$id" params={{ id: p.id }} className={card}>
+                      <img src={projectCover(p)} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <div className="min-w-0"><p className="truncate font-bold text-primary">{p.name}</p><p className="truncate text-xs text-muted-foreground">{t(p.area)}</p></div>
+                    </Link>))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <h2 className="mb-4 text-xl font-extrabold text-primary">{t("العقارات المسجلة")} ({props.data?.length ?? 0})</h2>
           {props.data && props.data.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("الوسيط ده ماعندوش عقارات منشورة دلوقتي.")}</p>}
           <div className="grid gap-4 sm:grid-cols-2">

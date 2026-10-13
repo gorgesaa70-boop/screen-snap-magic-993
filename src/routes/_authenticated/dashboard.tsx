@@ -17,6 +17,7 @@ import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
 import { MallUnitsImport } from "@/components/dash/MallUnitsImport";
 import { MyProjects } from "@/components/dash/MyProjects";
+import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
@@ -44,6 +45,8 @@ function Dashboard() {
               <p className="mt-3 font-bold text-primary">أنت في فريق فاليو عقار.</p>
               <p className="mt-2 text-sm text-muted-foreground">تقدر تتابع كل طلبات العملاء وتوزّعها على الوسطاء والشركات.</p>
               <Link to="/inquiries" className={`${btnPrimary} mt-5`}>طلبات العملاء</Link>
+              <p className="mt-6 mb-2 font-bold text-primary">الكمبوندات اللي عليك</p>
+              <CompoundsHub />
             </>
           ) : !me.adminExists ? (
             <>
@@ -82,7 +85,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "properties" | "leads" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "leads" | "team" | "profile";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -123,6 +126,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "overview", label: "نظرة عامة" },
         ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
+        ...(broker.account_type === "developer" ? [{ id: "compounds" as const, label: "كمبونداتي" }] : []),
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
         { id: "leads", label: "أحدث العملاء" },
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
@@ -157,6 +161,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         </div>
       )}
       {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
+      {tab === "compounds" && <CompoundsHub developerId={canList ? broker.id : null} canAdd={canList} />}
       {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
       {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} maxProperties={plan.data?.max_properties ?? null} reload={() => props.refetch()} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
