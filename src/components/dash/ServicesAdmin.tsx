@@ -20,6 +20,9 @@ const usePlans = () => useQuery({ queryKey: ["svc-plans-admin"], queryFn: async 
 
 /** Admin «الخدمات»: customer service requests, registered providers (join requests included) and provider plans. */
 export function ServicesAdmin({ tab }: { tab: ServicesTab }) {
+  // Before release 19 is applied the tables don't exist yet: say so instead of showing empty lists.
+  const ready = useQuery({ queryKey: ["svc-ready"], queryFn: async () => { const { error } = await supabase.from("service_plans").select("id").limit(1); return !(error && (error.code === "PGRST205" || error.code === "42P01")); } });
+  if (ready.data === false) return <p className="max-w-2xl rounded-2xl border border-dashed bg-card p-6 text-sm text-muted-foreground">قسم الخدمات محتاج تحديث قاعدة البيانات (إصدار 19) عشان يشتغل. لحد ما يتطبق، طلبات صفحة الخدمات بتتسجل في «طلبات العملاء» باسم «طلب خدمة»، وبتتنقل هنا لوحدها بعد التحديث.</p>;
   if (tab === "svc_providers") return <ProvidersAdmin />;
   if (tab === "svc_plans") return <PlansAdmin />;
   return <RequestsAdmin />;

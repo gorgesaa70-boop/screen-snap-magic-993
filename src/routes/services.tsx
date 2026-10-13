@@ -39,9 +39,18 @@ function Services() {
     setBusy(true);
     // Services are their own section (not real-estate leads): customers ask for a service, providers register for review.
     const name = f.name.trim().slice(0, 100), what = f.what.trim().slice(0, 120) || null;
-    const { error } = f.role === "provider"
+    let { error } = f.role === "provider"
       ? await supabase.from("service_providers").insert({ kind: f.kind, category: f.group, name, phone, specialty: what })
       : await supabase.from("service_requests").insert({ category: f.group, name, phone, details: what });
+    // Until the services tables exist on the database (release 19), keep the request as a lead in the old format —
+    // nothing is lost, and release 19 copies these into the services section by themselves.
+    if (error && (error.code === "PGRST205" || error.code === "42P01")) {
+      const group = GROUPS.find((g) => g.id === f.group)!.label;
+      ({ error } = await supabase.from("leads").insert({
+        name, phone, kind: "request", original_source: "website",
+        details: `دليل الخدمات (قريبًا) — ${f.role === "provider" ? "مقدم خدمة" : "طالب خدمة"} — ${group}${what ? ` — ${what}` : ""}`.slice(0, 1000),
+      }));
+    }
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? t("الرقم ده مسجّل كمقدم خدمة قبل كده — سجّل دخول برقمك عشان تتابع حسابك.") : t("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(f.role);
