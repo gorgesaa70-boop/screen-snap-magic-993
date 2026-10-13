@@ -321,6 +321,8 @@ const EN: Record<string, string> = {
   "المنطقة غير معروفة": "Unknown area",
   "أخبار برج العرب": "Borg El Arab news",
   "أخبار": "News",
+  "التفاصيل": "Details",
+  "إغلاق": "Close",
   "الأسعار": "Prices",
   "الأرضي": "Ground",
   "الأول": "First",

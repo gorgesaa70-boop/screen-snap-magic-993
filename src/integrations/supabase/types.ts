@@ -61,6 +61,13 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          announce_ar: string | null
+          announce_en: string | null
+          announce_ends_at: string | null
+          announce_on: boolean
+          announce_popup: boolean
+          announce_starts_at: string | null
+          announce_url: string | null
           android_url: string | null
           featured_month_price: number
           featured_week_price: number
@@ -79,6 +86,13 @@ export type Database = {
           work_start_hour: number
         }
         Insert: {
+          announce_ar?: string | null
+          announce_en?: string | null
+          announce_ends_at?: string | null
+          announce_on?: boolean
+          announce_popup?: boolean
+          announce_starts_at?: string | null
+          announce_url?: string | null
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
@@ -97,6 +111,13 @@ export type Database = {
           work_start_hour?: number
         }
         Update: {
+          announce_ar?: string | null
+          announce_en?: string | null
+          announce_ends_at?: string | null
+          announce_on?: boolean
+          announce_popup?: boolean
+          announce_starts_at?: string | null
+          announce_url?: string | null
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number

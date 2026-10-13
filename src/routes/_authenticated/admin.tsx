@@ -23,6 +23,7 @@ import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
+import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { AuditLog } from "@/components/dash/AuditLog";
 import { SystemHealth } from "@/components/dash/SystemHealth";
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "app" | "audit" | "health" | "routing" | "investments";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -75,7 +76,7 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", app: "التطبيق", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = [
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
@@ -83,7 +84,7 @@ function AdminPage() {
           { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
-          { id: "settings", label: "الإعدادات", tabs: ["app", "health"] },
+          { id: "settings", label: "الإعدادات", tabs: ["announce", "app", "health"] },
         ];
         const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!;
         return (
@@ -107,6 +108,7 @@ function AdminPage() {
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}
           {tab === "app" && <AppSettingsAdmin />}
+          {tab === "announce" && <AnnouncementAdmin />}
           {tab === "investments" && <InvestmentsAdmin isAdmin />}
           {tab === "audit" && <AuditLog />}
           {tab === "health" && <SystemHealth />}
