@@ -43,7 +43,7 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
   return (
     <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
       <SectionHead eyebrow={tr("تصفّح حسب النوع")} title={status ? `${tr("التصنيفات الرئيسية")} — ${tr(PURPOSE_LABEL[status] ?? status)}` : tr("التصنيفات الرئيسية")} />
-      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5 md:gap-4">
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6 md:gap-4">
         {cats.filter(({ f }) => !(status && status !== "بيع" && f.group === "land")).map(({ label, icon: Icon, f }) => (
           <button key={label} type="button" onClick={() => onPick({ ...f, status })} className={card}>
             <span className={icon}><Icon className="size-5 md:size-6" /></span>
@@ -53,6 +53,10 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
         <Link to="/industrial" className={card}>
           <span className={icon}><Factory className="size-5 md:size-6" /></span>
           <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("صناعي")}</span>
+        </Link>
+        <Link to="/malls" className={card}>
+          <span className={icon}><Landmark className="size-5 md:size-6" /></span>
+          <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("المولات")}</span>
         </Link>
       </div>
     </section>
