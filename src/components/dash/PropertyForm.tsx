@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { fetchCompounds } from "@/components/site/compounds";
 import { supabase } from "@/integrations/supabase/client";
 import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES_FOR, FURNISHED_LABEL, FINISHING_LABEL, hasFinishing, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
@@ -18,6 +20,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     type: initial?.type ?? TYPES_FOR[""]![0]!,
     city: initial?.city ?? DEFAULT_CITY,
     area: initial?.area ?? AREAS[0]!,
+    compound_id: initial?.compound_id ?? "",
     size: initial ? String(initial.size) : "",
     rooms: initial?.rooms != null ? String(initial.rooms) : "",
     baths: initial?.baths != null ? String(initial.baths) : "",
@@ -34,6 +37,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
   const rent = f.status !== "بيع";
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
+  const compounds = useQuery({ queryKey: ["compounds"], queryFn: () => fetchCompounds() });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const num = (v: string) => (v === "" ? null : Number(v));
 
@@ -66,6 +70,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       available_from: rent ? f.available_from || null : null, available_to: summer ? f.available_to || null : null, city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, size: Number(f.size || 0),
       finishing: hasFinishing(f.type) ? f.finishing || null : null,
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.images[0] ?? null, images: f.images, source_url: src || null,
+      compound_id: f.compound_id || null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
@@ -110,6 +115,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         )}
         <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((t) => <option key={t}>{t}</option>)}</select></Field>
         <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((t) => <option key={t}>{t}</option>)}</select></Field>
+        <Field label="الكمبوند (اختياري)"><select className={inputCls} value={f.compound_id} onChange={set("compound_id")}><option value="">— بدون كمبوند</option>{compounds.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
         <Field label={f.type === "بيت" || f.type === "عمارة" ? "مساحة الأرض (م²)" : "المساحة (م²)"}><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
         {hasFinishing(f.type) && <Field label="حالة التشطيب"><select className={inputCls} value={f.finishing} onChange={set("finishing")}><option value="">اختار</option>{Object.entries(FINISHING_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>}
         <div className="grid grid-cols-2 gap-3">
