@@ -141,7 +141,7 @@ export function MobileBar() {
         {items.map(({ id, label, href, icon: Icon }) =>
           id === "sell" ? (
             <a key={id} href={href} aria-current={active === id ? "page" : undefined} className="flex h-16 flex-col items-center justify-end gap-1 pb-2 text-[11px] font-extrabold text-primary">
-              <span className="-mt-7 grid size-14 place-items-center rounded-full border-4 border-background bg-teal text-accent-foreground shadow-float transition active:scale-95">
+              <span className="-mt-7 grid size-14 place-items-center rounded-full border-4 border-background bg-teal-strong text-accent-foreground shadow-float transition active:scale-95">
                 <Icon className="size-6" strokeWidth={2.5} />
               </span>
               {label}
