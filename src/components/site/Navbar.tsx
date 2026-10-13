@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { NewsTicker } from "@/components/site/NewsTicker";
+import { AnnouncementBar } from "@/components/site/SiteAnnouncement";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export function Navbar() {
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
   return (
     <header className="pt-safe sticky top-0 z-50 border-b bg-background/90 backdrop-blur-md">
-      <NewsTicker />
+      <AnnouncementBar fallback={<NewsTicker />} />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-3 sm:gap-4 md:px-6">
         <Logo />
         <nav className="hidden items-center gap-5 lg:flex">

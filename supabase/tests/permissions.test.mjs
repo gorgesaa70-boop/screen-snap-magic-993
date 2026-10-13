@@ -86,6 +86,19 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
   await expectOk("broker can't change app links", () => as(U.owner, `update public.app_settings set android_url=null returning id`), (r) => r.length === 0);
   await expectErr("no second settings row", () => as(U.admin, `insert into public.app_settings (id) values (2)`));
 
+  console.log("\nPinned site announcement");
+  await expectOk("anyone reads the announcement (off by default)", () => as(null, `select announce_on, announce_ar from public.app_settings`), (r) => r.length === 1 && r[0].announce_on === false);
+  await expectOk("admin turns on a pinned message", () => as(U.admin, `update public.app_settings set announce_on=true, announce_ar='عرض خاص على شقق برج العرب', announce_en='Special offer', announce_url='/compounds', announce_popup=true returning announce_on`), (r) => r.length === 1);
+  await expectOk("a visitor sees it", () => as(null, `select announce_ar, announce_popup from public.app_settings where announce_on`), (r) => r.length === 1 && r[0].announce_popup === true);
+  await expectOk("the change is in the audit log", () => sys(`select changes from public.audit_log where table_name='app_settings' and changes ? 'announce_ar'`), (r) => r.length >= 1);
+  await expectOk("broker can't change the announcement", () => as(U.owner, `update public.app_settings set announce_ar='spam' returning id`), (r) => r.length === 0);
+  await expectOk("visitor can't change the announcement", () => as(null, `update public.app_settings set announce_on=false returning id`).catch(() => []), (r) => r.length === 0);
+  await expectErr("a javascript: link is refused", () => as(U.admin, `update public.app_settings set announce_url='javascript:alert(1)'`));
+  await expectErr("on without text is refused", () => as(U.admin, `update public.app_settings set announce_ar=null`));
+  await expectErr("end before start is refused", () => as(U.admin, `update public.app_settings set announce_starts_at='2026-11-02', announce_ends_at='2026-11-01'`));
+  await expectErr("text over 300 letters is refused", () => as(U.admin, `update public.app_settings set announce_ar=repeat('أ', 301)`));
+  await as(U.admin, `update public.app_settings set announce_on=false, announce_popup=false`);
+
   console.log("\nLeads center");
   await sys(`update public.company_members set is_active=true`);
   const members = await sys(`select id, role from public.company_members where company_id='${CO}'`);
