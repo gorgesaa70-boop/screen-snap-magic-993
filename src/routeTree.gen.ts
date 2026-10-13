@@ -54,6 +54,7 @@ import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
+import { Route as AuthenticatedMyCompoundsIdRouteImport } from './routes/_authenticated/my-compounds.$id'
 import { Route as PricesAreasAreaRouteImport } from './routes/prices.areas.$area'
 import { Route as PricesMallsIdRouteImport } from './routes/prices.malls.$id'
 import { Route as ApiPublicMetaLeadsRouteImport } from './routes/api/public/meta/leads'
@@ -287,6 +288,12 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   path: '/leads/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMyCompoundsIdRoute =
+  AuthenticatedMyCompoundsIdRouteImport.update({
+    id: '/my-compounds/$id',
+    path: '/my-compounds/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const PricesAreasAreaRoute = PricesAreasAreaRouteImport.update({
   id: '/prices/areas/$area',
   path: '/prices/areas/$area',
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/projects/': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
@@ -411,6 +419,7 @@ export interface FileRoutesByTo {
   '/projects': typeof ProjectsIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
@@ -464,6 +473,7 @@ export interface FileRoutesById {
   '/projects/': typeof ProjectsIndexRoute
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
+  '/_authenticated/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/investments/new'
     | '/leads/$id'
+    | '/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/meta/leads'
@@ -568,6 +579,7 @@ export interface FileRouteTypes {
     | '/projects'
     | '/investments/new'
     | '/leads/$id'
+    | '/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/meta/leads'
@@ -620,6 +632,7 @@ export interface FileRouteTypes {
     | '/projects/'
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
+    | '/_authenticated/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/meta/leads'
@@ -981,6 +994,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/my-compounds/$id': {
+      id: '/_authenticated/my-compounds/$id'
+      path: '/my-compounds/$id'
+      fullPath: '/my-compounds/$id'
+      preLoaderRoute: typeof AuthenticatedMyCompoundsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/prices/areas/$area': {
       id: '/prices/areas/$area'
       path: '/prices/areas/$area'
@@ -1036,6 +1056,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedInvestmentsNewRoute: typeof AuthenticatedInvestmentsNewRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
+  AuthenticatedMyCompoundsIdRoute: typeof AuthenticatedMyCompoundsIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1055,6 +1076,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedInvestmentsNewRoute: AuthenticatedInvestmentsNewRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
+  AuthenticatedMyCompoundsIdRoute: AuthenticatedMyCompoundsIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

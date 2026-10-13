@@ -115,7 +115,7 @@ function AdminPage() {
           {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} />}
           {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
-          {tab === "compounds" && <CompoundsAdmin properties={d.properties} reload={reload} />}
+          {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
       )}

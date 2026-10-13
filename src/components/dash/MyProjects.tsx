@@ -32,7 +32,7 @@ export function MyProjects({ developerId }: { developerId: string }) {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة مشروع</button>
-        <button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع كمبوندات من Excel</button>
+        <button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع مشروعات من Excel</button>
       </div>
       {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه ما ضفتش أي مشروع.</p>}
       {list.map((p) => {
