@@ -218,6 +218,13 @@
       "when": 1791853692116,
       "tag": "0030_create_compounds",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791858904581,
+      "tag": "0031_compounds_developer_teams",
+      "breakpoints": true
     }
   ]
 }

@@ -510,7 +510,7 @@ export type Database = {
           actor_label?: string | null
           compound_id: string
           created_at?: string
-          id?: number
+          id?: never
           kind: string
           summary: string
           unit_id?: string | null
@@ -520,7 +520,7 @@ export type Database = {
           actor_label?: string | null
           compound_id?: string
           created_at?: string
-          id?: number
+          id?: never
           kind?: string
           summary?: string
           unit_id?: string | null
@@ -1302,8 +1302,6 @@ export type Database = {
       }
       leads: {
         Row: {
-          compound_id: string | null
-          compound_unit_id: string | null
           admin_queue_at: string | null
           admin_queue_reason: string | null
           area: string | null
@@ -1313,6 +1311,8 @@ export type Database = {
           assigned_staff_id: string | null
           budget: number | null
           campaign: string | null
+          compound_id: string | null
+          compound_unit_id: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -1358,8 +1358,6 @@ export type Database = {
           visit_at: string | null
         }
         Insert: {
-          compound_id?: string | null
-          compound_unit_id?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -1369,6 +1367,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          compound_id?: string | null
+          compound_unit_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -1414,8 +1414,6 @@ export type Database = {
           visit_at?: string | null
         }
         Update: {
-          compound_id?: string | null
-          compound_unit_id?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -1425,6 +1423,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          compound_id?: string | null
+          compound_unit_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -1471,20 +1471,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "leads_compound_id_fkey"
-            columns: ["compound_id"]
-            isOneToOne: false
-            referencedRelation: "compounds"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_compound_unit_id_fkey"
-            columns: ["compound_unit_id"]
-            isOneToOne: false
-            referencedRelation: "compound_units"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "leads_assigned_broker_id_fkey"
             columns: ["assigned_broker_id"]
             isOneToOne: false
@@ -1496,6 +1482,20 @@ export type Database = {
             columns: ["assigned_member_id"]
             isOneToOne: false
             referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_compound_unit_id_fkey"
+            columns: ["compound_unit_id"]
+            isOneToOne: false
+            referencedRelation: "compound_units"
             referencedColumns: ["id"]
           },
           {
@@ -1551,9 +1551,9 @@ export type Database = {
       }
       malls: {
         Row: {
-          developer_id: string | null
           created_at: string
           description: string | null
+          developer_id: string | null
           id: string
           is_active: boolean
           kind: string
@@ -1565,9 +1565,9 @@ export type Database = {
           sort_order: number
         }
         Insert: {
-          developer_id?: string | null
           created_at?: string
           description?: string | null
+          developer_id?: string | null
           id?: string
           is_active?: boolean
           kind?: string
@@ -1579,9 +1579,9 @@ export type Database = {
           sort_order?: number
         }
         Update: {
-          developer_id?: string | null
           created_at?: string
           description?: string | null
+          developer_id?: string | null
           id?: string
           is_active?: boolean
           kind?: string
@@ -2641,13 +2641,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      can_edit_compound: { Args: { _compound: string }; Returns: boolean }
       can_read_investment_doc: { Args: { _folder: string }; Returns: boolean }
+      can_staff_compound: { Args: { _compound: string }; Returns: boolean }
       can_upload_investment_doc: { Args: { _folder: string }; Returns: boolean }
       claim_first_admin: { Args: never; Returns: boolean }
       commission_amount: {
         Args: { _basis: number; _fixed: number; _rate: number }
         Returns: number
       }
+      compound_role: { Args: { _compound: string }; Returns: string }
       create_payment: {
         Args: {
           _days?: number
@@ -2659,9 +2662,6 @@ export type Database = {
         Returns: string
       }
       current_broker_id: { Args: never; Returns: string }
-      can_edit_compound: { Args: { _compound: string }; Returns: boolean }
-      can_staff_compound: { Args: { _compound: string }; Returns: boolean }
-      compound_role: { Args: { _compound: string }; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
       delete_demo_data: { Args: never; Returns: Json }
@@ -2698,6 +2698,15 @@ export type Database = {
           _path: string
           _stack: string
           _ua: string
+        }
+        Returns: undefined
+      }
+      log_compound: {
+        Args: {
+          _compound: string
+          _kind: string
+          _summary: string
+          _unit: string
         }
         Returns: undefined
       }
@@ -2758,7 +2767,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      my_member_id: { Args: never; Returns: string }
       my_compounds: {
         Args: never
         Returns: {
@@ -2766,6 +2774,7 @@ export type Database = {
           role: string
         }[]
       }
+      my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
         Returns: {
@@ -2859,6 +2868,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_compound: {
+        Args: {
+          _compound: string
+          _include_sales?: boolean
+          _msg: string
+          _title: string
+          _type: string
+          _url: string
+        }
+        Returns: undefined
+      }
       notify_lead_people: {
         Args: {
           _lead: Database["public"]["Tables"]["leads"]["Row"]
@@ -2926,6 +2946,10 @@ export type Database = {
       run_response_alerts: { Args: never; Returns: Json }
       run_subscription_expiry: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      unit_label: {
+        Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
+        Returns: string
+      }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
         Returns: string
