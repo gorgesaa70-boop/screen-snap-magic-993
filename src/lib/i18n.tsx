@@ -215,6 +215,7 @@ const EN: Record<string, string> = {
   "شغّل مع باقي الوسطاء واقسم العمولة بضمان المنصة": "Work with other brokers and split commission, guaranteed by the platform",
 
   "الوضع الداكن": "Dark mode",
+  "المظهر": "Appearance",
   "الوضع الفاتح": "Light mode",
 
   // Price index
