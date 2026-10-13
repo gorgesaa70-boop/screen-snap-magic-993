@@ -2279,6 +2279,229 @@ export type Database = {
         }
         Relationships: []
       }
+      service_plans: {
+        Row: {
+          code: string
+          created_at: string
+          features: string[]
+          id: string
+          is_active: boolean
+          monthly_price: number | null
+          name: string
+          sort_order: number
+          yearly_price: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          monthly_price?: number | null
+          name: string
+          sort_order?: number
+          yearly_price?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          features?: string[]
+          id?: string
+          is_active?: boolean
+          monthly_price?: number | null
+          name?: string
+          sort_order?: number
+          yearly_price?: number | null
+        }
+        Relationships: []
+      }
+      service_providers: {
+        Row: {
+          areas: string[]
+          bio: string | null
+          category: string
+          contact_person: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          phone: string
+          photo_url: string | null
+          plan_ends_at: string | null
+          plan_id: string | null
+          review_note: string | null
+          specialty: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          verified: boolean
+          whatsapp: string | null
+        }
+        Insert: {
+          areas?: string[]
+          bio?: string | null
+          category: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name: string
+          phone: string
+          photo_url?: string | null
+          plan_ends_at?: string | null
+          plan_id?: string | null
+          review_note?: string | null
+          specialty?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean
+          whatsapp?: string | null
+        }
+        Update: {
+          areas?: string[]
+          bio?: string | null
+          category?: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          phone?: string
+          photo_url?: string | null
+          plan_ends_at?: string | null
+          plan_id?: string | null
+          review_note?: string | null
+          specialty?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_providers_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          area: string | null
+          assigned_provider_id: string | null
+          category: string
+          created_at: string
+          customer_id: string | null
+          details: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          request_no: number
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          area?: string | null
+          assigned_provider_id?: string | null
+          category: string
+          created_at?: string
+          customer_id?: string | null
+          details?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          request_no?: never
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          area?: string | null
+          assigned_provider_id?: string | null
+          category?: string
+          created_at?: string
+          customer_id?: string | null
+          details?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          request_no?: never
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_assigned_provider_id_fkey"
+            columns: ["assigned_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_subscriptions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          note: string | null
+          plan_id: string
+          provider_id: string
+          reminded_at: string | null
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          note?: string | null
+          plan_id: string
+          provider_id: string
+          reminded_at?: string | null
+          starts_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          note?: string | null
+          plan_id?: string
+          provider_id?: string
+          reminded_at?: string | null
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "service_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_subscriptions_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           broker_id: string
@@ -2687,6 +2910,10 @@ export type Database = {
           lead_no: number
         }[]
       }
+      lead_title: {
+        Args: { _l: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: string
+      }
       lead_transferable: {
         Args: { _kind: string; _stage: string }
         Returns: boolean
@@ -2841,6 +3068,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      my_service_provider_id: { Args: never; Returns: string }
       next_transfer_company: {
         Args: { _lead: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: string
@@ -2941,10 +3169,14 @@ export type Database = {
           unit_type: string
         }[]
       }
+      refresh_service_plan: { Args: { _provider: string }; Returns: undefined }
+      request_service_plan: { Args: { _plan: string }; Returns: boolean }
       run_lead_transfers: { Args: never; Returns: Json }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      run_service_subscriptions: { Args: never; Returns: number }
       run_subscription_expiry: { Args: never; Returns: Json }
+      service_provider_user_id: { Args: { _provider: string }; Returns: string }
       source_from_utm: { Args: { _u: Json }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }

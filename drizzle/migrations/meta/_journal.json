@@ -225,6 +225,13 @@
       "when": 1791858904581,
       "tag": "0031_compounds_developer_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791864191036,
+      "tag": "0032_release_19_services",
+      "breakpoints": true
     }
   ]
 }
