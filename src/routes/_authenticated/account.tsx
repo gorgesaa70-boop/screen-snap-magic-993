@@ -62,6 +62,7 @@ function DeleteAccount({ isAdmin, hasBusiness }: { isAdmin: boolean; hasBusiness
     setBusy(false);
     if (!r.ok) { toast.error(r.error === "admin" ? "ده حساب مدير — لازم مدير تاني يشيل صلاحيتك الأول" : "ماتمسحش، جرّب تاني أو كلّمنا"); return; }
     qc.clear();
+    await import("@/lib/push-client").then((m) => m.disablePush()).catch(() => {});
     await supabase.auth.signOut();
     toast.success("حسابك اتمسح. شكرًا إنك جربت فاليو عقار");
     nav({ to: "/", replace: true });

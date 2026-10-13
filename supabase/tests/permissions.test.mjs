@@ -1101,4 +1101,43 @@ commit;`);
     await exec(`begin;\n${sql}\ncommit;`);
     return [before, (await sys(`select count(*)::int c from public.lead_messages`))[0].c];
   }, (r) => r[0] > 0 && r[0] === r[1]);
+
+  console.log("\nPush notifications (devices)");
+  const PU = { a: "00000000-0000-0000-0000-00000000b0a1", b: "00000000-0000-0000-0000-00000000b0a2" };
+  await sys(`insert into auth.users (id, phone) values ('${PU.a}','201033330001'), ('${PU.b}','201033330002')`);
+  const ep = "https://fcm.googleapis.com/fcm/send/device-one";
+  const k = "BElongP256dhPublicKeyValueForTestsOnly0123456789";
+  const pushOf = (u) => sys(`select push_status from public.notifications where user_id='${u}' order by created_at desc limit 1`);
+  const notifyAs = (u, type) => sys(`select public.notify_user('${u}', '${type}', 'عنوان', 'رسالة', null, '/notifications')`);
+  await expectOk("no device: notifications aren't queued for push", async () => { await notifyAs(PU.a, "request_status"); return pushOf(PU.a); }, (r) => r[0].push_status === null);
+  await expectOk("a signed-in user saves their device", () => as(PU.a, `select public.save_push_subscription('${ep}', '${k}', 'authsecret123', 'Chrome Android') id`), (r) => !!r[0].id);
+  await expectErr("a visitor can't save a device", () => as(null, `select public.save_push_subscription('https://x.example/1', '${k}', 'authsecret123')`));
+  await expectErr("only https push addresses", () => as(PU.a, `select public.save_push_subscription('http://x.example/1', '${k}', 'authsecret123')`));
+  await expectOk("with a device: the next notification is queued for push", async () => { await notifyAs(PU.a, "request_status"); return pushOf(PU.a); }, (r) => r[0].push_status === "pending");
+  await expectOk("each user sees only their own devices", async () => [await as(PU.a, `select endpoint from public.push_subscriptions`), await as(PU.b, `select endpoint from public.push_subscriptions`)], (r) => r[0].length === 1 && r[1].length === 0);
+  await expectErr("nobody writes devices directly", () => as(PU.b, `insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values ('${PU.b}','https://x.example/2','${k}','authsecret123')`));
+  await expectOk("the user picks which kinds reach the device", async () => {
+    await as(PU.a, `insert into public.notification_preferences (user_id, push_types) values ('${PU.a}', array['new_message'])`);
+    await notifyAs(PU.a, "request_status"); const skipped = await pushOf(PU.a);
+    await notifyAs(PU.a, "new_message"); return [skipped, await pushOf(PU.a)];
+  }, (r) => r[0][0].push_status === null && r[1][0].push_status === "pending");
+  await expectOk("a shared phone moves to the account signed in now", async () => { await as(PU.b, `select public.save_push_subscription('${ep}', '${k}', 'authsecret456')`); return sys(`select user_id from public.push_subscriptions where endpoint='${ep}'`); }, (r) => r.length === 1 && r[0].user_id === PU.b);
+  await expectOk("removing the device on sign-out", async () => { await as(PU.b, `select public.delete_push_subscription('${ep}')`); return sys(`select count(*)::int c from public.push_subscriptions`); }, (r) => r[0].c === 0);
+  await expectOk("ten devices at most per account (the oldest makes room)", async () => {
+    for (let i = 0; i < 11; i++) await as(PU.a, `select public.save_push_subscription('https://push.example/${i}', '${k}', 'authsecret123')`);
+    return sys(`select count(*)::int c, bool_or(endpoint = 'https://push.example/0') has_first from public.push_subscriptions where user_id='${PU.a}'`);
+  }, (r) => r[0].c === 10 && r[0].has_first === false);
+  await expectOk("the server settings are private (secret, keys)", async () => [
+    await as(PU.a, `select count(*)::int c from public.push_config`).catch(() => [{ c: -1 }]),
+    await as(null, `select count(*)::int c from public.push_config`).catch(() => [{ c: -1 }]),
+    await sys(`select char_length(secret) n from public.push_config`)], (r) => r[0][0].c === -1 && r[1][0].c === -1 && r[2][0].n === 64);
+  await expectOk("without pg_net the notification is still saved (sent later by the scheduled dispatch)", async () => { await notifyAs(PU.a, "new_message"); return pushOf(PU.a); }, (r) => r[0].push_status === "pending");
+  await expectOk("release-22 can be re-run safely (devices and secret stay)", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261014000000_web-push.sql", import.meta.url), "utf8");
+    const before = await sys(`select (select count(*)::int from public.push_subscriptions) d, (select secret from public.push_config) s`);
+    await exec(`begin;\n${sql}\ncommit;`);
+    await exec(`begin;\n${sql}\ncommit;`);
+    const after = await sys(`select (select count(*)::int from public.push_subscriptions) d, (select secret from public.push_config) s`);
+    return [before[0], after[0]];
+  }, (r) => r[0].d === 10 && r[0].d === r[1].d && r[0].s === r[1].s);
 }

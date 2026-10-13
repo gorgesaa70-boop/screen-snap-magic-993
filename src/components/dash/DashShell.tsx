@@ -23,6 +23,8 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
     await qc.cancelQueries();
     qc.clear();
     await logAuthEvent("signed_out");
+    // A shared device must stop getting this account's notifications.
+    await import("@/lib/push-client").then((m) => m.disablePush()).catch(() => {});
     await supabase.auth.signOut();
     nav({ to: "/auth", replace: true });
   }
