@@ -59,9 +59,13 @@ function Services() {
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-2 md:px-6">
         <ul className="space-y-3">
           {GROUPS.map((g) => (
-            <li key={g.id} className="flex items-start gap-3 rounded-2xl border bg-card p-4">
-              <g.icon className="mt-0.5 size-5 shrink-0 text-teal" />
-              <div><p className="font-bold text-primary">{t(g.label)}</p><p className="mt-0.5 text-sm text-muted-foreground">{t(g.hint)}</p></div>
+            <li key={g.id}>
+              {/* Picking a service here selects it in the form and brings the form into view (phones show it below). */}
+              <button type="button" aria-pressed={f.group === g.id} onClick={() => { setF((x) => ({ ...x, group: g.id })); document.getElementById("services-form")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+                className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-start transition hover:border-teal ${f.group === g.id ? "border-teal bg-teal-soft" : "bg-card"}`}>
+                <g.icon className="mt-0.5 size-5 shrink-0 text-teal" />
+                <div><p className="font-bold text-primary">{t(g.label)}</p><p className="mt-0.5 text-sm text-muted-foreground">{t(g.hint)}</p></div>
+              </button>
             </li>
           ))}
         </ul>
@@ -76,7 +80,7 @@ function Services() {
             ) : <p className="mt-2 text-sm text-muted-foreground">{t("طلبك وصل لفاليو عقار، وهنكلّمك ونوصّلك بمقدم خدمة مناسب.")}</p>}
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-3 rounded-2xl border bg-card p-5">
+          <form id="services-form" onSubmit={submit} className="h-fit space-y-3 rounded-2xl border bg-card p-5">
             <p className="font-extrabold text-primary">{t("سجّل اهتمامك")}</p>
             <div className="grid grid-cols-2 gap-1.5">
               {([["customer", "محتاج خدمة"], ["provider", "أنا مقدم خدمة"]] as const).map(([k, l]) => (
