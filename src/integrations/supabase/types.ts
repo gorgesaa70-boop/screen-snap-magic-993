@@ -494,44 +494,251 @@ export type Database = {
           },
         ]
       }
+      compound_activity: {
+        Row: {
+          actor: string | null
+          actor_label: string | null
+          compound_id: string
+          created_at: string
+          id: number
+          kind: string
+          summary: string
+          unit_id: string | null
+        }
+        Insert: {
+          actor?: string | null
+          actor_label?: string | null
+          compound_id: string
+          created_at?: string
+          id?: never
+          kind: string
+          summary: string
+          unit_id?: string | null
+        }
+        Update: {
+          actor?: string | null
+          actor_label?: string | null
+          compound_id?: string
+          created_at?: string
+          id?: never
+          kind?: string
+          summary?: string
+          unit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compound_activity_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compound_members: {
+        Row: {
+          added_by: string | null
+          compound_id: string
+          created_at: string
+          id: string
+          member_id: string | null
+          role: string
+          staff_user_id: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          compound_id: string
+          created_at?: string
+          id?: string
+          member_id?: string | null
+          role?: string
+          staff_user_id?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          compound_id?: string
+          created_at?: string
+          id?: string
+          member_id?: string | null
+          role?: string
+          staff_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compound_members_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compound_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compound_units: {
+        Row: {
+          baths: number | null
+          building: string | null
+          code: string | null
+          compound_id: string
+          created_at: string
+          finishing: string | null
+          floor: string | null
+          id: string
+          notes: string | null
+          price: number | null
+          rooms: number | null
+          size: number
+          status: string
+          unit_type: string
+          updated_at: string
+        }
+        Insert: {
+          baths?: number | null
+          building?: string | null
+          code?: string | null
+          compound_id: string
+          created_at?: string
+          finishing?: string | null
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          rooms?: number | null
+          size?: number
+          status?: string
+          unit_type: string
+          updated_at?: string
+        }
+        Update: {
+          baths?: number | null
+          building?: string | null
+          code?: string | null
+          compound_id?: string
+          created_at?: string
+          finishing?: string | null
+          floor?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          rooms?: number | null
+          size?: number
+          status?: string
+          unit_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compound_units_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compounds: {
         Row: {
+          amenities: string[]
+          area: string | null
+          city: string | null
           created_at: string
+          created_by: string | null
+          delivery_date: string | null
+          delivery_year: number | null
           description: string | null
+          developer_id: string | null
+          developer_name: string | null
+          down_payment_pct: number | null
+          handed_over_at: string | null
           id: string
+          images: string[]
+          installment_years: number | null
           is_active: boolean
+          is_featured: boolean
           lat: number | null
           lng: number | null
           location: string | null
           logo_url: string | null
           name: string
+          payment_plans: string | null
+          review_note: string | null
+          review_status: Database["public"]["Enums"]["review_status"]
           sort_order: number
+          updated_at: string
         }
         Insert: {
+          amenities?: string[]
+          area?: string | null
+          city?: string | null
           created_at?: string
+          created_by?: string | null
+          delivery_date?: string | null
+          delivery_year?: number | null
           description?: string | null
+          developer_id?: string | null
+          developer_name?: string | null
+          down_payment_pct?: number | null
+          handed_over_at?: string | null
           id?: string
+          images?: string[]
+          installment_years?: number | null
           is_active?: boolean
+          is_featured?: boolean
           lat?: number | null
           lng?: number | null
           location?: string | null
           logo_url?: string | null
           name: string
+          payment_plans?: string | null
+          review_note?: string | null
+          review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
+          updated_at?: string
         }
         Update: {
+          amenities?: string[]
+          area?: string | null
+          city?: string | null
           created_at?: string
+          created_by?: string | null
+          delivery_date?: string | null
+          delivery_year?: number | null
           description?: string | null
+          developer_id?: string | null
+          developer_name?: string | null
+          down_payment_pct?: number | null
+          handed_over_at?: string | null
           id?: string
+          images?: string[]
+          installment_years?: number | null
           is_active?: boolean
+          is_featured?: boolean
           lat?: number | null
           lng?: number | null
           location?: string | null
           logo_url?: string | null
           name?: string
+          payment_plans?: string | null
+          review_note?: string | null
+          review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "compounds_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deal_documents: {
         Row: {
@@ -1104,6 +1311,8 @@ export type Database = {
           assigned_staff_id: string | null
           budget: number | null
           campaign: string | null
+          compound_id: string | null
+          compound_unit_id: string | null
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -1158,6 +1367,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          compound_id?: string | null
+          compound_unit_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -1212,6 +1423,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          compound_id?: string | null
+          compound_unit_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -1272,6 +1485,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_compound_id_fkey"
+            columns: ["compound_id"]
+            isOneToOne: false
+            referencedRelation: "compounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_compound_unit_id_fkey"
+            columns: ["compound_unit_id"]
+            isOneToOne: false
+            referencedRelation: "compound_units"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_first_broker_id_fkey"
             columns: ["first_broker_id"]
             isOneToOne: false
@@ -1326,6 +1553,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          developer_id: string | null
           id: string
           is_active: boolean
           kind: string
@@ -1339,6 +1567,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          developer_id?: string | null
           id?: string
           is_active?: boolean
           kind?: string
@@ -1352,6 +1581,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          developer_id?: string | null
           id?: string
           is_active?: boolean
           kind?: string
@@ -1362,7 +1592,15 @@ export type Database = {
           name?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "malls_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_preferences: {
         Row: {
@@ -2403,13 +2641,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      can_edit_compound: { Args: { _compound: string }; Returns: boolean }
       can_read_investment_doc: { Args: { _folder: string }; Returns: boolean }
+      can_staff_compound: { Args: { _compound: string }; Returns: boolean }
       can_upload_investment_doc: { Args: { _folder: string }; Returns: boolean }
       claim_first_admin: { Args: never; Returns: boolean }
       commission_amount: {
         Args: { _basis: number; _fixed: number; _rate: number }
         Returns: number
       }
+      compound_role: { Args: { _compound: string }; Returns: string }
       create_payment: {
         Args: {
           _days?: number
@@ -2457,6 +2698,15 @@ export type Database = {
           _path: string
           _stack: string
           _ua: string
+        }
+        Returns: undefined
+      }
+      log_compound: {
+        Args: {
+          _compound: string
+          _kind: string
+          _summary: string
+          _unit: string
         }
         Returns: undefined
       }
@@ -2516,6 +2766,13 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      my_compounds: {
+        Args: never
+        Returns: {
+          compound_id: string
+          role: string
+        }[]
       }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
@@ -2611,6 +2868,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_compound: {
+        Args: {
+          _compound: string
+          _include_sales?: boolean
+          _msg: string
+          _title: string
+          _type: string
+          _url: string
+        }
+        Returns: undefined
+      }
       notify_lead_people: {
         Args: {
           _lead: Database["public"]["Tables"]["leads"]["Row"]
@@ -2678,6 +2946,10 @@ export type Database = {
       run_response_alerts: { Args: never; Returns: Json }
       run_subscription_expiry: { Args: never; Returns: Json }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      unit_label: {
+        Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
+        Returns: string
+      }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
         Returns: string
