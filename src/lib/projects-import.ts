@@ -26,7 +26,7 @@ const HEADERS: Record<Field, string[]> = {
   amenities: ["المميزات", "الخدمات", "amenities"],
   description: ["الوصف", "description"],
 };
-export const PROJECT_HEADERS = ["اسم الكمبوند", "المدينة", "المنطقة", "العنوان", "موعد التسليم", "أنظمة السداد", "المميزات", "الوصف"];
+export const PROJECT_HEADERS = ["اسم المشروع", "المدينة", "المنطقة", "العنوان", "موعد التسليم", "أنظمة السداد", "المميزات", "الوصف"];
 export const MAX_PROJECTS = 200;
 
 const key = (v: unknown) => String(v ?? "").trim().toLowerCase();
@@ -55,8 +55,8 @@ export function parseProjectsSheet(rows: unknown[][], existingNames: Iterable<st
     if ((r ?? []).every((c) => norm(c) === "")) return;
     const problems: string[] = [];
     const name = norm(cell("name")).slice(0, 150);
-    if (name.length < 2) problems.push("اسم الكمبوند ناقص");
-    else if (seen.has(loose(name))) problems.push(`الكمبوند «${name}» موجود قبل كده أو متكرر في الملف`);
+    if (name.length < 2) problems.push("اسم المشروع ناقص");
+    else if (seen.has(loose(name))) problems.push(`المشروع «${name}» موجود قبل كده أو متكرر في الملف`);
     const city = pick(norm(cell("city")), CITY_NAMES);
     if (!city) problems.push(`المدينة «${norm(cell("city"))}» مش من المدن المتاحة (${CITY_NAMES.join(" / ")})`);
     let area = city ?? "";

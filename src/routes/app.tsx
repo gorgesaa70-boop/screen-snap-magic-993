@@ -28,6 +28,7 @@ function AppPage() {
   return (
     <PageShell>
       <div className="mx-auto max-w-xl px-4 pt-8 md:px-6">
+        <h1 className="sr-only">{t("حمّل تطبيق Value Aqar")}</h1>
         {redirecting && <p className="mb-4 rounded-2xl bg-teal-soft p-4 text-center text-sm font-bold text-primary">{t("جارٍ فتح المتجر...")}</p>}
         <AppDownload compact />
       </div>

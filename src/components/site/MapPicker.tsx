@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { t, useLang } from "@/lib/i18n";
 import type * as Leaflet from "leaflet";
 import { Search, LocateFixed, X } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,7 @@ type Props = { value: LatLng | null; onChange: (v: LatLng | null) => void; allow
 
 /** Tap-to-pin location picker (free OpenStreetMap) with current-location and address search. Opens on Borg El Arab. */
 export function MapPicker({ value, onChange, allowSearch = true }: Props) {
+  useLang();
   const boxRef = useRef<HTMLDivElement>(null);
   const LRef = useRef<typeof Leaflet | null>(null);
   const mapRef = useRef<Leaflet.Map | null>(null);
@@ -62,12 +64,12 @@ export function MapPicker({ value, onChange, allowSearch = true }: Props) {
   }
 
   function useMyLocation() {
-    if (!navigator.geolocation) { toast.error("المتصفح لا يدعم تحديد الموقع"); return; }
+    if (!navigator.geolocation) { toast.error(t("المتصفح لا يدعم تحديد الموقع")); return; }
     const ok = (p: GeolocationPosition) => setMarker({ lat: p.coords.latitude, lng: p.coords.longitude }, 17);
     const fail = (e: GeolocationPositionError) => toast.error(
       e.code === e.PERMISSION_DENIED
-        ? "الموقع مش مسموح للصفحة دي. اسمح بالموقع من علامة القفل جنب العنوان فوق (أو من إعدادات التطبيق)، أو دوس على مكان العقار على الخريطة."
-        : "مش قادرين نحدد موقعك دلوقتي. اتأكد إن الـ Location مفتوح في الموبايل، أو دوس على مكان العقار على الخريطة.",
+        ? t("الموقع مش مسموح للصفحة دي. اسمح بالموقع من علامة القفل جنب العنوان فوق (أو من إعدادات التطبيق)، أو دوس على مكان العقار على الخريطة.")
+        : t("مش قادرين نحدد موقعك دلوقتي. اتأكد إن الـ Location مفتوح في الموبايل، أو دوس على مكان العقار على الخريطة."),
       { duration: 8000 },
     );
     // GPS often times out indoors: retry once with network location before giving up.
@@ -84,37 +86,37 @@ export function MapPicker({ value, onChange, allowSearch = true }: Props) {
     try {
       const r = await searchPlace(q.trim());
       if (r) setMarker(r, 16);
-      else toast.error("لم يتم العثور على العنوان، جرّب اسم منطقة أو شارع أوضح، أو حدّد المكان على الخريطة");
+      else toast.error(t("لم يتم العثور على العنوان، جرّب اسم منطقة أو شارع أوضح، أو حدّد المكان على الخريطة"));
     } catch {
-      toast.error("تعذّر البحث حاليًا، حدّد المكان على الخريطة مباشرة");
+      toast.error(t("تعذّر البحث حاليًا، حدّد المكان على الخريطة مباشرة"));
     } finally { setSearching(false); }
   }
 
-  if (failed) return <p className="rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">تعذّر تحميل الخريطة حاليًا. يمكنك حفظ العقار بدون تحديد الموقع.</p>;
+  if (failed) return <p className="rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">{t("تعذّر تحميل الخريطة حاليًا. يمكنك حفظ العقار بدون تحديد الموقع.")}</p>;
 
   return (
     <div>
       <div className="flex flex-wrap gap-2">
         {allowSearch && (
           <div className="flex min-w-56 flex-1 items-center gap-1.5 rounded-xl border bg-background ps-3">
-            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void search(); } }} enterKeyHint="search" placeholder="ابحث عن عنوان أو منطقة…" className="h-10 w-full bg-transparent text-sm outline-none" />
-            <button type="button" onClick={() => void search()} disabled={searching} aria-label="بحث" className="grid size-10 shrink-0 place-items-center text-muted-foreground hover:text-primary">
+            <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void search(); } }} enterKeyHint="search" placeholder={t("ابحث عن عنوان أو منطقة…")} className="h-10 w-full bg-transparent text-sm outline-none" />
+            <button type="button" onClick={() => void search()} disabled={searching} aria-label={t("بحث")} className="grid size-10 shrink-0 place-items-center text-muted-foreground hover:text-primary">
               <Search className="size-4" />
             </button>
           </div>
         )}
         <button type="button" onClick={useMyLocation} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary hover:bg-teal-soft">
-          <LocateFixed className="size-4 text-teal" />موقعي الحالي
+          <LocateFixed className="size-4 text-teal" />{t("موقعي الحالي")}
         </button>
         {value && (
           <button type="button" onClick={clearMarker} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-destructive hover:bg-destructive/10">
-            <X className="size-4" />مسح
+            <X className="size-4" />{t("مسح")}
           </button>
         )}
       </div>
       <div ref={boxRef} dir="ltr" className="mt-2 h-64 w-full overflow-hidden rounded-xl border bg-muted" />
       <p className="mt-1.5 text-xs text-muted-foreground">
-        {value ? `تم تحديد الموقع (${value.lat.toFixed(5)}, ${value.lng.toFixed(5)}) — اسحب العلامة لتعديله` : ready ? "انقر على الخريطة لتحديد موقع العقار، أو ابحث عن عنوان." : "جارٍ تحميل الخريطة…"}
+        {value ? t("تم تحديد الموقع ({lat}, {lng}) — اسحب العلامة لتعديله", { lat: value.lat.toFixed(5), lng: value.lng.toFixed(5) }) : ready ? t("انقر على الخريطة لتحديد موقع العقار، أو ابحث عن عنوان.") : t("جارٍ تحميل الخريطة…")}
       </p>
     </div>
   );
