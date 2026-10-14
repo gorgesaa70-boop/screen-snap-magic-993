@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, BadgeCheck, Phone } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Plus, BadgeCheck, Phone, RefreshCw, Timer, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { Field, Stat, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { cleanPhone } from "@/lib/phone";
-import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, serviceRequestNo } from "@/components/site/data";
+import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, serviceRequestNo, starsText } from "@/components/site/data";
 
 type Provider = Tables<"service_providers">;
 type Plan = Tables<"service_plans">;
-export type ServicesTab = "svc_requests" | "svc_providers" | "svc_plans";
+export type ServicesTab = "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews";
 
 const useProviders = () => useQuery({
   queryKey: ["svc-providers"],
@@ -25,42 +26,49 @@ export function ServicesAdmin({ tab }: { tab: ServicesTab }) {
   if (ready.data === false) return <p className="max-w-2xl rounded-2xl border border-dashed bg-card p-6 text-sm text-muted-foreground">قسم الخدمات محتاج تحديث قاعدة البيانات (إصدار 19) عشان يشتغل. لحد ما يتطبق، طلبات صفحة الخدمات بتتسجل في «طلبات العملاء» باسم «طلب خدمة»، وبتتنقل هنا لوحدها بعد التحديث.</p>;
   if (tab === "svc_providers") return <ProvidersAdmin />;
   if (tab === "svc_plans") return <PlansAdmin />;
+  if (tab === "svc_reviews") return <ReviewsAdmin />;
   return <RequestsAdmin />;
 }
 
 function RequestsAdmin() {
   const q = useQuery({
     queryKey: ["svc-requests"],
-    queryFn: async () => { const { data, error } = await supabase.from("service_requests").select("*").order("created_at", { ascending: false }).limit(500); if (error) throw error; return data; },
+    queryFn: async () => {
+      // Offers whose 2 hours are over move on first (in case the scheduler is off).
+      await supabase.rpc("run_service_offers");
+      const { data, error } = await supabase.from("service_requests").select("*").order("created_at", { ascending: false }).limit(500); if (error) throw error; return data;
+    },
   });
   const providers = useProviders();
   const [status, setStatus] = useState("");
   const [cat, setCat] = useState("");
-  const list = (q.data ?? []).filter((r) => (!status || r.status === status) && (!cat || r.category === cat));
+  const list = (q.data ?? []).filter((r) => (!status || (status === "manual" ? r.needs_manual && !r.assigned_provider_id : status === "offered" ? !!r.offer_provider_id : r.status === status)) && (!cat || r.category === cat));
+  const manual = (q.data ?? []).filter((r) => r.needs_manual && !r.assigned_provider_id).length;
   const count = (s: string) => (q.data ?? []).filter((r) => r.status === s).length;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="جديد" value={formatPrice(count("new"))} />
+        <Stat label="محتاج توزيع يدوي" value={formatPrice(manual)} hint={manual ? "مفيش مقدم خدمة متاح في التخصص والمنطقة" : undefined} />
         <Stat label="اتحوّل لمقدم خدمة" value={formatPrice(count("assigned"))} />
         <Stat label="اتنفّذ" value={formatPrice(count("done"))} />
         <Stat label="كل الطلبات" value={formatPrice(q.data?.length ?? 0)} />
       </div>
       <div className="flex flex-wrap gap-2">
         <select aria-label="الحالة" className={`${inputCls} w-auto`} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>{Object.entries(SERVICE_REQUEST_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          <option value="">كل الحالات</option><option value="manual">محتاج توزيع يدوي</option><option value="offered">معروض على مقدم خدمة</option>{Object.entries(SERVICE_REQUEST_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
         <select aria-label="الخدمة" className={`${inputCls} w-auto`} value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">كل الخدمات</option>{Object.entries(SERVICE_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
       {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش طلبات خدمات.</p>}
-      {list.map((r) => <RequestRow key={r.id} r={r} providers={(providers.data ?? []).filter((p) => p.status === "approved" && p.category === r.category)} onChanged={() => q.refetch()} />)}
+      {list.map((r) => <RequestRow key={r.id} r={r} all={providers.data ?? []} providers={(providers.data ?? []).filter((p) => p.status === "approved" && p.category === r.category)} onChanged={() => q.refetch()} />)}
     </div>
   );
 }
 
-function RequestRow({ r, providers, onChanged }: { r: Tables<"service_requests">; providers: Provider[]; onChanged: () => void }) {
+function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_requests">; all: Provider[]; providers: Provider[]; onChanged: () => void }) {
+  const name = (id: string | null) => all.find((p) => p.id === id)?.name ?? "مقدم خدمة";
   const [notes, setNotes] = useState(r.notes ?? "");
   async function save(patch: TablesUpdate<"service_requests">, ok = "اتحفظ") {
     const { error } = await supabase.from("service_requests").update(patch).eq("id", r.id);
@@ -78,7 +86,21 @@ function RequestRow({ r, providers, onChanged }: { r: Tables<"service_requests">
         </select>
       </div>
       {r.details && <p className="mt-2 text-sm whitespace-pre-line text-foreground/80">{r.details}</p>}
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold">
+        {r.area && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-primary">{r.area}</span>}
+        {r.target_provider_id && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-primary">العميل اختار: {name(r.target_provider_id)}</span>}
+        {r.offer_provider_id && r.offer_expires_at && <span className="inline-flex items-center gap-1 rounded-full bg-[#f2b84b]/20 px-2.5 py-0.5 text-primary"><Timer className="size-3" />معروض على {name(r.offer_provider_id)} لحد {new Date(r.offer_expires_at).toLocaleTimeString("ar-EG", { hour: "numeric", minute: "2-digit" })}</span>}
+        {r.needs_manual && !r.assigned_provider_id && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-destructive">محتاج توزيع يدوي</span>}
+        {(r.declined_provider_ids ?? []).length > 0 && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-muted-foreground" title={r.declined_provider_ids.map(name).join("، ")}>اعتذر أو ماردّش: {(r.declined_provider_ids ?? []).length}</span>}
+        {r.assigned_provider_id && <span className="rounded-full bg-teal-soft px-2.5 py-0.5 text-primary">مع: {name(r.assigned_provider_id)}{r.accepted_at ? ` من ${formatDate(r.accepted_at)}` : ""}</span>}
+      </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {!r.assigned_provider_id && !["done", "closed"].includes(r.status) && (
+          <button className={`${btnOutline} h-10`} title="يبدأ التوزيع التلقائي من الأول، وكل اللي اعتذروا ياخدوا فرصة تانية" onClick={async () => {
+            const { data, error } = await supabase.rpc("reroute_service_request", { _req: r.id });
+            if (error) toast.error(error.message); else { toast.success(data ? `اتعرض على ${name(data)}` : "مفيش مقدم خدمة متاح — حوّله بإيدك"); onChanged(); }
+          }}><RefreshCw className="size-4" />وزّع تلقائي</button>
+        )}
         <a href={`tel:${r.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{r.phone}</a>
         <select aria-label="حوّل لمقدم خدمة" className={`${inputCls} h-10 w-auto min-w-48 text-xs`} value={r.assigned_provider_id ?? ""} onChange={(e) => e.target.value && save({ assigned_provider_id: e.target.value }, "اتحوّل، ووصل إشعار لمقدم الخدمة وللإدارة")}>
           <option value="">{providers.length ? "حوّل لمقدم خدمة…" : "مفيش مقدمين خدمة معتمدين في الخدمة دي"}</option>
@@ -172,6 +194,7 @@ function ProviderRow({ p, plans, onChanged }: { p: Provider; plans: Plan[]; onCh
           {p.status === "pending" && <button className={btnOutline} onClick={() => { const note = prompt("سبب الرفض (بيوصل لمقدم الخدمة):") ?? ""; update({ status: "rejected", review_note: note.trim().slice(0, 500) || null }, "اترفض"); }}>رفض</button>}
           {p.status === "approved" && <button className={btnOutline} onClick={() => { const note = prompt("سبب الإيقاف:") ?? ""; update({ status: "suspended", review_note: note.trim().slice(0, 500) || null }, "اتوقف"); }}>إيقاف</button>}
           <button className={btnOutline} onClick={() => update({ verified: !p.verified }, p.verified ? "اتشالت علامة التوثيق" : "اتوثّق")}>{p.verified ? "شيل التوثيق" : "توثيق"}</button>
+          {p.status === "approved" && <Link to="/services/$id" params={{ id: p.id }} className={btnOutline}><ExternalLink className="size-4" />الملف العام</Link>}
         </div>
       </div>
       {p.status === "approved" && (
@@ -194,18 +217,20 @@ function PlansAdmin() {
   const q = usePlans();
   return (
     <div className="space-y-3">
-      <p className="max-w-3xl text-sm text-muted-foreground">باقات مقدمي الخدمة منفصلة عن باقات الوسطاء. السعر الفاضي بيظهر «السعر قريبًا». لحد ما الدفع الأونلاين يشتغل، الباقة بتتفعّل من «مقدمين الخدمة».</p>
+      <p className="max-w-3xl text-sm text-muted-foreground">باقات مقدمي الخدمة منفصلة عن باقات الوسطاء. «طلبات في الشهر» فاضية = من غير حد. الأولوية الأعلى بتاخد الطلبات الأول وبتظهر الأول في الدليل. السعر الفاضي بيظهر «السعر قريبًا». لحد ما الدفع الأونلاين يشتغل، الباقة بتتفعّل من «مقدمين الخدمة».</p>
       <div className="grid gap-3 md:grid-cols-3">{q.data?.map((p) => <PlanEditor key={p.id} p={p} onSaved={() => q.refetch()} />)}</div>
     </div>
   );
 }
 
 function PlanEditor({ p, onSaved }: { p: Plan; onSaved: () => void }) {
-  const [f, setF] = useState({ name: p.name, monthly: p.monthly_price != null ? String(p.monthly_price) : "", yearly: p.yearly_price != null ? String(p.yearly_price) : "", features: p.features.join("\n"), active: p.is_active });
+  const [f, setF] = useState({ name: p.name, monthly: p.monthly_price != null ? String(p.monthly_price) : "", yearly: p.yearly_price != null ? String(p.yearly_price) : "", features: p.features.join("\n"), active: p.is_active,
+    requests: p.monthly_requests != null ? String(p.monthly_requests) : "", priority: String(p.priority ?? 0), photos: String(p.max_photos ?? 6) });
   async function save() {
     const { error } = await supabase.from("service_plans").update({
       name: f.name.trim().slice(0, 60), monthly_price: f.monthly === "" ? null : Number(f.monthly), yearly_price: f.yearly === "" ? null : Number(f.yearly),
       features: f.features.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 15), is_active: f.active,
+      monthly_requests: f.requests === "" ? null : Number(f.requests), priority: Math.min(100, Number(f.priority || 0)), max_photos: Math.min(100, Number(f.photos || 0)),
     }).eq("id", p.id);
     if (error) toast.error(error.message); else { toast.success("اتحفظت الباقة"); onSaved(); }
   }
@@ -219,9 +244,39 @@ function PlanEditor({ p, onSaved }: { p: Plan; onSaved: () => void }) {
           <Field label="سنوي (ج.م)"><input className={inputCls} inputMode="numeric" placeholder="قريبًا" value={f.yearly} onChange={(e) => setF({ ...f, yearly: digits(e.target.value) })} /></Field>
         </div>
       )}
-      <Field label="المميزات (كل سطر ميزة)"><textarea className={`${inputCls} h-32 py-2 text-sm`} value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} /></Field>
+      <div className="grid grid-cols-3 gap-2">
+        <Field label="طلبات في الشهر"><input className={inputCls} inputMode="numeric" placeholder="من غير حد" value={f.requests} onChange={(e) => setF({ ...f, requests: digits(e.target.value) })} /></Field>
+        <Field label="الأولوية"><input className={inputCls} inputMode="numeric" value={f.priority} onChange={(e) => setF({ ...f, priority: digits(e.target.value).slice(0, 3) })} /></Field>
+        <Field label="صور الشغل"><input className={inputCls} inputMode="numeric" value={f.photos} onChange={(e) => setF({ ...f, photos: digits(e.target.value).slice(0, 3) })} /></Field>
+      </div>
+      <Field label="مميزات إضافية (كل سطر ميزة)"><textarea className={`${inputCls} h-32 py-2 text-sm`} value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} /></Field>
       <label className="flex items-center gap-2 text-sm font-bold text-primary"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} />ظاهرة لمقدمي الخدمة</label>
       <button onClick={save} className={btnPrimary}>حفظ</button>
+    </div>
+  );
+}
+
+/** Customers' ratings of providers: the admin hides abusive ones (hidden ones leave the profile and the average). */
+function ReviewsAdmin() {
+  const q = useQuery({ queryKey: ["svc-reviews"], queryFn: async () => (await supabase.from("service_reviews").select("*").order("created_at", { ascending: false }).limit(300)).data ?? [] });
+  const providers = useProviders();
+  const name = (id: string) => providers.data?.find((p) => p.id === id)?.name ?? "";
+  if (!q.isLoading && !q.data?.length) return <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لسه مفيش تقييمات. العميل بيقيّم بعد ما مقدم الخدمة يخلّص طلبه.</p>;
+  return (
+    <div className="max-w-3xl space-y-3">
+      <p className="text-sm text-muted-foreground">التقييمات من العملاء اللي طلبهم اتنفّذ بس (تقييم واحد لكل طلب). خبّي أي تقييم مسيء أو فيه بيانات شخصية.</p>
+      {q.data?.map((r) => (
+        <div key={r.id} className={`rounded-2xl border bg-card p-4 ${r.hidden ? "opacity-60" : ""}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-bold text-primary">{name(r.provider_id)} <span className="text-[#f2b84b]">{starsText(r.stars)}</span> <span className="text-xs font-semibold text-muted-foreground">· {r.customer_name} · {formatDate(r.created_at)}</span></p>
+            <button className={btnOutline} onClick={async () => { const { error } = await supabase.from("service_reviews").update({ hidden: !r.hidden }).eq("id", r.id); if (error) toast.error(error.message); else { toast.success(r.hidden ? "التقييم رجع يظهر" : "التقييم اتخبّى"); q.refetch(); } }}>
+              {r.hidden ? <><Eye className="size-4" />إظهار</> : <><EyeOff className="size-4" />إخفاء</>}
+            </button>
+          </div>
+          {r.comment && <p className="mt-2 text-sm text-foreground/80">{r.comment}</p>}
+          {r.reply && <p className="mt-2 rounded-xl bg-secondary p-3 text-sm text-foreground/80"><span className="font-bold text-primary">رد مقدم الخدمة: </span>{r.reply}</p>}
+        </div>
+      ))}
     </div>
   );
 }

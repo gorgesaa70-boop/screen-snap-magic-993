@@ -34,13 +34,14 @@ import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { cleanPhone } from "@/lib/phone";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "لوحة الإدارة | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -50,7 +51,7 @@ function useAdminData(enabled: boolean) {
         supabase.rpc("admin_brokers"),
         paged(() => fetchAll((a, b) => supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }).order("id").range(a, b))),
         paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
-        supabase.from("plans").select("*").order("max_properties"),
+        supabase.from("plans").select("*").order("audience").order("sort_order"),
       ]);
       const err = b.error || p.error || l.error || pl.error;
       if (err) throw err;
@@ -76,13 +77,13 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = [
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing"] },
           { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "compounds", "industrial"] },
-          { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans"] },
+          { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
           { id: "settings", label: "الإعدادات", tabs: ["announce", "app", "health"] },
         ];
@@ -113,14 +114,14 @@ function AdminPage() {
           {tab === "audit" && <AuditLog />}
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}
-          {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
+          {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans.filter((p) => (p.audience ?? "broker") === "broker")} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
           {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} />}
           {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
-          {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans") && <ServicesAdmin tab={tab} />}
+          {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
       )}
@@ -377,29 +378,75 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
 
 function PlansAdmin({ plans, reload }: { plans: PlanRow[]; reload: () => void }) {
   return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">حدّد عدد العقارات والإعلانات المميزة والأسعار لكل باقة. الباقة اللي سعرها صفر مش بتتدفع. الدفع الأونلاين هيشتغل لما بوابة الدفع تتربط.</p>
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">كل باقة بتحدد عدد الإعلانات الظاهرة في نفس الوقت، ومدة كل إعلان (بعدها بيستخبى لحد ما يتجدد — مش بيتمسح)، والإعلانات المميزة والأسعار. الباقة اللي سعرها صفر مش بتتدفع. الدفع الأونلاين هيشتغل لما بوابة الدفع تتربط؛ لحد كده الباقة بتتفعّل من هنا.</p>
+      <p className="font-extrabold text-primary">باقات الوسطاء والشركات</p>
+      <p className="-mt-3 text-xs text-muted-foreground">بتتفعّل من «الحسابات» ← اختار الباقة جنب الحساب.</p>
       <div className="grid gap-3 md:grid-cols-3">
-        {plans.map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
+        {plans.filter((p) => (p.audience ?? "broker") === "broker").map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
       </div>
+      <p className="font-extrabold text-primary">باقات الملاك</p>
+      <p className="-mt-3 text-xs text-muted-foreground">الملاك اللي بيعرضوا عقاراتهم من «اعرض عقارك» — الباقة بتتحسب برقم الموبايل.</p>
+      <div className="grid gap-3 md:grid-cols-3">
+        {plans.filter((p) => p.audience === "owner").map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
+      </div>
+      <OwnerGrants plans={plans.filter((p) => p.audience === "owner" && p.code !== "owner_free")} />
       <PaymentSettings />
     </div>
   );
 }
 
+/** Owner plans are given by phone number (owners have no company account). */
+function OwnerGrants({ plans }: { plans: PlanRow[] }) {
+  const q = useQuery({ queryKey: ["owner-grants"], queryFn: async () => (await supabase.from("owner_plan_grants").select("*").order("created_at", { ascending: false }).limit(100)).data ?? [] });
+  const [f, setF] = useState({ phone: "", plan: "", months: "1" });
+  return (
+    <div className="space-y-3 rounded-2xl border bg-card p-4">
+      <p className="font-bold text-primary">تفعيل باقة لمالك</p>
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="موبايل المالك"><input className={`${inputCls} w-44`} dir="ltr" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} maxLength={20} /></Field>
+        <Field label="الباقة"><select className={`${inputCls} w-auto`} value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })}><option value="">اختار</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+        <Field label="المدة"><select className={`${inputCls} w-auto`} value={f.months} onChange={(e) => setF({ ...f, months: e.target.value })}>{[["1", "شهر"], ["3", "3 شهور"], ["6", "6 شهور"], ["12", "سنة"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
+        <button className={btnPrimary} disabled={!f.plan || !cleanPhone(f.phone)} onClick={async () => {
+          const ends = new Date(); ends.setMonth(ends.getMonth() + Number(f.months));
+          const { error } = await supabase.from("owner_plan_grants").insert({ phone: cleanPhone(f.phone)!, plan_id: f.plan, ends_at: ends.toISOString() });
+          if (error) toast.error(error.message); else { toast.success("الباقة اتفعّلت للرقم ده"); setF({ phone: "", plan: "", months: "1" }); q.refetch(); }
+        }}>تفعيل</button>
+      </div>
+      {(q.data?.length ?? 0) > 0 && (
+        <ul className="divide-y text-sm">
+          {q.data!.map((g) => {
+            const running = g.status === "active" && new Date(g.ends_at) > new Date();
+            return (
+              <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span><span dir="ltr">{g.phone}</span> · {plans.find((p) => p.id === g.plan_id)?.name ?? "باقة"} · {formatDate(g.starts_at)} ← {formatDate(g.ends_at)}{running ? "" : " · منتهية"}</span>
+                {running && <button className="text-xs font-bold text-destructive hover:underline" onClick={async () => { if (!confirm("إلغاء الباقة دي؟")) return; const { error } = await supabase.from("owner_plan_grants").update({ status: "cancelled" }).eq("id", g.id); if (error) toast.error(error.message); else q.refetch(); }}>إلغاء</button>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PlanCard({ p, reload }: { p: PlanRow; reload: () => void }) {
-  const [f, setF] = useState({ name: p.name, max_properties: String(p.max_properties), featured_slots: String(p.featured_slots), monthly_price: String(p.monthly_price), yearly_price: String(p.yearly_price ?? 0), trial_days: String(p.trial_days ?? 0) });
+  const [f, setF] = useState({ name: p.name, max_properties: String(p.max_properties), featured_slots: String(p.featured_slots), monthly_price: String(p.monthly_price), yearly_price: String(p.yearly_price ?? 0), trial_days: String(p.trial_days ?? 0),
+    listing_days: p.listing_days != null ? String(p.listing_days) : "", features: (p.features ?? []).join("\n") });
   return (
     <div className="space-y-3 rounded-2xl border bg-card p-4">
       <Field label="اسم الباقة"><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+      <Field label="مدة الإعلان (يوم)"><input className={inputCls} inputMode="numeric" placeholder="من غير مدة" value={f.listing_days} onChange={(e) => setF({ ...f, listing_days: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 3) })} /></Field>
       <Field label="الحد الأقصى للعقارات"><input className={inputCls} inputMode="numeric" value={f.max_properties} onChange={(e) => setF({ ...f, max_properties: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       <Field label="الإعلانات المميزة"><input className={inputCls} inputMode="numeric" value={f.featured_slots} onChange={(e) => setF({ ...f, featured_slots: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       <Field label="السعر الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.monthly_price} onChange={(e) => setF({ ...f, monthly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       <Field label="السعر السنوي (ج.م)"><input className={inputCls} inputMode="numeric" value={f.yearly_price} onChange={(e) => setF({ ...f, yearly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
       {Number(f.monthly_price) > 0 && Number(f.yearly_price) > 0 && Number(f.yearly_price) < Number(f.monthly_price) * 12 && <p className="-mt-2 text-xs font-bold text-teal">توفير {Math.round((1 - Number(f.yearly_price) / (Number(f.monthly_price) * 12)) * 100)}% على السنوي</p>}
+      <Field label="مميزات إضافية (كل سطر ميزة)"><textarea className={`${inputCls} h-24 py-2 text-sm`} value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} /></Field>
       <Field label="أيام التجربة المجانية"><input className={inputCls} inputMode="numeric" value={f.trial_days} onChange={(e) => setF({ ...f, trial_days: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 2) })} /></Field>
       <button className={`${btnPrimary} w-full`} onClick={async () => {
-        const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0), yearly_price: Number(f.yearly_price || 0), trial_days: Math.min(Number(f.trial_days || 0), 60) }).eq("id", p.id);
+        const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0), yearly_price: Number(f.yearly_price || 0), trial_days: Math.min(Number(f.trial_days || 0), 60),
+          listing_days: f.listing_days === "" ? null : Math.min(365, Math.max(1, Number(f.listing_days))), features: f.features.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 15) }).eq("id", p.id);
         if (error) toast.error(error.message); else { toast.success("تم الحفظ"); reload(); }
       }}>حفظ</button>
     </div>

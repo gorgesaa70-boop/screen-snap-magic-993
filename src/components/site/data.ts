@@ -160,6 +160,38 @@ export const PROVIDER_STATUS: Record<string, { label: string; cls: string }> = {
 };
 export const PROVIDER_KIND: Record<string, string> = { company: "شركة", technician: "فني" };
 export const serviceRequestNo = (n?: number | null) => (n == null ? "" : `S-${String(n).padStart(6, "0")}`);
+export const SERVICE_KIND_PLURAL: Record<string, string> = { company: "شركات ومكاتب", technician: "فنيين" };
+
+/** A listing's term on its plan: still up (with days left), ends within a week (renewable), or ended (hidden). */
+export function listingTerm(listedUntil: string | null | undefined): { label: string; cls: string; renewable: boolean; ended: boolean } | null {
+  if (!listedUntil) return null;
+  const days = Math.ceil((new Date(listedUntil).getTime() - Date.now()) / 864e5);
+  if (days <= 0) return { label: "خلص واستخبى — جدّده", cls: "bg-destructive/10 text-destructive", renewable: true, ended: true };
+  if (days <= 7) return { label: days === 1 ? "بيخلص بكرة" : `فاضل ${days} أيام`, cls: "bg-[#f2b84b]/25 text-primary", renewable: true, ended: false };
+  return { label: `ظاهر لحد ${formatDate(listedUntil)}`, cls: "bg-secondary text-muted-foreground", renewable: false, ended: false };
+}
+
+/** What a listing plan gives, in words (numbers come from the plan, extra perks from its features). */
+export function listingPlanLines(p: { max_properties: number; listing_days: number | null; featured_slots: number; features: string[] }) {
+  return [
+    p.max_properties === 1 ? "إعلان واحد ظاهر في نفس الوقت" : p.max_properties === 2 ? "إعلانين ظاهرين في نفس الوقت" : `${p.max_properties} إعلان ظاهرين في نفس الوقت`,
+    p.listing_days ? `كل إعلان ظاهر ${p.listing_days} يوم وتقدر تجدّده` : "الإعلانات ظاهرة من غير مدة",
+    ...(p.featured_slots > 0 ? [p.featured_slots === 1 ? "إعلان مميز واحد" : `${p.featured_slots} إعلانات مميزة`] : []),
+    ...(p.features ?? []),
+  ];
+}
+
+/** What a service plan gives, in words. */
+export function servicePlanLines(p: { monthly_requests: number | null; max_photos: number; priority: number; features: string[] }) {
+  return [
+    p.monthly_requests == null ? "طلبات من غير حد في الشهر" : `لحد ${p.monthly_requests} طلب في الشهر`,
+    `لحد ${p.max_photos} صورة من شغلك في ملفك`,
+    ...(p.features ?? []),
+  ];
+}
+
+/** Whole stars out of 5 as text, for cards. */
+export const starsText = (n: number) => "★".repeat(Math.round(n)) + "☆".repeat(5 - Math.round(n));
 
 /** Short names for the services directory groups (/services), keyed by the group's full title written in the request. */
 const SERVICE_SHORT: [string, string][] = [

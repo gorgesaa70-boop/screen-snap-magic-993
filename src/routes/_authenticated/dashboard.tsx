@@ -2,7 +2,7 @@ import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Phone, MessageCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
@@ -20,9 +20,10 @@ import { MallUnitsImport } from "@/components/dash/MallUnitsImport";
 import { MyProjects } from "@/components/dash/MyProjects";
 import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
+import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, listingTerm, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
 import { AreaPicker } from "@/components/site/AreaPicker";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -88,7 +89,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "leads" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "leads" | "team" | "profile";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -107,10 +108,8 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       return fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").eq("assigned_broker_id", broker.id).order("created_at", { ascending: false }).order("id").range(a, b));
     },
   });
-  const plan = useQuery({
-    queryKey: ["plan", broker.plan_id], enabled: !!broker.plan_id,
-    queryFn: async () => (await supabase.from("plans").select("*").eq("id", broker.plan_id!).maybeSingle()).data,
-  });
+  // The plan in force (none = free) and how many listings are up now (expired or hidden ones don't count).
+  const plan = useMyListingPlan();
   const team = useQuery({
     queryKey: ["team-count", broker.id], enabled: isOwner && TEAM_ACCOUNTS.includes(broker.account_type),
     queryFn: async () => (await supabase.from("company_members").select("id", { count: "exact", head: true }).eq("company_id", broker.id)).count ?? 0,
@@ -131,6 +130,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
         ...(broker.account_type === "developer" ? [{ id: "compounds" as const, label: "كمبونداتي" }] : []),
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
+        ...(canList ? [{ id: "plan" as const, label: "باقتي" }] : []),
         { id: "leads", label: "أحدث العملاء" },
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
         ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
@@ -147,7 +147,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
             ]} />
           )}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="كل العقارات" value={P.length} hint={plan.data ? `الحد: ${plan.data.max_properties} (${plan.data.name})` : undefined} />
+            <Stat label="كل العقارات" value={P.length} hint={plan.data ? `ظاهر ${plan.data.used} من ${plan.data.max} (${plan.data.name})` : undefined} />
             <Stat label="معتمدة" value={count("approved")} />
             <Stat label="قيد المراجعة" value={count("pending")} />
             <Stat label="مرفوضة / مسودة" value={count("rejected") + count("draft")} />
@@ -166,19 +166,20 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "projects" && canList && <MyProjects developerId={broker.id} />}
       {tab === "compounds" && <CompoundsHub developerId={canList ? broker.id : null} canAdd={canList} />}
       {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
-      {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} maxProperties={plan.data?.max_properties ?? null} reload={() => props.refetch()} />}
+      {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} remaining={plan.data ? Math.max(0, plan.data.max - plan.data.used) : null} reload={() => { props.refetch(); plan.refetch(); }} />}
+      {tab === "plan" && canList && <ListingPlan canRequest={isOwner} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
   );
 }
 
-function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: string; list: PropertyRow[]; maxProperties: number | null; reload: () => void }) {
+function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string; list: PropertyRow[]; remaining: number | null; reload: () => void }) {
   const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall" | "import" | "import-mall">(null);
   if (editing === "import")
-    return <ListingsImport brokerId={brokerId} remaining={maxProperties != null ? maxProperties - list.length : null} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+    return <ListingsImport brokerId={brokerId} remaining={remaining} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "import-mall")
-    return <MallUnitsImport brokerId={brokerId} remaining={maxProperties != null ? maxProperties - list.length : null} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+    return <MallUnitsImport brokerId={brokerId} remaining={remaining} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-mall" || (editing && typeof editing !== "string" && editing.category === "mall"))
     return <MallUnitForm brokerId={brokerId} initial={editing === "new-mall" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
   if (editing === "new-ind" || (editing && typeof editing !== "string" && editing.category === "industrial"))
@@ -195,6 +196,7 @@ function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: str
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
               {p.is_featured && <span className="rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-bold text-accent-foreground">مميز</span>}
+              {p.review_status === "approved" && !p.hidden_by_plan && (() => { const term = listingTerm(p.listed_until); return term && <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${term.cls}`}>{term.label}</span>; })()}
               {p.hidden_by_plan && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive" title="باقتك انتهت والعقار ده زيادة عن حد الباقة المجانية — بيرجع يظهر لما تجدد">مخفي — جدّد باقتك</span>}
             </div>
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
@@ -203,6 +205,12 @@ function MyProperties({ brokerId, list, maxProperties, reload }: { brokerId: str
           </div>
           <div className="flex gap-2">
             {p.review_status === "draft" && <button className={btnOutline} onClick={async () => { const { error } = await supabase.from("properties").update({ review_status: "pending" }).eq("id", p.id); if (error) toast.error(error.message); else { toast.success("أُرسل للمراجعة"); reload(); } }}>إرسال</button>}
+            {p.review_status === "approved" && !p.hidden_by_plan && listingTerm(p.listed_until)?.renewable && (
+              <button className={btnOutline} onClick={async () => {
+                const { error } = await supabase.rpc("renew_listing", { _property: p.id });
+                if (error) toast.error(error.message); else { toast.success("الإعلان اتجدّد"); reload(); }
+              }}><RefreshCw className="size-4" />جدّد</button>
+            )}
             {p.review_status === "approved" && !p.is_highlight && (
               <button title="اطلب من فاليو عقار تعرضه في «عروض بسعر مميز»" className={btnOutline} disabled={!!p.highlight_requested_at} onClick={async () => {
                 const { error } = await supabase.from("properties").update({ highlight_requested_at: new Date().toISOString() }).eq("id", p.id);

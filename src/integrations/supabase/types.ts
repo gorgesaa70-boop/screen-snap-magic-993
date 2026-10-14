@@ -1788,6 +1788,50 @@ export type Database = {
         }
         Relationships: []
       }
+      owner_plan_grants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          note: string | null
+          phone: string
+          plan_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          note?: string | null
+          phone: string
+          plan_id: string
+          starts_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          note?: string | null
+          phone?: string
+          plan_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_plan_grants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -1894,6 +1938,10 @@ export type Database = {
           name: string
           trial_days: number
           yearly_price: number
+          audience: string
+          features: string[]
+          listing_days: number | null
+          sort_order: number
         }
         Insert: {
           code: string
@@ -1906,6 +1954,10 @@ export type Database = {
           name: string
           trial_days?: number
           yearly_price?: number
+          audience?: string
+          features?: string[]
+          listing_days?: number | null
+          sort_order?: number
         }
         Update: {
           code?: string
@@ -1918,6 +1970,10 @@ export type Database = {
           name?: string
           trial_days?: number
           yearly_price?: number
+          audience?: string
+          features?: string[]
+          listing_days?: number | null
+          sort_order?: number
         }
         Relationships: []
       }
@@ -2145,6 +2201,8 @@ export type Database = {
           verified_note: string | null
           video_urls: string[]
           zone_id: string | null
+          listed_until: string | null
+          listing_notice: number
         }
         Insert: {
           activity_id?: string | null
@@ -2201,6 +2259,8 @@ export type Database = {
           verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
+          listed_until?: string | null
+          listing_notice?: number
         }
         Update: {
           activity_id?: string | null
@@ -2257,6 +2317,8 @@ export type Database = {
           verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
+          listed_until?: string | null
+          listing_notice?: number
         }
         Relationships: [
           {
@@ -2464,6 +2526,9 @@ export type Database = {
           name: string
           sort_order: number
           yearly_price: number | null
+          max_photos: number
+          monthly_requests: number | null
+          priority: number
         }
         Insert: {
           code: string
@@ -2475,6 +2540,9 @@ export type Database = {
           name: string
           sort_order?: number
           yearly_price?: number | null
+          max_photos?: number
+          monthly_requests?: number | null
+          priority?: number
         }
         Update: {
           code?: string
@@ -2486,6 +2554,9 @@ export type Database = {
           name?: string
           sort_order?: number
           yearly_price?: number | null
+          max_photos?: number
+          monthly_requests?: number | null
+          priority?: number
         }
         Relationships: []
       }
@@ -2563,6 +2634,98 @@ export type Database = {
           },
         ]
       }
+      service_provider_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_provider_photos_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          hidden: boolean
+          id: string
+          provider_id: string
+          replied_at: string | null
+          reply: string | null
+          request_id: string
+          stars: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          hidden?: boolean
+          id?: string
+          provider_id: string
+          replied_at?: string | null
+          reply?: string | null
+          request_id: string
+          stars: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          hidden?: boolean
+          id?: string
+          provider_id?: string
+          replied_at?: string | null
+          reply?: string | null
+          request_id?: string
+          stars?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           area: string | null
@@ -2579,6 +2742,14 @@ export type Database = {
           source: string
           status: string
           updated_at: string
+          accepted_at: string | null
+          declined_provider_ids: string[]
+          done_at: string | null
+          needs_manual: boolean
+          offer_expires_at: string | null
+          offer_provider_id: string | null
+          offered_at: string | null
+          target_provider_id: string | null
         }
         Insert: {
           area?: string | null
@@ -2595,6 +2766,14 @@ export type Database = {
           source?: string
           status?: string
           updated_at?: string
+          accepted_at?: string | null
+          declined_provider_ids?: string[]
+          done_at?: string | null
+          needs_manual?: boolean
+          offer_expires_at?: string | null
+          offer_provider_id?: string | null
+          offered_at?: string | null
+          target_provider_id?: string | null
         }
         Update: {
           area?: string | null
@@ -2611,6 +2790,14 @@ export type Database = {
           source?: string
           status?: string
           updated_at?: string
+          accepted_at?: string | null
+          declined_provider_ids?: string[]
+          done_at?: string | null
+          needs_manual?: boolean
+          offer_expires_at?: string | null
+          offer_provider_id?: string | null
+          offered_at?: string | null
+          target_provider_id?: string | null
         }
         Relationships: [
           {
@@ -2884,6 +3071,84 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_service_offer: { Args: { _req: string }; Returns: boolean }
+      decline_service_offer: { Args: { _req: string }; Returns: boolean }
+      my_listing_plan: { Args: never; Returns: Json }
+      my_owner_listings: {
+        Args: never
+        Returns: {
+          city: string
+          created_at: string
+          hidden_by_plan: boolean
+          id: string
+          image_url: string | null
+          listed_until: string | null
+          price: number
+          review_status: string
+          status: string
+          title: string
+          type: string
+          area: string
+        }[]
+      }
+      my_service_offers: {
+        Args: never
+        Returns: {
+          area: string | null
+          category: string
+          chosen: boolean
+          created_at: string
+          details: string | null
+          id: string
+          offer_expires_at: string
+          request_no: number
+        }[]
+      }
+      my_service_requests: {
+        Args: never
+        Returns: {
+          area: string | null
+          category: string
+          created_at: string
+          details: string | null
+          id: string
+          provider_id: string | null
+          provider_name: string | null
+          request_no: number
+          stars: number | null
+          status: string
+          waiting: boolean
+        }[]
+      }
+      my_service_stats: { Args: never; Returns: Json }
+      owner_listing_quota: { Args: { _phone: string }; Returns: Json }
+      rate_service_request: { Args: { _comment?: string; _req: string; _stars: number }; Returns: string }
+      renew_listing: { Args: { _property: string }; Returns: string | null }
+      reply_service_review: { Args: { _reply: string; _review: string }; Returns: boolean }
+      request_listing_plan: { Args: { _plan: string }; Returns: boolean }
+      reroute_service_request: { Args: { _req: string }; Returns: string | null }
+      run_listing_expiry: { Args: never; Returns: Json }
+      run_service_offers: { Args: never; Returns: number }
+      service_directory: {
+        Args: { _area?: string; _category?: string; _kind?: string }
+        Returns: {
+          areas: string[]
+          bio: string | null
+          category: string
+          done: number
+          id: string
+          kind: string
+          name: string
+          photo_url: string | null
+          photos: number
+          priority: number
+          rating: number | null
+          reviews: number
+          specialty: string | null
+          verified: boolean
+        }[]
+      }
+      service_provider_profile: { Args: { _id: string }; Returns: Json }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
