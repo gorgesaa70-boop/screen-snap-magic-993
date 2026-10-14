@@ -94,21 +94,41 @@ export function AnnouncementPopup() {
   const q = useAnnouncement();
   const a = q.data;
   const [seen, setSeen] = useState<string | null | undefined>(undefined);
+  const { state: installState, install } = useInstallApp();
+  const [showIosHelp, setShowIosHelp] = useState(false);
   // Opens a moment after the page settles, so it never covers the page while it is still loading.
   useEffect(() => { const id = setTimeout(() => setSeen(read(POPUP_KEY)), 1200); return () => clearTimeout(id); }, []);
   if (seen === undefined || !isLive(a) || !a.popup || path.startsWith("/admin")) return null;
   const v = versionOf(a);
   const close = () => { write(POPUP_KEY, v); setSeen(v); };
+  // The "التفاصيل" button installs the web app instead of opening a page.
+  const onDetails = () => {
+    if (installState === "prompt") void install();
+    else if (installState === "ios") setShowIosHelp(true);
+  };
   return (
     <Dialog open={seen !== v} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent dir={dir} className="w-[calc(100%-2rem)] max-w-md rounded-2xl border-teal/40 p-6 text-center">
         <span className="mx-auto grid size-12 place-items-center rounded-full bg-teal text-accent-foreground"><Megaphone className="size-6" /></span>
         <DialogTitle className="text-lg font-extrabold text-primary">{t("فاليو عقار")}</DialogTitle>
         <DialogDescription className="whitespace-pre-line text-base leading-relaxed text-foreground">{textFor(a, lang)}</DialogDescription>
-        <div className="flex flex-wrap justify-center gap-2">
-          {a.url && <MessageLink a={a} className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground" />}
-          <button type="button" onClick={close} className="h-11 rounded-full border px-6 text-sm font-bold text-primary">{t("إغلاق")}</button>
-        </div>
+        {showIosHelp ? (
+          <p className="rounded-xl bg-muted p-3 text-sm font-bold leading-6 text-primary">
+            {t("من متصفح سفاري: اضغط زر «مشاركة» ثم اختر «إضافة إلى الشاشة الرئيسية» لتثبيت التطبيق.")}
+          </p>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-2">
+            {a.url && installState !== "unavailable" && (
+              <button type="button" onClick={onDetails} className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground">
+                {t("التفاصيل")}
+              </button>
+            )}
+            <button type="button" onClick={close} className="h-11 rounded-full border px-6 text-sm font-bold text-primary">{t("إغلاق")}</button>
+          </div>
+        )}
+        {showIosHelp && (
+          <button type="button" onClick={close} className="mt-2 h-11 rounded-full border px-6 text-sm font-bold text-primary">{t("إغلاق")}</button>
+        )}
       </DialogContent>
     </Dialog>
   );
