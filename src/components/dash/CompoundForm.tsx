@@ -36,6 +36,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
     delivery_year: initial?.delivery_year != null ? String(initial.delivery_year) : "",
     amenities: initial?.amenities ?? ([] as string[]),
     images: initial?.images ?? ([] as string[]),
+    co_broke_share: initial?.co_broke_share != null ? String(initial.co_broke_share) : "",
   });
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
@@ -61,6 +62,8 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
     if (down != null && down > 100) { toast.error("المقدم نسبة من 0 لـ 100"); return; }
     if (years != null && years > 30) { toast.error("سنين التقسيط لحد 30"); return; }
     if (year != null && (year < 2000 || year > 2100)) { toast.error("سنة الاستلام مش مظبوطة"); return; }
+    const share = f.co_broke_share === "" ? null : Number(f.co_broke_share);
+    if (share != null && (!(share > 0) || share > 90)) { toast.error("نسبة قسمة الوسطاء من 1 لـ 90"); return; }
     setBusy(true);
     const payload = {
       name: f.name.trim().slice(0, 120), description: f.description.trim().slice(0, 2000) || null,
@@ -69,6 +72,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
       down_payment_pct: down, installment_years: years, delivery_date: f.delivery_date.trim().slice(0, 100) || null, delivery_year: year,
       amenities: f.amenities, images: f.images, logo_url: f.images[0] ?? null,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
+      ...(share != null || initial?.co_broke_share != null ? { co_broke_share: share } : {}),
       ...(admin ? { developer_id: f.developer_id || null, developer_name: f.developer_id ? null : f.developer_name.trim().slice(0, 150) || null } : {}),
     };
     const res = initial
@@ -107,6 +111,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
         <div className="sm:col-span-2"><Field label="العنوان التفصيلي (اختياري)"><input className={inputCls} value={f.location} onChange={set("location")} maxLength={300} /></Field></div>
         <Field label="ميعاد الاستلام (بيظهر زي ما هو)"><input className={inputCls} placeholder="مثال: 2028 أو فوري" value={f.delivery_date} onChange={set("delivery_date")} maxLength={100} /></Field>
         <Field label="سنة الاستلام (للفلتر)"><input className={inputCls} inputMode="numeric" placeholder="مثال: 2028" value={f.delivery_year} onChange={digits("delivery_year")} maxLength={4} /></Field>
+        <Field label="قسمة الوسطاء (%) — اختياري"><input className={inputCls} inputMode="numeric" placeholder="فاضية = مقفول للوسطاء" value={f.co_broke_share} onChange={(e) => setF({ ...f, co_broke_share: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/[^d.]/g, "").slice(0, 4) })} /></Field>
         <Field label="أقل مقدم (%)"><input className={inputCls} inputMode="numeric" placeholder="مثال: 10" value={f.down_payment_pct} onChange={digits("down_payment_pct")} maxLength={3} /></Field>
         <Field label="أطول تقسيط (سنين)"><input className={inputCls} inputMode="numeric" placeholder="مثال: 7" value={f.installment_years} onChange={digits("installment_years")} maxLength={2} /></Field>
         <div className="sm:col-span-2"><Field label="أنظمة التقسيط بالتفصيل"><textarea className={`${inputCls} h-24 py-2`} placeholder="مثال: مقدم 10% وتقسيط على 7 سنين، أو كاش بخصم 15%" value={f.payment_plans} onChange={set("payment_plans")} maxLength={2000} /></Field></div>

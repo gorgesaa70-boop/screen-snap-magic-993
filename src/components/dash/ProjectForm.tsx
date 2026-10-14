@@ -6,6 +6,7 @@ import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage } from "@/components/sit
 import { AMENITIES, type ProjectRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Props = { developerId: string; initial?: ProjectRow | null; onDone: () => void; onCancel: () => void };
 
@@ -22,6 +23,7 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
     delivery_date: initial?.delivery_date ?? "",
     amenities: initial?.amenities ?? ([] as string[]),
     images: initial?.images ?? ([] as string[]),
+    co_broke_share: initial?.co_broke_share != null ? String(initial.co_broke_share) : "",
   });
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
@@ -41,6 +43,8 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
 
   async function save() {
     if (f.name.trim().length < 2) { toast.error("اكتب اسم المشروع"); return; }
+    const share = f.co_broke_share === "" ? null : Number(f.co_broke_share);
+    if (share != null && (!(share > 0) || share > 90)) { toast.error("نسبة قسمة الوسطاء من 1 لـ 90"); return; }
     setBusy(true);
     const payload = {
       name: f.name.trim().slice(0, 150), description: f.description.trim().slice(0, 5000) || null,
@@ -48,6 +52,7 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
       address: f.address.trim().slice(0, 300) || null, payment_plans: f.payment_plans.trim().slice(0, 2000) || null,
       delivery_date: f.delivery_date.trim().slice(0, 100) || null, amenities: f.amenities, images: f.images,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
+      ...(share != null || initial?.co_broke_share != null ? { co_broke_share: share } : {}),
     };
     const res = initial
       ? await dbx.from("projects").update(payload).eq("id", initial.id)
@@ -68,6 +73,7 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
         <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((c) => <option key={c}>{c}</option>)}</select></Field>
         <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((a) => <option key={a}>{a}</option>)}</select></Field>
         <Field label="العنوان التفصيلي (اختياري)"><input className={inputCls} value={f.address} onChange={set("address")} maxLength={300} /></Field>
+        <Field label="قسمة الوسطاء (%) — اختياري"><input className={inputCls} inputMode="numeric" placeholder="فاضية = مقفول للوسطاء" value={f.co_broke_share} onChange={(e) => setF({ ...f, co_broke_share: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/[^d.]/g, "").slice(0, 4) })} /></Field>
         <Field label="ميعاد التسليم"><input className={inputCls} placeholder="مثال: 2028 أو فوري" value={f.delivery_date} onChange={set("delivery_date")} maxLength={100} /></Field>
         <div className="sm:col-span-2"><Field label="وصف المشروع"><textarea className={`${inputCls} h-28 py-2`} value={f.description} onChange={set("description")} maxLength={5000} /></Field></div>
         <div className="sm:col-span-2"><Field label="أنظمة التقسيط"><textarea className={`${inputCls} h-24 py-2`} placeholder="مثال: مقدم 10% وتقسيط على 7 سنين" value={f.payment_plans} onChange={set("payment_plans")} maxLength={2000} /></Field></div>

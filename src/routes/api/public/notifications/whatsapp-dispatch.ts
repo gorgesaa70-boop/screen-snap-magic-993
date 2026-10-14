@@ -65,6 +65,13 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           await db.rpc("log_app_error", { _kind: "server", _message: `run_service_offers: ${offersError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
         }
 
+        // Referrals between brokers that nobody answered within 24 hours expire.
+        const { error: referralsError } = await db.rpc("run_referrals");
+        if (referralsError) {
+          console.error("run_referrals", referralsError.message);
+          await db.rpc("log_app_error", { _kind: "server", _message: `run_referrals: ${referralsError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
+        }
+
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 

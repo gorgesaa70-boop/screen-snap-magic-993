@@ -1,65 +1,55 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { toast } from "sonner";
-import { Handshake, Percent, ShieldCheck, Store } from "lucide-react";
+import { Handshake, Percent, ShieldCheck, Store, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
-import { cleanPhone } from "@/lib/phone";
-import { getAttribution } from "@/lib/attribution";
+import { useMe } from "@/hooks/useAuth";
 import { pageHead, breadcrumbs } from "@/lib/seo";
-import { PageShell, inputCls, btnPrimary } from "@/components/site/ui";
+import { PageShell, inputCls, btnPrimary, btnOutline, btnTeal } from "@/components/site/ui";
+import { ALL_AREAS, formatPrice } from "@/components/site/data";
 
 export const Route = createFileRoute("/broker-network")({
   head: () => pageHead({
     path: "/broker-network",
-    title: "سوق الوسطاء: بيع واشتري من وحدات الوسطاء التانيين — قريبًا | فاليو عقار",
-    description: "عندك مشتري ومعندكش الوحدة؟ شوف وحدات الوسطاء التانيين في برج العرب، واقفل الصفقة بعمولة متقسمة بضمان فاليو عقار. سجّل اهتمامك.",
+    title: "سوق الوسطاء: بيع واشتري من وحدات الوسطاء والمطورين التانيين | فاليو عقار",
+    description: "عندك مشتري ومعندكش الوحدة؟ شوف الوحدات اللي الوسطاء والمطورين فاتحينها للقسمة في برج العرب، وابعت مشتريك بضغطة، وعمولتك محفوظة بضمان فاليو عقار.",
     jsonLd: [breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: "سوق الوسطاء", path: "/broker-network" }])],
   }),
   component: BrokerNetwork,
 });
 
 const POINTS = [
-  { icon: Store, title: "وحدات أكتر لعملائك", text: "شوف الوحدات اللي الوسطاء التانيين عارضينها في برج العرب، وبيانات صاحبها محمية." },
-  { icon: Percent, title: "إنت بتحدد القسمة", text: "كل وسيط بيحدد نسبة العمولة اللي هيقسمها على وحدته، وبتبان للكل قبل أي طلب." },
-  { icon: Handshake, title: "مشتريك محفوظ باسمك", text: "لما صاحب الوحدة يوافق، المشتري بيتسجل باسمك بالتاريخ والساعة، ومحدش يقدر ياخده." },
-  { icon: ShieldCheck, title: "العمولة بتتقسم لوحدها", text: "الصفقة بوسيطين، والعمولة بتتحسب وتتقسم أوتوماتيك بعد اعتماد الإدارة، وكل خطوة متسجلة." },
+  { icon: Store, title: "وحدات أكتر لعملائك", text: "وحدات الوسطاء والشركات والمطورين اللي فاتحينها للقسمة، وبيانات أصحابها محمية." },
+  { icon: Percent, title: "النسبة واضحة من الأول", text: "كل بايع بيحدد نسبة الوسيط اللي يجيب المشتري، وبتبان على الوحدة قبل ما تبعت." },
+  { icon: Handshake, title: "مشتريك محفوظ باسمك 90 يوم", text: "أول ما البايع يقبل، العميل بيتسجل باسمك. أي وحدة يشتريها من نفس البايع في المدة دي ليك نصيب منها." },
+  { icon: ShieldCheck, title: "النصيب بيتحسب لوحده", text: "بعد ما الإدارة تأكد البيع: (إجمالي العمولة − نسبة فاليو عقار) × نسبة القسمة. وكل خطوة متسجلة." },
 ] as const;
 
-/** Broker-to-broker market (co-brokerage): "coming soon" page collecting brokers' interest as leads. */
+const KIND: Record<string, string> = { property: "عقار", compound: "كمبوند", project: "مشروع" };
+
+/** Broker-to-broker market: units opened for referrals (brokers only), and how it works for everyone else. */
 function BrokerNetwork() {
   useLang();
-  const [f, setF] = useState({ side: "both" as "sell" | "buy" | "both", company: "", name: "", phone: "" });
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const SIDES = { sell: "عندي وحدات أعرضها للوسطاء", buy: "بدوّر على وحدات لعملائي", both: "الاتنين" } as const;
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const phone = cleanPhone(f.phone);
-    if (f.name.trim().length < 2 || !phone) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
-    setBusy(true);
-    const { error } = await supabase.from("leads").insert({
-      name: f.name.trim().slice(0, 100), phone, kind: "request",
-      details: `سوق الوسطاء (قريبًا) — ${SIDES[f.side]}${f.company.trim() ? ` — ${f.company.trim()}` : ""}`.slice(0, 1000),
-      original_source: "website", utm: getAttribution(),
-    });
-    setBusy(false);
-    if (error) { toast.error(t("الطلب ماتبعتش، جرّب تاني")); return; }
-    setDone(true);
-  }
-
+  const { me, loading } = useMe();
+  const isBroker = !!me?.broker?.is_active;
   return (
     <PageShell>
       <section className="bg-primary">
-        <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
-          <span className="inline-block rounded-full bg-teal px-3 py-1 text-xs font-extrabold text-accent-foreground">{t("قريبًا")}</span>
-          <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("سوق الوسطاء")}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("عندك مشتري ومعندكش الوحدة؟ أو عندك وحدة ومحتاج مشتري؟ اشتغل مع باقي وسطاء برج العرب على فاليو عقار، والعمولة بتتقسم بضمان المنصة.")}</p>
+        <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+          <h1 className="text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("سوق الوسطاء")}</h1>
+          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("عندك مشتري ومعندكش الوحدة؟ شوف الوحدات اللي الوسطاء والمطورين فاتحينها للقسمة، ودوس «عندي مشتري». البايع بيرد خلال 24 ساعة، وعمولتك محفوظة بضمان فاليو عقار.")}</p>
+          {!loading && !isBroker && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/auth" className={btnTeal}>{t("سجّل دخول كوسيط")}</Link>
+              <Link to="/join" className="inline-flex h-11 items-center rounded-xl border border-primary-foreground/30 px-4 text-sm font-bold text-primary-foreground hover:bg-primary-foreground/10">{t("انضم كوسيط أو شركة")}</Link>
+            </div>
+          )}
         </div>
       </section>
-      <div className="mx-auto grid max-w-5xl gap-6 px-4 py-8 md:grid-cols-2 md:px-6">
-        <ul className="space-y-3">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-6">
+        {isBroker && <Market />}
+        <ul className="grid gap-3 sm:grid-cols-2">
           {POINTS.map((p) => (
             <li key={p.title} className="flex items-start gap-3 rounded-2xl border bg-card p-4">
               <p.icon className="mt-0.5 size-5 shrink-0 text-teal" />
@@ -67,24 +57,51 @@ function BrokerNetwork() {
             </li>
           ))}
         </ul>
-        {done ? (
-          <div className="rounded-2xl border bg-card p-6 text-center"><p className="text-lg font-bold text-primary">{t("اتسجّلت ✓")}</p><p className="mt-2 text-sm text-muted-foreground">{t("هنكلّمك أول ما الخدمة تفتح.")}</p></div>
-        ) : (
-          <form onSubmit={submit} className="space-y-3 rounded-2xl border bg-card p-5">
-            <p className="font-extrabold text-primary">{t("سجّل اهتمامك")}</p>
-            <div className="grid gap-1.5">
-              {(Object.keys(SIDES) as (keyof typeof SIDES)[]).map((k) => (
-                <button key={k} type="button" aria-pressed={f.side === k} onClick={() => setF({ ...f, side: k })}
-                  className={`h-10 rounded-xl border px-3 text-start text-sm font-bold ${f.side === k ? "border-teal bg-teal/10 text-primary" : "text-muted-foreground"}`}>{t(SIDES[k])}</button>
-              ))}
-            </div>
-            <input className={inputCls} placeholder={t("اسم المكتب أو الشركة (اختياري)")} value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} maxLength={100} />
-            <input className={inputCls} placeholder={t("الاسم")} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={100} required />
-            <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} maxLength={20} required />
-            <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? "..." : t("سجّلني")}</button>
-          </form>
-        )}
+        {isBroker && <p className="text-sm text-muted-foreground">{t("عايز وحداتك تظهر هنا؟ حط «قسمة الوسطاء» على العقار من «عقاراتي»، أو على الكمبوند والمشروع من لوحتك.")}</p>}
       </div>
     </PageShell>
+  );
+}
+
+function Market() {
+  const [kind, setKind] = useState("");
+  const [area, setArea] = useState("");
+  const q = useQuery({ queryKey: ["co-broke-market"], queryFn: async () => (await supabase.rpc("co_broke_market")).data ?? [] });
+  const list = (q.data ?? []).filter((x) => (!kind || x.target_kind === kind) && (!area || x.area === area));
+  const href = (x: { target_kind: string; id: string }) => (x.target_kind === "compound" ? `/compounds/${x.id}` : x.target_kind === "project" ? `/projects/${x.id}` : `/properties/${x.id}`);
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-lg font-extrabold text-primary">{t("الوحدات المفتوحة للوسطاء")}</h2>
+        <select aria-label={t("النوع")} className={`${inputCls} h-10 w-auto`} value={kind} onChange={(e) => setKind(e.target.value)}>
+          <option value="">{t("الكل")}</option><option value="property">{t("عقارات")}</option><option value="compound">{t("كمبوندات")}</option><option value="project">{t("مشروعات")}</option>
+        </select>
+        <select aria-label={t("المنطقة")} className={`${inputCls} h-10 w-auto`} value={area} onChange={(e) => setArea(e.target.value)}>
+          <option value="">{t("كل المناطق")}</option>{ALL_AREAS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
+        </select>
+        <Link to="/dashboard" className={`${btnOutline} ms-auto`}>{t("إحالاتي")}</Link>
+      </div>
+      {q.isLoading ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <div key={i} className="h-56 animate-pulse rounded-2xl bg-muted" />)}</div>
+        : list.length === 0 ? <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{t("لسه مفيش وحدات مفتوحة للوسطاء في الاختيار ده.")}</p>
+        : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {list.map((x) => (
+              <a key={`${x.target_kind}-${x.id}`} href={href(x)} className="flex flex-col overflow-hidden rounded-2xl border bg-card transition hover:border-teal hover:shadow-card">
+                <img src={x.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+                <div className="flex flex-1 flex-col gap-1 p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{t(KIND[x.target_kind] ?? "")}</span>
+                    <span className="rounded-full bg-teal px-2.5 py-0.5 text-xs font-extrabold text-accent-foreground">{t("نصيبك {n}%", { n: x.share_pct })}</span>
+                  </div>
+                  <p className="truncate font-bold text-primary">{x.title}</p>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">{x.area && <><MapPin className="size-3.5" />{t(x.area)} · </>}{x.seller_name}</p>
+                  {x.price != null && Number(x.price) > 0 && <p className="text-sm font-bold text-teal">{formatPrice(Number(x.price))} ج.م</p>}
+                  <span className={`${btnPrimary} mt-auto`}>{t("عندي مشتري")}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+    </section>
   );
 }

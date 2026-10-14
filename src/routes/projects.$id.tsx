@@ -13,6 +13,7 @@ import { UNIT_STATUS, fetchProject, projectCover, type UnitRow } from "@/compone
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { ReferButton } from "@/components/site/ReferButton";
 
 export const Route = createFileRoute("/projects/$id")({
   loader: ({ params, context }) =>
@@ -129,6 +130,7 @@ function ProjectPage() {
             </div>
           )}
           <ProjectInquiry project={p.name} projectId={p.id} unit={picked} onClearUnit={() => setPicked(null)} />
+          <ReferButton kind="project" targetId={p.id} share={p.co_broke_share} ownerId={p.developer_id} />
         </aside>
       </div>
     </PageShell>
