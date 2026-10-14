@@ -232,6 +232,34 @@
       "when": 1791864191036,
       "tag": "0032_release_19_services",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792003845375,
+      "tag": "0033_release_20_site_announcement",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792003905770,
+      "tag": "0034_release_21_lead_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792003940704,
+      "tag": "0035_release_22_web_push",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792004213634,
+      "tag": "0036_release_23_plans_and_providers",
+      "breakpoints": true
     }
   ]
 }

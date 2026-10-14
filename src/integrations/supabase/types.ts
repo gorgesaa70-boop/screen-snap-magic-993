@@ -62,6 +62,13 @@ export type Database = {
       app_settings: {
         Row: {
           android_url: string | null
+          announce_ar: string | null
+          announce_en: string | null
+          announce_ends_at: string | null
+          announce_on: boolean
+          announce_popup: boolean
+          announce_starts_at: string | null
+          announce_url: string | null
           featured_month_price: number
           featured_week_price: number
           finishing_ratios: Json
@@ -80,6 +87,13 @@ export type Database = {
         }
         Insert: {
           android_url?: string | null
+          announce_ar?: string | null
+          announce_en?: string | null
+          announce_ends_at?: string | null
+          announce_on?: boolean
+          announce_popup?: boolean
+          announce_starts_at?: string | null
+          announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
           finishing_ratios?: Json
@@ -98,6 +112,13 @@ export type Database = {
         }
         Update: {
           android_url?: string | null
+          announce_ar?: string | null
+          announce_en?: string | null
+          announce_ends_at?: string | null
+          announce_on?: boolean
+          announce_popup?: boolean
+          announce_starts_at?: string | null
+          announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
           finishing_ratios?: Json
@@ -1300,6 +1321,94 @@ export type Database = {
           },
         ]
       }
+      lead_message_reads: {
+        Row: {
+          last_read_at: string
+          lead_id: string
+          side: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          lead_id: string
+          side: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          lead_id?: string
+          side?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_message_reads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_type: string | null
+          body: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          masked: boolean
+          report_reason: string | null
+          reported_at: string | null
+          reported_by: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id?: string
+          sender_label?: string
+          sender_side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           admin_queue_at: string | null
@@ -1311,6 +1420,8 @@ export type Database = {
           assigned_staff_id: string | null
           budget: number | null
           campaign: string | null
+          chat_closed_at: string | null
+          chat_closed_by: string | null
           compound_id: string | null
           compound_unit_id: string | null
           created_at: string
@@ -1367,6 +1478,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          chat_closed_at?: string | null
+          chat_closed_by?: string | null
           compound_id?: string | null
           compound_unit_id?: string | null
           created_at?: string
@@ -1423,6 +1536,8 @@ export type Database = {
           assigned_staff_id?: string | null
           budget?: number | null
           campaign?: string | null
+          chat_closed_at?: string | null
+          chat_closed_by?: string | null
           compound_id?: string | null
           compound_unit_id?: string | null
           created_at?: string
@@ -1605,6 +1720,7 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          push_types: string[] | null
           updated_at: string
           user_id: string
           whatsapp_enabled: boolean
@@ -1613,6 +1729,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          push_types?: string[] | null
           updated_at?: string
           user_id: string
           whatsapp_enabled?: boolean
@@ -1621,6 +1738,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          push_types?: string[] | null
           updated_at?: string
           user_id?: string
           whatsapp_enabled?: boolean
@@ -1636,6 +1754,8 @@ export type Database = {
           is_read: boolean
           message: string
           metadata: Json
+          push_sent_at: string | null
+          push_status: string | null
           related_id: string | null
           related_url: string | null
           title: string
@@ -1652,6 +1772,8 @@ export type Database = {
           is_read?: boolean
           message?: string
           metadata?: Json
+          push_sent_at?: string | null
+          push_status?: string | null
           related_id?: string | null
           related_url?: string | null
           title: string
@@ -1668,6 +1790,8 @@ export type Database = {
           is_read?: boolean
           message?: string
           metadata?: Json
+          push_sent_at?: string | null
+          push_status?: string | null
           related_id?: string | null
           related_url?: string | null
           title?: string
@@ -1679,6 +1803,50 @@ export type Database = {
           whatsapp_status?: string | null
         }
         Relationships: []
+      }
+      owner_plan_grants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          note: string | null
+          phone: string
+          plan_id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          note?: string | null
+          phone: string
+          plan_id: string
+          starts_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          note?: string | null
+          phone?: string
+          plan_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_plan_grants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -1776,38 +1944,50 @@ export type Database = {
       }
       plans: {
         Row: {
+          audience: string
           code: string
           created_at: string
           featured_slots: number
+          features: string[]
           id: string
           is_active: boolean
+          listing_days: number | null
           max_properties: number
           monthly_price: number
           name: string
+          sort_order: number
           trial_days: number
           yearly_price: number
         }
         Insert: {
+          audience?: string
           code: string
           created_at?: string
           featured_slots?: number
+          features?: string[]
           id?: string
           is_active?: boolean
+          listing_days?: number | null
           max_properties?: number
           monthly_price?: number
           name: string
+          sort_order?: number
           trial_days?: number
           yearly_price?: number
         }
         Update: {
+          audience?: string
           code?: string
           created_at?: string
           featured_slots?: number
+          features?: string[]
           id?: string
           is_active?: boolean
+          listing_days?: number | null
           max_properties?: number
           monthly_price?: number
           name?: string
+          sort_order?: number
           trial_days?: number
           yearly_price?: number
         }
@@ -2014,6 +2194,8 @@ export type Database = {
           is_highlight: boolean
           land_size: number | null
           lat: number | null
+          listed_until: string | null
+          listing_notice: number
           lng: number | null
           mall_id: string | null
           min_months: number | null
@@ -2070,6 +2252,8 @@ export type Database = {
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
+          listed_until?: string | null
+          listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
@@ -2126,6 +2310,8 @@ export type Database = {
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
+          listed_until?: string | null
+          listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
@@ -2194,6 +2380,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_config: {
+        Row: {
+          id: number
+          secret: string
+          site_url: string
+          updated_at: string
+          vapid_private: Json | null
+          vapid_public: string | null
+          vapid_subject: string
+        }
+        Insert: {
+          id?: number
+          secret: string
+          site_url?: string
+          updated_at?: string
+          vapid_private?: Json | null
+          vapid_public?: string | null
+          vapid_subject?: string
+        }
+        Update: {
+          id?: number
+          secret?: string
+          site_url?: string
+          updated_at?: string
+          vapid_private?: Json | null
+          vapid_public?: string | null
+          vapid_subject?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failed_count: number
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failed_count?: number
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failed_count?: number
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       routing_rules: {
         Row: {
@@ -2286,8 +2538,11 @@ export type Database = {
           features: string[]
           id: string
           is_active: boolean
+          max_photos: number
           monthly_price: number | null
+          monthly_requests: number | null
           name: string
+          priority: number
           sort_order: number
           yearly_price: number | null
         }
@@ -2297,8 +2552,11 @@ export type Database = {
           features?: string[]
           id?: string
           is_active?: boolean
+          max_photos?: number
           monthly_price?: number | null
+          monthly_requests?: number | null
           name: string
+          priority?: number
           sort_order?: number
           yearly_price?: number | null
         }
@@ -2308,12 +2566,50 @@ export type Database = {
           features?: string[]
           id?: string
           is_active?: boolean
+          max_photos?: number
           monthly_price?: number | null
+          monthly_requests?: number | null
           name?: string
+          priority?: number
           sort_order?: number
           yearly_price?: number | null
         }
         Relationships: []
+      }
+      service_provider_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_provider_photos_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_providers: {
         Row: {
@@ -2391,51 +2687,75 @@ export type Database = {
       }
       service_requests: {
         Row: {
+          accepted_at: string | null
           area: string | null
           assigned_provider_id: string | null
           category: string
           created_at: string
           customer_id: string | null
+          declined_provider_ids: string[]
           details: string | null
+          done_at: string | null
           id: string
           name: string
+          needs_manual: boolean
           notes: string | null
+          offer_expires_at: string | null
+          offer_provider_id: string | null
+          offered_at: string | null
           phone: string
           request_no: number
           source: string
           status: string
+          target_provider_id: string | null
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
           area?: string | null
           assigned_provider_id?: string | null
           category: string
           created_at?: string
           customer_id?: string | null
+          declined_provider_ids?: string[]
           details?: string | null
+          done_at?: string | null
           id?: string
           name: string
+          needs_manual?: boolean
           notes?: string | null
+          offer_expires_at?: string | null
+          offer_provider_id?: string | null
+          offered_at?: string | null
           phone: string
           request_no?: never
           source?: string
           status?: string
+          target_provider_id?: string | null
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
           area?: string | null
           assigned_provider_id?: string | null
           category?: string
           created_at?: string
           customer_id?: string | null
+          declined_provider_ids?: string[]
           details?: string | null
+          done_at?: string | null
           id?: string
           name?: string
+          needs_manual?: boolean
           notes?: string | null
+          offer_expires_at?: string | null
+          offer_provider_id?: string | null
+          offered_at?: string | null
           phone?: string
           request_no?: never
           source?: string
           status?: string
+          target_provider_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2444,6 +2764,77 @@ export type Database = {
             columns: ["assigned_provider_id"]
             isOneToOne: false
             referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_offer_provider_id_fkey"
+            columns: ["offer_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_target_provider_id_fkey"
+            columns: ["target_provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          hidden: boolean
+          id: string
+          provider_id: string
+          replied_at: string | null
+          reply: string | null
+          request_id: string
+          stars: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          hidden?: boolean
+          id?: string
+          provider_id: string
+          replied_at?: string | null
+          reply?: string | null
+          request_id: string
+          stars: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          hidden?: boolean
+          id?: string
+          provider_id?: string
+          replied_at?: string | null
+          reply?: string | null
+          request_id?: string
+          stars?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: true
+            referencedRelation: "service_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -2710,6 +3101,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_service_offer: { Args: { _req: string }; Returns: boolean }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
@@ -2854,6 +3246,31 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      broker_plan: {
+        Args: { _broker: string }
+        Returns: {
+          audience: string
+          code: string
+          created_at: string
+          featured_slots: number
+          features: string[]
+          id: string
+          is_active: boolean
+          listing_days: number | null
+          max_properties: number
+          monthly_price: number
+          name: string
+          sort_order: number
+          trial_days: number
+          yearly_price: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       brokers_by_phone: {
         Args: { _phone: string }
         Returns: {
@@ -2887,7 +3304,12 @@ export type Database = {
       current_broker_id: { Args: never; Returns: string }
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
+      decline_service_offer: { Args: { _req: string }; Returns: boolean }
       delete_demo_data: { Args: never; Returns: Json }
+      delete_push_subscription: {
+        Args: { _endpoint: string }
+        Returns: undefined
+      }
       demo_visible: { Args: never; Returns: boolean }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
@@ -2910,6 +3332,22 @@ export type Database = {
           lead_no: number
         }[]
       }
+      lead_chat_enabled: {
+        Args: { _l: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: boolean
+      }
+      lead_chat_folder_side: {
+        Args: { _name: string; _upload?: boolean }
+        Returns: string
+      }
+      lead_chat_side: { Args: { _lead: string }; Returns: string }
+      lead_message_recipients: {
+        Args: {
+          _l: Database["public"]["Tables"]["leads"]["Row"]
+          _sender_side: string
+        }
+        Returns: string[]
+      }
       lead_title: {
         Args: { _l: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: string
@@ -2918,6 +3356,12 @@ export type Database = {
         Args: { _kind: string; _stage: string }
         Returns: boolean
       }
+      listing_days_for: {
+        Args: { _broker: string; _owner_lead: string }
+        Returns: number
+      }
+      live_listings_of_broker: { Args: { _broker: string }; Returns: number }
+      live_listings_of_phone: { Args: { _phone: string }; Returns: number }
       log_app_error: {
         Args: {
           _kind: string
@@ -2937,6 +3381,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
       mark_payment_failed: {
         Args: { _id: string; _reason: string }
         Returns: string
@@ -2944,6 +3389,10 @@ export type Database = {
       mark_payment_paid: {
         Args: { _amount: number; _id: string; _method?: string; _txn: string }
         Returns: string
+      }
+      mask_contacts: {
+        Args: { _body: string }
+        Returns: Record<string, unknown>
       }
       member_user_id: { Args: { _member: string }; Returns: string }
       meta_inbound_lead: {
@@ -3001,6 +3450,23 @@ export type Database = {
           role: string
         }[]
       }
+      my_conversations: {
+        Args: never
+        Returns: {
+          closed: boolean
+          last_at: string
+          last_body: string
+          last_side: string
+          lead_id: string
+          lead_no: number
+          other_label: string
+          side: string
+          stage: string
+          title: string
+          unread: number
+        }[]
+      }
+      my_listing_plan: { Args: never; Returns: Json }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
@@ -3049,6 +3515,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      my_owner_listings: {
+        Args: never
+        Returns: {
+          area: string
+          city: string
+          created_at: string
+          hidden_by_plan: boolean
+          id: string
+          image_url: string
+          listed_until: string
+          price: number
+          review_status: string
+          status: string
+          title: string
+          type: string
+        }[]
+      }
       my_phone: { Args: never; Returns: string }
       my_requests: {
         Args: never
@@ -3068,7 +3551,38 @@ export type Database = {
           updated_at: string
         }[]
       }
+      my_service_offers: {
+        Args: never
+        Returns: {
+          area: string
+          category: string
+          chosen: boolean
+          created_at: string
+          details: string
+          id: string
+          offer_expires_at: string
+          request_no: number
+        }[]
+      }
       my_service_provider_id: { Args: never; Returns: string }
+      my_service_requests: {
+        Args: never
+        Returns: {
+          area: string
+          category: string
+          created_at: string
+          details: string
+          id: string
+          provider_id: string
+          provider_name: string
+          request_no: number
+          stars: number
+          status: string
+          waiting: boolean
+        }[]
+      }
+      my_service_stats: { Args: never; Returns: Json }
+      my_unread_messages: { Args: never; Returns: number }
       next_transfer_company: {
         Args: { _lead: Database["public"]["Tables"]["leads"]["Row"] }
         Returns: string
@@ -3136,6 +3650,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      offer_service_request: {
+        Args: { _first?: boolean; _req: string }
+        Returns: string
+      }
       opportunity_location: {
         Args: { _id: string }
         Returns: {
@@ -3152,6 +3670,33 @@ export type Database = {
         }[]
       }
       owned_company_id: { Args: never; Returns: string }
+      owner_listing_quota: { Args: { _phone: string }; Returns: Json }
+      owner_plan: {
+        Args: { _phone: string }
+        Returns: {
+          audience: string
+          code: string
+          created_at: string
+          featured_slots: number
+          features: string[]
+          id: string
+          is_active: boolean
+          listing_days: number | null
+          max_properties: number
+          monthly_price: number
+          name: string
+          sort_order: number
+          trial_days: number
+          yearly_price: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      phone_user_id: { Args: { _phone: string }; Returns: string }
       prepare_account_deletion: { Args: { _uid: string }; Returns: string }
       price_index: {
         Args: never
@@ -3169,14 +3714,105 @@ export type Database = {
           unit_type: string
         }[]
       }
+      rate_service_request: {
+        Args: { _comment?: string; _req: string; _stars: number }
+        Returns: string
+      }
       refresh_service_plan: { Args: { _provider: string }; Returns: undefined }
+      renew_listing: { Args: { _property: string }; Returns: string }
+      reply_service_review: {
+        Args: { _reply: string; _review: string }
+        Returns: boolean
+      }
+      report_lead_message: {
+        Args: { _message: string; _reason: string }
+        Returns: undefined
+      }
+      request_listing_plan: { Args: { _plan: string }; Returns: boolean }
       request_service_plan: { Args: { _plan: string }; Returns: boolean }
+      reroute_service_request: { Args: { _req: string }; Returns: string }
       run_lead_transfers: { Args: never; Returns: Json }
+      run_listing_expiry: { Args: never; Returns: Json }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      run_service_offers: { Args: never; Returns: number }
       run_service_subscriptions: { Args: never; Returns: number }
       run_subscription_expiry: { Args: never; Returns: Json }
+      save_push_subscription: {
+        Args: {
+          _auth: string
+          _endpoint: string
+          _p256dh: string
+          _ua?: string
+        }
+        Returns: string
+      }
+      send_lead_message: {
+        Args: {
+          _attachment_name?: string
+          _attachment_path?: string
+          _attachment_type?: string
+          _body: string
+          _lead: string
+        }
+        Returns: string
+      }
+      service_directory: {
+        Args: { _area?: string; _category?: string; _kind?: string }
+        Returns: {
+          areas: string[]
+          bio: string
+          category: string
+          done: number
+          id: string
+          kind: string
+          name: string
+          photo_url: string
+          photos: number
+          priority: number
+          rating: number
+          reviews: number
+          specialty: string
+          verified: boolean
+        }[]
+      }
+      service_plan_of: {
+        Args: { _provider: string }
+        Returns: {
+          code: string
+          created_at: string
+          features: string[]
+          id: string
+          is_active: boolean
+          max_photos: number
+          monthly_price: number | null
+          monthly_requests: number | null
+          name: string
+          priority: number
+          sort_order: number
+          yearly_price: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      service_provider_profile: { Args: { _id: string }; Returns: Json }
+      service_provider_rating: {
+        Args: { _provider: string }
+        Returns: Record<string, unknown>
+      }
       service_provider_user_id: { Args: { _provider: string }; Returns: string }
+      service_requests_this_month: {
+        Args: { _provider: string }
+        Returns: number
+      }
+      set_lead_chat_closed: {
+        Args: { _closed: boolean; _lead: string }
+        Returns: undefined
+      }
       source_from_utm: { Args: { _u: Json }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
