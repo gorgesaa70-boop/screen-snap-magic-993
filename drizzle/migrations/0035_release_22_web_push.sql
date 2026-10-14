@@ -1,0 +1,104 @@
+create table if not exists public.push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  endpoint text not null unique check (endpoint ~ '^https://' and char_length(endpoint) <= 1000),
+  p256dh text not null check (char_length(p256dh) between 20 and 200),
+  auth text not null check (char_length(auth) between 8 and 100),
+  user_agent text check (user_agent is null or char_length(user_agent) <= 300),
+  failed_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz
+);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
+grant select on public.push_subscriptions to authenticated;
+grant all on public.push_subscriptions to service_role;
+alter table public.push_subscriptions enable row level security;
+drop policy if exists "own devices read" on public.push_subscriptions;
+create policy "own devices read" on public.push_subscriptions for select to authenticated using (user_id = auth.uid());
+
+create or replace function public.save_push_subscription(_endpoint text, _p256dh text, _auth text, _ua text default null)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); rid uuid;
+begin
+  if me is null then raise exception 'سجّل دخول الأول' using errcode = '42501'; end if;
+  if (select count(*) from public.push_subscriptions where user_id = me and endpoint <> _endpoint) >= 10 then
+    delete from public.push_subscriptions where id = (select id from public.push_subscriptions where user_id = me order by coalesce(last_used_at, created_at) limit 1);
+  end if;
+  insert into public.push_subscriptions (user_id, endpoint, p256dh, auth, user_agent)
+  values (me, _endpoint, _p256dh, _auth, left(_ua, 300))
+  on conflict (endpoint) do update set user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth,
+    user_agent = excluded.user_agent, failed_count = 0
+  returning id into rid;
+  return rid;
+end $$;
+revoke execute on function public.save_push_subscription(text, text, text, text) from public, anon;
+grant execute on function public.save_push_subscription(text, text, text, text) to authenticated;
+
+create or replace function public.delete_push_subscription(_endpoint text)
+returns void language sql security definer set search_path = public as $$
+  delete from public.push_subscriptions where endpoint = _endpoint and user_id = auth.uid()
+$$;
+revoke execute on function public.delete_push_subscription(text) from public, anon;
+grant execute on function public.delete_push_subscription(text) to authenticated;
+
+alter table public.notification_preferences add column if not exists push_types text[];
+
+create table if not exists public.push_config (
+  id smallint primary key default 1 check (id = 1),
+  secret text not null,
+  site_url text not null default 'https://valueaqar.com' check (site_url ~ '^https://[^/]+$'),
+  vapid_public text,
+  vapid_private jsonb,
+  vapid_subject text not null default 'mailto:info@valueaqar.com',
+  updated_at timestamptz not null default now()
+);
+insert into public.push_config (id, secret)
+values (1, replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''))
+on conflict (id) do nothing;
+revoke all on public.push_config from public, anon, authenticated;
+grant all on public.push_config to service_role;
+alter table public.push_config enable row level security;
+
+alter table public.notifications
+  add column if not exists push_status text check (push_status in ('pending','sent','failed','skipped')),
+  add column if not exists push_sent_at timestamptz;
+create index if not exists notifications_push_pending_idx on public.notifications (created_at) where push_status = 'pending';
+
+create or replace function public.notifications_mark_push()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare kinds text[];
+begin
+  if not exists (select 1 from public.push_subscriptions where user_id = new.user_id) then return new; end if;
+  select push_types into kinds from public.notification_preferences where user_id = new.user_id;
+  if kinds is null or new.type = any(kinds) then new.push_status := 'pending'; end if;
+  return new;
+end $$;
+revoke execute on function public.notifications_mark_push() from public, anon, authenticated;
+drop trigger if exists notifications_mark_push on public.notifications;
+create trigger notifications_mark_push before insert on public.notifications for each row execute function public.notifications_mark_push();
+
+do $$ begin
+  create extension if not exists pg_net;
+exception when others then null; end $$;
+
+create or replace function public.notifications_push_now()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare cfg public.push_config%rowtype;
+begin
+  if new.push_status is distinct from 'pending' then return null; end if;
+  if to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is null then return null; end if;
+  select * into cfg from public.push_config where id = 1;
+  if not found then return null; end if;
+  begin
+    execute 'select net.http_post(url := $1, body := $2, params := ''{}''::jsonb, headers := $3, timeout_milliseconds := 5000)'
+      using cfg.site_url || '/api/public/push/dispatch',
+            jsonb_build_object('id', new.id),
+            jsonb_build_object('Content-Type', 'application/json', 'x-push-secret', cfg.secret);
+  exception when others then
+    null;
+  end;
+  return null;
+end $$;
+revoke execute on function public.notifications_push_now() from public, anon, authenticated;
+drop trigger if exists notifications_push_now on public.notifications;
+create trigger notifications_push_now after insert on public.notifications for each row execute function public.notifications_push_now();

@@ -99,7 +99,7 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
     try {
       const att = file ? await uploadAttachment(leadId, file) : null;
       const { error } = await supabase.rpc("send_lead_message", {
-        _lead: leadId, _body: body || null, _attachment_path: att?.path ?? null, _attachment_name: att?.name ?? null, _attachment_type: att?.type ?? null,
+        _lead: leadId, _body: body || "", _attachment_path: att?.path ?? "", _attachment_name: att?.name ?? "", _attachment_type: att?.type ?? "",
       });
       if (error) throw new Error(error.message);
       setText(""); setFile(null);
