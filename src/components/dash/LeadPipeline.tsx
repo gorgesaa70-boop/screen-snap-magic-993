@@ -120,28 +120,42 @@ export function DealPanel({ lead, isAdmin, onChanged }: { lead: Lead; isAdmin: b
   });
   const deal = q.data?.deal ?? null;
   const reload = () => { q.refetch(); onChanged(); };
+  // A customer another broker brought: who, and their share (the seller enters the total commission on the deal).
+  const ref = useQuery({
+    queryKey: ["lead-referral", lead.id],
+    queryFn: async () => (await supabase.rpc("lead_referral", { _lead: lead.id })).data as { referral_no: number; referrer: string; share_pct: number; protected_until: string } | null,
+  });
+  const referral = ref.data ?? null;
 
   async function open() {
     const { error } = await dbx.from("deals").insert({ lead_id: lead.id });
     if (error) toast.error(error.message); else { toast.success("اتفتحت صفقة للعميل"); reload(); }
   }
   if (q.isLoading) return <div className="h-24 animate-pulse rounded-xl bg-muted" />;
+  const banner = referral && (
+    <p className="rounded-xl border border-teal/40 bg-teal-soft p-3 text-sm text-primary">
+      العميل ده جه بإحالة من <span className="font-bold">{referral.referrer}</span> (<span dir="ltr">R-{String(referral.referral_no).padStart(6, "0")}</span>).
+      نصيبه {referral.share_pct}% من العمولة بعد نسبة فاليو عقار، ومحفوظ باسمه لحد {formatDate(referral.protected_until)}. اكتب إجمالي العمولة في الصفقة قبل ما تبعت البيع للمراجعة.
+    </p>
+  );
   if (!deal) return (
     <div className="space-y-2">
+      {banner}
       <p className="text-sm text-muted-foreground">لما العميل يوصل للحجز، افتح صفقة وسجّل فيها بيانات الحجز والعقد والبيع ومستنداتها.</p>
       <button onClick={open} className={btnOutline}>فتح صفقة</button>
     </div>
   );
-  return <DealForm deal={deal} docs={q.data?.docs ?? []} isAdmin={isAdmin} reload={reload} />;
+  return <div className="space-y-3">{banner}<DealForm deal={deal} docs={q.data?.docs ?? []} isAdmin={isAdmin} reload={reload} referred={!!referral} /></div>;
 }
 
-function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]; isAdmin: boolean; reload: () => void }) {
+function DealForm({ deal, docs, isAdmin, reload, referred }: { deal: Deal; docs: DealDoc[]; isAdmin: boolean; reload: () => void; referred: boolean }) {
   const locked = deal.review_status === "approved" || (deal.review_status === "pending" && !isAdmin);
   const [f, setF] = useState({
     unit_desc: deal.unit_desc ?? "", reservation_date: deal.reservation_date ?? "", reservation_amount: deal.reservation_amount?.toString() ?? "",
     contract_date: deal.contract_date ?? "", contract_value: deal.contract_value?.toString() ?? "", sale_date: deal.sale_date ?? "", sale_value: deal.sale_value?.toString() ?? "",
     project_unit_id: deal.project_unit_id ?? "",
     deal_type: deal.deal_type, rent_monthly: deal.rent_monthly?.toString() ?? "", rent_start: deal.rent_start ?? "", rent_end: deal.rent_end ?? "",
+    brokerage_total: deal.brokerage_total?.toString() ?? "",
   });
   const isRent = f.deal_type !== "sale";
   const [kind, setKind] = useState("reservation");
@@ -155,6 +169,8 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
     project_unit_id: f.project_unit_id || null,
     deal_type: f.deal_type, rent_monthly: f.deal_type === "rent" ? num(f.rent_monthly) : null,
     rent_start: isRent ? f.rent_start || null : null, rent_end: isRent ? f.rent_end || null : null,
+    // Sent only when used, so saving still works on a database without the column.
+    ...(f.brokerage_total !== "" || deal.brokerage_total != null ? { brokerage_total: num(f.brokerage_total) } : {}),
   });
 
   async function save(extra?: Record<string, unknown>, msg = "تم حفظ بيانات الصفقة") {
@@ -220,6 +236,7 @@ function DealForm({ deal, docs, isAdmin, reload }: { deal: Deal; docs: DealDoc[]
         <Field label="قيمة العقد (ج.م)"><input className={inputCls} inputMode="numeric" value={f.contract_value} onChange={money("contract_value")} /></Field>
         <Field label={isRent ? "تاريخ تأكيد الإيجار" : "تاريخ البيع"}><input type="date" className={inputCls} value={f.sale_date} onChange={set("sale_date")} /></Field>
         <Field label={f.deal_type === "rent" ? "إجمالي قيمة العقد (ج.م)" : f.deal_type === "summer" ? "إجمالي قيمة الحجز (ج.م)" : "قيمة البيع (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.sale_value} onChange={money("sale_value")} /></Field>
+        <Field label={referred ? "إجمالي العمولة (ج.م) — مطلوب" : "إجمالي العمولة (ج.م) — اختياري"}><input className={inputCls} inputMode="numeric" value={f.brokerage_total} onChange={money("brokerage_total")} /></Field>
       </fieldset>
       {!locked && <button disabled={busy} onClick={() => save()} className={btnOutline}>حفظ البيانات</button>}
 

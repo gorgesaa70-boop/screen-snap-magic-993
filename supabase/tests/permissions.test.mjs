@@ -1282,4 +1282,99 @@ commit;`);
     const after = await sys(`select (select max_properties from public.plans where code='free') f, (select count(*)::int from public.plans) n, (select listed_until from public.properties where id='${o1}') u`);
     return [before[0], after[0]];
   }, (r) => r[0].f === r[1].f && r[0].n === r[1].n && String(r[0].u) === String(r[1].u));
+
+  console.log("\nReferrals between brokers («إحالة عميل»)");
+  const RF = { seller: "00000000-0000-0000-0000-0000000000b1", ref: "00000000-0000-0000-0000-0000000000b2", other: "00000000-0000-0000-0000-0000000000b3" };
+  const SB = "b0000000-0000-0000-0000-0000000000b1", RB = "b0000000-0000-0000-0000-0000000000b2", OB = "b0000000-0000-0000-0000-0000000000b3";
+  await sys(`insert into auth.users (id, phone) values ('${RF.seller}','201066600001'), ('${RF.ref}','201066600002'), ('${RF.other}','201066600003')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active, plan_id) values
+    ('${SB}','${RF.seller}','rf-seller','شركة البايع','201066600001','company', true, (select id from public.plans where code='business')),
+    ('${RB}','${RF.ref}','rf-ref','وسيط المشتري','201066600002','individual', true, null),
+    ('${OB}','${RF.other}','rf-other','وسيط تالت','201066600003','individual', true, null)`);
+  const rUnit = (await as(RF.seller, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${SB}','شقة البايع',2000000,'شقة','الحي الأول','بيع','pending') returning id`))[0].id;
+  const rUnit2 = (await as(RF.seller, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${SB}','فيلا البايع',5000000,'فيلا','الحي الأول','بيع','pending') returning id`))[0].id;
+  const rRefer = (who, id, phone = "01066600099", name = "مشتري محال") => as(who, `select public.create_referral('property', '${id}', '${name}', '${phone}', 'عايز يعاين الأسبوع ده') r`).then((x) => x[0].r);
+  await expectErr("a rUnit not opened for referrals can't be referred to", () => rRefer(RF.ref, rUnit));
+  await expectOk("the seller opens the rUnit at 30%", () => as(RF.seller, `update public.properties set co_broke_share = 30 where id in ('${rUnit}','${rUnit2}') returning co_broke_share`), (r) => r.length === 2 && Number(r[0].co_broke_share) === 30);
+  await expectOk("brokers see it in the market; visitors don't", async () => [await as(RF.ref, `select id, share_pct, seller_name from public.co_broke_market()`), await as(null, `select * from public.co_broke_market()`).catch(() => "denied")],
+    (r) => r[0].some((x) => x.id === rUnit && Number(x.share_pct) === 30 && x.seller_name === "شركة البايع") && r[1] === "denied");
+  await expectErr("a seller can't rRefer to their own rUnit", () => rRefer(RF.seller, rUnit));
+  await expectErr("a customer (not a broker) can't rRefer", () => rRefer(U.outsider, rUnit));
+  const rRef1 = await rRefer(RF.ref, rUnit);
+  await expectOk("referral sent: seller and admins told, without the customer's name or phone", async () => [await sys(`select title, message from public.notifications where user_id='${RF.seller}' and related_id='${rRef1}'`), await sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${rRef1}'`)],
+    (r) => r[0].length === 1 && r[0][0].title === "عندي مشتري لـ شقة البايع" && !r[0][0].message.includes("مشتري محال") && !r[0][0].message.includes("66600099") && r[1].length === 1);
+  await expectOk("the seller sees the request without customer details before accepting", () => as(RF.seller, `select status, customer_name, customer_phone, referrer_name from public.received_referrals()`),
+    (r) => r.length === 1 && r[0].status === "pending" && r[0].customer_name === null && r[0].customer_phone === null && r[0].referrer_name === "وسيط المشتري");
+  await expectOk("the seller can't read the referrals table directly", () => as(RF.seller, `select id from public.referrals`), (r) => r.length === 0);
+  await expectErr("the same customer can't be referred twice to the same seller", () => rRefer(RF.other, rUnit2));
+  await expectErr("someone else can't accept it", () => as(RF.other, `select public.accept_referral('${rRef1}')`));
+  const rLead1 = (await as(RF.seller, `select public.accept_referral('${rRef1}') l`))[0].l;
+  await expectOk("accept → the customer is the seller's, marked as a referral, never moved on automatically", () => sys(`select assigned_broker_id, source, referral_id, transfer_deadline_at, kind from public.leads where id='${rLead1}'`),
+    (r) => r[0].assigned_broker_id === SB && r[0].source === "referral" && r[0].referral_id === rRef1 && r[0].transfer_deadline_at === null);
+  await expectOk("after accepting the seller sees the customer; the referrer is told and protected 90 days", async () => [await as(RF.seller, `select customer_name, customer_phone from public.received_referrals()`), await sys(`select title from public.notifications where user_id='${RF.ref}' and related_id='${rRef1}'`), await as(RF.ref, `select status, protected_until from public.sent_referrals()`)],
+    (r) => r[0][0].customer_name === "مشتري محال" && r[0][0].customer_phone === "201066600099" && r[1].some((n) => n.title === "إحالتك اتقبلت ✓") && r[2][0].status === "accepted" && Math.round((new Date(r[2][0].protected_until) - Date.now()) / 864e5) === 90);
+  await expectOk("the seller's page shows who brought the customer", () => as(RF.seller, `select public.lead_referral('${rLead1}') x`), (r) => r[0].x.referrer === "وسيط المشتري" && Number(r[0].x.share_pct) === 30);
+  await expectOk("an outsider learns nothing about it", () => as(U.outsider, `select public.lead_referral('${rLead1}') x`), (r) => r[0].x === null);
+  await expectOk("within 90 days the same customer on another rUnit of the seller is linked to the referrer", async () => {
+    await as(null, `insert into public.leads (name, phone, property_id) values ('مشتري محال','01066600099','${rUnit2}')`);
+    return [await sys(`select referral_id from public.leads where property_id='${rUnit2}'`), await sys(`select title from public.notifications where user_id='${RF.ref}' and title like 'عميلك رجع%'`)];
+  }, (r) => r[0][0].referral_id === rRef1 && r[1].length === 1);
+
+  // The rDeal: 2.5% to Value Aqar on 2,000,000 = 50,000; total commission 100,000 → referrer 30% of 50,000 = 15,000.
+  await as(U.admin, `insert into public.company_agreements (broker_id, rate, effective_from) values ('${SB}', 2.5, '2026-01-01')`);
+  const rDeal = (await as(RF.seller, `insert into public.deals (lead_id, sale_date, sale_value) values ('${rLead1}', current_date, 2000000) returning id`))[0].id;
+  await as(RF.seller, `insert into public.deal_documents (deal_id, kind, file_path, file_name, uploaded_by) values ('${rDeal}','sale','${rDeal}/s.pdf','s.pdf','${RF.seller}')`);
+  await expectErr("a referred customer's sale needs the total commission before review", () => as(RF.seller, `update public.deals set review_status='pending' where id='${rDeal}'`));
+  await expectOk("with the total commission the sale goes to review", () => as(RF.seller, `update public.deals set brokerage_total=100000, review_status='pending' where id='${rDeal}' returning review_status`), (r) => r[0].review_status === "pending");
+  await expectOk("admin approves: the referrer's share is due (after Value Aqar's share) and everyone is told", async () => {
+    await as(U.admin, `update public.deals set review_status='approved' where id='${rDeal}'`);
+    return [await sys(`select status, amount from public.referral_payouts where deal_id='${rDeal}'`), await sys(`select title from public.notifications where user_id='${RF.ref}' and title like 'مبروك%'`), await sys(`select title from public.notifications where user_id='${RF.seller}' and title='نصيب إحالة مستحق'`)];
+  }, (r) => r[0][0].status === "due" && Number(r[0][0].amount) === 15000 && r[1].length === 1 && r[2].length === 1);
+  await expectOk("both sides see the share (to pay / to receive)", async () => [await as(RF.seller, `select side, amount from public.my_referral_payouts()`), await as(RF.ref, `select side, amount, va_commission from public.my_referral_payouts()`)],
+    (r) => r[0][0].side === "pay" && Number(r[0][0].amount) === 15000 && r[1][0].side === "receive" && Number(r[1][0].va_commission) === 50000);
+  await expectOk("the seller can't lower the total after approval", async () => { await as(RF.seller, `update public.deals set brokerage_total=1 where id='${rDeal}'`).catch(() => {}); return sys(`select brokerage_total from public.deals where id='${rDeal}'`); }, (r) => Number(r[0].brokerage_total) === 100000);
+  const rPayout = (await sys(`select id from public.referral_payouts where deal_id='${rDeal}'`))[0].id;
+  await expectErr("the referrer can't mark it paid", () => as(RF.ref, `select public.mark_referral_paid('${rPayout}')`));
+  await expectOk("the seller marks it paid, the referrer confirms", async () => { await as(RF.seller, `select public.mark_referral_paid('${rPayout}')`); await as(RF.ref, `select public.confirm_referral_received('${rPayout}')`); return sys(`select status, paid_at from public.referral_payouts where id='${rPayout}'`); }, (r) => r[0].status === "confirmed" && r[0].paid_at !== null);
+  await expectOk("an outsider sees no payouts", () => as(RF.other, `select * from public.my_referral_payouts()`), (r) => r.length === 0);
+
+  await expectOk("decline: the referrer is told and keeps the customer", async () => {
+    const id = await rRefer(RF.other, rUnit, "01066600088", "عميل تاني");
+    await as(RF.seller, `select public.decline_referral('${id}', 'الوحدة اتحجزت')`);
+    return [await sys(`select status, decline_reason from public.referrals where id='${id}'`), await sys(`select title from public.notifications where user_id='${RF.other}' and related_id='${id}'`), await sys(`select count(*)::int c from public.leads where phone_norm='201066600088'`)];
+  }, (r) => r[0][0].status === "declined" && r[0][0].decline_reason === "الوحدة اتحجزت" && r[1].some((n) => n.title === "إحالتك اترفضت") && r[2][0].c === 0);
+  await expectOk("no answer in 24 hours → expired, referrer told", async () => {
+    const id = await rRefer(RF.other, rUnit, "01066600077", "عميل تالت");
+    await svcRole(`update public.referrals set respond_by = now() - interval '1 minute' where id='${id}'`);
+    await svcRole(`select public.run_referrals()`);
+    return [await sys(`select status from public.referrals where id='${id}'`), await sys(`select title from public.notifications where user_id='${RF.other}' and related_id='${id}' and title='إحالتك ماترد عليهاش'`)];
+  }, (r) => r[0][0].status === "expired" && r[1].length === 1);
+  await expectErr("an expired referral can't be accepted", async () => { const id = (await sys(`select id from public.referrals where status='expired' limit 1`))[0].id; return as(RF.seller, `select public.accept_referral('${id}')`); });
+  await expectOk("the referrer cancels a pending one; the seller is told", async () => {
+    const id = await rRefer(RF.other, rUnit2, "01066600066", "عميل رابع");
+    await as(RF.other, `select public.cancel_referral('${id}')`);
+    return [await sys(`select status from public.referrals where id='${id}'`), await sys(`select title from public.notifications where user_id='${RF.seller}' and related_id='${id}' and title='الوسيط لغى الإحالة'`)];
+  }, (r) => r[0][0].status === "cancelled" && r[1].length === 1);
+  await expectErr("a customer the seller already has can't be referred", async () => {
+    await as(null, `insert into public.leads (name, phone, property_id) values ('عميل البايع','01066600055','${rUnit}')`);
+    return rRefer(RF.other, rUnit, "01066600055", "عميل البايع");
+  });
+  await expectOk("owner listings: closed until the admin sets a share, then Value Aqar answers", async () => {
+    const ol = (await svcRole(`insert into public.leads (name, phone, kind) values ('مالك','01066600044','listing') returning id`))[0].id;
+    const op = (await svcRole(`insert into public.properties (title, price, type, area, status, review_status, owner_lead_id) values ('شقة مالك محال',1,'شقة','الحي الأول','بيع','approved','${ol}') returning id`))[0].id;
+    const closed = await rRefer(RF.ref, op, "01066600033", "مشتري المالك").then(() => "open", () => "closed");
+    await as(U.admin, `update public.app_settings set owner_listing_co_broke_share = 20 where id = 1`);
+    const id = await rRefer(RF.ref, op, "01066600033", "مشتري المالك");
+    const sellerCant = await as(RF.seller, `select public.accept_referral('${id}')`).then(() => "accepted", () => "refused");
+    const l = (await as(U.staff, `select public.accept_referral('${id}') l`))[0].l;
+    return [closed, sellerCant, await sys(`select share_pct, owner_id from public.referrals where id='${id}'`), await sys(`select property_id, referral_id from public.leads where id='${l}'`)];
+  }, (r) => r[0] === "closed" && r[1] === "refused" && Number(r[2][0].share_pct) === 20 && r[2][0].owner_id === null && r[3][0].referral_id !== null);
+  await expectOk("a visitor's form can't attach a referral to a lead", async () => { await as(null, `insert into public.leads (name, phone, referral_id) values ('محتال','01066600011','${rRef1}')`); return sys(`select referral_id from public.leads where phone_norm='201066600011'`); }, (r) => r[0].referral_id === null);
+  await expectOk("this release can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261014200000_co-brokerage.sql", import.meta.url), "utf8");
+    const before = await sys(`select (select count(*)::int from public.referrals) n, (select count(*)::int from public.referral_payouts) p`);
+    await exec(`begin;\n${sql}\ncommit;`);
+    const after = await sys(`select (select count(*)::int from public.referrals) n, (select count(*)::int from public.referral_payouts) p`);
+    return [before[0], after[0]];
+  }, (r) => r[0].n === r[1].n && r[0].p === r[1].p);
 }

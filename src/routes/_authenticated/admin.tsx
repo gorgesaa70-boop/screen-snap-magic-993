@@ -19,6 +19,7 @@ import { AreaPicker } from "@/components/site/AreaPicker";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { CompoundsAdmin } from "@/components/dash/CompoundsAdmin";
 import { ServicesAdmin } from "@/components/dash/ServicesAdmin";
+import { ReferralsAdmin } from "@/components/dash/ReferralsAdmin";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
@@ -41,7 +42,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -77,11 +78,11 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = [
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
-          { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing"] },
+          { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
@@ -114,6 +115,7 @@ function AdminPage() {
           {tab === "audit" && <AuditLog />}
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}
+          {tab === "referrals" && <ReferralsAdmin />}
           {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans.filter((p) => (p.audience ?? "broker") === "broker")} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}

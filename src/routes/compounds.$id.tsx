@@ -14,6 +14,7 @@ import { UNIT_STATUS, compoundCover, compoundWhere, developerLabel, fetchCompoun
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { ReferButton } from "@/components/site/ReferButton";
 
 export const Route = createFileRoute("/compounds/$id")({
   loader: ({ params, context }) =>
@@ -166,6 +167,7 @@ function CompoundPage() {
             </div>
           )}
           <CompoundInquiry compound={c.name} compoundId={c.id} unit={picked} onClearUnit={() => setPicked(null)} />
+          <ReferButton kind="compound" targetId={c.id} share={c.co_broke_share} ownerId={c.developer_id} />
         </aside>
       </div>
     </PageShell>

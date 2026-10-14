@@ -84,6 +84,7 @@ export type Database = {
           updated_by: string | null
           work_end_hour: number
           work_start_hour: number
+          owner_listing_co_broke_share: number | null
         }
         Insert: {
           announce_ar?: string | null
@@ -109,6 +110,7 @@ export type Database = {
           updated_by?: string | null
           work_end_hour?: number
           work_start_hour?: number
+          owner_listing_co_broke_share?: number | null
         }
         Update: {
           announce_ar?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           updated_by?: string | null
           work_end_hour?: number
           work_start_hour?: number
+          owner_listing_co_broke_share?: number | null
         }
         Relationships: []
       }
@@ -692,6 +695,7 @@ export type Database = {
           review_status: Database["public"]["Enums"]["review_status"]
           sort_order: number
           updated_at: string
+          co_broke_share: number | null
         }
         Insert: {
           amenities?: string[]
@@ -721,6 +725,7 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
           updated_at?: string
+          co_broke_share?: number | null
         }
         Update: {
           amenities?: string[]
@@ -750,6 +755,7 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
           updated_at?: string
+          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -828,6 +834,7 @@ export type Database = {
           sale_value: number | null
           unit_desc: string | null
           updated_at: string
+          brokerage_total: number | null
         }
         Insert: {
           broker_id?: string | null
@@ -857,6 +864,7 @@ export type Database = {
           sale_value?: number | null
           unit_desc?: string | null
           updated_at?: string
+          brokerage_total?: number | null
         }
         Update: {
           broker_id?: string | null
@@ -886,6 +894,7 @@ export type Database = {
           sale_value?: number | null
           unit_desc?: string | null
           updated_at?: string
+          brokerage_total?: number | null
         }
         Relationships: [
           {
@@ -1451,6 +1460,7 @@ export type Database = {
           utm: Json | null
           via_broker_id: string | null
           visit_at: string | null
+          referral_id: string | null
         }
         Insert: {
           chat_closed_at?: string | null
@@ -1509,6 +1519,7 @@ export type Database = {
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
+          referral_id?: string | null
         }
         Update: {
           chat_closed_at?: string | null
@@ -1567,6 +1578,7 @@ export type Database = {
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
+          referral_id?: string | null
         }
         Relationships: [
           {
@@ -2094,6 +2106,7 @@ export type Database = {
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
           updated_at: string
+          co_broke_share: number | null
         }
         Insert: {
           address?: string | null
@@ -2114,6 +2127,7 @@ export type Database = {
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           updated_at?: string
+          co_broke_share?: number | null
         }
         Update: {
           address?: string | null
@@ -2134,6 +2148,7 @@ export type Database = {
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           updated_at?: string
+          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -2203,6 +2218,7 @@ export type Database = {
           zone_id: string | null
           listed_until: string | null
           listing_notice: number
+          co_broke_share: number | null
         }
         Insert: {
           activity_id?: string | null
@@ -2261,6 +2277,7 @@ export type Database = {
           zone_id?: string | null
           listed_until?: string | null
           listing_notice?: number
+          co_broke_share?: number | null
         }
         Update: {
           activity_id?: string | null
@@ -2319,6 +2336,7 @@ export type Database = {
           zone_id?: string | null
           listed_until?: string | null
           listing_notice?: number
+          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -2430,6 +2448,160 @@ export type Database = {
           last_used_at?: string | null
         }
         Relationships: []
+      }
+      referral_payouts: {
+        Row: {
+          amount: number | null
+          confirmed_at: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          referral_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          referral_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          confirmed_at?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          referral_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_payouts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_payouts_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          compound_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_name: string
+          customer_phone: string
+          decline_reason: string | null
+          id: string
+          lead_id: string | null
+          note: string | null
+          owner_id: string | null
+          project_id: string | null
+          property_id: string | null
+          protected_until: string | null
+          referral_no: number
+          referrer_id: string
+          respond_by: string
+          responded_at: string | null
+          responded_by: string | null
+          share_pct: number
+          status: string
+          target_kind: string
+          target_title: string
+        }
+        Insert: {
+          compound_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name: string
+          customer_phone: string
+          decline_reason?: string | null
+          id?: string
+          lead_id?: string | null
+          note?: string | null
+          owner_id?: string | null
+          project_id?: string | null
+          property_id?: string | null
+          protected_until?: string | null
+          referral_no?: number
+          referrer_id: string
+          respond_by?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          share_pct: number
+          status?: string
+          target_kind: string
+          target_title: string
+        }
+        Update: {
+          compound_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_name?: string
+          customer_phone?: string
+          decline_reason?: string | null
+          id?: string
+          lead_id?: string | null
+          note?: string | null
+          owner_id?: string | null
+          project_id?: string | null
+          property_id?: string | null
+          protected_until?: string | null
+          referral_no?: number
+          referrer_id?: string
+          respond_by?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          share_pct?: number
+          status?: string
+          target_kind?: string
+          target_title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       routing_rules: {
         Row: {
@@ -3071,6 +3243,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_referral: { Args: { _id: string }; Returns: string }
+      cancel_referral: { Args: { _id: string }; Returns: boolean }
+      co_broke_market: {
+        Args: never
+        Returns: { area: string | null; id: string; image_url: string | null; price: number | null; seller_name: string; share_pct: number; target_kind: string; title: string }[]
+      }
+      confirm_referral_received: { Args: { _payout: string }; Returns: boolean }
+      create_referral: { Args: { _kind: string; _name: string; _note?: string; _phone: string; _target: string }; Returns: string }
+      decline_referral: { Args: { _id: string; _reason?: string }; Returns: boolean }
+      lead_referral: { Args: { _lead: string }; Returns: Json }
+      mark_referral_paid: { Args: { _payout: string }; Returns: boolean }
+      my_referral_payouts: {
+        Args: never
+        Returns: {
+          amount: number | null; brokerage_total: number | null; confirmed_at: string | null; customer_name: string; deal_no: number; id: string
+          other_name: string; paid_at: string | null; referral_no: number; sale_value: number | null; share_pct: number; side: string; status: string
+          target_title: string; va_commission: number | null
+        }[]
+      }
+      received_referrals: {
+        Args: never
+        Returns: {
+          created_at: string; customer_name: string | null; customer_phone: string | null; decline_reason: string | null; id: string; lead_id: string | null
+          note: string | null; protected_until: string | null; referral_no: number; referrer_name: string; respond_by: string; share_pct: number; status: string
+          target_kind: string; target_title: string
+        }[]
+      }
+      run_referrals: { Args: never; Returns: number }
+      sent_referrals: {
+        Args: never
+        Returns: {
+          created_at: string; customer_name: string; customer_phone: string; deal_status: string | null; decline_reason: string | null; id: string
+          protected_until: string | null; referral_no: number; respond_by: string; seller_name: string; share_pct: number; stage: string | null; status: string
+          target_kind: string; target_title: string
+        }[]
+      }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
       decline_service_offer: { Args: { _req: string }; Returns: boolean }
       my_listing_plan: { Args: never; Returns: Json }

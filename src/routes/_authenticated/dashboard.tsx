@@ -21,6 +21,7 @@ import { MyProjects } from "@/components/dash/MyProjects";
 import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
+import { Referrals, CoBrokeShare } from "@/components/dash/Referrals";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, listingTerm, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
@@ -89,7 +90,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "leads" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "team" | "profile";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -132,6 +133,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
         ...(canList ? [{ id: "plan" as const, label: "باقتي" }] : []),
         { id: "leads", label: "أحدث العملاء" },
+        { id: "referrals", label: "الإحالات" },
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
         ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
       ]} />
@@ -169,6 +171,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} remaining={plan.data ? Math.max(0, plan.data.max - plan.data.used) : null} reload={() => { props.refetch(); plan.refetch(); }} />}
       {tab === "plan" && canList && <ListingPlan canRequest={isOwner} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
+      {tab === "referrals" && <Referrals canManage={isOwner || role === "manager"} />}
       {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
   );
@@ -200,6 +203,7 @@ function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string;
               {p.hidden_by_plan && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive" title="باقتك انتهت والعقار ده زيادة عن حد الباقة المجانية — بيرجع يظهر لما تجدد">مخفي — جدّد باقتك</span>}
             </div>
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
+            {p.review_status === "approved" && <div className="mt-1"><CoBrokeShare table="properties" id={p.id} value={p.co_broke_share} onSaved={reload} /></div>}
             <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`}</p>
             {p.review_status === "rejected" && p.review_note && <p className="mt-1 text-xs text-destructive">{p.review_note}</p>}
           </div>
