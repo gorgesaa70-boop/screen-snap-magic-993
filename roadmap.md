@@ -13,3 +13,4 @@
 
 - [x] ربط Search Console بالمشروع + التحقق من الخريطة والفهرسة
 - [x] تفعيل تسجيل الدخول بجوجل في صفحة /auth
+- [x] إضافة قيم واتساب: WHATSAPP_TEMPLATE_NAME=valueaqar_login و WHATSAPP_TEMPLATE_LANG=ar (رقم الهاتف وOTP_PEPPER محفوظون مسبقًا ومتحقق منهم)
