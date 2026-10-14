@@ -40,7 +40,10 @@ export async function publicPages(): Promise<SiteEntry[]> {
        ...[...new Set(totals.filter((r) => r.kind === "mall").map((r) => r.mall_id))].map((id) => ({ path: `/prices/malls/${id}` })),
        ...[...new Set(totals.filter((r) => r.kind === "residential").map((r) => r.area))].map((a) => ({ path: `/prices/areas/${encodeURIComponent(a)}` }))]
     : [];
-  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices];
+  // Approved service providers' public profiles (the directory function returns approved ones only).
+  const { data: providers } = await (await import("@/integrations/supabase/client")).supabase.rpc("service_directory", {});
+  const services: SiteEntry[] = (providers ?? []).map((p) => ({ path: `/services/${p.id}` }));
+  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices, ...services];
 }
 
 export const absoluteUrl = (path: string) => SITE_URL + (path === "/" ? "/" : path);

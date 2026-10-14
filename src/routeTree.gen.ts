@@ -19,7 +19,6 @@ import { Route as MapRouteImport } from './routes/map'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SellRouteImport } from './routes/sell'
-import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SharedHousingRouteImport } from './routes/shared-housing'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -33,6 +32,7 @@ import { Route as AuthenticatedInquiriesRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInvestorRouteImport } from './routes/_authenticated/investor'
 import { Route as AuthenticatedJoinRouteImport } from './routes/_authenticated/join'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
+import { Route as AuthenticatedMyListingsRouteImport } from './routes/_authenticated/my-listings'
 import { Route as AuthenticatedMyRequestsRouteImport } from './routes/_authenticated/my-requests'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
@@ -53,6 +53,8 @@ import { Route as PricesIndexRouteImport } from './routes/prices.index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
+import { Route as ServicesIdRouteImport } from './routes/services.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedMyCompoundsIdRouteImport } from './routes/_authenticated/my-compounds.$id'
@@ -111,11 +113,6 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicesRoute = ServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SharedHousingRoute = SharedHousingRouteImport.update({
@@ -182,6 +179,11 @@ const AuthenticatedJoinRoute = AuthenticatedJoinRouteImport.update({
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMyListingsRoute = AuthenticatedMyListingsRouteImport.update({
+  id: '/my-listings',
+  path: '/my-listings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMyRequestsRoute = AuthenticatedMyRequestsRouteImport.update({
@@ -285,6 +287,16 @@ const PropertiesIdRoute = PropertiesIdRouteImport.update({
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/services/',
+  path: '/services/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesIdRoute = ServicesIdRouteImport.update({
+  id: '/services/$id',
+  path: '/services/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedInvestmentsNewRoute =
   AuthenticatedInvestmentsNewRouteImport.update({
     id: '/investments/new',
@@ -350,7 +362,6 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
-  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -364,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/my-listings': typeof AuthenticatedMyListingsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -377,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/compounds/': typeof CompoundsIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
@@ -384,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/malls/': typeof MallsIndexRoute
   '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
@@ -405,7 +419,6 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
-  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -419,6 +432,7 @@ export interface FileRoutesByTo {
   '/investor': typeof AuthenticatedInvestorRoute
   '/join': typeof AuthenticatedJoinRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/my-listings': typeof AuthenticatedMyListingsRoute
   '/my-requests': typeof AuthenticatedMyRequestsRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/pending': typeof AuthenticatedPendingRoute
@@ -432,6 +446,7 @@ export interface FileRoutesByTo {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/compounds': typeof CompoundsIndexRoute
   '/industrial': typeof IndustrialIndexRoute
@@ -439,6 +454,7 @@ export interface FileRoutesByTo {
   '/malls': typeof MallsIndexRoute
   '/prices': typeof PricesIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/services': typeof ServicesIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
@@ -462,7 +478,6 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
-  '/services': typeof ServicesRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -476,6 +491,7 @@ export interface FileRoutesById {
   '/_authenticated/investor': typeof AuthenticatedInvestorRoute
   '/_authenticated/join': typeof AuthenticatedJoinRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
+  '/_authenticated/my-listings': typeof AuthenticatedMyListingsRoute
   '/_authenticated/my-requests': typeof AuthenticatedMyRequestsRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/pending': typeof AuthenticatedPendingRoute
@@ -489,6 +505,7 @@ export interface FileRoutesById {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/compounds/': typeof CompoundsIndexRoute
   '/industrial/': typeof IndustrialIndexRoute
@@ -496,6 +513,7 @@ export interface FileRoutesById {
   '/malls/': typeof MallsIndexRoute
   '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/services/': typeof ServicesIndexRoute
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
@@ -519,7 +537,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
-    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -533,6 +550,7 @@ export interface FileRouteTypes {
     | '/investor'
     | '/join'
     | '/messages'
+    | '/my-listings'
     | '/my-requests'
     | '/notifications'
     | '/pending'
@@ -546,6 +564,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/services/$id'
     | '/brokers/'
     | '/compounds/'
     | '/industrial/'
@@ -553,6 +572,7 @@ export interface FileRouteTypes {
     | '/malls/'
     | '/prices/'
     | '/projects/'
+    | '/services/'
     | '/investments/new'
     | '/leads/$id'
     | '/my-compounds/$id'
@@ -574,7 +594,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
-    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -588,6 +607,7 @@ export interface FileRouteTypes {
     | '/investor'
     | '/join'
     | '/messages'
+    | '/my-listings'
     | '/my-requests'
     | '/notifications'
     | '/pending'
@@ -601,6 +621,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/services/$id'
     | '/brokers'
     | '/compounds'
     | '/industrial'
@@ -608,6 +629,7 @@ export interface FileRouteTypes {
     | '/malls'
     | '/prices'
     | '/projects'
+    | '/services'
     | '/investments/new'
     | '/leads/$id'
     | '/my-compounds/$id'
@@ -630,7 +652,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/sell'
-    | '/services'
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
@@ -644,6 +665,7 @@ export interface FileRouteTypes {
     | '/_authenticated/investor'
     | '/_authenticated/join'
     | '/_authenticated/messages'
+    | '/_authenticated/my-listings'
     | '/_authenticated/my-requests'
     | '/_authenticated/notifications'
     | '/_authenticated/pending'
@@ -657,6 +679,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/services/$id'
     | '/brokers/'
     | '/compounds/'
     | '/industrial/'
@@ -664,6 +687,7 @@ export interface FileRouteTypes {
     | '/malls/'
     | '/prices/'
     | '/projects/'
+    | '/services/'
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
     | '/_authenticated/my-compounds/$id'
@@ -687,7 +711,6 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SellRoute: typeof SellRoute
-  ServicesRoute: typeof ServicesRoute
   SharedHousingRoute: typeof SharedHousingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -699,6 +722,7 @@ export interface RootRouteChildren {
   MallsIdRoute: typeof MallsIdRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
+  ServicesIdRoute: typeof ServicesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   CompoundsIndexRoute: typeof CompoundsIndexRoute
   IndustrialIndexRoute: typeof IndustrialIndexRoute
@@ -706,6 +730,7 @@ export interface RootRouteChildren {
   MallsIndexRoute: typeof MallsIndexRoute
   PricesIndexRoute: typeof PricesIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
   PricesAreasAreaRoute: typeof PricesAreasAreaRoute
   PricesMallsIdRoute: typeof PricesMallsIdRoute
   ApiPublicMetaLeadsRoute: typeof ApiPublicMetaLeadsRoute
@@ -785,13 +810,6 @@ declare module '@tanstack/react-router' {
       path: '/sell'
       fullPath: '/sell'
       preLoaderRoute: typeof SellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/services': {
-      id: '/services'
-      path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shared-housing': {
@@ -883,6 +901,13 @@ declare module '@tanstack/react-router' {
       path: '/messages'
       fullPath: '/messages'
       preLoaderRoute: typeof AuthenticatedMessagesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/my-listings': {
+      id: '/_authenticated/my-listings'
+      path: '/my-listings'
+      fullPath: '/my-listings'
+      preLoaderRoute: typeof AuthenticatedMyListingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/my-requests': {
@@ -1025,6 +1050,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/': {
+      id: '/services/'
+      path: '/services'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services/$id': {
+      id: '/services/$id'
+      path: '/services/$id'
+      fullPath: '/services/$id'
+      preLoaderRoute: typeof ServicesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/investments/new': {
       id: '/_authenticated/investments/new'
       path: '/investments/new'
@@ -1109,6 +1148,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInvestorRoute: typeof AuthenticatedInvestorRoute
   AuthenticatedJoinRoute: typeof AuthenticatedJoinRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
+  AuthenticatedMyListingsRoute: typeof AuthenticatedMyListingsRoute
   AuthenticatedMyRequestsRoute: typeof AuthenticatedMyRequestsRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
@@ -1130,6 +1170,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInvestorRoute: AuthenticatedInvestorRoute,
   AuthenticatedJoinRoute: AuthenticatedJoinRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
+  AuthenticatedMyListingsRoute: AuthenticatedMyListingsRoute,
   AuthenticatedMyRequestsRoute: AuthenticatedMyRequestsRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPendingRoute: AuthenticatedPendingRoute,
@@ -1154,7 +1195,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SellRoute: SellRoute,
-  ServicesRoute: ServicesRoute,
   SharedHousingRoute: SharedHousingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
@@ -1166,6 +1206,7 @@ const rootRouteChildren: RootRouteChildren = {
   MallsIdRoute: MallsIdRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
+  ServicesIdRoute: ServicesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   CompoundsIndexRoute: CompoundsIndexRoute,
   IndustrialIndexRoute: IndustrialIndexRoute,
@@ -1173,6 +1214,7 @@ const rootRouteChildren: RootRouteChildren = {
   MallsIndexRoute: MallsIndexRoute,
   PricesIndexRoute: PricesIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
   PricesAreasAreaRoute: PricesAreasAreaRoute,
   PricesMallsIdRoute: PricesMallsIdRoute,
   ApiPublicMetaLeadsRoute: ApiPublicMetaLeadsRoute,

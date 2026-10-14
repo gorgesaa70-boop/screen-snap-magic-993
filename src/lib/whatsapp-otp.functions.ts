@@ -235,6 +235,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const { count } = await db.from("leads").select("id", { count: "exact", head: true })
       .eq("kind", "listing").eq("phone", data.phone).gte("created_at", new Date(Date.now() - 864e5).toISOString());
     if ((count ?? 0) >= MAX_LISTINGS_PER_PHONE_PER_DAY) return { ok: false, error: "rate_limited" };
+    // The owner's plan: how many listings can be up at once for this phone (the free owner plan allows 2).
+    const { data: quota } = await db.rpc("owner_listing_quota", { _phone: data.phone });
+    const q = quota as { used: number; max: number } | null;
+    if (q && q.used >= q.max) return { ok: false, error: "plan_limit" };
 
     const status = data.purpose === "rent" ? "إيجار" : data.purpose === "summer" ? "مصيف" : "بيع";
     const summerPrice = data.purpose === "summer" ? { [`price_${data.price_unit ?? "night"}`]: data.asking_price } : {};

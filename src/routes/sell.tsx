@@ -37,6 +37,7 @@ const ERRORS: Record<string, string> = {
   wrong: "رمز غير صحيح",
   server: "الطلب ماتبعتش، جرّب تاني",
   bad_photo: "فيه صورة مش مدعومة، جرّب صورة تانية",
+  plan_limit: "وصلت لحد باقتك (عدد الإعلانات الظاهرة في نفس الوقت). سجّل دخول برقمك وادخل «إعلاناتي» عشان تجدّد إعلان قديم أو تطلب باقة أكبر.",
 };
 
 const MAX_PHOTOS = 6;
@@ -74,7 +75,7 @@ function SellPage() {
           <h1 className="flex items-center gap-2 text-2xl font-extrabold md:text-4xl"><HousePlus className="size-7 text-teal md:size-9" />{t("اعرض عقارك")}</h1>
           <p className="mt-2 text-sm text-primary-foreground/80 md:text-base">{t("عندك شقة أو أرض أو محل وعايز تبيعه أو تأجّره؟ ابعت البيانات، وفريق فاليو عقار هيتواصل معاك ويساعدك توصل للمشتري المناسب.")}</p>
           <ul className="mt-5 grid gap-2 text-sm sm:grid-cols-3">
-            {[{ I: Wallet, l: "مجانًا بدون رسوم عرض" }, { I: ShieldCheck, l: "بياناتك مش بتظهر للعامة" }, { I: Users, l: "نوصّلك بعملاء جادين" }].map(({ I, l }) => (
+            {[{ I: Wallet, l: "أول إعلانين مجانًا" }, { I: ShieldCheck, l: "بياناتك مش بتظهر للعامة" }, { I: Users, l: "نوصّلك بعملاء جادين" }].map(({ I, l }) => (
               <li key={l} className="flex items-center gap-2 rounded-xl bg-primary-foreground/10 px-3 py-2.5 font-semibold"><I className="size-4 shrink-0 text-teal" />{t(l)}</li>
             ))}
           </ul>
@@ -170,6 +171,7 @@ function SellForm() {
       <div className="rounded-2xl border bg-card p-8 text-center shadow-card">
         <p className="text-xl font-extrabold text-primary">{t("عقارك وصلنا ✓")}</p>
         <p className="mt-2 text-sm text-muted-foreground">{t("فريق فاليو عقار هيراجع الإعلان، وأول ما يتوافق عليه هينزل على الموقع. هنتواصل معاك على واتساب لو احتجنا أي حاجة.")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("تقدر تتابع إعلانك وتجدّده من «إعلاناتي» لما تسجّل دخول بنفس رقم الموبايل.")}</p>
         <a href="/" className={`${btnTeal} mt-6`}>{t("الرجوع للرئيسية")}</a>
       </div>
     );

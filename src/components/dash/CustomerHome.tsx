@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Briefcase, FileSearch, Heart } from "lucide-react";
+import { Bell, Briefcase, FileSearch, Heart, HousePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "./DashShell";
 import { btnOutline } from "@/components/site/ui";
@@ -10,25 +10,29 @@ export function CustomerHome() {
   const q = useQuery({
     queryKey: ["customer-counts"],
     queryFn: async () => {
-      const [fav, alerts, reqs] = await Promise.all([
+      const [fav, alerts, reqs, svc, listings] = await Promise.all([
         supabase.from("favorites").select("property_id", { count: "exact", head: true }),
         supabase.from("saved_searches").select("id", { count: "exact", head: true }),
         supabase.rpc("my_requests"),
+        supabase.rpc("my_service_requests"),
+        supabase.rpc("my_owner_listings"),
       ]);
-      return { fav: fav.count ?? 0, alerts: alerts.count ?? 0, reqs: reqs.data?.length ?? 0 };
+      return { fav: fav.count ?? 0, alerts: alerts.count ?? 0, reqs: (reqs.data?.length ?? 0) + (svc.data?.length ?? 0), listings: listings.data?.length ?? 0 };
     },
   });
   const card = "flex items-center gap-4 rounded-2xl border bg-card p-5 transition hover:border-teal hover:shadow-card";
   const icon = "grid size-12 shrink-0 place-items-center rounded-xl bg-teal-soft text-primary";
   return (
     <DashShell title="صفحتي" customer>
-      <div className="grid max-w-4xl gap-3 sm:grid-cols-3">
+      <div className="grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link to="/favorites" className={card}><span className={icon}><Heart className="size-6" /></span>
           <span><span className="block text-2xl font-extrabold text-primary">{q.data?.fav ?? "—"}</span><span className="text-sm font-bold text-muted-foreground">عقارات في المفضلة</span></span></Link>
         <Link to="/favorites" hash="alerts" className={card}><span className={icon}><Bell className="size-6" /></span>
           <span><span className="block text-2xl font-extrabold text-primary">{q.data?.alerts ?? "—"}</span><span className="text-sm font-bold text-muted-foreground">تنبيهات «نبّهني»</span></span></Link>
         <Link to="/my-requests" className={card}><span className={icon}><FileSearch className="size-6" /></span>
           <span><span className="block text-2xl font-extrabold text-primary">{q.data?.reqs ?? "—"}</span><span className="text-sm font-bold text-muted-foreground">طلباتي واستفساراتي</span></span></Link>
+        <Link to="/my-listings" className={card}><span className={icon}><HousePlus className="size-6" /></span>
+          <span><span className="block text-2xl font-extrabold text-primary">{q.data?.listings ?? "—"}</span><span className="text-sm font-bold text-muted-foreground">إعلاناتي (عقاراتي المعروضة)</span></span></Link>
       </div>
       <div className="mt-4 flex max-w-4xl flex-wrap gap-2">
         <a href="/#search" className={btnOutline}>دوّر على عقار</a>
