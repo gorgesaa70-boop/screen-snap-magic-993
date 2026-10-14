@@ -4,6 +4,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Megaphone, X } from "lucide-react";
 import { dbx } from "@/lib/dbx";
 import { t, useLang } from "@/lib/i18n";
+import { useInstallApp } from "@/lib/install-app";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 /** The pinned message the admin writes in لوحة الإدارة ← الإعدادات ← رسالة التثبيت. */
