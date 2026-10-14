@@ -61,13 +61,6 @@ export type Database = {
       }
       app_settings: {
         Row: {
-          announce_ar: string | null
-          announce_en: string | null
-          announce_ends_at: string | null
-          announce_on: boolean
-          announce_popup: boolean
-          announce_starts_at: string | null
-          announce_url: string | null
           android_url: string | null
           featured_month_price: number
           featured_week_price: number
@@ -84,16 +77,8 @@ export type Database = {
           updated_by: string | null
           work_end_hour: number
           work_start_hour: number
-          owner_listing_co_broke_share: number | null
         }
         Insert: {
-          announce_ar?: string | null
-          announce_en?: string | null
-          announce_ends_at?: string | null
-          announce_on?: boolean
-          announce_popup?: boolean
-          announce_starts_at?: string | null
-          announce_url?: string | null
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
@@ -110,16 +95,8 @@ export type Database = {
           updated_by?: string | null
           work_end_hour?: number
           work_start_hour?: number
-          owner_listing_co_broke_share?: number | null
         }
         Update: {
-          announce_ar?: string | null
-          announce_en?: string | null
-          announce_ends_at?: string | null
-          announce_on?: boolean
-          announce_popup?: boolean
-          announce_starts_at?: string | null
-          announce_url?: string | null
           android_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
@@ -136,7 +113,6 @@ export type Database = {
           updated_by?: string | null
           work_end_hour?: number
           work_start_hour?: number
-          owner_listing_co_broke_share?: number | null
         }
         Relationships: []
       }
@@ -695,7 +671,6 @@ export type Database = {
           review_status: Database["public"]["Enums"]["review_status"]
           sort_order: number
           updated_at: string
-          co_broke_share: number | null
         }
         Insert: {
           amenities?: string[]
@@ -725,7 +700,6 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
           updated_at?: string
-          co_broke_share?: number | null
         }
         Update: {
           amenities?: string[]
@@ -755,7 +729,6 @@ export type Database = {
           review_status?: Database["public"]["Enums"]["review_status"]
           sort_order?: number
           updated_at?: string
-          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -834,7 +807,6 @@ export type Database = {
           sale_value: number | null
           unit_desc: string | null
           updated_at: string
-          brokerage_total: number | null
         }
         Insert: {
           broker_id?: string | null
@@ -864,7 +836,6 @@ export type Database = {
           sale_value?: number | null
           unit_desc?: string | null
           updated_at?: string
-          brokerage_total?: number | null
         }
         Update: {
           broker_id?: string | null
@@ -894,7 +865,6 @@ export type Database = {
           sale_value?: number | null
           unit_desc?: string | null
           updated_at?: string
-          brokerage_total?: number | null
         }
         Relationships: [
           {
@@ -1222,78 +1192,6 @@ export type Database = {
         }
         Relationships: []
       }
-      lead_message_reads: {
-        Row: {
-          lead_id: string
-          user_id: string
-          side: string
-          last_read_at: string
-        }
-        Insert: {
-          lead_id: string
-          user_id: string
-          side: string
-          last_read_at?: string
-        }
-        Update: {
-          lead_id?: string
-          user_id?: string
-          side?: string
-          last_read_at?: string
-        }
-        Relationships: []
-      }
-      lead_messages: {
-        Row: {
-          id: string
-          lead_id: string
-          sender_id: string
-          sender_side: string
-          sender_label: string
-          body: string | null
-          attachment_path: string | null
-          attachment_name: string | null
-          attachment_type: string | null
-          masked: boolean
-          reported_at: string | null
-          reported_by: string | null
-          report_reason: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          lead_id?: string
-          sender_id?: string
-          sender_side?: string
-          sender_label?: string
-          body?: string | null
-          attachment_path?: string | null
-          attachment_name?: string | null
-          attachment_type?: string | null
-          masked?: boolean
-          reported_at?: string | null
-          reported_by?: string | null
-          report_reason?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          lead_id?: string
-          sender_id?: string
-          sender_side?: string
-          sender_label?: string
-          body?: string | null
-          attachment_path?: string | null
-          attachment_name?: string | null
-          attachment_type?: string | null
-          masked?: boolean
-          reported_at?: string | null
-          reported_by?: string | null
-          report_reason?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
       lead_activities: {
         Row: {
           actor_id: string | null
@@ -1404,8 +1302,6 @@ export type Database = {
       }
       leads: {
         Row: {
-          chat_closed_at: string | null
-          chat_closed_by: string | null
           admin_queue_at: string | null
           admin_queue_reason: string | null
           area: string | null
@@ -1460,11 +1356,8 @@ export type Database = {
           utm: Json | null
           via_broker_id: string | null
           visit_at: string | null
-          referral_id: string | null
         }
         Insert: {
-          chat_closed_at?: string | null
-          chat_closed_by?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -1519,11 +1412,8 @@ export type Database = {
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
-          referral_id?: string | null
         }
         Update: {
-          chat_closed_at?: string | null
-          chat_closed_by?: string | null
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
           area?: string | null
@@ -1578,7 +1468,6 @@ export type Database = {
           utm?: Json | null
           via_broker_id?: string | null
           visit_at?: string | null
-          referral_id?: string | null
         }
         Relationships: [
           {
@@ -1715,7 +1604,6 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
-          push_types: string[] | null
           created_at: string
           updated_at: string
           user_id: string
@@ -1724,7 +1612,6 @@ export type Database = {
           whatsapp_types: string[]
         }
         Insert: {
-          push_types?: string[] | null
           created_at?: string
           updated_at?: string
           user_id: string
@@ -1733,7 +1620,6 @@ export type Database = {
           whatsapp_types?: string[]
         }
         Update: {
-          push_types?: string[] | null
           created_at?: string
           updated_at?: string
           user_id?: string
@@ -1745,8 +1631,6 @@ export type Database = {
       }
       notifications: {
         Row: {
-          push_status: string | null
-          push_sent_at: string | null
           created_at: string
           id: string
           is_read: boolean
@@ -1763,8 +1647,6 @@ export type Database = {
           whatsapp_status: string | null
         }
         Insert: {
-          push_status?: string | null
-          push_sent_at?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1781,8 +1663,6 @@ export type Database = {
           whatsapp_status?: string | null
         }
         Update: {
-          push_status?: string | null
-          push_sent_at?: string | null
           created_at?: string
           id?: string
           is_read?: boolean
@@ -1799,50 +1679,6 @@ export type Database = {
           whatsapp_status?: string | null
         }
         Relationships: []
-      }
-      owner_plan_grants: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          ends_at: string
-          id: string
-          note: string | null
-          phone: string
-          plan_id: string
-          starts_at: string
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          ends_at: string
-          id?: string
-          note?: string | null
-          phone: string
-          plan_id: string
-          starts_at?: string
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          ends_at?: string
-          id?: string
-          note?: string | null
-          phone?: string
-          plan_id?: string
-          starts_at?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "owner_plan_grants_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       payments: {
         Row: {
@@ -1950,10 +1786,6 @@ export type Database = {
           name: string
           trial_days: number
           yearly_price: number
-          audience: string
-          features: string[]
-          listing_days: number | null
-          sort_order: number
         }
         Insert: {
           code: string
@@ -1966,10 +1798,6 @@ export type Database = {
           name: string
           trial_days?: number
           yearly_price?: number
-          audience?: string
-          features?: string[]
-          listing_days?: number | null
-          sort_order?: number
         }
         Update: {
           code?: string
@@ -1982,10 +1810,6 @@ export type Database = {
           name?: string
           trial_days?: number
           yearly_price?: number
-          audience?: string
-          features?: string[]
-          listing_days?: number | null
-          sort_order?: number
         }
         Relationships: []
       }
@@ -2106,7 +1930,6 @@ export type Database = {
           review_note: string | null
           review_status: Database["public"]["Enums"]["review_status"]
           updated_at: string
-          co_broke_share: number | null
         }
         Insert: {
           address?: string | null
@@ -2127,7 +1950,6 @@ export type Database = {
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           updated_at?: string
-          co_broke_share?: number | null
         }
         Update: {
           address?: string | null
@@ -2148,7 +1970,6 @@ export type Database = {
           review_note?: string | null
           review_status?: Database["public"]["Enums"]["review_status"]
           updated_at?: string
-          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -2216,9 +2037,6 @@ export type Database = {
           verified_note: string | null
           video_urls: string[]
           zone_id: string | null
-          listed_until: string | null
-          listing_notice: number
-          co_broke_share: number | null
         }
         Insert: {
           activity_id?: string | null
@@ -2275,9 +2093,6 @@ export type Database = {
           verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
-          listed_until?: string | null
-          listing_notice?: number
-          co_broke_share?: number | null
         }
         Update: {
           activity_id?: string | null
@@ -2334,9 +2149,6 @@ export type Database = {
           verified_note?: string | null
           video_urls?: string[]
           zone_id?: string | null
-          listed_until?: string | null
-          listing_notice?: number
-          co_broke_share?: number | null
         }
         Relationships: [
           {
@@ -2379,226 +2191,6 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "industrial_zones"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      push_config: {
-        Row: {
-          id: number
-          secret: string
-          site_url: string
-          vapid_public: string | null
-          vapid_private: Json | null
-          vapid_subject: string
-          updated_at: string
-        }
-        Insert: {
-          id?: number
-          secret: string
-          site_url?: string
-          vapid_public?: string | null
-          vapid_private?: Json | null
-          vapid_subject?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: number
-          secret?: string
-          site_url?: string
-          vapid_public?: string | null
-          vapid_private?: Json | null
-          vapid_subject?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      push_subscriptions: {
-        Row: {
-          id: string
-          user_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          user_agent: string | null
-          failed_count: number
-          created_at: string
-          last_used_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          endpoint: string
-          p256dh: string
-          auth: string
-          user_agent?: string | null
-          failed_count?: number
-          created_at?: string
-          last_used_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          endpoint?: string
-          p256dh?: string
-          auth?: string
-          user_agent?: string | null
-          failed_count?: number
-          created_at?: string
-          last_used_at?: string | null
-        }
-        Relationships: []
-      }
-      referral_payouts: {
-        Row: {
-          amount: number | null
-          confirmed_at: string | null
-          created_at: string
-          deal_id: string
-          id: string
-          note: string | null
-          paid_at: string | null
-          paid_by: string | null
-          referral_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          amount?: number | null
-          confirmed_at?: string | null
-          created_at?: string
-          deal_id: string
-          id?: string
-          note?: string | null
-          paid_at?: string | null
-          paid_by?: string | null
-          referral_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          amount?: number | null
-          confirmed_at?: string | null
-          created_at?: string
-          deal_id?: string
-          id?: string
-          note?: string | null
-          paid_at?: string | null
-          paid_by?: string | null
-          referral_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "referral_payouts_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referral_payouts_referral_id_fkey"
-            columns: ["referral_id"]
-            isOneToOne: false
-            referencedRelation: "referrals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      referrals: {
-        Row: {
-          compound_id: string | null
-          created_at: string
-          created_by: string | null
-          customer_name: string
-          customer_phone: string
-          decline_reason: string | null
-          id: string
-          lead_id: string | null
-          note: string | null
-          owner_id: string | null
-          project_id: string | null
-          property_id: string | null
-          protected_until: string | null
-          referral_no: number
-          referrer_id: string
-          respond_by: string
-          responded_at: string | null
-          responded_by: string | null
-          share_pct: number
-          status: string
-          target_kind: string
-          target_title: string
-        }
-        Insert: {
-          compound_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_name: string
-          customer_phone: string
-          decline_reason?: string | null
-          id?: string
-          lead_id?: string | null
-          note?: string | null
-          owner_id?: string | null
-          project_id?: string | null
-          property_id?: string | null
-          protected_until?: string | null
-          referral_no?: number
-          referrer_id: string
-          respond_by?: string
-          responded_at?: string | null
-          responded_by?: string | null
-          share_pct: number
-          status?: string
-          target_kind: string
-          target_title: string
-        }
-        Update: {
-          compound_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_name?: string
-          customer_phone?: string
-          decline_reason?: string | null
-          id?: string
-          lead_id?: string | null
-          note?: string | null
-          owner_id?: string | null
-          project_id?: string | null
-          property_id?: string | null
-          protected_until?: string | null
-          referral_no?: number
-          referrer_id?: string
-          respond_by?: string
-          responded_at?: string | null
-          responded_by?: string | null
-          share_pct?: number
-          status?: string
-          target_kind?: string
-          target_title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "referrals_referrer_id_fkey"
-            columns: ["referrer_id"]
-            isOneToOne: false
-            referencedRelation: "brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referrals_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "referrals_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2698,9 +2290,6 @@ export type Database = {
           name: string
           sort_order: number
           yearly_price: number | null
-          max_photos: number
-          monthly_requests: number | null
-          priority: number
         }
         Insert: {
           code: string
@@ -2712,9 +2301,6 @@ export type Database = {
           name: string
           sort_order?: number
           yearly_price?: number | null
-          max_photos?: number
-          monthly_requests?: number | null
-          priority?: number
         }
         Update: {
           code?: string
@@ -2726,9 +2312,6 @@ export type Database = {
           name?: string
           sort_order?: number
           yearly_price?: number | null
-          max_photos?: number
-          monthly_requests?: number | null
-          priority?: number
         }
         Relationships: []
       }
@@ -2806,98 +2389,6 @@ export type Database = {
           },
         ]
       }
-      service_provider_photos: {
-        Row: {
-          caption: string | null
-          created_at: string
-          id: string
-          provider_id: string
-          sort_order: number
-          url: string
-        }
-        Insert: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          provider_id: string
-          sort_order?: number
-          url: string
-        }
-        Update: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          provider_id?: string
-          sort_order?: number
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_provider_photos_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      service_reviews: {
-        Row: {
-          comment: string | null
-          created_at: string
-          created_by: string | null
-          customer_name: string
-          hidden: boolean
-          id: string
-          provider_id: string
-          replied_at: string | null
-          reply: string | null
-          request_id: string
-          stars: number
-        }
-        Insert: {
-          comment?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_name: string
-          hidden?: boolean
-          id?: string
-          provider_id: string
-          replied_at?: string | null
-          reply?: string | null
-          request_id: string
-          stars: number
-        }
-        Update: {
-          comment?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_name?: string
-          hidden?: boolean
-          id?: string
-          provider_id?: string
-          replied_at?: string | null
-          reply?: string | null
-          request_id?: string
-          stars?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_reviews_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "service_providers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "service_reviews_request_id_fkey"
-            columns: ["request_id"]
-            isOneToOne: false
-            referencedRelation: "service_requests"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       service_requests: {
         Row: {
           area: string | null
@@ -2914,14 +2405,6 @@ export type Database = {
           source: string
           status: string
           updated_at: string
-          accepted_at: string | null
-          declined_provider_ids: string[]
-          done_at: string | null
-          needs_manual: boolean
-          offer_expires_at: string | null
-          offer_provider_id: string | null
-          offered_at: string | null
-          target_provider_id: string | null
         }
         Insert: {
           area?: string | null
@@ -2938,14 +2421,6 @@ export type Database = {
           source?: string
           status?: string
           updated_at?: string
-          accepted_at?: string | null
-          declined_provider_ids?: string[]
-          done_at?: string | null
-          needs_manual?: boolean
-          offer_expires_at?: string | null
-          offer_provider_id?: string | null
-          offered_at?: string | null
-          target_provider_id?: string | null
         }
         Update: {
           area?: string | null
@@ -2962,14 +2437,6 @@ export type Database = {
           source?: string
           status?: string
           updated_at?: string
-          accepted_at?: string | null
-          declined_provider_ids?: string[]
-          done_at?: string | null
-          needs_manual?: boolean
-          offer_expires_at?: string | null
-          offer_provider_id?: string | null
-          offered_at?: string | null
-          target_provider_id?: string | null
         }
         Relationships: [
           {
@@ -3243,120 +2710,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_referral: { Args: { _id: string }; Returns: string }
-      cancel_referral: { Args: { _id: string }; Returns: boolean }
-      co_broke_market: {
-        Args: never
-        Returns: { area: string | null; id: string; image_url: string | null; price: number | null; seller_name: string; share_pct: number; target_kind: string; title: string }[]
-      }
-      confirm_referral_received: { Args: { _payout: string }; Returns: boolean }
-      create_referral: { Args: { _kind: string; _name: string; _note?: string; _phone: string; _target: string }; Returns: string }
-      decline_referral: { Args: { _id: string; _reason?: string }; Returns: boolean }
-      lead_referral: { Args: { _lead: string }; Returns: Json }
-      mark_referral_paid: { Args: { _payout: string }; Returns: boolean }
-      my_referral_payouts: {
-        Args: never
-        Returns: {
-          amount: number | null; brokerage_total: number | null; confirmed_at: string | null; customer_name: string; deal_no: number; id: string
-          other_name: string; paid_at: string | null; referral_no: number; sale_value: number | null; share_pct: number; side: string; status: string
-          target_title: string; va_commission: number | null
-        }[]
-      }
-      received_referrals: {
-        Args: never
-        Returns: {
-          created_at: string; customer_name: string | null; customer_phone: string | null; decline_reason: string | null; id: string; lead_id: string | null
-          note: string | null; protected_until: string | null; referral_no: number; referrer_name: string; respond_by: string; share_pct: number; status: string
-          target_kind: string; target_title: string
-        }[]
-      }
-      run_referrals: { Args: never; Returns: number }
-      sent_referrals: {
-        Args: never
-        Returns: {
-          created_at: string; customer_name: string; customer_phone: string; deal_status: string | null; decline_reason: string | null; id: string
-          protected_until: string | null; referral_no: number; respond_by: string; seller_name: string; share_pct: number; stage: string | null; status: string
-          target_kind: string; target_title: string
-        }[]
-      }
-      accept_service_offer: { Args: { _req: string }; Returns: boolean }
-      decline_service_offer: { Args: { _req: string }; Returns: boolean }
-      my_listing_plan: { Args: never; Returns: Json }
-      my_owner_listings: {
-        Args: never
-        Returns: {
-          city: string
-          created_at: string
-          hidden_by_plan: boolean
-          id: string
-          image_url: string | null
-          listed_until: string | null
-          price: number
-          review_status: string
-          status: string
-          title: string
-          type: string
-          area: string
-        }[]
-      }
-      my_service_offers: {
-        Args: never
-        Returns: {
-          area: string | null
-          category: string
-          chosen: boolean
-          created_at: string
-          details: string | null
-          id: string
-          offer_expires_at: string
-          request_no: number
-        }[]
-      }
-      my_service_requests: {
-        Args: never
-        Returns: {
-          area: string | null
-          category: string
-          created_at: string
-          details: string | null
-          id: string
-          provider_id: string | null
-          provider_name: string | null
-          request_no: number
-          stars: number | null
-          status: string
-          waiting: boolean
-        }[]
-      }
-      my_service_stats: { Args: never; Returns: Json }
-      owner_listing_quota: { Args: { _phone: string }; Returns: Json }
-      rate_service_request: { Args: { _comment?: string; _req: string; _stars: number }; Returns: string }
-      renew_listing: { Args: { _property: string }; Returns: string | null }
-      reply_service_review: { Args: { _reply: string; _review: string }; Returns: boolean }
-      request_listing_plan: { Args: { _plan: string }; Returns: boolean }
-      reroute_service_request: { Args: { _req: string }; Returns: string | null }
-      run_listing_expiry: { Args: never; Returns: Json }
-      run_service_offers: { Args: never; Returns: number }
-      service_directory: {
-        Args: { _area?: string; _category?: string; _kind?: string }
-        Returns: {
-          areas: string[]
-          bio: string | null
-          category: string
-          done: number
-          id: string
-          kind: string
-          name: string
-          photo_url: string | null
-          photos: number
-          priority: number
-          rating: number | null
-          reviews: number
-          specialty: string | null
-          verified: boolean
-        }[]
-      }
-      service_provider_profile: { Args: { _id: string }; Returns: Json }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
@@ -3535,7 +2888,6 @@ export type Database = {
       current_developer_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
       delete_demo_data: { Args: never; Returns: Json }
-      delete_push_subscription: { Args: { _endpoint: string }; Returns: undefined }
       demo_visible: { Args: never; Returns: boolean }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
@@ -3698,41 +3050,6 @@ export type Database = {
         }
       }
       my_phone: { Args: never; Returns: string }
-      lead_chat_side: { Args: { _lead: string }; Returns: string }
-      mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
-      my_conversations: {
-        Args: never
-        Returns: {
-          closed: boolean
-          last_at: string
-          last_body: string
-          last_side: string
-          lead_id: string
-          lead_no: number
-          other_label: string
-          side: string
-          stage: string
-          title: string
-          unread: number
-        }[]
-      }
-      my_unread_messages: { Args: never; Returns: number }
-      report_lead_message: { Args: { _message: string; _reason: string }; Returns: undefined }
-      save_push_subscription: {
-        Args: { _auth: string; _endpoint: string; _p256dh: string; _ua?: string | null }
-        Returns: string
-      }
-      send_lead_message: {
-        Args: {
-          _lead: string
-          _body: string | null
-          _attachment_path?: string | null
-          _attachment_name?: string | null
-          _attachment_type?: string | null
-        }
-        Returns: string
-      }
-      set_lead_chat_closed: { Args: { _lead: string; _closed: boolean }; Returns: undefined }
       my_requests: {
         Args: never
         Returns: {
