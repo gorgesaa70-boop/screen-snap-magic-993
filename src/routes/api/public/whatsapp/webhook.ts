@@ -38,9 +38,13 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
           }
         }
         // Newly received customer messages: a new number becomes a lead (source WhatsApp), a known customer gets a note.
+        // A sign-in code sent from the same number confirms that sign-in instead.
         const fresh = new Set((inserted ?? []).filter((ev) => ev.kind === "message" && ev.wa_message_id).map((ev) => ev.wa_message_id));
+        const { confirmInboundLogin } = await import("@/lib/whatsapp-login.server");
         for (const m of parseInbound(payload)) {
           if (!fresh.has(m.wa_message_id)) continue;
+          const isLogin = await confirmInboundLogin(db, m.phone, m.text).catch((e: Error) => { console.error("wa login confirm failed", e.message); return false; });
+          if (isLogin) continue;
           const { error: leadErr } = await db.rpc("whatsapp_inbound_lead", { _phone: m.phone, _name: m.name ?? "", _text: m.text ?? "", _msg_id: m.wa_message_id });
           if (leadErr) console.error("wa inbound lead failed", leadErr.code);
         }

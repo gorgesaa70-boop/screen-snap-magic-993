@@ -12,6 +12,7 @@ import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.function
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { t, useLang } from "@/lib/i18n";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { WhatsappInbound, type InboundStart } from "@/components/auth/WhatsappInbound";
 
 export const Route = createFileRoute("/sell")({
   head: () => ({
@@ -37,6 +38,7 @@ const ERRORS: Record<string, string> = {
   expired: "انتهت صلاحية الرمز، اطلب رمزًا جديدًا",
   locked: "تم إيقاف الرمز بعد محاولات كثيرة، اطلب رمزًا جديدًا",
   wrong: "رمز غير صحيح",
+  not_confirmed: "لسه موصلتناش رسالتك على واتساب، ابعت الكود وارجع تاني",
   server: "الطلب ماتبعتش، جرّب تاني",
   bad_photo: "فيه صورة مش مدعومة، جرّب صورة تانية",
   plan_limit: "وصلت لحد باقتك (عدد الإعلانات الظاهرة في نفس الوقت). سجّل دخول برقمك وادخل «إعلاناتي» عشان تجدّد إعلان قديم أو تطلب باقة أكبر.",
@@ -100,7 +102,8 @@ function SellForm() {
   const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
   const [loc, setLoc] = useState<LatLng | null>(null);
   const [compressing, setCompressing] = useState(false);
-  const [step, setStep] = useState<"form" | "code" | "done">("form");
+  const [step, setStep] = useState<"form" | "code" | "inbound" | "done">("form");
+  const [inbound, setInbound] = useState<InboundStart | null>(null);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -130,11 +133,11 @@ function SellForm() {
     return () => clearTimeout(id);
   }, [resendIn]);
 
-  async function save(p: string, withCode?: string) {
+  async function save(p: string, withCode?: string, ticket?: string) {
     setBusy(true);
     const attr = getAttribution();
     const r = await submit({ data: {
-      name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
+      name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), ...(ticket ? { ticket } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
       ...placeToSave(f), asking_price: Number(f.price), size_m2: Number(f.size),
       ...(f.purpose === "sale" ? stripNulls(installmentPayload(inst, Number(f.price))) : {}),
       ...(hasFinishing(f.property_type) && f.finishing ? { finishing: f.finishing as "skeleton" | "semi" | "full" | "super_lux" } : {}),
@@ -165,6 +168,7 @@ function SellForm() {
     setBusy(true);
     const r = await send({ data: { phone: p } }).catch(() => ({ ok: false as const, error: "server" }));
     setBusy(false);
+    if (r.ok && r.mode === "inbound") { setInbound({ phone: p, code: r.code, ticket: r.ticket, expiresIn: r.expiresIn }); setStep("inbound"); return; }
     if (r.ok) { setStep("code"); setCode(""); setResendIn(60); setTimeout(() => codeRef.current?.focus(), 50); return; }
     // WhatsApp not set up yet: accept the listing without phone verification.
     if (r.error === "not_configured") { await save(p); return; }
@@ -180,6 +184,14 @@ function SellForm() {
         <p className="mt-2 text-sm text-muted-foreground">{t("فريق فاليو عقار هيراجع الإعلان، وأول ما يتوافق عليه هينزل على الموقع. هنتواصل معاك على واتساب لو احتجنا أي حاجة.")}</p>
         <p className="mt-2 text-sm text-muted-foreground">{t("تقدر تتابع إعلانك وتجدّده من «إعلاناتي» لما تسجّل دخول بنفس رقم الموبايل.")}</p>
         <a href="/" className={`${btnTeal} mt-6`}>{t("الرجوع للرئيسية")}</a>
+      </div>
+    );
+  }
+
+  if (step === "inbound" && inbound) {
+    return (
+      <div className="rounded-2xl border bg-card p-5 shadow-card">
+        <WhatsappInbound start={inbound} busy={busy} onConfirmed={(ticket) => save(phone, undefined, ticket)} onBack={() => setStep("form")} onRestart={() => requestCode()} />
       </div>
     );
   }

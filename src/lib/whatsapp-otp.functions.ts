@@ -3,9 +3,11 @@ import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { decideLogin, isPhoneTaken, type BrokerMatch } from "./broker-login";
+import { hmac, safeEqual } from "./otp-hash";
 
 // Limits (server-enforced; the UI mirrors them only for display)
 const TTL_MS = 5 * 60 * 1000;
+const INBOUND_TTL_MS = 10 * 60 * 1000; // time to switch to WhatsApp, send, and come back
 const RESEND_GAP_MS = 60 * 1000;
 const MAX_SENDS_PER_PHONE = 4; // per 30 min
 const PHONE_WINDOW_MS = 30 * 60 * 1000;
@@ -16,20 +18,18 @@ const phoneSchema = z.string().regex(/^[1-9]\d{7,14}$/);
 
 const mask = (p: string) => `+${p.slice(0, 3)}****${p.slice(-3)}`;
 
-async function hmac(value: string) {
-  const pepper = process.env["WHATSAPP_OTP_PEPPER"];
-  if (!pepper) throw new Error("pepper missing");
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pepper), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+const ticketSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
-function safeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
-}
+/**
+ * Two ways to prove a WhatsApp number:
+ * - "inbound" (default): the site shows a code and the customer sends it to Value Aqar's number; the webhook confirms
+ *   it (no message template needed, free). Needs the webhook (WHATSAPP_APP_SECRET).
+ * - "template" (WHATSAPP_LOGIN_MODE=template): Value Aqar sends the code with an approved authentication template.
+ */
+const inboundMode = () => process.env["WHATSAPP_LOGIN_MODE"] !== "template";
+const waReady = () => !!process.env["WHATSAPP_OTP_PEPPER"] && (inboundMode()
+  ? !!process.env["WHATSAPP_APP_SECRET"]
+  : !!(process.env["WHATSAPP_ACCESS_TOKEN"] && process.env["WHATSAPP_PHONE_NUMBER_ID"] && process.env["WHATSAPP_TEMPLATE_NAME"]));
 
 function clientIp() {
   return getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
@@ -45,7 +45,10 @@ async function log(event: string, phone: string | null, detail?: string, userId?
   await db.from("auth_events").insert({ event, phone_masked: phone ? mask(phone) : null, detail: detail?.slice(0, 200) ?? null, user_id: userId ?? null });
 }
 
-type Result = { ok: true } | { ok: false; error: string; retryIn?: number };
+type Result =
+  | { ok: true; mode: "template" }
+  | { ok: true; mode: "inbound"; code: string; ticket: string; expiresIn: number }
+  | { ok: false; error: string; retryIn?: number };
 
 export const sendWhatsappOtp = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ phone: phoneSchema }).parse(d))
@@ -55,7 +58,7 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
     const template = process.env["WHATSAPP_TEMPLATE_NAME"];
     const version = process.env["WHATSAPP_API_VERSION"] || "v21.0";
     const lang = process.env["WHATSAPP_TEMPLATE_LANG"] || "ar";
-    if (!token || !phoneId || !template) return { ok: false, error: "not_configured" };
+    if (!waReady()) return { ok: false, error: "not_configured" };
 
     const db = await admin();
     const phone = data.phone;
@@ -77,6 +80,19 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
     const code = String(buf[0]! % 1_000_000).padStart(6, "0");
+
+    if (inboundMode()) {
+      // Nothing is sent: the browser shows the code and the customer sends it to us from WhatsApp.
+      const t = new Uint8Array(32);
+      crypto.getRandomValues(t);
+      const ticket = Array.from(t).map((b) => b.toString(16).padStart(2, "0")).join("");
+      await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() }).eq("phone", phone).is("consumed_at", null);
+      await db.from("whatsapp_otps").insert({ phone, code_hash: await hmac(`${phone}:${code}`), ticket_hash: await hmac(`ticket:${ticket}`),
+        expires_at: new Date(now + INBOUND_TTL_MS).toISOString(), ip_hash: ipHash });
+      await log("wa_otp_sent", phone, "inbound code shown");
+      return { ok: true, mode: "inbound", code, ticket, expiresIn: INBOUND_TTL_MS / 1000 };
+    }
+    if (!token || !phoneId || !template) return { ok: false, error: "not_configured" };
 
     const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
       method: "POST",
@@ -100,17 +116,32 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
     await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() }).eq("phone", phone).is("consumed_at", null);
     await db.from("whatsapp_otps").insert({ phone, code_hash: await hmac(`${phone}:${code}`), expires_at: new Date(now + TTL_MS).toISOString(), ip_hash: ipHash });
     await log("wa_otp_sent", phone);
-    return { ok: true };
+    return { ok: true, mode: "template" };
   });
+
+/** Polled by the browser that started an inbound sign-in: has the customer's WhatsApp message arrived? */
+export const checkWhatsappLogin = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ phone: phoneSchema, ticket: ticketSchema }).parse(d))
+  .handler(async ({ data }): Promise<{ status: "pending" | "confirmed" | "expired" }> => {
+    const db = await admin();
+    const { data: row } = await db.from("whatsapp_otps").select("expires_at, confirmed_at, consumed_at")
+      .eq("phone", data.phone).eq("ticket_hash", await hmac(`ticket:${data.ticket}`)).maybeSingle();
+    if (!row || row.consumed_at || new Date(row.expires_at).getTime() < Date.now()) return { status: "expired" };
+    return { status: row.confirmed_at ? "confirmed" : "pending" };
+  });
+
+/** A phone plus its proof: the code the customer received (template) or the ticket of a confirmed inbound sign-in. */
+const proofSchema = z.object({ phone: phoneSchema, code: z.string().regex(/^\d{6}$/).optional(), ticket: ticketSchema.optional() })
+  .refine((d) => !!d.code !== !!d.ticket, "code or ticket");
 
 type VerifyResult = { ok: true; tokenHash: string } | { ok: false; error: string; remaining?: number };
 
 export const verifyWhatsappOtp = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ phone: phoneSchema, code: z.string().regex(/^\d{6}$/) }).parse(d))
+  .inputValidator((d: unknown) => proofSchema.parse(d))
   .handler(async ({ data }): Promise<VerifyResult> => {
     const db = await admin();
-    const { phone, code } = data;
-    const r = await consumeCode(phone, code);
+    const { phone } = data;
+    const r = await consumeProof(data);
     if (!r.ok) return r;
 
     // Resolve the ORIGINAL account for this phone; never guess, never create a substitute for a broker
@@ -155,11 +186,23 @@ async function lookupBrokerByPhone(phone: string): Promise<{ brokers: BrokerMatc
   return { brokers: (bm ?? []) as BrokerMatch[], authUserIds: (au ?? []) as unknown as string[] };
 }
 
-/** Consume a valid code for `phone` (shared by login and phone change). */
+/** Consume a code or a confirmed inbound ticket for `phone` (shared by login, phone change and owner listings). */
+async function consumeProof(p: { phone: string; code?: string | undefined; ticket?: string | undefined }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> {
+  if (p.code) return consumeCode(p.phone, p.code);
+  const db = await admin();
+  const { data: row } = await db.from("whatsapp_otps").select("id, expires_at, confirmed_at, consumed_at")
+    .eq("phone", p.phone).eq("ticket_hash", await hmac(`ticket:${p.ticket}`)).maybeSingle();
+  if (!row || row.consumed_at || new Date(row.expires_at).getTime() < Date.now()) return { ok: false, error: "expired" };
+  if (!row.confirmed_at) return { ok: false, error: "not_confirmed" };
+  const { data: consumed } = await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() }).eq("id", row.id).is("consumed_at", null).select("id");
+  return consumed?.length ? { ok: true } : { ok: false, error: "expired" };
+}
+
+/** Typed code from a template message; inbound sign-ins (with a ticket) can't be used this way. */
 async function consumeCode(phone: string, code: string): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> {
   const db = await admin();
   const { data: row } = await db.from("whatsapp_otps").select("*")
-    .eq("phone", phone).is("consumed_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    .eq("phone", phone).is("consumed_at", null).is("ticket_hash", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!row || new Date(row.expires_at).getTime() < Date.now()) return { ok: false, error: "expired" };
   if (row.attempts >= MAX_ATTEMPTS) return { ok: false, error: "locked" };
   if (!safeEqual(row.code_hash, await hmac(`${phone}:${code}`))) {
@@ -180,6 +223,7 @@ const listingSchema = z.object({
   name: z.string().trim().min(2).max(100),
   phone: phoneSchema,
   code: z.string().regex(/^\d{6}$/).optional(),
+  ticket: ticketSchema.optional(),
   purpose: z.enum(["sale", "rent", "summer"]),
   // Summer listings: what the asking price is per (defaults to a night).
   price_unit: z.enum(["night", "week", "month", "season"]).optional(),
@@ -230,10 +274,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const photos = data.photos.map(decodeJpeg);
     if (photos.some((p) => !p)) return { ok: false, error: "bad_photo" };
 
-    const waReady = !!(process.env["WHATSAPP_ACCESS_TOKEN"] && process.env["WHATSAPP_PHONE_NUMBER_ID"] && process.env["WHATSAPP_TEMPLATE_NAME"]);
-    if (waReady) {
-      if (!data.code) return { ok: false, error: "code_required" };
-      const r = await consumeCode(data.phone, data.code);
+    const verified = waReady();
+    if (verified) {
+      if (!data.code && !data.ticket) return { ok: false, error: "code_required" };
+      const r = await consumeProof(data);
       if (!r.ok) return r;
     }
     const db = await admin();
@@ -249,7 +293,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const summerPrice = data.purpose === "summer" ? { [`price_${data.price_unit ?? "night"}`]: data.asking_price } : {};
     const place = data.area === data.city ? data.city : `${data.area}، ${data.city}`;
     const { data: lead, error: leadErr } = await db.from("leads").insert({
-      kind: "listing", name: data.name, phone: data.phone, phone_verified: waReady,
+      kind: "listing", name: data.name, phone: data.phone, phone_verified: verified,
       purpose: data.purpose, property_type: data.property_type, area: place,
       asking_price: data.asking_price, size_m2: data.size_m2, details: data.details || null, original_source: "website", utm: data.utm ?? null,
     }).select("id").single();
@@ -287,10 +331,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
  */
 export const changePhoneWithWhatsapp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ phone: phoneSchema, code: z.string().regex(/^\d{6}$/) }).parse(d))
+  .inputValidator((d: unknown) => proofSchema.parse(d))
   .handler(async ({ data, context }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> => {
     const userId = (context as { userId: string }).userId;
-    const r = await consumeCode(data.phone, data.code);
+    const r = await consumeProof(data);
     if (!r.ok) return r;
     const db = await admin();
     const { brokers, authUserIds } = await lookupBrokerByPhone(data.phone);

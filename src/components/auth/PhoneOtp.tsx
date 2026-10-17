@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { t, useLang } from "@/lib/i18n";
 import { sendWhatsappOtp, verifyWhatsappOtp, changePhoneWithWhatsapp } from "@/lib/whatsapp-otp.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { WhatsappInbound, type InboundStart } from "@/components/auth/WhatsappInbound";
 
 const WA_ERRORS: Record<string, string> = {
   not_configured: "الدخول عبر واتساب غير مفعّل بعد، استخدم الرسائل النصية أو البريد",
@@ -18,6 +19,7 @@ const WA_ERRORS: Record<string, string> = {
   conflict: "تعذّر تحديد الحساب المرتبط بهذا الرقم. تم تحويل الطلب لمراجعة الإدارة، أو سجّل الدخول بالبريد الإلكتروني",
   phone_taken: "هذا الرقم مرتبط بحساب آخر ولا يمكن استخدامه",
   wrong: "رمز غير صحيح",
+  not_confirmed: "لسه موصلتناش رسالتك على واتساب، ابعت الكود وارجع تاني",
   server: "حدث خطأ، حاول مرة أخرى",
 };
 
@@ -75,7 +77,8 @@ export function PhoneOtp({ mode, onVerified }: Props) {
   const [cc, setCc] = useState("20");
   const [raw, setRaw] = useState("");
   const [phone, setPhone] = useState(""); // E.164 without +
-  const [step, setStep] = useState<"phone" | "code">("phone");
+  const [step, setStep] = useState<"phone" | "code" | "inbound">("phone");
+  const [inbound, setInbound] = useState<InboundStart | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
@@ -119,6 +122,7 @@ export function PhoneOtp({ mode, onVerified }: Props) {
       setBusy(false);
       if (!r.ok) { toast.error(WA_ERRORS[r.error] ?? WA_ERRORS["server"]); return; }
       quota.record();
+      if (r.mode === "inbound") { setPhone(full); setInbound({ phone: full, code: r.code, ticket: r.ticket, expiresIn: r.expiresIn }); setStep("inbound"); return; }
       setPhone(full); setStep("code"); setCode(""); setAttempts(0);
       setResendIn(RESEND_SECONDS); setExpiresIn(CODE_TTL_SECONDS);
       toast.success("تم إرسال رمز التحقق عبر واتساب");
@@ -190,7 +194,29 @@ export function PhoneOtp({ mode, onVerified }: Props) {
     onVerified();
   }
 
+  // Inbound WhatsApp: the customer's message arrived, so finish with the ticket instead of a typed code.
+  async function finishInbound(ticket: string) {
+    setBusy(true);
+    if (mode === "change") {
+      const c = await waChange({ data: { phone, ticket } }).catch(() => ({ ok: false as const, error: "server" }));
+      setBusy(false);
+      if (!c.ok) { toast.error(WA_ERRORS[c.error] ?? WA_ERRORS["server"]); setStep("phone"); return; }
+      onVerified();
+      return;
+    }
+    const r = await waVerify({ data: { phone, ticket } }).catch(() => ({ ok: false as const, error: "server" }));
+    if (!r.ok) { setBusy(false); toast.error(WA_ERRORS[r.error] ?? WA_ERRORS["server"]); setStep("phone"); return; }
+    const { error: sErr } = await supabase.auth.verifyOtp({ token_hash: r.tokenHash, type: "magiclink" });
+    setBusy(false);
+    if (sErr) { toast.error(WA_ERRORS["server"]); return; }
+    onVerified();
+  }
+
   useEffect(() => { if (code.length === 6 && step === "code" && !busy) verify(); /* auto-submit on autofill */ }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (step === "inbound" && inbound) {
+    return <WhatsappInbound start={inbound} busy={busy} onConfirmed={finishInbound} onBack={() => setStep("phone")} onRestart={() => send(true)} />;
+  }
 
   const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -217,8 +243,10 @@ export function PhoneOtp({ mode, onVerified }: Props) {
             ))}
           </div>
         )}
-        <p className="text-xs text-muted-foreground">{t("سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.", { c: channel === "whatsapp" ? t("واتساب") : t("رسالة نصية") })}</p>
-        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال رمز التحقق")}</button>
+        <p className="text-xs text-muted-foreground">{channel === "whatsapp"
+          ? t("هنديك كود من 6 أرقام تبعته لفاليو عقار على واتساب من رقمك، وتدخل على طول.")
+          : t("سنرسل رمز تحقق من 6 أرقام عبر {c}. الرمز صالح لمدة 5 دقائق.", { c: t("رسالة نصية") })}</p>
+        <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : channel === "whatsapp" ? t("ادخل بواتساب") : t("إرسال رمز التحقق")}</button>
       </form>
     );
   }
