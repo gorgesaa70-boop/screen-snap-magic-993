@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Navbar, MobileBar } from "@/components/site/Navbar";
 import { emptyFilters, TYPE_GROUPS, type Filters } from "@/components/site/search";
 import { Hero } from "@/components/site/Hero";
-import { Categories, FeaturedProperties, PurposeStrip, InvestmentsStrip, HighlightsStrip, RequestCTA, Brokers, BrokerServices, Footer } from "@/components/site/Sections";
+import { Categories, FeaturedProperties, PurposeStrip, InvestmentsStrip, HighlightsStrip, MallsStrip, RequestCTA, Brokers, BrokerServices, Footer } from "@/components/site/Sections";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,6 +42,7 @@ function Index() {
         <Categories onPick={pick} status={draft.status} />
         <FeaturedProperties filters={filters} onClear={clear} />
         <HighlightsStrip />
+        <MallsStrip />
         <InvestmentsStrip />
         <PurposeStrip status="إيجار" eyebrow="شهري" title="أحدث عقارات للإيجار" onAll={() => pick({ status: "إيجار" })} />
         <PurposeStrip status="مصيف" eyebrow="الساحل الشمالي" title="مصيف الساحل — شاليهات وفيلات" onAll={() => pick({ status: "مصيف" })} />

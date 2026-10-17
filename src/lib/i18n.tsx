@@ -607,6 +607,8 @@ const EN: Record<string, string> = {
   "المشروع غير متاح": "Project unavailable",
   "شركة تطوير": "Developer",
   "وحدة متاحة": "available units",
+  "تبدأ من": "from",
+  "محلات · مكاتب · عيادات": "Shops · offices · clinics",
   "التسليم:": "Delivery:",
   "أنظمة التقسيط": "Payment plans",
   "الخدمات": "Amenities",
