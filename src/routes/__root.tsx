@@ -15,6 +15,7 @@ import { useSocialReturn } from "@/components/auth/SocialLogin";
 import appCss from "../styles.css?url";
 import { Toaster } from "sonner";
 import { AnnouncementPopup } from "@/components/site/SiteAnnouncement";
+import { SiteClosedGate } from "@/components/site/SiteClosed";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -144,10 +145,12 @@ function RootInner() {
   return (
     <>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <SiteClosedGate>
+        <Outlet />
+        <AnnouncementPopup />
+        <FloatingWhatsApp />
+      </SiteClosedGate>
       <Toaster position="top-center" dir={dir} richColors theme="system" />
-      <AnnouncementPopup />
-      <FloatingWhatsApp />
     </>
   );
 }
