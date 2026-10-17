@@ -281,6 +281,13 @@
       "when": 1792227840687,
       "tag": "0039_release_26_admin_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792227890671,
+      "tag": "0040_release_27_direct_messages",
+      "breakpoints": true
     }
   ]
 }

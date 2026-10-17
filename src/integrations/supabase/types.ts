@@ -930,6 +930,142 @@ export type Database = {
           },
         ]
       }
+      direct_message_reads: {
+        Row: {
+          last_read_at: string
+          side: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          side: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          side?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_reads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "direct_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_type: string | null
+          body: string | null
+          created_at: string
+          id: string
+          masked: boolean
+          report_reason: string | null
+          reported_at: string | null
+          reported_by: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+          thread_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+          thread_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id?: string
+          sender_label?: string
+          sender_side?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "direct_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_threads: {
+        Row: {
+          broker_a: string
+          broker_b: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_message_at: string | null
+        }
+        Insert: {
+          broker_a: string
+          broker_b?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string | null
+        }
+        Update: {
+          broker_a?: string
+          broker_b?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_threads_broker_a_fkey"
+            columns: ["broker_a"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_threads_broker_b_fkey"
+            columns: ["broker_b"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -3366,6 +3502,7 @@ export type Database = {
     Functions: {
       accept_referral: { Args: { _id: string }; Returns: string }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
+      account_people: { Args: { _broker: string }; Returns: string[] }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
@@ -3630,6 +3767,11 @@ export type Database = {
         Returns: undefined
       }
       demo_visible: { Args: never; Returns: boolean }
+      direct_folder_side: {
+        Args: { _name: string; _upload?: boolean }
+        Returns: string
+      }
+      direct_thread_side: { Args: { _thread: string }; Returns: string }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
         Args: {
@@ -3701,6 +3843,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_direct_read: { Args: { _thread: string }; Returns: undefined }
       mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
       mark_payment_failed: {
         Args: { _id: string; _reason: string }
@@ -3785,6 +3928,21 @@ export type Database = {
           side: string
           stage: string
           title: string
+          unread: number
+        }[]
+      }
+      my_direct_threads: {
+        Args: never
+        Returns: {
+          closed: boolean
+          kind: string
+          last_at: string
+          last_body: string
+          last_mine: boolean
+          other_label: string
+          other_slug: string
+          side: string
+          thread_id: string
           unread: number
         }[]
       }
@@ -4098,6 +4256,10 @@ export type Database = {
         Args: { _reply: string; _review: string }
         Returns: boolean
       }
+      report_direct_message: {
+        Args: { _message: string; _reason: string }
+        Returns: undefined
+      }
       report_lead_message: {
         Args: { _message: string; _reason: string }
         Returns: undefined
@@ -4119,6 +4281,16 @@ export type Database = {
           _endpoint: string
           _p256dh: string
           _ua?: string
+        }
+        Returns: string
+      }
+      send_direct_message: {
+        Args: {
+          _attachment_name?: string
+          _attachment_path?: string
+          _attachment_type?: string
+          _body: string
+          _thread: string
         }
         Returns: string
       }
@@ -4204,11 +4376,16 @@ export type Database = {
         Args: { _provider: string }
         Returns: number
       }
+      set_direct_thread_closed: {
+        Args: { _closed: boolean; _thread: string }
+        Returns: undefined
+      }
       set_lead_chat_closed: {
         Args: { _closed: boolean; _lead: string }
         Returns: undefined
       }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      start_direct_thread: { Args: { _broker?: string }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
         Returns: string
