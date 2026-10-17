@@ -456,6 +456,7 @@ const EN: Record<string, string> = {
   "لم يضف الوسيط نبذة بعد.": "The broker hasn't added a bio yet.",
   "فيسبوك": "Facebook",
   "اتصال": "Call",
+  "راسل": "Message",
   "العقارات المسجلة": "Registered properties",
   "الوسيط ده ماعندوش عقارات منشورة دلوقتي.": "No approved properties for this broker yet.",
   "مرحبًا {name}، تواصلت معك عبر فاليو عقار": "Hello {name}, I contacted you via Value Aqar",

@@ -30,6 +30,7 @@ import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { AuditLog } from "@/components/dash/AuditLog";
 import { SystemHealth } from "@/components/dash/SystemHealth";
+import { DirectMessageButton } from "@/components/site/DirectMessageButton";
 import { InvestmentsAdmin } from "@/components/dash/InvestmentsAdmin";
 import { RoutingRules } from "@/components/dash/RoutingRules";
 import { Reports as ReportsDashboard } from "@/components/dash/Reports";
@@ -218,6 +219,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
               </select>
             )}
             <div className="flex flex-wrap gap-2">
+              {!b.is_demo && <DirectMessageButton brokerId={b.id} className={btnOutline} />}
               {st === "approved" && (
                 <button className={b.show_contact ? btnPrimary : btnOutline} title="رقم التليفون والواتساب والإيميل يظهروا للعملاء (حسب الاتفاقية)" onClick={async () => {
                   const { error } = await supabase.from("brokers").update({ show_contact: !b.show_contact }).eq("id", b.id);
