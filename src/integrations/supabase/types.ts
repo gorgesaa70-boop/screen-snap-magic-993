@@ -1870,6 +1870,7 @@ export type Database = {
           description: string | null
           developer_id: string | null
           id: string
+          images: string[]
           is_active: boolean
           kind: string
           lat: number | null
@@ -1884,6 +1885,7 @@ export type Database = {
           description?: string | null
           developer_id?: string | null
           id?: string
+          images?: string[]
           is_active?: boolean
           kind?: string
           lat?: number | null
@@ -1898,6 +1900,7 @@ export type Database = {
           description?: string | null
           developer_id?: string | null
           id?: string
+          images?: string[]
           is_active?: boolean
           kind?: string
           lat?: number | null
@@ -4384,6 +4387,10 @@ export type Database = {
       }
       set_direct_thread_closed: {
         Args: { _closed: boolean; _thread: string }
+        Returns: undefined
+      }
+      set_mall_images: {
+        Args: { _images: string[]; _mall: string }
         Returns: undefined
       }
       set_lead_chat_closed: {

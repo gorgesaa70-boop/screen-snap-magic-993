@@ -5,9 +5,9 @@ import { Store, MapPin, Maximize, Layers, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
-import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
+import { MALL_UNIT_TYPES, fetchMallUnits, mallImages } from "@/components/site/malls";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
-import { PlaceMap } from "@/components/site/Gallery";
+import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { t, useLang } from "@/lib/i18n";
 import { thumb } from "@/lib/images";
 
@@ -76,6 +76,7 @@ function MallPage() {
         {m.description && <p className="mx-auto mt-4 max-w-6xl text-sm whitespace-pre-line text-primary-foreground/80">{m.description}</p>}
       </section>
       <div className="mx-auto max-w-6xl px-4 pt-5 md:px-6">
+        {mallImages(m).length > 0 && <div className="mx-auto mb-5 max-w-3xl"><Gallery images={mallImages(m)} title={m.name} /></div>}
         <div className="grid grid-cols-2 gap-2">
           <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x} value={x}>{t(x)}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
