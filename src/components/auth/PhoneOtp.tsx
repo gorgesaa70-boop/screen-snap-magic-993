@@ -38,7 +38,7 @@ export const COUNTRIES = [
 const RESEND_SECONDS = 60;
 const CODE_TTL_SECONDS = 300;
 const MAX_ATTEMPTS = 5;
-const MAX_SENDS = 4; // per 30 minutes per number
+const MAX_SENDS = 10; // per 30 minutes per number (the server has the real limit)
 const SEND_WINDOW_MS = 30 * 60 * 1000;
 
 export const maskPhone = (p: string) => `+${p.slice(0, 3)}****${p.slice(-3)}`;
