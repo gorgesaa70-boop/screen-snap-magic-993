@@ -73,6 +73,7 @@ export type Database = {
           featured_week_price: number
           finishing_ratios: Json
           id: number
+          indexnow_sent_at: string | null
           ios_url: string | null
           last_backup_at: string | null
           owner_listing_co_broke_share: number | null
@@ -99,6 +100,7 @@ export type Database = {
           featured_week_price?: number
           finishing_ratios?: Json
           id?: number
+          indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
@@ -125,6 +127,7 @@ export type Database = {
           featured_week_price?: number
           finishing_ratios?: Json
           id?: number
+          indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
@@ -3368,6 +3371,31 @@ export type Database = {
         Args: { _from: string; _mins: number }
         Returns: string
       }
+      admin_accounts: {
+        Args: never
+        Returns: {
+          account_type: string
+          banned_until: string
+          broker_active: boolean
+          broker_id: string
+          broker_name: string
+          created_at: string
+          email: string
+          favorites: number
+          full_name: string
+          last_sign_in_at: string
+          listings: number
+          member_of: string
+          owner_listings: number
+          phone: string
+          provider_id: string
+          provider_name: string
+          provider_status: string
+          requests: number
+          roles: string[]
+          user_id: string
+        }[]
+      }
       admin_brokers: {
         Args: never
         Returns: {
@@ -4015,7 +4043,10 @@ export type Database = {
         }
       }
       phone_user_id: { Args: { _phone: string }; Returns: string }
-      prepare_account_deletion: { Args: { _uid: string }; Returns: string }
+      prepare_account_deletion: {
+        Args: { _by?: string; _uid: string }
+        Returns: string
+      }
       price_index: {
         Args: never
         Returns: {
