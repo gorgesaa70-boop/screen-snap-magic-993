@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useSyncExternalStore } from "react";
 import { addTranslations, getLang } from "@/lib/i18n";
+import { SITE_URL } from "@/lib/seo";
 import { UploadError, extensionFor, prepareImage, uploadErrorMessage } from "@/lib/images";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
@@ -307,7 +308,8 @@ export function listingMessage(p: Pick<Property, "id" | "title" | "type" | "stat
   const bits = [`${p.type} ${purpose}`, place, p.size ? `${p.size} ${en ? "m²" : "م²"}` : "", p.rooms ? `${p.rooms} ${en ? "rooms" : "غرف"}` : ""].filter(Boolean).join(" · ");
   const price = p.price ? `${formatPrice(p.price)} ${en ? "EGP" : "ج.م"}${p.priceUnit === "night" ? (en ? " / night" : " / الليلة") : p.priceUnit === "month" ? (en ? " / month" : " / شهريًا") : ""}` : "";
   const inst = p.installments ? (en ? " (installments available)" : " (متاح تقسيط)") : "";
-  const url = typeof window !== "undefined" ? `${window.location.origin}/properties/${p.id}` : `https://valueaqar.com/properties/${p.id}`;
+  // Always the public domain, even when the page is opened from a preview or editor address.
+  const url = `${SITE_URL}/properties/${p.id}`;
   return [
     en ? `Hello, I am asking about listing ${p.code ?? ""}`.trim() + ":" : `مرحبًا، أستفسر عن العقار${p.code ? ` كود ${p.code}` : ""}:`,
     bits, price + inst, url,

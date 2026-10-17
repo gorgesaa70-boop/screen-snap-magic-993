@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { WHATSAPP_NUMBER, waLink } from "./data";
 import { t, useLang } from "@/lib/i18n";
+import { SITE_URL } from "@/lib/seo";
 
 export function WhatsAppMark({ className }: { className?: string }) {
   return (
@@ -35,7 +36,7 @@ export function FloatingWhatsApp() {
   };
   const open = () => {
     const page = document.title.split("|")[0]!.trim();
-    const text = `${t("مرحبًا فاليو عقار، عندي استفسار.")}\n${page ? `${t("الصفحة:")} ${page}\n` : ""}${window.location.href}`;
+    const text = `${t("مرحبًا فاليو عقار، عندي استفسار.")}\n${page ? `${t("الصفحة:")} ${page}\n` : ""}${SITE_URL}${window.location.pathname}${window.location.search}`;
     window.open(waLink(WHATSAPP_NUMBER, text), "_blank", "noopener,noreferrer");
   };
   return (
