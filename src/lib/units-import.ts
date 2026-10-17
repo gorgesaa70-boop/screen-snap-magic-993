@@ -1,4 +1,5 @@
 /** Validation for importing project units from an Excel / CSV sheet (item 16). Pure functions — no I/O. */
+import { cleanNumber, sizeCell, type MapField } from "@/lib/sheet-mapping";
 
 export type UnitInput = {
   code: string | null;
@@ -14,12 +15,13 @@ export type UnitInput = {
 export type ImportError = { row: number; message: string };
 export type ImportResult = { units: (UnitInput & { row: number })[]; errors: ImportError[] };
 
-type Field = keyof UnitInput;
+type Field = keyof UnitInput | "ppm";
 /** Accepted column titles (Arabic or English, any case / spacing). */
 const HEADERS: Record<Field, string[]> = {
+  ppm: ["سعر المتر", "سعر المتر (ج.م)", "price per m2"],
   code: ["الكود", "كود", "كود الوحدة", "رقم الوحدة", "code", "unit code"],
   unit_type: ["النوع", "نوع الوحدة", "type", "unit type"],
-  size: ["المساحة", "المساحة م2", "المساحة (م²)", "size", "area", "m2"],
+  size: ["المساحة", "المساحات", "المساحة م2", "المساحة (م²)", "size", "area", "m2"],
   rooms: ["الغرف", "عدد الغرف", "rooms", "bedrooms"],
   baths: ["الحمامات", "عدد الحمامات", "baths", "bathrooms"],
   floor: ["الدور", "floor"],
@@ -44,7 +46,24 @@ export function num(v: unknown): number | null | "bad" {
   if (v === null || v === undefined || norm(v) === "") return null;
   if (typeof v === "number") return Number.isFinite(v) ? v : "bad";
   const n = Number(toLatinDigits(norm(v)));
-  return Number.isFinite(n) ? n : "bad";
+  return Number.isFinite(n) ? n : cleanNumber(v);
+}
+
+/** Fields for «طابق الأعمدة» (any file layout). Type, floor and status can be one value for all rows. */
+export function unitFields(): MapField[] {
+  const f = (k: Field, label: string, extra: Partial<MapField> = {}): MapField => ({ key: HEADERS[k][0]!, label, aliases: HEADERS[k].slice(1), ...extra });
+  return [
+    f("code", "كود / رقم الوحدة"),
+    f("unit_type", "نوع الوحدة", { required: true, constant: "text" }),
+    f("size", "المساحة", { required: true }),
+    f("price", "السعر الإجمالي"),
+    f("ppm", "سعر المتر (بيتضرب في المساحة)"),
+    f("rooms", "الغرف"),
+    f("baths", "الحمامات"),
+    f("floor", "الدور", { constant: "text" }),
+    f("status", "الحالة", { constant: ["متاحة", "محجوزة", "مباعة", "غير متاحة"] }),
+    f("notes", "ملاحظات"),
+  ];
 }
 
 /** Rows (first row = headers) → valid units + errors with 1-based sheet row numbers. Duplicate codes are rejected. */
@@ -69,13 +88,19 @@ export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<strin
     const problems: string[] = [];
     const unit_type = norm(cell("unit_type"));
     if (unit_type.length < 2 || unit_type.length > 50) problems.push("النوع ناقص");
-    const size = num(cell("size"));
+    const { size, extra } = sizeCell(cell("size"));
     if (size === null || size === "bad" || size <= 0) problems.push("المساحة لازم رقم أكبر من صفر");
     const rooms = num(cell("rooms")); const baths = num(cell("baths"));
     for (const [n, v] of [["الغرف", rooms], ["الحمامات", baths]] as const) {
       if (v === "bad" || (typeof v === "number" && (!Number.isInteger(v) || v < 0 || v > 50))) problems.push(`${n} لازم رقم صحيح من 0 لـ 50`);
     }
-    const price = num(cell("price"));
+    let price = num(cell("price"));
+    // Price lists give a price per m²: total = size × price per m² («19م 73,000» with no price per m² uses the 73,000).
+    if ((price === null || price === "bad") && col.ppm >= 0) {
+      const ppm = num(cell("ppm"));
+      const per = typeof ppm === "number" ? ppm : extra;
+      if (per && typeof size === "number") price = Math.round(size * per);
+    }
     if (price === "bad" || (typeof price === "number" && price < 0)) problems.push("السعر لازم رقم");
     const statusRaw = key(cell("status"));
     const status = statusRaw ? STATUS[statusRaw] : "available";

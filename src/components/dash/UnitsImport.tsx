@@ -2,7 +2,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { FileSpreadsheet, Download } from "lucide-react";
 import { dbx } from "@/lib/dbx";
-import { MAX_ROWS, TEMPLATE_HEADERS, parseCsv, parseUnitsSheet, type ImportResult } from "@/lib/units-import";
+import { MAX_ROWS, parseUnitsSheet, unitFields, type ImportResult } from "@/lib/units-import";
+import { ColumnMapper, readSheetFile, shiftRows } from "./ColumnMapper";
 import { UNIT_STATUS } from "@/components/site/projects";
 import { formatPrice } from "@/components/site/data";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
@@ -11,6 +12,8 @@ import { btnOutline, btnPrimary } from "@/components/site/ui";
  * Works for a project's units or a compound's units (pass one of the two ids). */
 export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { projectId?: string; compoundId?: string; existingCodes: string[]; onDone: () => void }) {
   const [result, setResult] = useState<(ImportResult & { file: string }) | null>(null);
+  // Any file layout goes through «طابق الأعمدة» first.
+  const [raw, setRaw] = useState<{ rows: unknown[][]; file: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Excel template with drop-downs for type and status, plus a guide sheet.
@@ -18,16 +21,12 @@ export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { 
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("الملف أكبر من 5 ميجا"); return; }
     setBusy(true);
     try {
-      let rows: unknown[][];
-      if (/\.csv$/i.test(file.name)) rows = parseCsv(await file.text());
-      else if (/\.xlsx$/i.test(file.name)) { const { readSheet } = await import("read-excel-file/browser"); rows = (await readSheet(file)) as unknown[][]; }
-      else { toast.error("ارفع ملف Excel (.xlsx) أو CSV"); return; }
-      setResult({ ...parseUnitsSheet(rows, existingCodes), file: file.name });
-    } catch {
-      toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
+      setRaw({ rows: await readSheetFile(file), file: file.name });
+      setResult(null);
+    } catch (err) {
+      toast.error(err instanceof Error && /ميجا|ارفع/.test(err.message) ? err.message : "تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
     } finally { setBusy(false); }
   }
   async function save() {
@@ -48,7 +47,7 @@ export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { 
     }
     setBusy(false);
     toast.success(`اتضافت ${units.length} وحدة`);
-    setResult(null); onDone();
+    setResult(null); setRaw(null); onDone();
   }
 
   return (
@@ -58,10 +57,15 @@ export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { 
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج الأعمدة</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {TEMPLATE_HEADERS.join("، ")} — النوع والمساحة إجباريين. الحالة: متاحة / محجوزة / مباعة / غير متاحة (لو فاضية = متاحة). لحد {MAX_ROWS} صف في الملف. الأكواد المتكررة أو الموجودة في المشروع بتترفض.
+        ارفع ملف الوحدات بأي شكل وطابق الأعمدة — النوع والمساحة إجباريين (النوع ممكن قيمة واحدة لكل الصفوف). السعر إجمالي أو سعر متر. الحالة: متاحة / محجوزة / مباعة / غير متاحة (لو فاضية = متاحة). لحد {MAX_ROWS} صف. الأكواد المتكررة أو الموجودة بتترفض.
       </p>
+      {raw && !result && (
+        <ColumnMapper importer="units" file={raw.file} rows={raw.rows} fields={unitFields()} notesKey="ملاحظات" onCancel={() => setRaw(null)}
+          onApply={(rows, offset) => { const r = parseUnitsSheet(rows, existingCodes); setResult({ units: shiftRows(r.units, offset), errors: shiftRows(r.errors, offset), file: raw.file }); }} />
+      )}
       {result && (
         <div className="space-y-3 border-t pt-3">
+          <button onClick={() => setResult(null)} className="text-xs font-bold text-primary underline">تعديل مطابقة الأعمدة</button>
           <p className="text-sm font-bold text-primary">{result.file}: {result.units.length} وحدة سليمة{result.errors.length ? ` · ${result.errors.length} صف فيه أخطاء` : ""}</p>
           {result.errors.length > 0 && (
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-3 text-xs text-destructive">
@@ -82,7 +86,7 @@ export function UnitsImport({ projectId, compoundId, existingCodes, onDone }: { 
           )}
           <div className="flex flex-wrap gap-2">
             <button disabled={busy || !result.units.length} onClick={save} className={btnPrimary}>{busy ? "..." : `استيراد ${result.units.length} وحدة`}</button>
-            <button onClick={() => setResult(null)} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
+            <button onClick={() => { setResult(null); setRaw(null); }} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
           </div>
           {result.errors.length > 0 && result.units.length > 0 && <p className="text-xs text-muted-foreground">الصفوف اللي فيها أخطاء مش هتتضاف — صلّحها وارفعها في ملف تاني.</p>}
         </div>

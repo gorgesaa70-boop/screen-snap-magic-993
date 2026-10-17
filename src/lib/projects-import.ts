@@ -1,3 +1,4 @@
+import { mapFields, type MapField } from "@/lib/sheet-mapping";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { CITY_NAMES, areasOf } from "@/components/site/data";
 import { AMENITIES } from "@/components/site/projects";
@@ -84,3 +85,15 @@ export function parseProjectsSheet(rows: unknown[][], existingNames: Iterable<st
   });
   return { projects, errors };
 }
+
+/** Fields for «طابق الأعمدة» (any file layout); the city can be one value for all rows. */
+export const projectFields = (): MapField[] => mapFields(HEADERS, [
+  ["name", "اسم الكمبوند / المشروع", { required: true }],
+  ["city", "المدينة", { required: true, constant: "text" }],
+  ["area", "المنطقة / الحي", { constant: "text" }],
+  ["address", "العنوان"],
+  ["delivery_date", "موعد التسليم", { constant: "text" }],
+  ["payment_plans", "أنظمة السداد", { constant: "text" }],
+  ["amenities", "المميزات"],
+  ["description", "الوصف"],
+]);

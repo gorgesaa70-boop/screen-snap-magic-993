@@ -1,5 +1,6 @@
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { MALL_FLOORS, MALL_UNIT_TYPES } from "@/components/site/malls";
+import type { MapField } from "@/lib/sheet-mapping";
 
 /** One mall unit from a sheet, ready for public.properties (category "mall"). */
 export type MallUnitInput = {
@@ -29,7 +30,7 @@ export type MallUnitDefaults = { type: string; floor: string; status: "بيع" |
 type Field = "mall" | "title" | "type" | "floor" | "status" | "size" | "price" | "ppm" | "description" | "payment" | "delivery" | "address" | "district";
 const HEADERS: Record<Field, string[]> = {
   mall: ["المول", "اسم المول", "اسم المشروع", "المشروع", "mall"],
-  title: ["اسم الوحدة", "رقم الوحدة", "العنوان", "title", "unit"],
+  title: ["اسم الوحدة", "رقم الوحدة", "كود الوحدة", "title", "unit"],
   type: ["نوع الوحدة", "النوع", "type"],
   floor: ["الدور", "floor"],
   status: ["الغرض", "بيع أو إيجار", "purpose", "status"],
@@ -42,6 +43,25 @@ const HEADERS: Record<Field, string[]> = {
   address: ["العنوان"],
   district: ["المنطقة", "الحي"],
 };
+/** Fields for «طابق الأعمدة» (any file layout); the mall, type, floor and purpose can be one value for all rows. */
+export function mallUnitFields(mallNames: string[]): MapField[] {
+  const f = (k: Field, label: string, extra: Partial<MapField> = {}): MapField => ({ key: HEADERS[k][0]!, label, aliases: HEADERS[k].slice(1), ...extra });
+  return [
+    f("mall", "المول", { required: true, constant: mallNames }),
+    f("title", "اسم / رقم الوحدة"),
+    f("type", "نوع الوحدة", { required: true, constant: MALL_UNIT_TYPES }),
+    f("floor", "الدور", { required: true, constant: MALL_FLOORS }),
+    f("status", "الغرض (بيع / إيجار)", { required: true, constant: ["بيع", "إيجار"] }),
+    f("size", "المساحة", { required: true }),
+    f("price", "السعر الإجمالي", { group: "price" }),
+    f("ppm", "سعر المتر", { group: "price" }),
+    f("payment", "نظام السداد (بيتحسب منه المقدم والسنين)"),
+    f("delivery", "الاستلام"),
+    f("address", "العنوان"),
+    f("district", "المنطقة"),
+    f("description", "الوصف"),
+  ];
+}
 export const MALL_UNIT_HEADERS = ["المول", "اسم الوحدة", "نوع الوحدة", "الدور", "الغرض", "المساحة", "السعر", "الوصف"];
 export const MAX_MALL_UNITS = 500;
 
@@ -104,10 +124,8 @@ export function parseMallUnitsSheet(rows: unknown[][], malls: { id: string; name
   const find = (aliases: string[]) => header.findIndex((h) => aliases.some((a) => a.toLowerCase() === h));
   const col = {} as Record<Field, number>;
   for (const f of Object.keys(HEADERS) as Field[]) col[f] = find(HEADERS[f]);
-  // A developer sheet has «سعر المتر»; there «العنوان» is the location, not the unit name.
+  // Developer price lists (with «سعر المتر») repeat the same unit, so generated names carry the size.
   const developer = col.ppm >= 0;
-  if (developer) col.title = find(HEADERS.title.filter((h) => h !== "العنوان"));
-  else col.address = -1;
   const required: Field[] = ["mall", "size", ...(defaults ? [] : (["type", "floor", "status"] as Field[]))];
   const missing = required.filter((f) => col[f] < 0);
   if (col.price < 0 && col.ppm < 0) missing.push("price");
