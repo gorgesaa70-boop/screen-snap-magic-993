@@ -12,6 +12,8 @@ import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
+import { fetchMalls } from "./malls";
+import { fetchAll } from "@/lib/fetch-all";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
 import { t as tr, useLang } from "@/lib/i18n";
@@ -229,6 +231,47 @@ export function InvestmentsStrip() {
       } />
       <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
         {data.slice(0, 3).map((o) => <div key={o.id} className="w-[85%] shrink-0 snap-start sm:w-[45%] md:w-auto"><OpportunityCard o={o} /></div>)}
+      </div>
+    </section>
+  );
+}
+
+/** Malls with units on sale or rent: count and starting price per mall. Hidden until at least one mall has units. */
+export function MallsStrip() {
+  useLang();
+  const { data = [] } = useQuery({
+    queryKey: ["home-malls"],
+    queryFn: async () => {
+      const [malls, units] = await Promise.all([
+        fetchMalls(),
+        fetchAll<{ id: string; mall_id: string | null; price: number }>((a, b) => supabase.from("properties").select("id, mall_id, price").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b)),
+      ]);
+      return malls
+        .map((m) => { const mine = units.filter((u) => u.mall_id === m.id); return { m, n: mine.length, from: mine.length ? Math.min(...mine.map((u) => Number(u.price))) : 0 }; })
+        .filter((x) => x.n > 0)
+        .sort((a, b) => b.n - a.n);
+    },
+  });
+  if (data.length === 0) return null;
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">
+      <SectionHead eyebrow={tr("محلات · مكاتب · عيادات")} title={tr("المولات التجارية")} action={
+        <Link to="/malls" className="flex shrink-0 items-center gap-1 text-sm font-bold text-primary hover:text-teal">{tr("كل المولات")} <ArrowLeft className="size-4" /></Link>
+      } />
+      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0">
+        {data.slice(0, 4).map(({ m, n, from }) => (
+          <Link key={m.id} to="/malls/$id" params={{ id: m.id }} className="w-[70%] shrink-0 snap-start overflow-hidden rounded-2xl border bg-card shadow-card transition hover:-translate-y-0.5 sm:w-[45%] md:w-auto">
+            <div className="grid aspect-[4/3] place-items-center bg-secondary">
+              {m.logo_url ? <img src={thumb(m.logo_url)} alt={m.name} loading="lazy" className="size-full object-cover" /> : <Store className="size-12 text-teal" />}
+            </div>
+            <div className="p-4">
+              <h3 className="font-extrabold text-primary">{m.name}</h3>
+              {m.location && <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="size-3.5" />{m.location}</p>}
+              <p className="mt-2 text-sm font-bold text-teal">{formatPrice(n)} {tr("وحدة متاحة")}</p>
+              {from > 0 && <p className="text-xs font-semibold text-primary">{tr("تبدأ من")} {formatPrice(from)} {tr("ج.م")}</p>}
+            </div>
+          </Link>
+        ))}
       </div>
     </section>
   );
