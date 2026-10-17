@@ -212,6 +212,7 @@ export type Database = {
           commercial_register: string | null
           contact_person: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           facebook: string | null
           id: string
@@ -239,6 +240,7 @@ export type Database = {
           commercial_register?: string | null
           contact_person?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           facebook?: string | null
           id?: string
@@ -266,6 +268,7 @@ export type Database = {
           commercial_register?: string | null
           contact_person?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           facebook?: string | null
           id?: string
@@ -3523,6 +3526,7 @@ export type Database = {
         Args: { _from: string; _mins: number }
         Returns: string
       }
+      admin_delete_broker: { Args: { _id: string }; Returns: string }
       admin_delete: {
         Args: { _id: string; _kind: string; _target?: string }
         Returns: string
@@ -3562,6 +3566,7 @@ export type Database = {
           commercial_register: string | null
           contact_person: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           facebook: string | null
           id: string
@@ -3901,6 +3906,7 @@ export type Database = {
           commercial_register: string | null
           contact_person: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           facebook: string | null
           id: string

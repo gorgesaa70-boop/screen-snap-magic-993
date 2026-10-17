@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, X, Star, Phone, Pencil } from "lucide-react";
+import { Check, X, Star, Phone, Pencil, Trash2 } from "lucide-react";
 import { AvailabilitySelect, DeleteButton } from "@/components/dash/ManageActions";
 import { PropertyForm } from "@/components/dash/PropertyForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
@@ -40,7 +40,7 @@ import { RoutingRules } from "@/components/dash/RoutingRules";
 import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
-import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
+import { createBrokerAccount, deleteAccountAsAdmin, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { cleanPhone } from "@/lib/phone";
 import { thumb } from "@/lib/images";
@@ -64,7 +64,8 @@ function useAdminData(enabled: boolean) {
       ]);
       const err = b.error || p.error || l.error || pl.error;
       if (err) throw err;
-      return { brokers: b.data, properties: p.data, leads: l.data, plans: pl.data };
+      // Accounts deleted from the admin but kept for money records (release 31) leave every list.
+      return { brokers: (b.data ?? []).filter((x) => !x.deleted_at), properties: p.data, leads: l.data, plans: pl.data };
     },
   });
 }
@@ -166,7 +167,22 @@ function accountStatus(b: BrokerRow): AccountStatus {
 
 function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans: PlanRow[]; reload: () => void }) {
   const toggle = useServerFn(setBrokerActive);
+  const removeLogin = useServerFn(deleteAccountAsAdmin);
   const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  /** Deletes the whole account: its login first (if any), then the broker / company itself. */
+  async function removeAccount(b: BrokerRow) {
+    if (!confirm(`متأكد إنك عايز تمسح حساب «${b.name}»؟\nإعلاناته هتتمسح، واللي عليه عملاء أو صفقات هيفضل في السجلات بس.`)) return;
+    if (!confirm("تأكيد أخير: الحذف نهائي ومش هيرجع.")) return;
+    if (b.user_id) {
+      const r = await removeLogin({ data: { userId: b.user_id } }).catch((e: Error) => ({ ok: false as const, error: e.message }));
+      if (!r.ok) { toast.error(r.error); return; }
+    }
+    const { data, error } = await supabase.rpc("admin_delete_broker", { _id: b.id });
+    if (error) { toast.error(error.code === "PGRST202" ? "حذف الحسابات محتاج تحديث قاعدة البيانات (إصدار 31)" : error.message); reload(); return; }
+    toast.success(data === "hidden" ? "الحساب اتمسح من القوايم — اتساب في السجلات بس عشان عليه صفقات أو اتفاقيات" : "الحساب اتمسح");
+    reload();
+  }
   const [status, setStatus] = useState<AccountStatus | "">("");
   const [type, setType] = useState("");
   const team = useQuery({
@@ -195,7 +211,8 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
         const st = accountStatus(b);
         const members = (team.data ?? []).filter((m) => m.company_id === b.id);
         return (
-          <div key={b.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center">
+          <div key={b.id} className="space-y-2">
+          <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 md:flex-row md:items-center">
             <div className="flex min-w-0 flex-1 items-start gap-3">
               <Avatar name={b.name} url={b.photo_url} size="size-12" />
               <div className="min-w-0 space-y-1">
@@ -235,6 +252,8 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
               ) : (
                 <button className={btnPrimary} onClick={() => activate(b, true)}><Check className="size-4" />{st === "suspended" ? "إعادة تفعيل" : "اعتماد"}</button>
               )}
+              <button className={btnOutline} onClick={() => setEditing(editing === b.id ? null : b.id)}><Pencil className="size-4" />تعديل</button>
+              <button className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-destructive/40 px-3 text-sm font-bold text-destructive hover:bg-destructive/5" onClick={() => removeAccount(b)}><Trash2 className="size-4" />حذف الحساب</button>
               {st === "pending" && (
                 <button className={btnOutline} onClick={async () => {
                   const note = prompt("سبب الرفض (هيظهر لصاحب الطلب):"); if (note === null) return;
@@ -244,8 +263,42 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
               )}
             </div>
           </div>
+          {editing === b.id && <BrokerEdit b={b} onDone={() => { setEditing(null); reload(); }} />}
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Admin corrects an account's details (name, type, contact details, register). */
+function BrokerEdit({ b, onDone }: { b: BrokerRow; onDone: () => void }) {
+  const [f, setF] = useState({ name: b.name, account_type: b.account_type, phone: b.phone ? "+" + b.phone : "", whatsapp: b.whatsapp ? "+" + b.whatsapp : "", email: b.email ?? "", contact_person: b.contact_person ?? "", address: b.address ?? "", commercial_register: b.commercial_register ?? "" });
+  const [busy, setBusy] = useState(false);
+  // Stored like the rest of the accounts: country code + number, digits only.
+  const digits = (v: string) => { if (!v.trim()) return null; const c = cleanPhone(v); return c ? (c.startsWith("+") ? c.slice(1) : "20" + c.slice(1)) : undefined; };
+  async function save() {
+    const phone = digits(f.phone), whatsapp = digits(f.whatsapp);
+    if (f.name.trim().length < 2) { toast.error("اكتب الاسم"); return; }
+    if (phone === undefined || whatsapp === undefined) { toast.error("رقم الموبايل أو الواتساب مش صحيح"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("brokers").update({ name: f.name.trim().slice(0, 120), account_type: f.account_type, phone, whatsapp, email: f.email.trim() || null, contact_person: f.contact_person.trim() || null, address: f.address.trim() || null, commercial_register: f.commercial_register.trim() || null }).eq("id", b.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("اتحفظت بيانات الحساب"); onDone();
+  }
+  const input = (k: keyof typeof f, label: string, ltr = false) => <Field label={label}><input dir={ltr ? "ltr" : undefined} className={inputCls} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></Field>;
+  return (
+    <div className="grid gap-2 rounded-2xl border bg-secondary/40 p-4 sm:grid-cols-2">
+      {input("name", "اسم الحساب")}
+      <Field label="نوع الحساب"><select className={inputCls} value={f.account_type} onChange={(e) => setF({ ...f, account_type: e.target.value })}>{Object.entries(ACCOUNT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
+      {input("phone", "الموبايل", true)}
+      {input("whatsapp", "واتساب", true)}
+      {input("email", "الإيميل", true)}
+      {input("contact_person", "المسؤول")}
+      {input("commercial_register", "السجل التجاري")}
+      {input("address", "العنوان")}
+      <div className="flex gap-2 sm:col-span-2"><button disabled={busy} onClick={save} className={btnPrimary}>{busy ? "..." : "حفظ"}</button><button onClick={onDone} className="h-11 px-4 text-sm font-bold text-muted-foreground">إلغاء</button></div>
     </div>
   );
 }

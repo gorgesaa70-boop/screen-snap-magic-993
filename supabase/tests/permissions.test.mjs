@@ -1656,4 +1656,29 @@ ${sql}
 commit;`);
     return sys(`select count(*)::int n from public.properties where availability not in ('available','reserved','sold')`);
   }, (r) => r[0].n === 0);
+
+  // Release 31: deleting an account removes the broker row too (or hides it when it has money records).
+  const svc31 = (sql) => exec(`begin; set local request.jwt.claim.role to 'service_role'; ${sql}; commit;`);
+  await svc31(`insert into public.brokers (id, slug, name, account_type, is_active) values ('b0000000-0000-0000-0000-00000000de31', 'del-co-1', 'شركة للمسح', 'company', true), ('b0000000-0000-0000-0000-00000000de32', 'del-co-2', 'شركة عليها اتفاقية', 'company', true)`);
+  await svc31(`insert into public.properties (broker_id, title, type, status, price, size, city, area, review_status) values ('b0000000-0000-0000-0000-00000000de31', 'إعلان الشركة', 'شقة', 'بيع', 1, 1, 'برج العرب الجديدة', 'الحي الأول', 'approved')`);
+  await svc31(`insert into public.company_agreements (broker_id, rate) values ('b0000000-0000-0000-0000-00000000de32', 2.5)`);
+  await expectErr("only the admin deletes an account", () => as(U.owner, `select public.admin_delete_broker('b0000000-0000-0000-0000-00000000de31')`));
+  await expectErr("an account with a login: the login goes first", () => as(U.admin, `select public.admin_delete_broker('${CO}')`));
+  await expectOk("an account without money records is deleted with its listings", async () => {
+    const r = (await as(U.admin, `select public.admin_delete_broker('b0000000-0000-0000-0000-00000000de31') r`))[0].r;
+    const left = await sys(`select (select count(*) from public.brokers where id='b0000000-0000-0000-0000-00000000de31')::int b, (select count(*) from public.properties where title='إعلان الشركة')::int p`);
+    return [{ r, ...left[0] }];
+  }, (r) => r[0].r === "deleted" && r[0].b === 0 && r[0].p === 0);
+  await expectOk("an account with an agreement is kept for the records but leaves every list", async () => {
+    const r = (await as(U.admin, `select public.admin_delete_broker('b0000000-0000-0000-0000-00000000de32') r`))[0].r;
+    const b = (await sys(`select deleted_at is not null del, is_active from public.brokers where id='b0000000-0000-0000-0000-00000000de32'`))[0];
+    return [{ r, ...b }];
+  }, (r) => r[0].r === "hidden" && r[0].del === true && r[0].is_active === false);
+  await expectOk("release 31 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017700000_delete-accounts.sql", import.meta.url), "utf8");
+    await exec(`begin;
+${sql}
+commit;`);
+    return sys(`select count(*)::int n from public.brokers where deleted_at is not null`);
+  }, (r) => r[0].n === 1);
 }
