@@ -12,19 +12,35 @@ export type MallUnitInput = {
   size: number;
   price: number;
   description: string | null;
+  // Installments (sale only), read from a developer sheet's «انظمه السداد» text.
+  payment_method?: "installment";
+  down_payment?: number;
+  installment_years?: number;
+  monthly_installment?: number;
+  installment_note?: string;
 };
-export type MallUnitImport = { units: (MallUnitInput & { row: number })[]; errors: { row: number; message: string }[] };
+export type MallUnitImport = {
+  units: (MallUnitInput & { row: number; note?: string })[];
+  errors: { row: number; message: string }[];
+};
+/** Used for rows (or whole sheets) without a type / floor / purpose column, e.g. a developer's price list. */
+export type MallUnitDefaults = { type: string; floor: string; status: "بيع" | "إيجار" };
 
-type Field = "mall" | "title" | "type" | "floor" | "status" | "size" | "price" | "description";
+type Field = "mall" | "title" | "type" | "floor" | "status" | "size" | "price" | "ppm" | "description" | "payment" | "delivery" | "address" | "district";
 const HEADERS: Record<Field, string[]> = {
-  mall: ["المول", "اسم المول", "mall"],
+  mall: ["المول", "اسم المول", "اسم المشروع", "المشروع", "mall"],
   title: ["اسم الوحدة", "رقم الوحدة", "العنوان", "title", "unit"],
   type: ["نوع الوحدة", "النوع", "type"],
   floor: ["الدور", "floor"],
   status: ["الغرض", "بيع أو إيجار", "purpose", "status"],
-  size: ["المساحة", "المساحة م2", "المساحة (م²)", "size", "m2"],
-  price: ["السعر", "السعر (ج.م)", "price"],
+  size: ["المساحة", "المساحات", "المساحة م2", "المساحة (م²)", "size", "m2"],
+  price: ["السعر", "السعر (ج.م)", "السعر الإجمالي", "price"],
+  ppm: ["سعر المتر", "سعر المتر (ج.م)", "price per m2"],
   description: ["الوصف", "التفاصيل", "description"],
+  payment: ["انظمه السداد", "أنظمة السداد", "انظمة السداد", "نظام السداد", "طريقة السداد"],
+  delivery: ["الاستلام", "موعد الاستلام", "موعد التسليم", "التسليم"],
+  address: ["العنوان"],
+  district: ["المنطقة", "الحي"],
 };
 export const MALL_UNIT_HEADERS = ["المول", "اسم الوحدة", "نوع الوحدة", "الدور", "الغرض", "المساحة", "السعر", "الوصف"];
 export const MAX_MALL_UNITS = 500;
@@ -39,6 +55,24 @@ const num = (v: unknown) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : ("bad" as const);
 };
+/**
+ * Size cells from developer sheets: "33م", or "35م 85,000" where a second number slipped into the cell.
+ * Returns the size (the number before «م») and that extra number, if any.
+ */
+function sizeCell(v: unknown): { size: number | null | "bad"; extra: number | null } {
+  const s = norm(v);
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(?:م2|م²|م|متر)\s*([\d,،٬]+)?$/);
+  if (!m) return { size: num(v), extra: null };
+  const extra = m[2] ? Number(m[2].replace(/[,،٬]/g, "")) : null;
+  return { size: Number(m[1]), extra: extra && Number.isFinite(extra) ? extra : null };
+}
+/** "قسط علي 3 سنين 15% مقدم" → years and down-payment percent (null when the text doesn't say). */
+export function parsePaymentText(v: unknown): { years: number | null; pct: number | null } {
+  const s = norm(v);
+  const years = s.match(/(\d+)\s*(?:سنين|سنوات|سنه|سنة|سنا?ت)/);
+  const pct = s.match(/(\d+(?:\.\d+)?)\s*%/);
+  return { years: years ? Number(years[1]) : null, pct: pct ? Number(pct[1]) : null };
+}
 
 /** Short words people type for a unit type → the site's canonical type. */
 const TYPE_ALIASES: Record<string, string> = { "محل": "محل تجاري", "مكتب": "مكتب إداري", "مطعم": "مطعم / كافيه", "كافيه": "مطعم / كافيه", "كافيه / مطعم": "مطعم / كافيه", "معمل": "معمل تحاليل", "اشعه": "مركز أشعة", "علاج طبيعي": "مركز علاج طبيعي", "شقه": "شقة سكنية", "سكني": "شقة سكنية" };
@@ -57,14 +91,26 @@ function pickFloor(v: string) {
   return null;
 }
 
-/** Rows (first row = headers) → valid units + errors with 1-based sheet row numbers. Malls are matched by name. */
-export function parseMallUnitsSheet(rows: unknown[][], malls: { id: string; name: string }[]): MallUnitImport {
+/**
+ * Rows (header row first; blank rows before the data are fine) → valid units + errors with 1-based sheet row numbers.
+ * Malls are matched by name. Two layouts: the site template (total price per unit) and a developer price list
+ * (اسم المشروع / المساحات / سعر المتر / انظمه السداد / الاستلام), where price = size × price per m² and
+ * type / floor / purpose come from `defaults`.
+ */
+export function parseMallUnitsSheet(rows: unknown[][], malls: { id: string; name: string }[], defaults?: MallUnitDefaults): MallUnitImport {
   const errors: MallUnitImport["errors"] = [];
   const units: MallUnitImport["units"] = [];
   const header = (rows[0] ?? []).map(key);
+  const find = (aliases: string[]) => header.findIndex((h) => aliases.some((a) => a.toLowerCase() === h));
   const col = {} as Record<Field, number>;
-  for (const f of Object.keys(HEADERS) as Field[]) col[f] = header.findIndex((h) => HEADERS[f].some((a) => a.toLowerCase() === h));
-  const missing = (["mall", "type", "floor", "status", "size", "price"] as Field[]).filter((f) => col[f] < 0);
+  for (const f of Object.keys(HEADERS) as Field[]) col[f] = find(HEADERS[f]);
+  // A developer sheet has «سعر المتر»; there «العنوان» is the location, not the unit name.
+  const developer = col.ppm >= 0;
+  if (developer) col.title = find(HEADERS.title.filter((h) => h !== "العنوان"));
+  else col.address = -1;
+  const required: Field[] = ["mall", "size", ...(defaults ? [] : (["type", "floor", "status"] as Field[]))];
+  const missing = required.filter((f) => col[f] < 0);
+  if (col.price < 0 && col.ppm < 0) missing.push("price");
   if (missing.length) return { units, errors: [{ row: 1, message: `أعمدة ناقصة: ${missing.map((f) => HEADERS[f][0]).join("، ")}` }] };
 
   rows.slice(1, MAX_MALL_UNITS + 1).forEach((r, i) => {
@@ -72,23 +118,56 @@ export function parseMallUnitsSheet(rows: unknown[][], malls: { id: string; name
     const cell = (f: Field) => (col[f] >= 0 ? r[col[f]] : "");
     if ((r ?? []).every((c) => norm(c) === "")) return;
     const problems: string[] = [];
+    const notes: string[] = [];
     const mallText = norm(cell("mall"));
     const mall = malls.find((m) => loose(m.name) === loose(mallText));
     if (!mall) problems.push(`المول «${mallText}» مش موجود (${malls.map((m) => m.name).join(" / ")})`);
     const typeText = norm(cell("type"));
-    const type = MALL_UNIT_TYPES.find((t) => loose(t) === loose(typeText)) ?? TYPE_ALIASES[loose(typeText)];
+    const type = (typeText ? MALL_UNIT_TYPES.find((t) => loose(t) === loose(typeText)) ?? TYPE_ALIASES[loose(typeText)] : defaults?.type);
     if (!type) problems.push(`نوع الوحدة «${typeText}» مش معروف`);
-    const floor = pickFloor(norm(cell("floor")));
-    if (!floor) problems.push(`الدور «${norm(cell("floor"))}» مش مفهوم (أرضي / أول / تاني / تالت / رابع / خامس أو أعلى)`);
+    const floorText = norm(cell("floor"));
+    const floor = floorText ? pickFloor(floorText) : defaults?.floor ?? null;
+    if (!floor) problems.push(`الدور «${floorText}» مش مفهوم (أرضي / أول / تاني / تالت / رابع / خامس أو أعلى)`);
     const st = loose(norm(cell("status")));
-    const status = /بيع|sale|sell/.test(st) ? "بيع" : /ايجار|rent/.test(st) ? "إيجار" : null;
+    const status = st ? (/بيع|sale|sell/.test(st) ? "بيع" : /ايجار|rent/.test(st) ? "إيجار" : null) : defaults?.status ?? null;
     if (!status) problems.push(`الغرض «${norm(cell("status"))}» لازم بيع أو إيجار`);
-    const size = num(cell("size")), price = num(cell("price"));
+    const { size, extra } = sizeCell(cell("size"));
     if (size === null || size === "bad" || size <= 0) problems.push("المساحة لازم رقم أكبر من صفر");
-    if (price === null || price === "bad" || price <= 0) problems.push("السعر لازم رقم أكبر من صفر");
+    let price = col.price >= 0 ? num(cell("price")) : null;
+    if ((price === null || price === "bad") && col.ppm >= 0) {
+      let ppm = num(cell("ppm"));
+      // «19م 73,000» with an empty price-per-meter cell: the stray number is taken as the price per meter.
+      if ((ppm === null || ppm === "bad") && extra) { ppm = extra; notes.push(`سعر المتر ${extra.toLocaleString("en")} اتاخد من خانة المساحة — راجعه`); }
+      else if (extra && ppm !== extra) notes.push(`خانة المساحة فيها رقم زيادة (${extra.toLocaleString("en")}) — اتجاهل، راجعه`);
+      price = typeof ppm === "number" && ppm > 0 && typeof size === "number" ? Math.round(size * ppm) : null;
+    }
+    if (price === null || price === "bad" || price <= 0) problems.push(col.ppm >= 0 ? "سعر المتر لازم رقم أكبر من صفر" : "السعر لازم رقم أكبر من صفر");
     if (problems.length) { errors.push({ row, message: problems.join(" · ") }); return; }
-    const title = (norm(cell("title")) || `${type} — الدور ${floor} — ${mall!.name}`).slice(0, 150);
-    units.push({ row, title, mall_id: mall!.id, area: mall!.name, type: type!, floor: floor!, status: status!, size: size as number, price: price as number, description: norm(cell("description")).slice(0, 2000) || null });
+
+    const total = price as number;
+    const payText = norm(cell("payment"));
+    const pay = parsePaymentText(payText);
+    const installments = status === "بيع" && payText
+      ? {
+          payment_method: "installment" as const,
+          installment_note: payText.slice(0, 500),
+          ...(pay.pct != null ? { down_payment: Math.round((total * pay.pct) / 100) } : {}),
+          ...(pay.years ? { installment_years: pay.years } : {}),
+          ...(pay.years ? { monthly_installment: Math.round((total - (pay.pct != null ? (total * pay.pct) / 100 : 0)) / (pay.years * 12)) } : {}),
+        }
+      : {};
+    const description = [
+      norm(cell("description")),
+      norm(cell("address")) && `العنوان: ${norm(cell("address"))}${norm(cell("district")) ? ` — ${norm(cell("district"))}` : ""}`,
+      norm(cell("delivery")) && `الاستلام: ${norm(cell("delivery"))}`,
+      payText && `السداد: ${payText}`,
+    ].filter(Boolean).join("\n").slice(0, 2000) || null;
+    // Developer lists repeat the same unit type, so their generated names carry the size too.
+    const title = (norm(cell("title")) || (developer ? `${type} ${size} م² — الدور ${floor} — ${mall!.name}` : `${type} — الدور ${floor} — ${mall!.name}`)).slice(0, 150);
+    units.push({
+      row, title, mall_id: mall!.id, area: mall!.name, type: type!, floor: floor!, status: status as "بيع" | "إيجار",
+      size: size as number, price: total, description, ...installments, ...(notes.length ? { note: notes.join(" · ") } : {}),
+    });
   });
   return { units, errors };
 }

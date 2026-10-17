@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/components/site/data";
-import { fetchMalls } from "@/components/site/malls";
+import { fetchMalls, MALL_FLOORS, MALL_UNIT_TYPES } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { MALL_UNIT_HEADERS, MAX_MALL_UNITS, parseMallUnitsSheet, type MallUnitImport } from "@/lib/mall-units-import";
+import { MALL_UNIT_HEADERS, MAX_MALL_UNITS, parseMallUnitsSheet, type MallUnitDefaults, type MallUnitImport } from "@/lib/mall-units-import";
 
 /**
  * Upload many mall units from Excel. Brokers add to their own account (within their plan);
@@ -16,7 +16,11 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
   brokerId?: string; brokers?: { id: string; name: string }[]; remaining?: number | null; onCancel: () => void; onDone: () => void;
 }) {
   const malls = useQuery({ queryKey: ["malls-all"], queryFn: () => fetchMalls(true) });
-  const [result, setResult] = useState<(MallUnitImport & { file: string }) | null>(null);
+  const [sheet, setSheet] = useState<{ rows: unknown[][]; file: string } | null>(null);
+  // Applied to rows without a type / floor / purpose (a developer's price list has none of them).
+  const [defaults, setDefaults] = useState<MallUnitDefaults>({ type: "محل تجاري", floor: "الأرضي", status: "بيع" });
+  const result = useMemo(() => (sheet ? { ...parseMallUnitsSheet(sheet.rows, malls.data ?? [], defaults), file: sheet.file } : null), [sheet, malls.data, defaults]);
+  const setResult = (v: null) => setSheet(v);
   const [owner, setOwner] = useState(brokerId ?? "");
   const [publish, setPublish] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,7 +35,9 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
     try {
       const { readSheet } = await import("read-excel-file/browser");
       const rows = (await readSheet(file)) as unknown[][];
-      setResult({ ...parseMallUnitsSheet(rows, malls.data ?? []), file: file.name });
+      // Skip blank rows above the header (developer sheets often start lower).
+      const start = rows.findIndex((r) => (r ?? []).some((c) => String(c ?? "").trim() !== ""));
+      setSheet({ rows: start > 0 ? rows.slice(start) : rows, file: file.name });
     } catch {
       toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) سليم");
     } finally { setBusy(false); }
@@ -43,7 +49,7 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
     if (!owner) { toast.error("اختر الوسيط المسؤول عن الوحدات"); return; }
     setBusy(true);
     const isAdmin = !!brokers;
-    const rows = result.units.map(({ row: _row, ...u }) => ({
+    const rows = result.units.map(({ row: _row, note: _note, ...u }) => ({
       ...u, category: "mall", broker_id: owner, rooms: null, baths: null,
       review_status: (isAdmin ? (publish ? "approved" : "draft") : publish ? "pending" : "draft") as "pending" | "draft" | "approved",
     }));
@@ -74,9 +80,18 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج المولات</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {MALL_UNIT_HEADERS.join("، ")}. الإجباري: المول (بنفس اسمه على الموقع)، نوع الوحدة، الدور، الغرض (بيع / إيجار)، المساحة، السعر. اسم الوحدة لو فاضي بيتكتب لوحده. لحد {MAX_MALL_UNITS} صف.
+        الأعمدة: {MALL_UNIT_HEADERS.join("، ")}. الإجباري: المول (بنفس اسمه على الموقع)، المساحة، السعر. اسم الوحدة لو فاضي بيتكتب لوحده. لحد {MAX_MALL_UNITS} صف.
+        بيقبل كمان ملف المطوّر (اسم المشروع، المساحات، سعر المتر، انظمه السداد، الاستلام): السعر = المساحة × سعر المتر، والتقسيط بيتحسب من نص السداد.
         {remaining != null && ` باقتك تسمح بـ ${formatPrice(Math.max(remaining, 0))} وحدة كمان.`}
       </p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="text-xs font-bold text-primary">نوع الوحدة لو مش مكتوب
+          <select className={`${inputCls} mt-1`} value={defaults.type} onChange={(e) => setDefaults({ ...defaults, type: e.target.value })}>{MALL_UNIT_TYPES.map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="text-xs font-bold text-primary">الدور لو مش مكتوب
+          <select className={`${inputCls} mt-1`} value={defaults.floor} onChange={(e) => setDefaults({ ...defaults, floor: e.target.value })}>{MALL_FLOORS.map((x) => <option key={x}>{x}</option>)}</select></label>
+        <label className="text-xs font-bold text-primary">الغرض لو مش مكتوب
+          <select className={`${inputCls} mt-1`} value={defaults.status} onChange={(e) => setDefaults({ ...defaults, status: e.target.value as "بيع" | "إيجار" })}><option>بيع</option><option>إيجار</option></select></label>
+      </div>
       {result && (
         <div className="space-y-3 border-t pt-3">
           <p className="text-sm font-bold text-primary">{result.file}: {result.units.length} وحدة سليمة{result.errors.length ? ` · ${result.errors.length} صف فيه أخطاء` : ""}</p>
@@ -88,11 +103,11 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
           {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.units.length} وحدة وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف أو اطلب ترقية الباقة.</p>}
           {result.units.length > 0 && (
             <div className="max-h-64 overflow-auto rounded-xl border">
-              <table className="w-full min-w-[620px] text-xs">
-                <thead className="sticky top-0 bg-secondary text-primary"><tr>{["صف", "المول", "الوحدة", "النوع", "الدور", "الغرض", "المساحة", "السعر"].map((h) => <th key={h} className="p-2 text-start">{h}</th>)}</tr></thead>
+              <table className="w-full min-w-[760px] text-xs">
+                <thead className="sticky top-0 bg-secondary text-primary"><tr>{["صف", "المول", "الوحدة", "النوع", "الدور", "الغرض", "المساحة", "السعر", "راجع"].map((h) => <th key={h} className="p-2 text-start">{h}</th>)}</tr></thead>
                 <tbody>
                   {result.units.slice(0, 200).map((u) => (
-                    <tr key={u.row} className="border-t"><td className="p-2">{u.row}</td><td className="p-2">{u.area}</td><td className="p-2">{u.title}</td><td className="p-2">{u.type}</td><td className="p-2">{u.floor}</td><td className="p-2">{u.status}</td><td className="p-2">{formatPrice(u.size)}</td><td className="p-2">{formatPrice(u.price)}</td></tr>
+                    <tr key={u.row} className="border-t"><td className="p-2">{u.row}</td><td className="p-2">{u.area}</td><td className="p-2">{u.title}</td><td className="p-2">{u.type}</td><td className="p-2">{u.floor}</td><td className="p-2">{u.status}</td><td className="p-2">{formatPrice(u.size)}</td><td className="p-2">{formatPrice(u.price)}</td><td className="p-2 text-amber-700">{u.note ?? ""}</td></tr>
                   ))}
                 </tbody>
               </table>
