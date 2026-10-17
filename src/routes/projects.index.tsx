@@ -7,6 +7,7 @@ import { CITY_NAMES, formatPrice, useLocations } from "@/components/site/data";
 import { fetchProjects, projectCover } from "@/components/site/projects";
 import { pageHead } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/projects/")({
   head: () => pageHead({
@@ -53,7 +54,7 @@ function ProjectsPage() {
             return (
               <Link key={p.id} to="/projects/$id" params={{ id: p.id }} className="overflow-hidden rounded-2xl border bg-card shadow-card transition hover:-translate-y-0.5">
                 <div className="relative aspect-[4/3] bg-muted">
-                  <img src={projectCover(p)} alt={p.name} loading="lazy" className="size-full object-cover" />
+                  <img src={thumb(projectCover(p))} alt={p.name} loading="lazy" className="size-full object-cover" />
                   {p.is_featured && <span className="absolute top-3 right-3 rounded-full bg-teal px-3 py-1 text-xs font-bold text-accent-foreground">{t("مميز")}</span>}
                 </div>
                 <div className="p-4">

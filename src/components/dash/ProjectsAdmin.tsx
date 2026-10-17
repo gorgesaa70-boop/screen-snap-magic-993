@@ -10,6 +10,7 @@ import { btnPrimary, btnOutline } from "@/components/site/ui";
 import { useState } from "react";
 import { FileSpreadsheet } from "lucide-react";
 import { ProjectsImport } from "@/components/dash/ProjectsImport";
+import { thumb } from "@/lib/images";
 
 /** Admin view of every project: approve hidden ones, hide with a note, or feature. */
 export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
@@ -37,7 +38,7 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
         const dev = brokers.find((b) => b.id === p.developer_id);
         return (
           <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 md:flex-row md:items-center">
-            <img src={projectCover(p)} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
+            <img src={thumb(projectCover(p))} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{p.review_status === "rejected" ? "مخفي" : REVIEW[p.review_status].label}</span>

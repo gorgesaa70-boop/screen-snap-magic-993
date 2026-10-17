@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapPin, ChevronLeft, ChevronRight, Navigation } from "lucide-react";
 import { brandPin, createMap, googleMapsLink, loadLeaflet } from "@/lib/osm";
 import { t } from "@/lib/i18n";
+import { thumb } from "@/lib/images";
 
 /** Read-only map with the brand pin (free OpenStreetMap) and a link that opens Google Maps for directions. */
 export function PlaceMap({ lat, lng, label }: { lat: number; lng: number; label?: string }) {
@@ -52,7 +53,7 @@ export function Gallery({ images, title, children }: { images: string[]; title: 
             {images.map((src, j) => (
               <button key={src} type="button" onClick={() => setI(j)} aria-label={`${t("صورة")} ${j + 1}`}
                 className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${j === i ? "border-teal" : "border-transparent opacity-70"}`}>
-                <img src={src} alt="" loading="lazy" className="size-full object-cover" />
+                <img src={thumb(src)} alt="" loading="lazy" className="size-full object-cover" />
               </button>
             ))}
           </div>

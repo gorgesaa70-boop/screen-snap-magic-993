@@ -8,6 +8,7 @@ import { formatPrice, type BrokerRow } from "@/components/site/data";
 import { compoundCover, compoundWhere, type CompoundRow } from "@/components/site/compounds";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { CompoundForm } from "./CompoundForm";
+import { thumb } from "@/lib/images";
 
 type Row = CompoundRow & { compound_units: { status: string }[] };
 
@@ -56,7 +57,7 @@ export function CompoundsAdmin({ brokers }: { brokers: BrokerRow[] }) {
         const visible = c.is_active && c.review_status === "approved";
         return (
           <div key={c.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 lg:flex-row lg:items-center">
-            <img src={compoundCover(c)} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover lg:h-20 lg:w-28" />
+            <img src={thumb(compoundCover(c))} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover lg:h-20 lg:w-28" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap gap-1.5">
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${visible ? "bg-teal-soft text-primary" : "bg-destructive/10 text-destructive"}`}>{visible ? "ظاهر" : c.review_status === "rejected" ? "مخفي من الإدارة" : c.review_status === "pending" ? "رجع للمراجعة" : "مخفي"}</span>

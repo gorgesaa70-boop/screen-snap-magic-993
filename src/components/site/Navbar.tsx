@@ -17,11 +17,11 @@ export function Logo({ light = false }: { light?: boolean }) {
     // Brand mark (from the brand sheet) + the name in full, Arabic and English, as live text so it stays sharp.
     <a href="/" className="flex shrink-0 items-center gap-2 max-[359px]:gap-1.5" dir="rtl" aria-label="فاليو عقار — Value Aqar">
       {light ? (
-        <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
+        <img src="/logo-mark-dark.png" alt="" width={57} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
       ) : (<>
         {/* The navy mark disappears on the dark theme, so dark mode uses the version made for dark backgrounds. */}
-        <img src="/logo-mark.png" alt="" width={52} height={60} className="h-10 w-auto shrink-0 dark:hidden" />
-        <img src="/logo-mark-dark.png" alt="" width={55} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
+        <img src="/logo-mark.png" alt="" width={53} height={60} className="h-10 w-auto shrink-0 dark:hidden" />
+        <img src="/logo-mark-dark.png" alt="" width={57} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
       </>)}
       <span className="flex flex-col leading-none">
         <span className={`text-lg font-extrabold max-[359px]:text-base ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>

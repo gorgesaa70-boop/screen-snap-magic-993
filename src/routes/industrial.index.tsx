@@ -7,6 +7,7 @@ import { formatPrice } from "@/components/site/data";
 import { IND_TYPES, applyInd, emptyInd, fetchActivities, fetchIndustrialProperties, fetchZones, type IndFilters } from "@/components/site/industrial";
 import { t, useLang } from "@/lib/i18n";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/industrial/")({
   head: () => ({
@@ -75,7 +76,7 @@ function IndustrialPage() {
           {rows.map((p) => (
             <Link key={p.id} to="/industrial/$id" params={{ id: p.id }} className="group overflow-hidden rounded-2xl border bg-card shadow-card transition hover:-translate-y-0.5">
               <div className="relative aspect-[4/3] bg-muted">
-                {p.image_url ? <img src={p.image_url} alt={p.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Factory className="size-12 text-muted-foreground" /></div>}
+                {p.image_url ? <img src={thumb(p.image_url)} alt={p.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Factory className="size-12 text-muted-foreground" /></div>}
                 <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(p.status)}</span>
                 {p.is_featured && <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{t("مميز")}</span>}
               </div>

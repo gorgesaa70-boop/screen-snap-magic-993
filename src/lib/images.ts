@@ -1,6 +1,7 @@
 /**
  * Image preparation before upload: phone photos (often 4–12 MB, sometimes rotated) are decoded, turned upright,
- * resized to at most 1600px and re-encoded (JPEG, or WebP/PNG when the image has transparency, e.g. logos).
+ * resized to at most 1600px and re-encoded as WebP (JPEG on browsers that can't encode WebP; PNG keeps transparency).
+ * Each photo also gets a 640px card copy, see thumb().
  * Errors come back as short Arabic messages ready for a toast.
  */
 
@@ -62,12 +63,30 @@ export async function prepareImage(file: File, maxSide = 1600, quality = 0.82): 
   ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
   src.close?.();
   const transparent = file.type !== "image/jpeg" && hasAlpha(ctx, canvas.width, canvas.height);
-  const blob = transparent
-    ? (await toBlob(canvas, "image/webp", quality)) ?? (await toBlob(canvas, "image/png", 1))
+  // Some browsers silently return PNG when asked for WebP, so check the type that came back.
+  const webp = await toBlob(canvas, "image/webp", quality);
+  const blob = webp?.type === "image/webp" ? webp
+    : transparent ? await toBlob(canvas, "image/png", 1)
     : await toBlob(canvas, "image/jpeg", quality);
   if (!blob) throw new UploadError("تعذّر تجهيز الصورة — جرّب صورة تانية");
   return blob;
 }
+
+/** Card copies are 640px: sharp on phones, about a fifth of the full photo. */
+export const THUMB_SIDE = 640;
+const THUMB_MARK = "#sm=";
+
+/** Photo URL that also carries its card copy. The part after # is never sent to the server, so the full photo still loads normally. */
+export const withThumb = (url: string, small: string) => `${url}${THUMB_MARK}${encodeURIComponent(small)}`;
+
+/** The card-size copy of a photo when it has one, else the photo itself. */
+export function thumb<T extends string | null | undefined>(url: T): T {
+  if (!url) return url;
+  const i = url.indexOf(THUMB_MARK);
+  return (i < 0 ? url : decodeURIComponent(url.slice(i + THUMB_MARK.length))) as T;
+}
+
+export const hasThumb = (url: string) => url.includes(THUMB_MARK);
 
 export const extensionFor = (type: string) => (type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg");
 

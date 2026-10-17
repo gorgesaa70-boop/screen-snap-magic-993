@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Search, RotateCcw, SlidersHorizontal, ChevronDown } from "lucide-react";
-import hero from "@/assets/hero.jpg";
+import hero640 from "@/assets/hero-640.webp";
+import hero960 from "@/assets/hero-960.webp";
+import hero1440 from "@/assets/hero-1440.webp";
+import hero1920 from "@/assets/hero-1920.webp";
 import { CITY_NAMES, CITIES, TYPES_FOR, FINISHING_LABEL, useLocations } from "./data";
 import { emptyFilters, extraCount, isEmpty, type Filters } from "./search";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t, useLang } from "@/lib/i18n";
+
+/** Phones download the 640/960 copy instead of the full 1920px photo. */
+const HERO_SRCSET = `${hero640} 640w, ${hero960} 960w, ${hero1440} 1440w, ${hero1920} 1920w`;
 
 const field =
   "h-12 w-full rounded-xl border bg-background px-3.5 text-base font-medium text-foreground outline-none transition hover:border-primary/40 focus:border-teal focus:ring-2 focus:ring-teal/30 md:h-11 md:text-sm";
@@ -28,7 +34,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
   return (
     <section id="top" className="relative">
       <div className="relative h-[340px] overflow-hidden md:h-[600px]">
-        <img src={hero} alt={t("مجمع سكني حديث في برج العرب الجديدة")} width={1920} height={1088}
+        <img src={hero1440} srcSet={HERO_SRCSET} sizes="100vw" alt={t("مجمع سكني حديث في برج العرب الجديدة")} width={1920} height={1088}
           fetchPriority="high" decoding="async" className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-hero-overlay" />
         <div className="relative mx-auto max-w-7xl px-4 pt-8 md:px-6 md:pt-28">

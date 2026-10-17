@@ -11,6 +11,7 @@ import { btnPrimary, btnOutline } from "@/components/site/ui";
 import { ProjectForm } from "@/components/dash/ProjectForm";
 import { ProjectsImport } from "@/components/dash/ProjectsImport";
 import { ProjectUnits } from "@/components/dash/ProjectUnits";
+import { thumb } from "@/lib/images";
 
 export function MyProjects({ developerId }: { developerId: string }) {
   const q = useQuery({
@@ -39,7 +40,7 @@ export function MyProjects({ developerId }: { developerId: string }) {
         const available = p.project_units.filter((u) => u.status === "available").length;
         return (
           <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
-            <img src={projectCover(p)} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
+            <img src={thumb(projectCover(p))} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{p.review_status === "rejected" ? "مخفي من الإدارة" : REVIEW[p.review_status].label}</span>

@@ -3,6 +3,7 @@ import { MapPin, Lock, TrendingUp, Maximize } from "lucide-react";
 import { formatPrice } from "@/components/site/data";
 import { DEAL_KINDS, OPP_KINDS, investmentRange, type OpportunityRow } from "@/lib/investments";
 import { t, useLang } from "@/lib/i18n";
+import { thumb } from "@/lib/images";
 
 /** Investment opportunity teaser card (dark, distinct from regular listings). */
 export function OpportunityCard({ o }: { o: OpportunityRow }) {
@@ -11,7 +12,7 @@ export function OpportunityCard({ o }: { o: OpportunityRow }) {
     <Link to="/investments/$id" params={{ id: o.id }}
       className="group flex h-full flex-col overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-card transition hover:-translate-y-0.5">
       <div className="relative aspect-[16/9] bg-navy-deep">
-        {o.images[0] ? <img src={o.images[0]} alt={o.title} loading="lazy" className="size-full object-cover opacity-80 transition group-hover:opacity-100" />
+        {o.images[0] ? <img src={thumb(o.images[0])} alt={o.title} loading="lazy" className="size-full object-cover opacity-80 transition group-hover:opacity-100" />
           : <div className="grid size-full place-items-center"><TrendingUp className="size-12 text-teal" /></div>}
         <span className="absolute top-3 right-3 rounded-full bg-teal px-3 py-1 text-xs font-bold text-accent-foreground">{t(OPP_KINDS[o.kind] ?? o.kind)}</span>
         {o.is_featured && <span className="absolute top-3 left-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{t("مميزة")}</span>}

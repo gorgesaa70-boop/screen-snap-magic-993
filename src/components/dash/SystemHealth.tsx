@@ -6,7 +6,8 @@ import { AlertTriangle, CheckCircle2, Download, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { exportBackup, notifySearchEngines } from "@/lib/admin.functions";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
-import { formatDate } from "@/components/site/data";
+import { formatDate, storeImage } from "@/components/site/data";
+import { THUMB_SIDE, extensionFor, hasThumb, prepareImage, withThumb } from "@/lib/images";
 
 /** Item 37: website / server errors of the last 30 days, and the data backup download. */
 export function SystemHealth() {
@@ -41,6 +42,7 @@ export function SystemHealth() {
     <div className="space-y-6">
       <DemoData />
       <SearchEngines />
+      <CardPhotos />
       <section className={`rounded-2xl border p-5 ${stale ? "border-destructive/40 bg-destructive/5" : "bg-card"}`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-start gap-3">
@@ -153,6 +155,75 @@ function SearchEngines() {
           {sentAt && <p className="mt-1 text-xs font-semibold text-muted-foreground">آخر إرسال: {new Date(sentAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</p>}
         </div>
         <button disabled={busy} onClick={run} className={btnOutline}>{busy ? "بيتبعت..." : "بلّغ محركات البحث"}</button>
+      </div>
+    </section>
+  );
+}
+
+/** One pass over older listings: each uploaded photo gets a 640px card copy (new uploads get one automatically). */
+function CardPhotos() {
+  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState("");
+  const needs = (u: string | null | undefined): u is string => !!u && u.includes("/storage/v1/") && !hasThumb(u);
+
+  async function run() {
+    const { data: sess } = await supabase.auth.getSession();
+    const uid = sess.session?.user.id;
+    if (!uid) { toast.error("سجّل دخول تاني"); return; }
+    setBusy(true);
+    let photos = 0, failed = 0;
+    try {
+      const { data: rows, error } = await supabase.from("properties").select("id, image_url, images");
+      if (error) throw error;
+      const todo = (rows ?? []).filter((r) => needs(r.image_url) || r.images.some(needs));
+      for (const [n, r] of todo.entries()) {
+        setStep(`${n + 1} من ${todo.length}`);
+        const done = new Map<string, string>();
+        const fix = async (u: string | null) => {
+          if (!needs(u)) return u;
+          if (!done.has(u)) {
+            try {
+              const res = await fetch(u);
+              if (!res.ok) throw new Error(String(res.status));
+              const blob = await res.blob();
+              const small = await prepareImage(new File([blob], "photo", { type: blob.type || "image/jpeg" }), THUMB_SIDE, 0.75);
+              const path = `${uid}/cards/${r.id}-${Math.random().toString(36).slice(2, 8)}.${extensionFor(small.type)}`;
+              done.set(u, withThumb(u, await storeImage(path, small)));
+              photos++;
+            } catch {
+              failed++;
+              done.set(u, u);
+            }
+          }
+          return done.get(u)!;
+        };
+        const images: string[] = [];
+        for (const u of r.images) images.push((await fix(u))!);
+        const image_url = await fix(r.image_url);
+        if (image_url !== r.image_url || images.some((u, i) => u !== r.images[i])) {
+          const { error: e2 } = await supabase.from("properties").update({ images, image_url }).eq("id", r.id);
+          if (e2) failed++;
+        }
+      }
+      if (!todo.length) toast.info("كل الصور متصغرة خلاص");
+      else if (failed) toast.warning(`اتصغرت ${photos} صورة، و${failed} ماتصغرتش (هتفضل تظهر بحجمها الكامل) — ممكن تضغط تاني`);
+      else toast.success(`اتصغرت ${photos} صورة ✓`);
+    } catch {
+      toast.error("تعذّر تحميل الإعلانات — جرّب تاني");
+    } finally {
+      setBusy(false);
+      setStep("");
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border bg-card p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-bold text-primary">تصغير صور الإعلانات القديمة</p>
+          <p className="text-sm text-muted-foreground">بيعمل نسخة صغيرة من كل صورة اترفعت قبل كده، عشان الكروت تفتح أسرع على الموبايل. الصور الجديدة بتتصغر لوحدها. سيب الصفحة مفتوحة لحد ما يخلص.</p>
+        </div>
+        <button disabled={busy} onClick={run} className={btnOutline}>{busy ? `بيصغّر... ${step}` : "صغّر الصور"}</button>
       </div>
     </section>
   );

@@ -11,6 +11,7 @@ import {
 } from "@/components/site/compounds";
 import { pageHead } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/compounds/")({
   head: () => pageHead({
@@ -104,7 +105,7 @@ function CompoundsPage() {
           return (
             <Link key={c.id} to="/compounds/$id" params={{ id: c.id }} className="group overflow-hidden rounded-2xl border bg-card shadow-card transition hover:-translate-y-0.5">
               <div className="relative">
-                <img src={compoundCover(c)} alt={c.name} loading="lazy" className="h-48 w-full object-cover" />
+                <img src={thumb(compoundCover(c))} alt={c.name} loading="lazy" className="h-48 w-full object-cover" />
                 {c.is_featured && <span className="absolute start-3 top-3 rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-bold text-accent-foreground">{t("مميز")}</span>}
                 {isReady(c) && <span className="absolute end-3 top-3 rounded-full bg-primary/90 px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">{t("استلام فوري")}</span>}
               </div>

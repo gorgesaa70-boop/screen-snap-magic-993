@@ -18,6 +18,7 @@ import { AnnouncementPopup } from "@/components/site/SiteAnnouncement";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import cairoArabic from "@/assets/fonts/cairo-arabic.woff2?url";
 
 /** Shared frame for the 404 and error screens: logo, message, and ways back into the site (Arabic / English). */
 function FallbackScreen({ code, title, text, children }: { code?: string; title: string; text: string; children: ReactNode }) {
@@ -76,9 +77,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" },
+      // Arabic Cairo is on every page; fetch it alongside the CSS (see @font-face in styles.css).
+      { rel: "preload", href: cairoArabic, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: appCss,
