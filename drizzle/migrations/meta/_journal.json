@@ -267,6 +267,13 @@
       "when": 1792004439569,
       "tag": "0037_release_24_co_brokerage",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792227794660,
+      "tag": "0038_release_25_areas_installments_review",
+      "breakpoints": true
     }
   ]
 }

@@ -1683,6 +1683,48 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          area: string | null
+          area_en: string | null
+          city: string
+          city_en: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          reviewed_at: string | null
+          sort: number
+          source: string | null
+          status: string
+        }
+        Insert: {
+          area?: string | null
+          area_en?: string | null
+          city: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          area?: string | null
+          area_en?: string | null
+          city?: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       malls: {
         Row: {
           created_at: string
@@ -2200,6 +2242,7 @@ export type Database = {
           created_at: string
           deposit: number | null
           description: string | null
+          down_payment: number | null
           featured_until: string | null
           finishing: string | null
           floor: string | null
@@ -2212,17 +2255,22 @@ export type Database = {
           id: string
           image_url: string | null
           images: string[]
+          installment_note: string | null
+          installment_years: number | null
           is_demo: boolean
           is_featured: boolean
           is_highlight: boolean
           land_size: number | null
           lat: number | null
           listed_until: string | null
+          listing_no: number
           listing_notice: number
           lng: number | null
           mall_id: string | null
           min_months: number | null
+          monthly_installment: number | null
           owner_lead_id: string | null
+          payment_method: string | null
           price: number
           price_month: number | null
           price_night: number | null
@@ -2259,6 +2307,7 @@ export type Database = {
           created_at?: string
           deposit?: number | null
           description?: string | null
+          down_payment?: number | null
           featured_until?: string | null
           finishing?: string | null
           floor?: string | null
@@ -2271,17 +2320,22 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          installment_note?: string | null
+          installment_years?: number | null
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           listed_until?: string | null
+          listing_no?: number
           listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
+          monthly_installment?: number | null
           owner_lead_id?: string | null
+          payment_method?: string | null
           price: number
           price_month?: number | null
           price_night?: number | null
@@ -2318,6 +2372,7 @@ export type Database = {
           created_at?: string
           deposit?: number | null
           description?: string | null
+          down_payment?: number | null
           featured_until?: string | null
           finishing?: string | null
           floor?: string | null
@@ -2330,17 +2385,22 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          installment_note?: string | null
+          installment_years?: number | null
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           listed_until?: string | null
+          listing_no?: number
           listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
+          monthly_installment?: number | null
           owner_lead_id?: string | null
+          payment_method?: string | null
           price?: number
           price_month?: number | null
           price_night?: number | null
@@ -3628,6 +3688,7 @@ export type Database = {
         Returns: Record<string, unknown>
       }
       member_user_id: { Args: { _member: string }; Returns: string }
+      merge_location: { Args: { _from: string; _to: string }; Returns: number }
       meta_inbound_lead: {
         Args: {
           _ad: string
@@ -3841,6 +3902,10 @@ export type Database = {
         Returns: string
       }
       normalize_phone: { Args: { _p: string }; Returns: string }
+      note_location: {
+        Args: { _area: string; _city: string; _source: string }
+        Returns: undefined
+      }
       notify_admins: {
         Args: {
           _except?: string
