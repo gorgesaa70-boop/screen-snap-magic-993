@@ -894,9 +894,8 @@ const EN: Record<string, string> = {
   "عدد الغرف (على الأقل)": "Rooms (at least)",
   "أي عدد": "Any",
   "أي تشطيب": "Any finishing",
-  "مرحبًا فاليو عقار، عندي استفسار.": "Hello Value Aqar, I have a question.",
-  "الصفحة:": "Page:",
   "إخفاء زرار الواتساب": "Hide the WhatsApp button",
+  "مرحبًا، أنا جاي من صفحة فاليو عقار وعندي استفسار / محتاج مساعدة.": "Hello, I came from the Value Aqar website and I have a question / need help.",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */

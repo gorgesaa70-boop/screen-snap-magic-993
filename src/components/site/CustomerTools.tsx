@@ -8,6 +8,7 @@ import { formatPrice, formatDate } from "./data";
 import { GROUP_LABELS, TYPE_GROUPS, type Filters } from "./search";
 import { inputCls } from "./ui";
 import { t, useLang } from "@/lib/i18n";
+import { SITE_URL } from "@/lib/seo";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** Favourites of the signed-in user (ids only), shared by every heart on the page. */
@@ -52,7 +53,8 @@ export function FavoriteButton({ id, className = "" }: { id: string; className?:
 export function ShareButton({ title }: { title: string }) {
   useLang();
   const [open, setOpen] = useState(false);
-  const url = typeof window === "undefined" ? "" : window.location.href;
+  // Always the public domain, even when the page is opened from a preview or editor address.
+  const url = typeof window === "undefined" ? "" : `${SITE_URL}${window.location.pathname}${window.location.search}`;
   async function share() {
     if (typeof navigator !== "undefined" && navigator.share) {
       try { await navigator.share({ title, url }); } catch { /* cancelled */ }

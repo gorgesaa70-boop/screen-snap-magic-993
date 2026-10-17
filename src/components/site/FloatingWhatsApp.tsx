@@ -20,7 +20,7 @@ const HIDE_KEY = "va-wa-hidden";
 const hiddenByVisitor = () => { try { return sessionStorage.getItem(HIDE_KEY) === "1"; } catch { return false; } };
 
 /**
- * Always-visible WhatsApp button to Value Aqar (above the phone's bottom bar), with the page the visitor was on.
+ * Always-visible WhatsApp button to Value Aqar (above the phone's bottom bar) with a short ready message (no links).
  * The small × hides it until the visitor comes back in a new session.
  */
 export function FloatingWhatsApp() {
@@ -34,8 +34,7 @@ export function FloatingWhatsApp() {
     setHidden(true);
   };
   const open = () => {
-    const page = document.title.split("|")[0]!.trim();
-    const text = `${t("مرحبًا فاليو عقار، عندي استفسار.")}\n${page ? `${t("الصفحة:")} ${page}\n` : ""}${window.location.href}`;
+    const text = t("مرحبًا، أنا جاي من صفحة فاليو عقار وعندي استفسار / محتاج مساعدة.");
     window.open(waLink(WHATSAPP_NUMBER, text), "_blank", "noopener,noreferrer");
   };
   return (
