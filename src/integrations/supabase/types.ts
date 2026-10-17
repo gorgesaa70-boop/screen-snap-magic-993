@@ -3424,38 +3424,32 @@ export type Database = {
         Row: {
           attempts: number
           code_hash: string
-          confirmed_at: string | null
           consumed_at: string | null
           created_at: string
           expires_at: string
           id: string
           ip_hash: string | null
           phone: string
-          ticket_hash: string | null
         }
         Insert: {
           attempts?: number
           code_hash: string
-          confirmed_at?: string | null
           consumed_at?: string | null
           created_at?: string
           expires_at: string
           id?: string
           ip_hash?: string | null
           phone: string
-          ticket_hash?: string | null
         }
         Update: {
           attempts?: number
           code_hash?: string
-          confirmed_at?: string | null
           consumed_at?: string | null
           created_at?: string
           expires_at?: string
           id?: string
           ip_hash?: string | null
           phone?: string
-          ticket_hash?: string | null
         }
         Relationships: []
       }
