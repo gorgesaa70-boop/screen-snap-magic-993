@@ -59,7 +59,7 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
       saved += rows.slice(i, i + 100).length;
     }
     setBusy(false);
-    toast.success(publish ? `اتنشر ${saved} وحدة` : `اتضاف ${saved} وحدة كمسودة — زوّد الصور وانشرهم`);
+    toast.success(publish ? (brokerId ? `اتبعت ${saved} وحدة للمراجعة — هيظهروا أول ما الإدارة تعتمدهم` : `اتنشر ${saved} وحدة`) : `اتضاف ${saved} وحدة كمسودة — زوّد الصور وانشرهم`);
     onDone();
   }
 

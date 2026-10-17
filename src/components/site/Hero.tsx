@@ -1,7 +1,9 @@
-import { Search, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Search, RotateCcw, SlidersHorizontal, ChevronDown } from "lucide-react";
 import hero from "@/assets/hero.jpg";
-import { CITY_NAMES, CITIES, TYPES_FOR } from "./data";
-import { emptyFilters, isEmpty, type Filters } from "./search";
+import { CITY_NAMES, CITIES, TYPES_FOR, FINISHING_LABEL, useLocations } from "./data";
+import { emptyFilters, extraCount, isEmpty, type Filters } from "./search";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t, useLang } from "@/lib/i18n";
 
 const field =
@@ -16,6 +18,9 @@ type Props = { draft: Filters; setDraft: (f: Filters) => void; onSearch: () => v
 
 export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
   useLang();
+  useLocations();
+  const extras = extraCount(draft);
+  const [more, setMore] = useState(extras > 0);
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [k]: e.target.value });
 
@@ -42,7 +47,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
         <div role="tablist" aria-label={t("الغرض")} className="flex w-fit gap-1 rounded-t-2xl bg-card p-1.5 pb-0 shadow-float">
           {TABS.map(([v, label]) => (
             <button key={v || "all"} type="button" role="tab" aria-selected={draft.status === v}
-              onClick={() => setDraft({ ...draft, status: v, type: TYPES_FOR[v]!.includes(draft.type) ? draft.type : "", min: "", max: "" })}
+              onClick={() => setDraft({ ...draft, status: v, type: TYPES_FOR[v]!.includes(draft.type) ? draft.type : "", min: "", max: "", ...(v && v !== "بيع" ? { pay: "", maxDown: "" } : {}) })}
               className={`rounded-xl px-4 py-2 text-sm font-extrabold transition md:px-5 ${draft.status === v ? "bg-primary text-primary-foreground" : "text-primary hover:bg-secondary"}`}>
               {t(label)}
             </button>
@@ -91,6 +96,47 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
               </button>
             )}
           </div>
+          <div className="col-span-2 md:col-span-6">
+            <button type="button" aria-expanded={more} onClick={() => setMore(!more)}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-teal">
+              <SlidersHorizontal className="size-4" />{t("فلاتر أكتر")}{extras > 0 && <span className="rounded-full bg-teal px-1.5 text-[11px] text-accent-foreground">{extras}</span>}
+              <ChevronDown className={`size-4 transition ${more ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+          {more && (
+            <div className="col-span-2 grid grid-cols-2 gap-3 border-t pt-3 md:col-span-6 md:grid-cols-4">
+              {(draft.status === "" || draft.status === "بيع") && (
+                <>
+                  <label>
+                    <span className={lbl}>{t("طريقة الدفع")}</span>
+                    <select value={draft.pay ?? ""} onChange={set("pay")} className={field}>
+                      <option value="">{t("كاش أو تقسيط")}</option>
+                      <option value="installment">{t("تقسيط بس")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span className={lbl}>{t("أقصى مقدم (ج.م)")}</span>
+                    <input inputMode="numeric" placeholder={t("بلا حد")} value={draft.maxDown ?? ""} className={field}
+                      onChange={(e) => setDraft({ ...draft, maxDown: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 13), pay: e.target.value ? "installment" : draft.pay ?? "" })} />
+                  </label>
+                </>
+              )}
+              <label>
+                <span className={lbl}>{t("عدد الغرف (على الأقل)")}</span>
+                <select value={draft.rooms ?? ""} onChange={set("rooms")} className={field}>
+                  <option value="">{t("أي عدد")}</option>
+                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+</option>)}
+                </select>
+              </label>
+              <label>
+                <span className={lbl}>{t("التشطيب")}</span>
+                <select value={draft.finishing ?? ""} onChange={set("finishing")} className={field}>
+                  <option value="">{t("أي تشطيب")}</option>
+                  {Object.entries(FINISHING_LABEL).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
         </form>
       </div>
     </section>

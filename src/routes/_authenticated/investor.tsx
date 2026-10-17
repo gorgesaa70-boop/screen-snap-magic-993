@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { useMe } from "@/hooks/useAuth";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
-import { CITY_NAMES } from "@/components/site/data";
+import { CITY_NAMES, useLocations } from "@/components/site/data";
 import { OPP_KINDS } from "@/lib/investments";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated/investor")({
 
 /** Investor profile: budget and interests; a matching new opportunity triggers a notification (bell + WhatsApp if enabled). */
 function InvestorPage() {
+  useLocations();
   const { me, user } = useMe();
   const q = useQuery({ queryKey: ["investor-profile", user?.id], enabled: !!user, queryFn: async () => (await supabase.from("investor_profiles").select("*").maybeSingle()).data });
   const [f, setF] = useState({ name: "", budget_min: "", budget_max: "", kinds: [] as string[], areas: [] as string[], notify: true });

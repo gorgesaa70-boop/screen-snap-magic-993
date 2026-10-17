@@ -2,7 +2,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
-import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
+import { DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
+import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
 import { AMENITIES, type ProjectRow } from "@/components/site/projects";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
@@ -43,12 +44,13 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
 
   async function save() {
     if (f.name.trim().length < 2) { toast.error("اكتب اسم المشروع"); return; }
+    if (!placeReady(f)) { toast.error("اختار المدينة والمنطقة، أو اكتب المنطقة الجديدة"); return; }
     const share = f.co_broke_share === "" ? null : Number(f.co_broke_share);
     if (share != null && (!(share > 0) || share > 90)) { toast.error("نسبة قسمة الوسطاء من 1 لـ 90"); return; }
     setBusy(true);
     const payload = {
       name: f.name.trim().slice(0, 150), description: f.description.trim().slice(0, 5000) || null,
-      city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!,
+      ...placeToSave(f),
       address: f.address.trim().slice(0, 300) || null, payment_plans: f.payment_plans.trim().slice(0, 2000) || null,
       delivery_date: f.delivery_date.trim().slice(0, 100) || null, amenities: f.amenities, images: f.images,
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
@@ -70,8 +72,7 @@ export function ProjectForm({ developerId, initial, onDone, onCancel }: Props) {
       {initial?.review_note && <p className="mb-4 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">ملاحظة الإدارة: {initial.review_note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Field label="اسم المشروع"><input className={inputCls} value={f.name} onChange={set("name")} maxLength={150} /></Field></div>
-        <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((a) => <option key={a}>{a}</option>)}</select></Field>
+        <PlacePicker city={f.city} area={f.area} onChange={(v) => setF({ ...f, ...v })} />
         <Field label="العنوان التفصيلي (اختياري)"><input className={inputCls} value={f.address} onChange={set("address")} maxLength={300} /></Field>
         <Field label="قسمة الوسطاء (%) — اختياري"><input className={inputCls} inputMode="numeric" placeholder="فاضية = مقفول للوسطاء" value={f.co_broke_share} onChange={(e) => setF({ ...f, co_broke_share: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/[^d.]/g, "").slice(0, 4) })} /></Field>
         <Field label="ميعاد التسليم"><input className={inputCls} placeholder="مثال: 2028 أو فوري" value={f.delivery_date} onChange={set("delivery_date")} maxLength={100} /></Field>

@@ -1,7 +1,10 @@
 import type { Property } from "./data";
 
-export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string; group?: string };
-export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "", group: "" };
+/** «فلاتر أكتر»: pay = "installment" (installments only), maxDown = highest down payment, rooms = at least, finishing. */
+export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string; group?: string; pay?: string; maxDown?: string; rooms?: string; finishing?: string };
+export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "", group: "", pay: "", maxDown: "", rooms: "", finishing: "" };
+/** How many of the extra filters are set (shown on the «فلاتر أكتر» button). */
+export const extraCount = (f: Filters) => [f.pay, f.maxDown, f.rooms, f.finishing].filter(Boolean).length;
 
 /** Category groups shown on the home page and header. Values are canonical Arabic property types. */
 export const TYPE_GROUPS: Record<string, string[]> = {
@@ -12,11 +15,13 @@ export const TYPE_GROUPS: Record<string, string[]> = {
 };
 export const GROUP_LABELS: Record<string, string> = { land: "أراضي", residential: "سكني", commercial: "تجاري", office: "إداري" };
 
-export const isEmpty = (f: Filters) => Object.values(f).every((v) => v === "");
+export const isEmpty = (f: Filters) => Object.values(f).every((v) => !v);
 
 export function applyFilters(list: Property[], f: Filters) {
   const min = f.min ? Number(f.min) : null;
   const max = f.max ? Number(f.max) : null;
+  const maxDown = f.maxDown ? Number(f.maxDown) : null;
+  const rooms = f.rooms ? Number(f.rooms) : null;
   return list.filter(
     (p) =>
       (!f.type || p.type === f.type) &&
@@ -25,6 +30,10 @@ export function applyFilters(list: Property[], f: Filters) {
       (!f.city || p.city === f.city) &&
       (!f.area || p.area === f.area) &&
       (min === null || p.price >= min) &&
-      (max === null || p.price <= max),
+      (max === null || p.price <= max) &&
+      (!f.pay || !!p.installments) &&
+      (maxDown === null || (!!p.installments && (p.installments.down ?? 0) <= maxDown)) &&
+      (rooms === null || (p.rooms ?? 0) >= rooms) &&
+      (!f.finishing || p.finishing === f.finishing),
   );
 }

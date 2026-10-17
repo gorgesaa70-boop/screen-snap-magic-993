@@ -5,7 +5,7 @@ import { MapPin, Search, Users } from "lucide-react";
 import { PageShell, Avatar, inputCls } from "@/components/site/ui";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { CITIES, CITY_NAMES, areasOf, fetchPublicBrokers, formatPrice } from "@/components/site/data";
+import { CITIES, CITY_NAMES, areasOf, fetchPublicBrokers, formatPrice, useLocations } from "@/components/site/data";
 
 export const Route = createFileRoute("/brokers/")({
   head: () => ({
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/brokers/")({
 });
 
 function BrokersPage() {
+  useLocations();
   useLang();
   const { data = [], isLoading, isError, refetch } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
   const [q, setQ] = useState("");

@@ -4,7 +4,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { HousePlus, ShieldCheck, Users, Wallet, ArrowLeft, ImagePlus, X } from "lucide-react";
 import { PageShell, Field, inputCls, btnTeal } from "@/components/site/ui";
-import { TYPES_FOR, CITIES, DEFAULT_CITY, FINISHING_LABEL, hasFinishing } from "@/components/site/data";
+import { TYPES_FOR, DEFAULT_CITY, FINISHING_LABEL, hasFinishing } from "@/components/site/data";
+import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
+import { InstallmentFields, emptyInstallments, installmentError, installmentPayload, type InstallmentDraft } from "@/components/site/InstallmentFields";
 import { getAttribution } from "@/lib/attribution";
 import { sendWhatsappOtp, submitOwnerListing } from "@/lib/whatsapp-otp.functions";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
@@ -65,6 +67,8 @@ function egPhone(raw: string) {
 }
 
 const num = (v: string) => (v ? Number(v) : undefined);
+/** The server takes missing fields, not nulls. */
+const stripNulls = <T extends Record<string, unknown>>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null)) as { [K in keyof T]?: Exclude<T[K], null> };
 
 function SellPage() {
   useLang();
@@ -118,7 +122,7 @@ function SellForm() {
     setPhotos((p) => [...p, ...out].slice(0, MAX_PHOTOS));
     setCompressing(false);
   }
-  const areas = CITIES[f.city] ?? [];
+  const [inst, setInst] = useState<InstallmentDraft>(emptyInstallments);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -131,7 +135,8 @@ function SellForm() {
     const attr = getAttribution();
     const r = await submit({ data: {
       name: f.name.trim(), phone: p, ...(withCode ? { code: withCode } : {}), purpose: f.purpose, ...(f.purpose === "summer" ? { price_unit: f.price_unit } : {}), property_type: f.property_type,
-      city: f.city, area: f.area || f.city, asking_price: Number(f.price), size_m2: Number(f.size),
+      ...placeToSave(f), asking_price: Number(f.price), size_m2: Number(f.size),
+      ...(f.purpose === "sale" ? stripNulls(installmentPayload(inst, Number(f.price))) : {}),
       ...(hasFinishing(f.property_type) && f.finishing ? { finishing: f.finishing as "skeleton" | "semi" | "full" | "super_lux" } : {}),
       rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
       photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}), ...(attr ? { utm: attr } : {}),
@@ -149,10 +154,12 @@ function SellForm() {
     if (f.name.trim().length < 2) { toast.error(t("اكتب اسمك")); return; }
     if (!p) { toast.error(t("اكتب رقم موبايل مصري صحيح")); return; }
     if (!f.property_type) { toast.error(t("اختار نوع العقار")); return; }
-    if (areas.length > 0 && !f.area) { toast.error(t("اختار المنطقة / الحي")); return; }
+    if (!placeReady(f)) { toast.error(t("اختار المنطقة / الحي")); return; }
     if (hasFinishing(f.property_type) && !f.finishing) { toast.error(t("اختار حالة التشطيب")); return; }
     if (!Number(f.size)) { toast.error(t("اكتب المساحة")); return; }
     if (!Number(f.price)) { toast.error(t("اكتب السعر")); return; }
+    const instErr = f.purpose === "sale" ? installmentError(inst, Number(f.price)) : "";
+    if (instErr) { toast.error(t(instErr)); return; }
     if (photos.length === 0) { toast.error(t("ضيف صورة واحدة على الأقل للعقار")); return; }
     setPhone(p);
     setBusy(true);
@@ -214,18 +221,7 @@ function SellForm() {
           <option value="">{t("اختر")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
         </select>
       </Field>
-      <Field label={t("المدينة")}>
-        <select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: "" })}>
-          {Object.keys(CITIES).map((c) => <option key={c} value={c}>{t(c)}</option>)}
-        </select>
-      </Field>
-      {areas.length > 0 && (
-        <Field label={t("المنطقة / الحي")}>
-          <select className={inputCls} value={f.area} onChange={set("area")}>
-            <option value="">{t("اختر")}</option>{areas.map((a) => <option key={a} value={a}>{t(a)}</option>)}
-          </select>
-        </Field>
-      )}
+      <PlacePicker translate city={f.city} area={f.area} onChange={(v) => setF({ ...f, ...v })} />
       {hasFinishing(f.property_type) && (
         <Field label={t("حالة التشطيب")}>
           <select className={inputCls} value={f.finishing} onChange={set("finishing")}>
@@ -246,6 +242,7 @@ function SellForm() {
           )}
         </div>
       </Field>
+      {f.purpose === "sale" && <InstallmentFields translate value={inst} onChange={setInst} price={Number(f.price || 0)} />}
       {!["أرض", "محل", "مكتب"].includes(f.property_type) && (
         <>
           <Field label={t("عدد الغرف")}>

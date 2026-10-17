@@ -1,10 +1,11 @@
-import { CITY_NAMES, areasOf, cityOfArea } from "@/components/site/data";
+import { CITY_NAMES, areasOf, cityOfArea, useLocations } from "@/components/site/data";
 import { inputCls } from "@/components/site/ui";
 import { t, useLang } from "@/lib/i18n";
 
 /** City + area filter with every known area (not only the ones that have listings), so it always works.
  * Renders two selects side by side; picking an area also sets its city. */
 export function AreaFilter({ city, area, onChange, className = inputCls }: { city: string; area: string; onChange: (v: { city: string; area: string }) => void; className?: string }) {
+  useLocations();
   useLang();
   const cities = city ? [city] : CITY_NAMES;
   return (

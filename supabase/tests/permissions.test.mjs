@@ -43,7 +43,8 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
   await expectOk("sales member updates lead stage", () => as(U.sales, `update public.leads set stage='contacted' where id='${lead}' returning stage`), (r) => r[0]?.stage === "contacted");
   await expectOk("sales member can't reassign lead", () => as(U.sales, `update public.leads set assigned_broker_id=null where id='${lead}' returning assigned_broker_id`), (r) => r[0]?.assigned_broker_id === CO);
   await expectErr("sales member can't add a property", () => as(U.sales, `insert into public.properties (broker_id, title, price, type, area, status) values ('${CO}','شقة',1,'شقة','الحي الأول','بيع')`));
-  await expectOk("manager adds a property (published)", () => as(U.manager, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${CO}','شقة',1,'شقة','الحي الأول','بيع','pending') returning review_status`), (r) => r[0].review_status === "approved");
+  await expectOk("manager adds a property (waits for review)", () => as(U.manager, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${CO}','شقة',1,'شقة','الحي الأول','بيع','approved') returning review_status`), (r) => r[0].review_status === "pending");
+  await sys(`update public.properties set review_status='approved' where broker_id='${CO}'`);
   await expectErr("sales member can't delete a property", async () => { const r = await as(U.sales, `delete from public.properties where broker_id='${CO}' returning id`); if (!r.length) throw new Error("nothing"); return r; });
   await expectOk("outsider sees no company leads", () => as(U.outsider, `select id from public.leads`), (r) => r.length === 0);
   await expectErr("team member can't file a join request", () => as(U.sales, `insert into public.brokers (user_id, slug, name, is_active, account_type) values ('${U.sales}','s','x',false,'individual')`));
@@ -298,6 +299,7 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
   await expectOk("summer listing: lowest price shown per night", () => prop({ title: "شاليه بحري", cols: "status, price, price_night, price_week, guests, min_months", vals: "'مصيف', 0, 1500, 9000, 6, 3" }), (r) => Number(r[0].price) === 1500 && r[0].price_unit === "night" && r[0].min_months === null);
   await expectOk("monthly rent listing: price is per month", () => prop({ title: "شقة إيجار", cols: "status, price, price_night, min_months", vals: "'إيجار', 7000, 999, 6" }), (r) => r[0].price_unit === "month" && Number(r[0].price_month) === 7000 && r[0].price_night === null && r[0].min_months === 6);
   await expectOk("sale listing drops rent fields", () => prop({ title: "شاليه للبيع", cols: "status, price, price_night, min_months", vals: "'بيع', 900000, 1500, 6" }), (r) => r[0].price_unit === null && r[0].price_night === null && r[0].min_months === null);
+  await sys(`update public.properties set review_status='approved' where broker_id='${CO}'`);
   await expectErr("existing statuses still validated", () => prop({ title: "غلط", cols: "status, price", vals: "'تأجير', 1" }));
 
   const summerId = (await sys(`select id from public.properties where title='شاليه بحري'`))[0].id;
@@ -1151,7 +1153,10 @@ commit;`);
   await sys(`insert into auth.users (id, phone) values ('${LP.broker}','201055500081'), ('${LP.owner}','201055500082')`);
   await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values ('${NB}','${LP.broker}','nb','وسيط جديد','201055500081','individual', true)`);
   const svcRole = async (sql) => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); try { return await sys(sql); } finally { await sys(`select set_config('request.jwt.claim.role','',false)`); } };
-  const addListing = (title) => as(LP.broker, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${NB}','${title}',1,'شقة','الحي الأول','بيع','pending') returning id, review_status, listed_until`);
+  const addListing = async (title) => {
+    const id = (await as(LP.broker, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${NB}','${title}',1,'شقة','الحي الأول','بيع','pending') returning id`))[0].id;
+    return as(U.admin, `update public.properties set review_status='approved' where id='${id}' returning id, review_status, listed_until`);
+  };
   await expectOk("owner plans exist; the free plan allows 2 listings for 30 days", () => sys(`select code, audience, max_properties, listing_days from public.plans where code in ('free','owner_free','owner_plus') order by code`),
     (r) => r.length === 3 && r[0].max_properties === 2 && r[0].listing_days === 30 && r[1].audience === "owner" && r[2].max_properties === 5);
   await expectErr("a broker can't be put on an owner plan", () => as(U.admin, `update public.brokers set plan_id=(select id from public.plans where code='owner_plus') where id='${NB}'`));
@@ -1293,6 +1298,7 @@ commit;`);
     ('${OB}','${RF.other}','rf-other','وسيط تالت','201066600003','individual', true, null)`);
   const rUnit = (await as(RF.seller, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${SB}','شقة البايع',2000000,'شقة','الحي الأول','بيع','pending') returning id`))[0].id;
   const rUnit2 = (await as(RF.seller, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${SB}','فيلا البايع',5000000,'فيلا','الحي الأول','بيع','pending') returning id`))[0].id;
+  await sys(`update public.properties set review_status='approved' where id in ('${rUnit}','${rUnit2}')`);
   const rRefer = (who, id, phone = "01066600099", name = "مشتري محال") => as(who, `select public.create_referral('property', '${id}', '${name}', '${phone}', 'عايز يعاين الأسبوع ده') r`).then((x) => x[0].r);
   await expectErr("a rUnit not opened for referrals can't be referred to", () => rRefer(RF.ref, rUnit));
   await expectOk("the seller opens the rUnit at 30%", () => as(RF.seller, `update public.properties set co_broke_share = 30 where id in ('${rUnit}','${rUnit2}') returning co_broke_share`), (r) => r.length === 2 && Number(r[0].co_broke_share) === 30);
@@ -1377,4 +1383,59 @@ commit;`);
     const after = await sys(`select (select count(*)::int from public.referrals) n, (select count(*)::int from public.referral_payouts) p`);
     return [before[0], after[0]];
   }, (r) => r[0].n === r[1].n && r[0].p === r[1].p);
+
+  console.log("\nNew areas, installments and review for every listing (release 25)");
+  const AU = "00000000-0000-0000-0000-0000000000e9", AB = "b0000000-0000-0000-0000-0000000000e9";
+  await sys(`insert into auth.users (id, phone) values ('${AU}','201077700001')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active, plan_id) values ('${AB}','${AU}','area-broker','وسيط إسكندرية','201077700001','individual', true, (select id from public.plans where code='business'))`);
+  const aProp = (cols, vals) => as(AU, `insert into public.properties (broker_id, title, type, status, ${cols}) values ('${AB}', 'شقة', 'شقة', 'بيع', ${vals}) returning *`).then((r) => r[0]);
+  const adminNotes = (title) => sys(`select title, message from public.notifications where user_id='${U.admin}' and title='${title}'`);
+  await expectOk("the old places are there for everyone", () => as(null, `select city, area from public.locations`), (r) => r.length >= 22 && r.some((x) => x.city === "كينج مريوط" && x.area === null));
+  const smouha = await aProp("price, city, area, review_status", "1500000, 'الإسكندرية', 'سموحة', 'approved'");
+  await expectOk("a listing in a new place is saved with it, and waits for review", async () => smouha, (r) => r.city === "الإسكندرية" && r.area === "سموحة" && r.review_status === "pending");
+  await expectOk("the new place waits for the admin, who is told once", async () => {
+    await aProp("price, city, area", "900000, 'الإسكندرية', 'سموحة'");
+    return [await sys(`select status from public.locations where city='الإسكندرية' and area='سموحة'`), await adminNotes("منطقة جديدة مستنية اعتماد")];
+  }, (r) => r[0].length === 1 && r[0][0].status === "pending" && r[1].filter((x) => x.message.includes("الإسكندرية")).length === 1);
+  await expectOk("visitors and brokers don't see places waiting for the admin", async () => [await as(null, `select id from public.locations where status <> 'approved'`), await as(AU, `select id from public.locations where city='الإسكندرية'`)], (r) => r[0].length === 0 && r[1].length === 0);
+  await expectErr("a broker can't add a place directly", () => as(AU, `insert into public.locations (city, area, status) values ('الإسكندرية','ميامي','approved')`));
+  await expectOk("a broker can't approve a place", async () => { await as(AU, `update public.locations set status='approved' where city='الإسكندرية'`); return sys(`select status from public.locations where city='الإسكندرية'`); }, (r) => r.every((x) => x.status === "pending"));
+  await expectOk("the admin approves; everyone sees it", async () => { await as(U.admin, `update public.locations set status='approved', reviewed_at=now() where city='الإسكندرية' and area='سموحة'`); return as(null, `select id from public.locations where city='الإسكندرية'`); }, (r) => r.length === 1);
+  const typo = await aProp("price, city, area", "800000, 'الإسكندرية', 'سموحه'");
+  await expectErr("a broker can't merge places", () => as(AU, `select public.merge_location((select id from public.locations where area='سموحه'), (select id from public.locations where area='سموحة'))`));
+  await expectErr("merging into a place that isn't approved is refused", () => as(U.admin, `select public.merge_location((select id from public.locations where area='سموحة'), (select id from public.locations where area='سموحه'))`));
+  await expectOk("merging a misspelling moves its listings and drops it", async () => {
+    await sys(`update public.brokers set areas = array['سموحه'] where id='${AB}'`);
+    const n = (await as(U.admin, `select public.merge_location((select id from public.locations where area='سموحه'), (select id from public.locations where area='سموحة')) n`))[0].n;
+    return [n, await sys(`select area from public.properties where id='${typo.id}'`), await sys(`select id from public.locations where area='سموحه'`), await sys(`select areas from public.brokers where id='${AB}'`)];
+  }, (r) => r[0] === 1 && r[1][0].area === "سموحة" && r[2].length === 0 && r[3][0].areas[0] === "سموحة");
+  await expectOk("a city without areas is one place", async () => { await aProp("price, city, area", "700000, 'العامرية', 'العامرية'"); return sys(`select area from public.locations where city='العامرية'`); }, (r) => r.length === 1 && r[0].area === null);
+
+  console.log("\nEvery listing is reviewed");
+  await expectOk("an admin's listing is published at once", () => as(U.admin, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${AB}','شقة الأدمن',1,'شقة','الحي الأول','بيع','approved') returning review_status`), (r) => r[0].review_status === "approved");
+  await expectOk("the admin approves the broker's listing", () => as(U.admin, `update public.properties set review_status='approved' where id='${smouha.id}' returning review_status`), (r) => r[0].review_status === "approved");
+  await expectOk("opening it for co-brokerage keeps it live", () => as(AU, `update public.properties set co_broke_share = 25 where id='${smouha.id}' returning review_status`), (r) => r[0].review_status === "approved");
+  await expectOk("changing the price sends it back to review; the admin is told", async () => {
+    const r = await as(AU, `update public.properties set price = 1400000 where id='${smouha.id}' returning review_status`);
+    return [r, await sys(`select id from public.notifications where user_id='${U.admin}' and related_id='${smouha.id}'`), await as(null, `select id from public.properties where id='${smouha.id}'`)];
+  }, (r) => r[0][0].review_status === "pending" && r[1].length >= 1 && r[2].length === 0);
+  await expectOk("a broker can't approve their own listing", () => as(AU, `update public.properties set review_status='approved' where id='${smouha.id}' returning review_status`), (r) => r[0].review_status === "pending");
+  await expectOk("a broker can take a listing down to draft", () => as(AU, `update public.properties set review_status='draft' where id='${smouha.id}' returning review_status`), (r) => r[0].review_status === "draft");
+
+  console.log("\nInstallments on sale listings");
+  await expectErr("installments need the number of years", () => aProp("price, area, payment_method, down_payment", "2000000, 'الحي الأول', 'installment', 200000"));
+  await expectErr("the down payment must be less than the price", () => aProp("price, area, payment_method, down_payment, installment_years", "2000000, 'الحي الأول', 'both', 2000000, 5"));
+  await expectOk("a sale listing with installments", () => aProp("price, area, payment_method, down_payment, installment_years, monthly_installment, installment_note", "2000000, 'الحي الأول', 'both', 300000, 5, 28334, 'خصم 10% للكاش'"),
+    (r) => r.payment_method === "both" && Number(r.down_payment) === 300000 && r.installment_years === 5 && Number(r.monthly_installment) === 28334);
+  await expectOk("cash clears the installment details", () => aProp("price, area, payment_method, down_payment, installment_years", "2000000, 'الحي الأول', 'cash', 300000, 5"), (r) => r.payment_method === "cash" && r.down_payment === null && r.installment_years === null);
+  await expectOk("rent listings have no installments", () => as(AU, `insert into public.properties (broker_id, title, type, status, price, area, payment_method, installment_years) values ('${AB}','شقة إيجار','شقة','إيجار',8000,'الحي الأول','installment',5) returning payment_method, installment_years`), (r) => r[0].payment_method === null && r[0].installment_years === null);
+  await expectOk("every listing has its own code", () => sys(`select count(*)::int n, count(distinct listing_no)::int d, count(listing_no)::int c from public.properties`), (r) => r[0].n === r[0].d && r[0].n === r[0].c);
+
+  await expectOk("release 25 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017100000_areas-installments-review.sql", import.meta.url), "utf8");
+    const before = await sys(`select (select count(*)::int from public.locations) n, (select max(listing_no)::int from public.properties) m`);
+    await exec(`begin;\n${sql}\ncommit;`);
+    const after = await sys(`select (select count(*)::int from public.locations) n, (select max(listing_no)::int from public.properties) m`);
+    return [before[0], after[0]];
+  }, (r) => r[0].n === r[1].n && r[0].m === r[1].m);
 }

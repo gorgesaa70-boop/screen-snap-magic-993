@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { getLang } from "@/lib/i18n";
+import { useSyncExternalStore } from "react";
+import { addTranslations, getLang } from "@/lib/i18n";
 import { UploadError, extensionFor, prepareImage, uploadErrorMessage } from "@/lib/images";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
@@ -43,6 +44,10 @@ export type Property = {
   featured: boolean;
   finishing?: string | undefined;
   brokerId: string | null;
+  /** Short public code (VA-1234); missing until release 25 is applied. */
+  code?: string | undefined;
+  /** Sale listings paid in installments (or cash or installments). */
+  installments?: { method: "installment" | "both"; down?: number | undefined; years?: number | undefined; monthly?: number | undefined; note?: string | undefined } | undefined;
 };
 
 export const TYPES = ["شقة", "دوبلكس", "فيلا", "بيت", "عمارة", "استوديو", "شاليه", "أرض", "محل", "مكتب", "عيادة"];
@@ -63,17 +68,56 @@ export const FINISHING_LABEL: Record<string, string> = { skeleton: "عمدان /
 export const hasFinishing = (type: string) => !!type && type !== "أرض";
 export const AREAS = ["الحي الأول", "الحي الثاني", "الحي الثالث", "الحي الرابع", "الحي الخامس", "الحي السادس", "الحي السابع", "الحي الثامن", "الحي التاسع"];
 export const DEFAULT_CITY = "برج العرب الجديدة";
-/** City -> its areas. Cities with no areas store the city name as the area. */
+/**
+ * City -> its areas. Cities with no areas store the city name as the area.
+ * Starts with the built-in places (so the first render and the server render work) and is replaced by the approved
+ * places in public.locations once loadLocations() runs; components re-render through useLocations().
+ */
 export const CITIES: Record<string, string[]> = {
   "برج العرب الجديدة": AREAS,
   "كينج مريوط": [],
   "مدينة العلمين": ["العلمين الجديدة", "الحي اللاتيني", "داون تاون", "الأبراج الشاطئية", "الحي السكني"],
   "الساحل الشمالي": ["سيدي عبد الرحمن", "رأس الحكمة", "الضبعة", "مراسي", "الحمام", "العلمين القديمة", "مرسى مطروح"],
 };
-export const CITY_NAMES = Object.keys(CITIES);
+export let CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
 /** Every selectable area across all cities (a city with no areas counts as one). */
-export const ALL_AREAS = CITY_NAMES.flatMap(areasOf);
+export let ALL_AREAS = CITY_NAMES.flatMap(areasOf);
+
+let locationsVersion = 0;
+let locationsLoading: Promise<void> | null = null;
+const locationListeners = new Set<() => void>();
+/** Loads the approved places once per page load. */
+export function loadLocations() {
+  locationsLoading ??= (async () => {
+    const { data, error } = await supabase.from("locations").select("city, area, city_en, area_en, sort").eq("status", "approved").order("sort").order("city").order("area");
+    if (error || !data?.length) return;
+    const next: Record<string, string[]> = {};
+    const en: Record<string, string> = {};
+    for (const l of data) {
+      (next[l.city] ??= []);
+      if (l.area && l.area !== l.city) next[l.city]!.push(l.area);
+      if (l.city_en) en[l.city] = l.city_en;
+      if (l.area && l.area_en) en[l.area] = l.area_en;
+    }
+    for (const k of Object.keys(CITIES)) delete CITIES[k];
+    Object.assign(CITIES, next);
+    CITY_NAMES = Object.keys(CITIES);
+    ALL_AREAS = CITY_NAMES.flatMap(areasOf);
+    addTranslations(en);
+    locationsVersion++;
+    locationListeners.forEach((fn) => fn());
+  })();
+  return locationsLoading;
+}
+/** Re-renders the component when the approved places arrive. */
+export function useLocations() {
+  return useSyncExternalStore(
+    (fn) => { locationListeners.add(fn); void loadLocations(); return () => locationListeners.delete(fn); },
+    () => locationsVersion,
+    () => 0,
+  );
+}
 /** The city an area belongs to ("" if unknown). */
 export const cityOfArea = (area: string) => CITY_NAMES.find((c) => c === area || areasOf(c).includes(area)) ?? "";
 export const ACCOUNT_LABEL: Record<string, string> = { individual: "وسيط عقاري", office: "مكتب عقاري", owner: "مالك العقار", company: "شركة تسويق / وساطة", developer: "شركة تطوير" };
@@ -101,6 +145,10 @@ export const toProperty = (r: PropertyRow): Property => ({
   finishing: r.finishing ?? undefined,
   featured: r.is_featured,
   brokerId: r.broker_id,
+  code: r.listing_no != null ? listingCode(r.listing_no) : undefined,
+  installments: r.status === "بيع" && (r.payment_method === "installment" || r.payment_method === "both") ? {
+    method: r.payment_method, down: num(r.down_payment), years: r.installment_years ?? undefined, monthly: num(r.monthly_installment), note: r.installment_note ?? undefined,
+  } : undefined,
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),
   verified: r.verified_at ? { at: r.verified_at, note: r.verified_note ?? undefined } : undefined,
   highlight: r.is_highlight && r.highlight_reason ? { reason: r.highlight_reason, yield: num(r.highlight_yield) } : undefined,
@@ -248,6 +296,24 @@ export const REVIEW: Record<"draft" | "pending" | "approved" | "rejected", { lab
 };
 
 export const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("");
+/** The public listing code shown on cards and sent in WhatsApp messages. */
+export const listingCode = (n: number) => `VA-${n}`;
+
+/** Ready WhatsApp text about one listing: code, short description, price and link. */
+export function listingMessage(p: Pick<Property, "id" | "title" | "type" | "status" | "city" | "area" | "size" | "rooms" | "price" | "priceUnit" | "code" | "installments">) {
+  const en = getLang() === "en";
+  const place = p.area && p.area !== p.city ? `${p.area}، ${p.city}` : p.city || p.area;
+  const purpose = p.status === "بيع" ? (en ? "for sale" : "للبيع") : p.status === "إيجار" ? (en ? "for rent" : "للإيجار") : (en ? "summer rental" : "مصيف");
+  const bits = [`${p.type} ${purpose}`, place, p.size ? `${p.size} ${en ? "m²" : "م²"}` : "", p.rooms ? `${p.rooms} ${en ? "rooms" : "غرف"}` : ""].filter(Boolean).join(" · ");
+  const price = p.price ? `${formatPrice(p.price)} ${en ? "EGP" : "ج.م"}${p.priceUnit === "night" ? (en ? " / night" : " / الليلة") : p.priceUnit === "month" ? (en ? " / month" : " / شهريًا") : ""}` : "";
+  const inst = p.installments ? (en ? " (installments available)" : " (متاح تقسيط)") : "";
+  const url = typeof window !== "undefined" ? `${window.location.origin}/properties/${p.id}` : `https://valueaqar.com/properties/${p.id}`;
+  return [
+    en ? `Hello, I am asking about listing ${p.code ?? ""}`.trim() + ":" : `مرحبًا، أستفسر عن العقار${p.code ? ` كود ${p.code}` : ""}:`,
+    bits, price + inst, url,
+  ].filter(Boolean).join("\n");
+}
+
 export const waLink = (num: string | null | undefined, text: string) =>
   `https://wa.me/${(num || WHATSAPP_NUMBER).replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
 

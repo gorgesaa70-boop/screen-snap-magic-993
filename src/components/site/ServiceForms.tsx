@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
 import { cleanPhone } from "@/lib/phone";
 import { inputCls, btnPrimary } from "@/components/site/ui";
-import { ALL_AREAS, SERVICE_CATEGORIES } from "@/components/site/data";
+import { ALL_AREAS, SERVICE_CATEGORIES, useLocations } from "@/components/site/data";
 
 export const SERVICE_GROUPS = [
   { id: "engineering", label: "مكاتب هندسية معتمدة من فاليو عقار", hint: "تصميم، رخص، إشراف، معاينة قبل الشراء" },
@@ -19,6 +19,7 @@ export type ServiceGroup = (typeof SERVICE_GROUPS)[number]["id"];
  * routing offers it to the best match. The customer's phone reaches the provider only after they accept.
  */
 export function ServiceRequestForm({ provider, category, onCategory }: { provider?: { id: string; name: string; category: string }; category?: ServiceGroup | undefined; onCategory?: ((c: ServiceGroup) => void) | undefined }) {
+  useLocations();
   useLang();
   const [f, setF] = useState({ group: (provider?.category ?? category ?? "crafts") as ServiceGroup, area: "", what: "", name: "", phone: "" });
   const group = category && !provider ? category : f.group;

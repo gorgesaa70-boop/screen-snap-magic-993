@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
+import { DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
+import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
 import { AMENITIES, type CompoundRow } from "@/components/site/compounds";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
@@ -58,6 +59,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
 
   async function save() {
     if (f.name.trim().length < 2) { toast.error("اكتب اسم الكمبوند"); return; }
+    if (!placeReady(f)) { toast.error("اختار المدينة والمنطقة، أو اكتب المنطقة الجديدة"); return; }
     const down = num(f.down_payment_pct), years = num(f.installment_years), year = num(f.delivery_year);
     if (down != null && down > 100) { toast.error("المقدم نسبة من 0 لـ 100"); return; }
     if (years != null && years > 30) { toast.error("سنين التقسيط لحد 30"); return; }
@@ -67,7 +69,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
     setBusy(true);
     const payload = {
       name: f.name.trim().slice(0, 120), description: f.description.trim().slice(0, 2000) || null,
-      city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!,
+      ...placeToSave(f),
       location: f.location.trim().slice(0, 300) || null, payment_plans: f.payment_plans.trim().slice(0, 2000) || null,
       down_payment_pct: down, installment_years: years, delivery_date: f.delivery_date.trim().slice(0, 100) || null, delivery_year: year,
       amenities: f.amenities, images: f.images, logo_url: f.images[0] ?? null,
@@ -106,8 +108,7 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
             {handover && <p className="rounded-xl bg-teal-soft p-3 text-xs font-semibold text-primary sm:col-span-2">هيتنقل الكمبوند بكل وحداته وطلباته لحساب المطور، والمطور هيوصله إشعار. فريق فاليو عقار اللي على الكمبوند هيتشال منه.</p>}
           </>
         )}
-        <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((a) => <option key={a}>{a}</option>)}</select></Field>
+        <PlacePicker city={f.city} area={f.area} onChange={(v) => setF({ ...f, ...v })} />
         <div className="sm:col-span-2"><Field label="العنوان التفصيلي (اختياري)"><input className={inputCls} value={f.location} onChange={set("location")} maxLength={300} /></Field></div>
         <Field label="ميعاد الاستلام (بيظهر زي ما هو)"><input className={inputCls} placeholder="مثال: 2028 أو فوري" value={f.delivery_date} onChange={set("delivery_date")} maxLength={100} /></Field>
         <Field label="سنة الاستلام (للفلتر)"><input className={inputCls} inputMode="numeric" placeholder="مثال: 2028" value={f.delivery_year} onChange={digits("delivery_year")} maxLength={4} /></Field>

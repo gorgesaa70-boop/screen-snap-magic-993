@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
 import { pageHead, breadcrumbs } from "@/lib/seo";
 import { PageShell, Avatar, inputCls, btnOutline, btnTeal } from "@/components/site/ui";
-import { ALL_AREAS, PROVIDER_KIND, SERVICE_CATEGORIES, formatPrice } from "@/components/site/data";
+import { ALL_AREAS, PROVIDER_KIND, SERVICE_CATEGORIES, formatPrice, useLocations } from "@/components/site/data";
 import { ProviderJoinForm, SERVICE_GROUPS, ServiceRequestForm, type ServiceGroup } from "@/components/site/ServiceForms";
 
 export const Route = createFileRoute("/services/")({
@@ -25,6 +25,7 @@ type Row = { id: string; kind: string; category: string; name: string; specialty
 
 /** Services directory: approved providers (companies, offices and technicians) with their ratings, plus asking for a service and joining. */
 function Services() {
+  useLocations();
   useLang();
   const [cat, setCat] = useState<ServiceGroup | "">("");
   const [kind, setKind] = useState<"" | "company" | "technician">("");

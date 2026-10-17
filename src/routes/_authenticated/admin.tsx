@@ -22,6 +22,7 @@ import { ServicesAdmin } from "@/components/dash/ServicesAdmin";
 import { ReferralsAdmin } from "@/components/dash/ReferralsAdmin";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
+import { LocationsAdmin } from "@/components/dash/LocationsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
@@ -42,7 +43,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "audit" | "health" | "routing" | "investments";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "audit" | "health" | "routing" | "investments" | "locations";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -63,7 +64,15 @@ function useAdminData(enabled: boolean) {
 
 function AdminPage() {
   const { me, loading } = useMe();
-  const [tab, setTab] = useState<Tab>("reports");
+  // Notifications can open a section directly (e.g. /admin?tab=locations).
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tab");
+    return t === "locations" || t === "review" ? t : "reports";
+  });
+  const pendingPlaces = useQuery({
+    queryKey: ["admin-locations-pending"], enabled: !!me?.isAdmin,
+    queryFn: async () => (await supabase.from("locations").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0,
+  }).data ?? 0;
   const q = useAdminData(!!me?.isAdmin);
   if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
   if (!me?.isAdmin) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">ليست لديك صلاحية الوصول. <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
@@ -78,12 +87,12 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = [
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing", "referrals"] },
-          { id: "listings", label: `العقارات${pending ? ` (${pending})` : ""}`, tabs: ["review", "projects", "investments", "malls", "compounds", "industrial"] },
+          { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
           { id: "settings", label: "الإعدادات", tabs: ["announce", "app", "health"] },
@@ -123,6 +132,7 @@ function AdminPage() {
           {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
+          {tab === "locations" && <LocationsAdmin />}
           {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
@@ -284,8 +294,10 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
           <div className="min-w-0 flex-1">
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
             {p.owner_lead_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
+            {p.listing_no != null && <span className="ms-1.5 text-[11px] font-bold text-muted-foreground" dir="ltr">VA-{p.listing_no}</span>}
             <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
             <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`} · {p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
+            {(p.payment_method === "installment" || p.payment_method === "both") && <p className="text-xs font-semibold text-teal">{p.payment_method === "both" ? "كاش أو تقسيط" : "تقسيط"}{p.down_payment != null ? ` · مقدم ${formatPrice(Number(p.down_payment))}` : ""}{p.installment_years ? ` · ${p.installment_years} سنين` : ""}{p.monthly_installment != null ? ` · قسط ${formatPrice(Number(p.monthly_installment))}` : ""}</p>}
             {p.owner && (
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 <span className="font-bold text-primary">المالك: {p.owner.name}</span>

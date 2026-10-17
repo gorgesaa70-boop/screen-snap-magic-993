@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import { cleanPhone } from "@/lib/phone";
 import { getAttribution } from "@/lib/attribution";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
-import { formatPrice, FINISHING_LABEL, CITY_NAMES, areasOf, hasFinishing } from "./data";
+import { formatPrice, FINISHING_LABEL, CITY_NAMES, areasOf, hasFinishing, useLocations } from "./data";
 import { MALL_UNIT_TYPES, type MallRow } from "./malls";
 import { inputCls, btnPrimary, btnOutline } from "./ui";
 import { FLOOR_LABEL, FLOOR_USE, FINISHING_KEYS, change3m, current, estimate, series, yieldPct, type IndexRow } from "./prices";
@@ -59,6 +59,7 @@ export function MallFloors({ rows, mallId, unitType }: { rows: IndexRow[]; mallI
 
 /** Districts of one city × finishing levels (sale price per m²). */
 export function DistrictTable({ rows, city, unitType }: { rows: IndexRow[]; city: string; unitType: string }) {
+  useLocations();
   const areas = areasOf(city).filter((a) => rows.some((r) => r.kind === "residential" && r.month === null && r.area === a && r.unit_type === unitType));
   if (!areas.length) return <p className="text-sm text-muted-foreground">{t("لسه مفيش عقارات كفاية هنا.")}</p>;
   const fin = unitType === "أرض" ? [null] : [...FINISHING_KEYS, null];
@@ -112,6 +113,7 @@ export function PriceCalculator({ rows, ratios, malls, preset }: {
   rows: IndexRow[]; ratios: Record<string, number>; malls: MallRow[];
   preset?: { kind?: "mall" | "residential"; mallId?: string; area?: string };
 }) {
+  useLocations();
   const [q, setQ] = useState({
     kind: preset?.kind ?? (preset?.area ? "residential" : "mall") as "mall" | "residential",
     purpose: "sale" as "sale" | "rent", mallId: preset?.mallId ?? malls[0]?.id ?? "", floor: "0", unitType: MALL_UNIT_TYPES[0]!,

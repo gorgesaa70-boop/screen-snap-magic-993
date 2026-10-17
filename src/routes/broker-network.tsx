@@ -7,7 +7,7 @@ import { t, useLang } from "@/lib/i18n";
 import { useMe } from "@/hooks/useAuth";
 import { pageHead, breadcrumbs } from "@/lib/seo";
 import { PageShell, inputCls, btnPrimary, btnOutline, btnTeal } from "@/components/site/ui";
-import { ALL_AREAS, formatPrice } from "@/components/site/data";
+import { ALL_AREAS, formatPrice, useLocations } from "@/components/site/data";
 
 export const Route = createFileRoute("/broker-network")({
   head: () => pageHead({
@@ -64,6 +64,7 @@ function BrokerNetwork() {
 }
 
 function Market() {
+  useLocations();
   const [kind, setKind] = useState("");
   const [area, setArea] = useState("");
   const q = useQuery({ queryKey: ["co-broke-market"], queryFn: async () => (await supabase.rpc("co_broke_market")).data ?? [] });

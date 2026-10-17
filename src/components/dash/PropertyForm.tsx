@@ -3,9 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchCompounds } from "@/components/site/compounds";
 import { supabase } from "@/integrations/supabase/client";
-import { AREAS, CITY_NAMES, DEFAULT_CITY, areasOf, TYPES_FOR, FURNISHED_LABEL, FINISHING_LABEL, hasFinishing, uploadImage, type PropertyRow } from "@/components/site/data";
+import { AREAS, DEFAULT_CITY, TYPES_FOR, FURNISHED_LABEL, FINISHING_LABEL, hasFinishing, uploadImage, type PropertyRow } from "@/components/site/data";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
+import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
+import { InstallmentFields, emptyInstallments, installmentError, installmentPayload, type InstallmentDraft } from "@/components/site/InstallmentFields";
+import type { PaymentMethod } from "@/lib/installments";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
@@ -33,6 +36,10 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     furnished: initial?.furnished ?? "", min_months: initial?.min_months?.toString() ?? "", deposit: initial?.deposit?.toString() ?? "",
     guests: initial?.guests?.toString() ?? "", available_from: initial?.available_from ?? "", available_to: initial?.available_to ?? "",
   });
+  const [inst, setInst] = useState<InstallmentDraft>(initial?.payment_method ? {
+    payment_method: initial.payment_method as PaymentMethod, down_payment: initial.down_payment?.toString() ?? "", installment_years: initial.installment_years?.toString() ?? "",
+    monthly_installment: initial.monthly_installment?.toString() ?? "", installment_note: initial.installment_note ?? "",
+  } : emptyInstallments);
   const summer = f.status === "مصيف";
   const rent = f.status !== "بيع";
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
@@ -57,6 +64,9 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
     const anySummerPrice = !!(f.price_night || f.price_week || f.price_month || f.price_season);
     if (f.title.trim().length < 3 || (summer ? !anySummerPrice : !f.price)) { toast.error(summer ? "أدخل العنوان وسعر واحد على الأقل (الليلة أو الأسبوع أو الشهر أو الموسم)" : "أدخل العنوان والسعر"); return; }
     if (submit && hasFinishing(f.type) && !f.finishing) { toast.error("اختار حالة التشطيب"); return; }
+    if (!placeReady(f)) { toast.error("اختار المدينة والمنطقة، أو اكتب المنطقة الجديدة"); return; }
+    const instErr = f.status === "بيع" ? installmentError(inst, Number(f.price)) : "";
+    if (instErr) { toast.error(instErr); return; }
     const src = f.source_url.trim();
     if (src && !/^https:\/\/[a-z0-9-]+\.engazcrm\.net\//i.test(src)) { toast.error("رابط إنجاز غير صحيح — يجب أن يبدأ بـ https://…engazcrm.net/"); return; }
     setBusy(true);
@@ -67,10 +77,11 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       price_month: summer ? num(f.price_month) : null, price_season: summer ? num(f.price_season) : null,
       furnished: rent ? f.furnished || null : null, min_months: f.status === "إيجار" ? num(f.min_months) : null,
       deposit: rent ? num(f.deposit) : null, guests: summer ? num(f.guests) : null,
-      available_from: rent ? f.available_from || null : null, available_to: summer ? f.available_to || null : null, city: f.city, area: areasOf(f.city).includes(f.area) ? f.area : areasOf(f.city)[0]!, size: Number(f.size || 0),
+      available_from: rent ? f.available_from || null : null, available_to: summer ? f.available_to || null : null, ...placeToSave(f), size: Number(f.size || 0),
       finishing: hasFinishing(f.type) ? f.finishing || null : null,
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.images[0] ?? null, images: f.images, source_url: src || null,
       compound_id: f.compound_id || null,
+      ...(f.status === "بيع" ? installmentPayload(inst, Number(f.price)) : { payment_method: null }),
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (submit ? "pending" : "draft") as "pending" | "draft",
     };
@@ -79,13 +90,14 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       : await supabase.from("properties").insert({ ...payload, broker_id: brokerId });
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
-    toast.success(!submit ? "تم الحفظ كمسودة" : initial?.review_status === "rejected" ? "تم إرسال العقار للمراجعة" : "تم نشر العقار");
+    toast.success(!submit ? "تم الحفظ كمسودة" : "تم إرسال العقار للمراجعة — هيظهر على الموقع أول ما فريق فاليو عقار يعتمده");
     onDone();
   }
 
   return (
     <div className="rounded-2xl border bg-card p-4 md:p-6">
       <h3 className="mb-4 text-lg font-extrabold text-primary">{initial ? "تعديل العقار" : "إضافة عقار جديد"}</h3>
+      <p className="mb-4 rounded-xl bg-secondary p-3 text-xs font-semibold text-primary">كل عقار جديد، وأي تعديل في عقار منشور (السعر، الصور، الوصف…)، بيتراجع من فريق فاليو عقار قبل ما يظهر على الموقع.</p>
       {initial?.review_status === "rejected" && <p className="mb-4 rounded-xl bg-teal-soft p-3 text-xs font-semibold text-primary">العقار ده اترفض من الإدارة؛ بعد التعديل هيرجع للمراجعة قبل ما يظهر.</p>}
       {initial?.review_note && <p className="mb-4 rounded-xl bg-destructive/10 p-3 text-xs font-semibold text-destructive">ملاحظة الإدارة: {initial.review_note}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -113,8 +125,8 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
             {summer && <Field label="متاح لحد"><input type="date" className={inputCls} value={f.available_to} onChange={set("available_to")} /></Field>}
           </div>
         )}
-        <Field label="المدينة"><select className={inputCls} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value, area: areasOf(e.target.value)[0]! })}>{CITY_NAMES.map((t) => <option key={t}>{t}</option>)}</select></Field>
-        <Field label="المنطقة / الحي"><select className={inputCls} value={f.area} onChange={set("area")}>{areasOf(f.city).map((t) => <option key={t}>{t}</option>)}</select></Field>
+        {f.status === "بيع" && <InstallmentFields value={inst} onChange={setInst} price={Number(f.price || 0)} />}
+        <PlacePicker city={f.city} area={f.area} onChange={(v) => setF({ ...f, ...v })} />
         <Field label="الكمبوند (اختياري)"><select className={inputCls} value={f.compound_id} onChange={set("compound_id")}><option value="">— بدون كمبوند</option>{compounds.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
         <Field label={f.type === "بيت" || f.type === "عمارة" ? "مساحة الأرض (م²)" : "المساحة (م²)"}><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
         {hasFinishing(f.type) && <Field label="حالة التشطيب"><select className={inputCls} value={f.finishing} onChange={set("finishing")}><option value="">اختار</option>{Object.entries(FINISHING_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>}
@@ -149,7 +161,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>{initial?.review_status === "rejected" ? "إرسال للمراجعة" : "نشر العقار"}</button>
+        <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>{initial?.review_status === "approved" ? "حفظ وإرسال للمراجعة" : "إرسال للمراجعة"}</button>
         <button disabled={busy} onClick={() => save(false)} className={btnOutline}>حفظ كمسودة</button>
         <button onClick={onCancel} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
       </div>
