@@ -17,6 +17,8 @@ import { PropertyForm } from "@/components/dash/PropertyForm";
 import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { MallUnitForm } from "@/components/dash/MallUnitForm";
 import { MallUnitsImport } from "@/components/dash/MallUnitsImport";
+import { AvailabilitySelect } from "@/components/dash/ManageActions";
+import { AvailabilityBadge } from "@/components/site/availability";
 import { MyProjects } from "@/components/dash/MyProjects";
 import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
@@ -200,6 +202,7 @@ function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string;
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
               {p.is_featured && <span className="rounded-full bg-teal px-2.5 py-0.5 text-[11px] font-bold text-accent-foreground">مميز</span>}
+              <AvailabilityBadge p={p} className="!px-2.5 !py-0.5 !text-[11px]" />
               {p.review_status === "approved" && !p.hidden_by_plan && (() => { const term = listingTerm(p.listed_until); return term && <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${term.cls}`}>{term.label}</span>; })()}
               {p.hidden_by_plan && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11px] font-bold text-destructive" title="باقتك انتهت والعقار ده زيادة عن حد الباقة المجانية — بيرجع يظهر لما تجدد">مخفي — جدّد باقتك</span>}
             </div>
@@ -208,7 +211,8 @@ function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string;
             <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`}</p>
             {p.review_status === "rejected" && p.review_note && <p className="mt-1 text-xs text-destructive">{p.review_note}</p>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {p.review_status !== "draft" && <AvailabilitySelect p={p} onChanged={reload} />}
             {p.review_status === "draft" && <button className={btnOutline} onClick={async () => { const { error } = await supabase.from("properties").update({ review_status: "pending" }).eq("id", p.id); if (error) toast.error(error.message); else { toast.success("أُرسل للمراجعة"); reload(); } }}>إرسال</button>}
             {p.review_status === "approved" && !p.hidden_by_plan && listingTerm(p.listed_until)?.renewable && (
               <button className={btnOutline} onClick={async () => {

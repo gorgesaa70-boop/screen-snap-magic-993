@@ -11,11 +11,12 @@ import { InstallmentFields, emptyInstallments, installmentError, installmentPayl
 import type { PaymentMethod } from "@/lib/installments";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
-type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void };
+/** `admin`: Value Aqar edits someone's listing — saving keeps its review status (approved stays approved). */
+type Props = { brokerId: string; initial?: PropertyRow | null; onDone: () => void; onCancel: () => void; admin?: boolean };
 
 const MAX_IMAGES = 12;
 
-export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
+export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Props) {
   const [f, setF] = useState({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
@@ -83,14 +84,14 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
       compound_id: f.compound_id || null,
       ...(f.status === "بيع" ? installmentPayload(inst, Number(f.price)) : { payment_method: null }),
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
-      review_status: (submit ? "pending" : "draft") as "pending" | "draft",
+      review_status: (admin && initial ? initial.review_status : submit ? "pending" : "draft") as "pending" | "draft",
     };
     const res = initial
       ? await supabase.from("properties").update(payload).eq("id", initial.id)
       : await supabase.from("properties").insert({ ...payload, broker_id: brokerId });
     setBusy(false);
     if (res.error) { toast.error(res.error.message); return; }
-    toast.success(!submit ? "تم الحفظ كمسودة" : "تم إرسال العقار للمراجعة — هيظهر على الموقع أول ما فريق فاليو عقار يعتمده");
+    toast.success(admin && initial ? "اتحفظت التعديلات" : !submit ? "تم الحفظ كمسودة" : "تم إرسال العقار للمراجعة — هيظهر على الموقع أول ما فريق فاليو عقار يعتمده");
     onDone();
   }
 
@@ -161,8 +162,14 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel }: Props) {
         </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>{initial?.review_status === "approved" ? "حفظ وإرسال للمراجعة" : "إرسال للمراجعة"}</button>
-        <button disabled={busy} onClick={() => save(false)} className={btnOutline}>حفظ كمسودة</button>
+        {admin && initial ? (
+          <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>حفظ التعديلات</button>
+        ) : (
+          <>
+            <button disabled={busy} onClick={() => save(true)} className={btnPrimary}>{initial?.review_status === "approved" ? "حفظ وإرسال للمراجعة" : "إرسال للمراجعة"}</button>
+            <button disabled={busy} onClick={() => save(false)} className={btnOutline}>حفظ كمسودة</button>
+          </>
+        )}
         <button onClick={onCancel} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
       </div>
     </div>

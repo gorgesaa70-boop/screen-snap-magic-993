@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { REVIEW, formatPrice, type BrokerRow, type PropertyRow } from "@/components/site/data";
 import { thumb } from "@/lib/images";
 import { MallPhotosEditor, mallImages } from "./MallPhotos";
+import { AvailabilitySelect, adminDelete } from "./ManageActions";
 import { MALL_KINDS, fetchMalls, type MallRow } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MallUnitForm } from "./MallUnitForm";
@@ -33,7 +34,7 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
           <input className={inputCls} placeholder="اسم مول جديد" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} />
           <button className={btnOutline}>إضافة</button>
         </form>
-        <div className="space-y-3">{malls.data?.map((m) => <MallEditor key={m.id} m={m} developers={developers} onSaved={() => malls.refetch()} />)}</div>
+        <div className="space-y-3">{malls.data?.map((m) => <MallEditor key={m.id} m={m} developers={developers} units={units.filter((u) => u.mall_id === m.id).length} others={(malls.data ?? []).filter((x) => x.id !== m.id)} onSaved={() => malls.refetch()} onDeleted={() => { malls.refetch(); reload(); }} />)}</div>
       </div>
       <div className="space-y-3">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة في مول</button>
@@ -49,7 +50,8 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
             </div>
             <div className="flex gap-2">
               <button aria-label="تعديل" onClick={() => setEditing(p)} className="grid size-11 place-items-center rounded-xl border text-primary hover:bg-secondary"><Pencil className="size-4" /></button>
-              <button aria-label="حذف" onClick={async () => { if (!confirm("حذف الوحدة؟")) return; const { error } = await supabase.from("properties").delete().eq("id", p.id); if (error) toast.error(error.message); else reload(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
+              <AvailabilitySelect p={p} onChanged={reload} />
+              <button aria-label="حذف" onClick={async () => { if (await adminDelete("property", p.id, p.title)) reload(); }} className="grid size-11 place-items-center rounded-xl border text-destructive hover:bg-destructive/10"><Trash2 className="size-4" /></button>
             </div>
           </div>
         ))}
@@ -89,7 +91,16 @@ function ApproveMallUnits({ units, malls, onDone }: { units: PropertyRow[]; mall
   );
 }
 
-function MallEditor({ m, developers, onSaved }: { m: MallRow; developers: { id: string; name: string }[]; onSaved: () => void }) {
+function MallEditor({ m, developers, units, others, onSaved, onDeleted }: { m: MallRow; developers: { id: string; name: string }[]; units: number; others: MallRow[]; onSaved: () => void; onDeleted: () => void }) {
+  const [deleting, setDeleting] = useState(false);
+  const [moveTo, setMoveTo] = useState("");
+  async function remove() {
+    const r = await adminDelete("mall", m.id, m.name, {
+      target: moveTo || undefined,
+      extra: units ? (moveTo ? `الـ ${units} وحدة هيتنقلوا لـ «${others.find((o) => o.id === moveTo)?.name}».` : `الـ ${units} وحدة اللي فيه هيتمسحوا معاه (اللي عليها صفقة بتستخبى بس).`) : undefined,
+    });
+    if (r) onDeleted();
+  }
   const [f, setF] = useState({ developer_id: m.developer_id ?? "", name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", images: mallImages(m) });
   const [loc, setLoc] = useState<LatLng | null>(m.lat != null && m.lng != null ? { lat: m.lat, lng: m.lng } : null);
   const [showMap, setShowMap] = useState(false);
@@ -127,10 +138,21 @@ function MallEditor({ m, developers, onSaved }: { m: MallRow; developers: { id: 
       {f.images.join() !== mallImages(m).join() && <p className="mt-1 text-xs font-bold text-amber-700">الصور اتغيرت — اضغط «حفظ».</p>}
       <button type="button" onClick={() => setShowMap(!showMap)} className="mt-2 text-xs font-bold text-primary underline">📍 {loc ? "الموقع على الخريطة (متحدد)" : "حدد موقع المول على الخريطة"}</button>
       {showMap && <div className="mt-2"><MapPicker value={loc} onChange={setLoc} /><p className="mt-1 text-xs text-muted-foreground">وحدات المول اللي ملهاش موقع خاص بتاخد موقع المول.</p></div>}
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         <button disabled={busy} onClick={() => save()} className={`${btnPrimary} h-10`}>حفظ</button>
         <button disabled={busy} onClick={() => save({ is_active: !m.is_active })} className={`h-10 rounded-xl px-3 text-xs font-bold ${m.is_active ? "bg-teal-soft text-primary" : "bg-muted text-muted-foreground"}`}>{m.is_active ? "ظاهر" : "مخفي"}</button>
+        <button disabled={busy} onClick={() => (units ? setDeleting(!deleting) : remove())} className="inline-flex h-10 items-center gap-1 rounded-xl border border-destructive/40 px-3 text-xs font-bold text-destructive hover:bg-destructive/5"><Trash2 className="size-3.5" />حذف المول</button>
       </div>
+      {deleting && (
+        <div className="mt-2 space-y-2 rounded-xl bg-destructive/5 p-3">
+          <p className="text-xs font-bold text-destructive">المول ده فيه {units} وحدة — تعمل فيهم إيه؟</p>
+          <select aria-label="الوحدات" className={`${inputCls} h-10`} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+            <option value="">امسح الوحدات مع المول</option>
+            {others.map((o) => <option key={o.id} value={o.id}>انقلهم لـ {o.name}</option>)}
+          </select>
+          <button onClick={remove} className="h-10 rounded-xl bg-destructive px-4 text-xs font-bold text-destructive-foreground">احذف المول</button>
+        </div>
+      )}
     </div>
   );
 }

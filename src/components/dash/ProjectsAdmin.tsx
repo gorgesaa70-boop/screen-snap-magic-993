@@ -8,7 +8,9 @@ import { REVIEW, formatPrice, type BrokerRow } from "@/components/site/data";
 import { projectCover } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";
 import { useState } from "react";
-import { FileSpreadsheet, CheckCheck } from "lucide-react";
+import { FileSpreadsheet, CheckCheck, Pencil } from "lucide-react";
+import { ProjectForm } from "@/components/dash/ProjectForm";
+import { DeleteButton } from "@/components/dash/ManageActions";
 import { ProjectsImport } from "@/components/dash/ProjectsImport";
 import { thumb } from "@/lib/images";
 
@@ -27,7 +29,9 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
   };
   const list = q.data ?? [];
   const [importing, setImporting] = useState(false);
+  const [editing, setEditing] = useState<(typeof list)[number] | null>(null);
   const developers = brokers.filter((b) => b.account_type === "developer" && b.is_active).map((b) => ({ id: b.id, name: b.name }));
+  if (editing) return <ProjectForm developerId={editing.developer_id} initial={editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); q.refetch(); }} />;
   if (importing) return <ProjectsImport developers={developers} onCancel={() => setImporting(false)} onDone={() => { setImporting(false); q.refetch(); }} />;
   const importBtn = developers.length > 0 && <button onClick={() => setImporting(true)} className={btnOutline}><FileSpreadsheet className="size-4" />رفع كمبوندات من Excel</button>;
   if (!q.isLoading && list.length === 0) return <div className="space-y-3">{importBtn}<p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد مشروعات بعد. شركات التطوير المعتمدة تضيف مشروعاتها من لوحتها.</p></div>;
@@ -65,6 +69,8 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
               ) : (
                 <button className={btnPrimary} onClick={() => upd(p.id, { review_status: "approved", review_note: null }, "تم نشر المشروع")}>نشر</button>
               )}
+              <button className={btnOutline} onClick={() => setEditing(p)}><Pencil className="size-4" />تعديل</button>
+              <DeleteButton kind="project" id={p.id} name={p.name} extra={p.project_units.length ? `وحداته (${p.project_units.length}) هتتمسح معاه.` : undefined} onDone={() => q.refetch()} />
             </div>
           </div>
         );

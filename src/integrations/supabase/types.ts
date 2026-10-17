@@ -2372,6 +2372,8 @@ export type Database = {
           activity_id: string | null
           address: string | null
           area: string
+          availability: string
+          availability_at: string | null
           available_from: string | null
           available_to: string | null
           baths: number | null
@@ -2437,6 +2439,8 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area: string
+          availability?: string
+          availability_at?: string | null
           available_from?: string | null
           available_to?: string | null
           baths?: number | null
@@ -2502,6 +2506,8 @@ export type Database = {
           activity_id?: string | null
           address?: string | null
           area?: string
+          availability?: string
+          availability_at?: string | null
           available_from?: string | null
           available_to?: string | null
           baths?: number | null
@@ -3515,6 +3521,10 @@ export type Database = {
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
+        Returns: string
+      }
+      admin_delete: {
+        Args: { _id: string; _kind: string; _target?: string }
         Returns: string
       }
       admin_accounts: {

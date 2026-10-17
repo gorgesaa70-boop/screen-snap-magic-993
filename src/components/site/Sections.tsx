@@ -13,6 +13,7 @@ import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
 import { fetchMalls } from "./malls";
+import { AvailabilityBadge, isAvailable } from "./availability";
 import { fetchAll } from "@/lib/fetch-all";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -84,6 +85,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         </span>
         {p.installments && !p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-bold text-primary">{tr("تقسيط")}{p.installments.down != null && p.price > 0 ? ` · ${tr("مقدم")} ${downPct(p.price, p.installments.down)}%` : ""}</span>}
         {p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{tr("سعر مميز")}</span>}
+        <AvailabilityBadge p={p} className="absolute top-12 right-3" />
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
         <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />
@@ -244,7 +246,8 @@ export function MallsStrip() {
     queryFn: async () => {
       const [malls, units] = await Promise.all([
         fetchMalls(),
-        fetchAll<{ id: string; mall_id: string | null; price: number }>((a, b) => supabase.from("properties").select("id, mall_id, price").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b)),
+        // "*" keeps working before the availability column (release 30); only available units count.
+        fetchAll((a, b) => supabase.from("properties").select("*").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b)).then((rows) => rows.filter(isAvailable)),
       ]);
       return malls
         .map((m) => { const mine = units.filter((u) => u.mall_id === m.id); return { m, n: mine.length, from: mine.length ? Math.min(...mine.map((u) => Number(u.price))) : 0 }; })

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits, mallImages } from "@/components/site/malls";
+import { AvailabilityBadge, availabilityOf, byAvailability } from "@/components/site/availability";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { t, useLang } from "@/lib/i18n";
@@ -54,7 +55,9 @@ function MallPage() {
   });
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
-  const rows = useMemo(() => (units.data ?? []).filter((u) => (!status || u.status === status) && (!type || u.type === type)), [units.data, status, type]);
+  // Available first; reserved and sold stay visible with a badge.
+  const rows = useMemo(() => (units.data ?? []).filter((u) => (!status || u.status === status) && (!type || u.type === type)).sort(byAvailability), [units.data, status, type]);
+  const count = (a: string) => rows.filter((u) => availabilityOf(u) === a).length;
 
   if (mall.isLoading) return <PageShell><div className="mx-auto mt-6 h-60 max-w-6xl animate-pulse rounded-2xl bg-muted" /></PageShell>;
   const m = mall.data;
@@ -81,7 +84,7 @@ function MallPage() {
           <select aria-label={t("نوع الوحدة")} className={inputCls} value={type} onChange={(e) => setType(e.target.value)}><option value="">{t("كل الوحدات")}</option>{MALL_UNIT_TYPES.map((x) => <option key={x} value={x}>{t(x)}</option>)}</select>
           <select aria-label={t("الغرض")} className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">{t("بيع وإيجار")}</option><option value="بيع">{t("للبيع")}</option><option value="إيجار">{t("للإيجار")}</option></select>
         </div>
-        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("بيحمّل...") : `${formatPrice(rows.length)} ${rows.length === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}`}</p>
+        <p className="mt-3 text-sm font-bold text-primary">{units.isLoading ? t("بيحمّل...") : `${formatPrice(count("available"))} ${count("available") === 1 ? t("وحدة") : t("وحدات")} ${t("متاحة")}${count("reserved") ? ` · ${formatPrice(count("reserved"))} ${t("محجوزة")}` : ""}${count("sold") ? ` · ${formatPrice(count("sold"))} ${t("مباعة")}` : ""}`}</p>
         {!units.isLoading && rows.length === 0 && <p className="mt-4 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("مفيش وحدات متاحة في المول ده دلوقتي.")}</p>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((u) => {
@@ -91,6 +94,7 @@ function MallPage() {
                 <div className="relative aspect-[4/3] bg-muted">
                   {u.image_url ? <img src={thumb(u.image_url)} alt={u.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Store className="size-12 text-muted-foreground" /></div>}
                   <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(u.status)}</span>
+                  <AvailabilityBadge p={u} className="absolute top-12 right-3" />
                 </div>
                 <div className="p-4">
                   <p className="text-xs font-bold text-teal">{t(u.type)}</p>

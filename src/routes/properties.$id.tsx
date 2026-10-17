@@ -1,4 +1,5 @@
 import { cleanPhone } from "@/lib/phone";
+import { AvailabilityBadge } from "@/components/site/availability";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -76,6 +77,7 @@ function PropertyPage() {
           <Gallery images={p.images} title={p.title}>
             <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t(PURPOSE_LABEL[p.status] ?? p.status)}</span>
             {p.isDemo && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("إعلان تجريبي")}</span>}
+            <AvailabilityBadge p={p} className="absolute top-14 right-3" />
           </Gallery>
           <div className="mt-5 flex items-start justify-between gap-3">
             <h1 className="text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>

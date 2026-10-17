@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Store, MapPin } from "lucide-react";
 import { PageShell } from "@/components/site/ui";
 import { MALL_KINDS, fetchMalls } from "@/components/site/malls";
+import { isAvailable } from "@/components/site/availability";
 import { useState } from "react";
 import { t, useLang } from "@/lib/i18n";
 
@@ -32,7 +33,7 @@ function MallsPage() {
   const units = useQuery({
     queryKey: ["mall-unit-counts"],
     queryFn: async () => {
-      const rows = await fetchAll((a, b) => supabase.from("properties").select("id, mall_id").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b));
+      const rows = await fetchAll((a, b) => supabase.from("properties").select("*").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b)).then((all) => all.filter(isAvailable));
       const m = new Map<string, number>();
       rows.forEach((r) => { if (r.mall_id) m.set(r.mall_id, (m.get(r.mall_id) ?? 0) + 1); });
       return m;
