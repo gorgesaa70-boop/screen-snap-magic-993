@@ -60,6 +60,11 @@ export function AccountsAdmin() {
     const r = await remove({ data: { userId: a.user_id } }).catch((e: Error) => ({ ok: false as const, error: e.message }));
     setBusy(false); setConfirm(null);
     if (!r.ok) { toast.error(r.error); return; }
+    // A broker / company / developer account goes too (kept only for money records), so it leaves «الحسابات والشركات».
+    if (a.broker_id) {
+      const { error } = await supabase.rpc("admin_delete_broker", { _id: a.broker_id });
+      if (error && error.code !== "PGRST202") toast.error(error.message);
+    }
     toast.success("الحساب اتمسح — الإيميل والموبايل بقوا متاحين لتسجيل جديد"); setOpen(null); q.refetch();
   }
 
