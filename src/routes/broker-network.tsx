@@ -32,7 +32,7 @@ const KIND: Record<string, string> = { property: "عقار", compound: "كمبو
 /** Broker-to-broker market: units opened for referrals (brokers only), and how it works for everyone else. */
 function BrokerNetwork() {
   useLang();
-  const { me, loading } = useMe();
+  const { user, me, loading } = useMe();
   const isBroker = !!me?.broker?.is_active;
   return (
     <PageShell>
@@ -43,7 +43,7 @@ function BrokerNetwork() {
           {!loading && !isBroker && (
             <div className="mt-5 flex flex-wrap gap-2">
               <Link to="/auth" className={btnTeal}>{t("سجّل دخول كوسيط")}</Link>
-              <Link to="/join" className="inline-flex h-11 items-center rounded-xl border border-primary-foreground/30 px-4 text-sm font-bold text-primary-foreground hover:bg-primary-foreground/10">{t("انضم كوسيط أو شركة")}</Link>
+              <a href={user ? "/join" : `/auth?next=${encodeURIComponent("/join")}`} className="inline-flex h-11 items-center rounded-xl border border-primary-foreground/30 px-4 text-sm font-bold text-primary-foreground hover:bg-primary-foreground/10">{t("انضم كوسيط أو شركة")}</a>
             </div>
           )}
         </div>
