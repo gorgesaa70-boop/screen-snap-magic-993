@@ -9,9 +9,10 @@ import { hmac, safeEqual } from "./otp-hash";
 const TTL_MS = 5 * 60 * 1000;
 const INBOUND_TTL_MS = 10 * 60 * 1000; // time to switch to WhatsApp, send, and come back
 const RESEND_GAP_MS = 60 * 1000;
-const MAX_SENDS_PER_PHONE = 4; // per 30 min
+// Inbound mode sends nothing (no cost), so it allows more tries than template mode.
+const maxSendsPerPhone = () => (inboundMode() ? 10 : 4); // per 30 min
 const PHONE_WINDOW_MS = 30 * 60 * 1000;
-const MAX_SENDS_PER_IP = 15; // per hour
+const maxSendsPerIp = () => (inboundMode() ? 30 : 15); // per hour
 const MAX_ATTEMPTS = 5;
 
 const phoneSchema = z.string().regex(/^[1-9]\d{7,14}$/);
@@ -72,10 +73,10 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
       const gap = now - new Date(recent[0].created_at).getTime();
       if (gap < RESEND_GAP_MS) return { ok: false, error: "too_soon", retryIn: Math.ceil((RESEND_GAP_MS - gap) / 1000) };
     }
-    if ((recent?.length ?? 0) >= MAX_SENDS_PER_PHONE) { await log("wa_otp_rate_limited", phone, "phone limit"); return { ok: false, error: "rate_limited" }; }
+    if ((recent?.length ?? 0) >= maxSendsPerPhone()) { await log("wa_otp_rate_limited", phone, "phone limit"); return { ok: false, error: "rate_limited" }; }
     const { count: ipCount } = await db.from("whatsapp_otps").select("id", { count: "exact", head: true })
       .eq("ip_hash", ipHash).gte("created_at", new Date(now - 60 * 60 * 1000).toISOString());
-    if ((ipCount ?? 0) >= MAX_SENDS_PER_IP) { await log("wa_otp_rate_limited", phone, "ip limit"); return { ok: false, error: "rate_limited" }; }
+    if ((ipCount ?? 0) >= maxSendsPerIp()) { await log("wa_otp_rate_limited", phone, "ip limit"); return { ok: false, error: "rate_limited" }; }
 
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
