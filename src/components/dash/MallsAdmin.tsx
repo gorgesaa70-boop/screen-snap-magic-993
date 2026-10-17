@@ -2,9 +2,11 @@ import { useState } from "react";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Store, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Store, FileSpreadsheet, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { REVIEW, formatPrice, uploadImage, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { REVIEW, formatPrice, type BrokerRow, type PropertyRow } from "@/components/site/data";
+import { thumb } from "@/lib/images";
+import { MallPhotosEditor, mallImages } from "./MallPhotos";
 import { MALL_KINDS, fetchMalls, type MallRow } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MallUnitForm } from "./MallUnitForm";
@@ -36,6 +38,7 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
       <div className="space-y-3">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة وحدة في مول</button>
         <button onClick={() => setEditing("import")} className={btnOutline}><FileSpreadsheet className="size-4" />رفع وحدات من Excel</button>
+        <ApproveMallUnits units={units} malls={malls.data ?? []} onDone={reload} />
         {units.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد وحدات بعد.</p>}
         {units.map((p) => (
           <div key={p.id} className="flex flex-col gap-2 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
@@ -55,30 +58,60 @@ export function MallsAdmin({ properties, brokers, reload }: { properties: Proper
   );
 }
 
+/** One click per mall: every unit still waiting (sent for review or saved as draft) becomes approved and shows on the site. */
+function ApproveMallUnits({ units, malls, onDone }: { units: PropertyRow[]; malls: MallRow[]; onDone: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const waiting = malls
+    .map((m) => ({ m, n: units.filter((u) => u.mall_id === m.id && (u.review_status === "pending" || u.review_status === "draft")).length }))
+    .filter((x) => x.n > 0);
+  if (!waiting.length) return null;
+  async function approve(m: MallRow, n: number) {
+    if (!confirm(`اعتماد ${n} وحدة في «${m.name}» مرة واحدة؟ هتظهر كلها على الموقع.`)) return;
+    setBusy(m.id);
+    const { data, error } = await supabase.from("properties").update({ review_status: "approved", review_note: null })
+      .eq("category", "mall").eq("mall_id", m.id).in("review_status", ["pending", "draft"]).select("id");
+    setBusy(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`اتعمد ${data?.length ?? 0} وحدة في ${m.name}`);
+    onDone();
+  }
+  return (
+    <div className="rounded-2xl border border-teal/40 bg-teal-soft/40 p-3">
+      <p className="mb-2 text-sm font-bold text-primary">وحدات مستنية الاعتماد</p>
+      <div className="flex flex-wrap gap-2">
+        {waiting.map(({ m, n }) => (
+          <button key={m.id} disabled={!!busy} onClick={() => approve(m, n)} className={`${btnPrimary} h-10`}>
+            <CheckCheck className="size-4" />{busy === m.id ? "بيتعمد..." : `اعتمد كل وحدات ${m.name} (${n})`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MallEditor({ m, developers, onSaved }: { m: MallRow; developers: { id: string; name: string }[]; onSaved: () => void }) {
-  const [f, setF] = useState({ developer_id: m.developer_id ?? "", name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", logo_url: m.logo_url ?? "" });
+  const [f, setF] = useState({ developer_id: m.developer_id ?? "", name: m.name, kind: m.kind ?? "commercial", location: m.location ?? "", description: m.description ?? "", images: mallImages(m) });
   const [loc, setLoc] = useState<LatLng | null>(m.lat != null && m.lng != null ? { lat: m.lat, lng: m.lng } : null);
   const [showMap, setShowMap] = useState(false);
   const [busy, setBusy] = useState(false);
   async function save(patch?: Partial<MallRow>) {
     setBusy(true);
-    const { error } = await supabase.from("malls").update(patch ?? { developer_id: f.developer_id || null, name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.logo_url || null, lat: loc?.lat ?? null, lng: loc?.lng ?? null }).eq("id", m.id);
+    const base = { developer_id: f.developer_id || null, name: f.name.trim(), kind: f.kind, location: f.location.trim() || null, description: f.description.trim() || null, logo_url: f.images[0] ?? null, lat: loc?.lat ?? null, lng: loc?.lng ?? null };
+    let { error } = await supabase.from("malls").update(patch ?? { ...base, images: f.images }).eq("id", m.id);
+    // Before release 29 there is no gallery column: save the rest, with the first photo as the mall photo.
+    if (error && !patch && /images/.test(error.message)) {
+      ({ error } = await supabase.from("malls").update(base).eq("id", m.id));
+      if (!error && f.images.length > 1) toast.info("اتحفظت أول صورة بس — باقي الصور محتاجة تحديث قاعدة البيانات (إصدار 29)");
+    }
     setBusy(false);
     if (error) toast.error(error.message); else { toast.success("تم الحفظ"); onSaved(); }
   }
   return (
     <div className="rounded-xl border p-3">
       <div className="flex items-center gap-3">
-        <label className="flex w-24 shrink-0 cursor-pointer flex-col items-center gap-1" title="صورة المول">
-          <span className="grid size-20 place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-teal/60 bg-secondary">
-            {f.logo_url ? <img src={f.logo_url} alt={`صورة ${m.name}`} className="size-full object-cover" /> : <Store className="size-6 text-muted-foreground" />}
-          </span>
-          <span className="text-[11px] font-bold text-primary">{f.logo_url ? "غيّر الصورة" : "ارفع صورة المول"}</span>
-          <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
-            const file = e.target.files?.[0]; if (!file) return;
-            try { setBusy(true); const url = await uploadImage(file); setF((x) => ({ ...x, logo_url: url })); toast.success("الصورة اترفعت — اضغط حفظ"); } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
-          }} />
-        </label>
+        <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-secondary" title="غلاف المول">
+          {f.images[0] ? <img src={thumb(f.images[0])} alt={`صورة ${m.name}`} className="size-full object-cover" /> : <Store className="size-6 text-muted-foreground" />}
+        </span>
         <div className="grid flex-1 gap-2">
           <input aria-label="اسم المول" className={`${inputCls} h-10`} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} maxLength={120} />
           <select aria-label="نوع المول" className={`${inputCls} h-10`} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{Object.entries(MALL_KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
@@ -90,6 +123,8 @@ function MallEditor({ m, developers, onSaved }: { m: MallRow; developers: { id: 
         </div>
       </div>
       <textarea aria-label="الوصف" className={`${inputCls} mt-2 h-16 py-2`} placeholder="وصف المول" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} />
+      <div className="mt-2"><MallPhotosEditor images={f.images} onChange={(images) => setF((x) => ({ ...x, images }))} disabled={busy} /></div>
+      {f.images.join() !== mallImages(m).join() && <p className="mt-1 text-xs font-bold text-amber-700">الصور اتغيرت — اضغط «حفظ».</p>}
       <button type="button" onClick={() => setShowMap(!showMap)} className="mt-2 text-xs font-bold text-primary underline">📍 {loc ? "الموقع على الخريطة (متحدد)" : "حدد موقع المول على الخريطة"}</button>
       {showMap && <div className="mt-2"><MapPicker value={loc} onChange={setLoc} /><p className="mt-1 text-xs text-muted-foreground">وحدات المول اللي ملهاش موقع خاص بتاخد موقع المول.</p></div>}
       <div className="mt-2 flex gap-2">

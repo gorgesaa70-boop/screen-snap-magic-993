@@ -24,3 +24,6 @@ export async function fetchMallUnits(mallId: string) {
   if (error) throw error;
   return data;
 }
+
+/** The mall's photos: the gallery (release 29), or the single photo malls had before. The first one is the cover. */
+export const mallImages = (m: { images?: string[] | null; logo_url: string | null }) => (m.images?.length ? m.images : m.logo_url ? [m.logo_url] : []);

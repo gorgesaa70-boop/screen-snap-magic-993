@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, LayoutDashboard, ArrowLeftRight, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, LayoutDashboard, ArrowLeftRight, Star, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice, type BrokerRow } from "@/components/site/data";
 import { compoundCover, compoundWhere, type CompoundRow } from "@/components/site/compounds";
@@ -34,6 +34,14 @@ export function CompoundsAdmin({ brokers }: { brokers: BrokerRow[] }) {
     const { error } = await supabase.from("compounds").update(patch).eq("id", c.id);
     if (error) toast.error(error.message); else { toast.success(ok); reload(); }
   }
+  // Compounds a developer changed after being hidden come back as «رجع للمراجعة»: show them all at once.
+  const waiting = (q.data ?? []).filter((c) => c.review_status === "pending");
+  async function approveAll() {
+    if (!confirm(`إظهار ${waiting.length} كمبوند مرة واحدة على الموقع؟`)) return;
+    const { data, error } = await supabase.from("compounds").update({ review_status: "approved", review_note: null, is_active: true }).eq("review_status", "pending").select("id");
+    if (error) { toast.error(error.message); return; }
+    toast.success(`ظهر ${data?.length ?? 0} كمبوند`); reload();
+  }
   const list = (q.data ?? []).filter((c) =>
     (!owner || (owner === "va" ? !c.developer_id : c.developer_id === owner)) && (!search || c.name.includes(search.trim())));
 
@@ -45,6 +53,7 @@ export function CompoundsAdmin({ brokers }: { brokers: BrokerRow[] }) {
       </p>
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setEditing("new")} className={btnPrimary}><Plus className="size-4" />إضافة كمبوند</button>
+        {waiting.length > 0 && <button onClick={approveAll} className={btnOutline}><CheckCheck className="size-4" />اعتمد كل المستني ({waiting.length})</button>}
         <input aria-label="بحث" className={`${inputCls} w-auto min-w-40 flex-1`} placeholder="ابحث باسم الكمبوند" value={search} onChange={(e) => setSearch(e.target.value)} />
         <select aria-label="صاحب الكمبوند" className={`${inputCls} w-auto`} value={owner} onChange={(e) => setOwner(e.target.value)}>
           <option value="">كل الكمبوندات</option><option value="va">اللي فاليو عقار بتديرها</option>

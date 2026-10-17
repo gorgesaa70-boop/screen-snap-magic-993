@@ -8,7 +8,7 @@ import { REVIEW, formatPrice, type BrokerRow } from "@/components/site/data";
 import { projectCover } from "@/components/site/projects";
 import { btnPrimary, btnOutline } from "@/components/site/ui";
 import { useState } from "react";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, CheckCheck } from "lucide-react";
 import { ProjectsImport } from "@/components/dash/ProjectsImport";
 import { thumb } from "@/lib/images";
 
@@ -31,9 +31,19 @@ export function ProjectsAdmin({ brokers }: { brokers: BrokerRow[] }) {
   if (importing) return <ProjectsImport developers={developers} onCancel={() => setImporting(false)} onDone={() => { setImporting(false); q.refetch(); }} />;
   const importBtn = developers.length > 0 && <button onClick={() => setImporting(true)} className={btnOutline}><FileSpreadsheet className="size-4" />رفع كمبوندات من Excel</button>;
   if (!q.isLoading && list.length === 0) return <div className="space-y-3">{importBtn}<p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد مشروعات بعد. شركات التطوير المعتمدة تضيف مشروعاتها من لوحتها.</p></div>;
+  const waiting = list.filter((p) => p.review_status === "pending");
+  async function approveAll() {
+    if (!confirm(`نشر ${waiting.length} مشروع مرة واحدة؟ هيظهروا كلهم على الموقع.`)) return;
+    const { data, error } = await dbx.from("projects").update({ review_status: "approved", review_note: null }).eq("review_status", "pending").select("id");
+    if (error) { toast.error(error.message); return; }
+    toast.success(`اتنشر ${data?.length ?? 0} مشروع`); q.refetch();
+  }
   return (
     <div className="space-y-3">
-      {importBtn}
+      <div className="flex flex-wrap gap-2">
+        {importBtn}
+        {waiting.length > 0 && <button onClick={approveAll} className={btnPrimary}><CheckCheck className="size-4" />انشر كل المستني ({waiting.length})</button>}
+      </div>
       {list.map((p) => {
         const dev = brokers.find((b) => b.id === p.developer_id);
         return (

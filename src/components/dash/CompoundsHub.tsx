@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Plus, Store, ArrowLeft } from "lucide-react";
+import { Plus, Store, ArrowLeft, ImagePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/components/site/data";
 import { COMPOUND_ROLE_LABEL, compoundCover, compoundWhere } from "@/components/site/compounds";
 import { btnPrimary } from "@/components/site/ui";
 import { CompoundForm } from "@/components/dash/CompoundForm";
+import { MallPhotosForDeveloper, mallImages } from "@/components/dash/MallPhotos";
 import { thumb } from "@/lib/images";
 
 /** The compounds the signed-in person works on (and, for a developer, their malls). Each opens its dashboard. */
 export function CompoundsHub({ developerId, canAdd }: { developerId?: string | null; canAdd?: boolean }) {
   const nav = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [photosFor, setPhotosFor] = useState<string | null>(null);
   const q = useQuery({
     queryKey: ["my-compounds", developerId],
     queryFn: async () => {
@@ -27,7 +29,8 @@ export function CompoundsHub({ developerId, canAdd }: { developerId?: string | n
   const malls = useQuery({
     queryKey: ["my-malls", developerId], enabled: !!developerId,
     queryFn: async () => {
-      const { data } = await supabase.from("malls").select("id, name, logo_url, location, is_active").eq("developer_id", developerId!).order("name");
+      // "*" so the list still loads before the gallery column (release 29) exists.
+      const { data } = await supabase.from("malls").select("*").eq("developer_id", developerId!).order("name");
       if (!data?.length) return [];
       const units = (await supabase.from("properties").select("mall_id").in("mall_id", data.map((m) => m.id)).eq("review_status", "approved")).data ?? [];
       return data.map((m) => ({ ...m, units: units.filter((u) => u.mall_id === m.id).length }));
@@ -69,11 +72,16 @@ export function CompoundsHub({ developerId, canAdd }: { developerId?: string | n
         <div>
           <p className="mb-2 font-extrabold text-primary">مولاتي</p>
           <div className="grid gap-3 md:grid-cols-2">
-            {malls.data!.map((m) => (
-              <Link key={m.id} to="/malls/$id" params={{ id: m.id }} className="flex items-center gap-3 rounded-2xl border bg-card p-3 hover:border-teal">
-                <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary">{m.logo_url ? <img src={m.logo_url} alt="" className="size-full object-cover" /> : <Store className="size-6 text-teal" />}</span>
-                <div className="min-w-0"><p className="truncate font-bold text-primary">{m.name}</p><p className="text-xs text-muted-foreground">{formatPrice(m.units)} وحدة معروضة{m.location ? ` · ${m.location}` : ""}</p></div>
-              </Link>
+            {malls.data!.map((m) => photosFor === m.id ? (
+              <div key={m.id} className="md:col-span-2"><MallPhotosForDeveloper mall={m} onSaved={() => void malls.refetch()} onClose={() => setPhotosFor(null)} /></div>
+            ) : (
+              <div key={m.id} className="flex items-center gap-3 rounded-2xl border bg-card p-3 hover:border-teal">
+                <Link to="/malls/$id" params={{ id: m.id }} className="flex min-w-0 flex-1 items-center gap-3">
+                  <span className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-secondary">{m.logo_url ? <img src={thumb(m.logo_url)} alt="" className="size-full object-cover" /> : <Store className="size-6 text-teal" />}</span>
+                  <div className="min-w-0"><p className="truncate font-bold text-primary">{m.name}</p><p className="text-xs text-muted-foreground">{formatPrice(m.units)} وحدة معروضة{m.location ? ` · ${m.location}` : ""} · {mallImages(m).length} صورة</p></div>
+                </Link>
+                {canAdd && <button onClick={() => setPhotosFor(m.id)} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl border px-3 text-xs font-bold text-primary hover:border-teal"><ImagePlus className="size-4" />صور المول</button>}
+              </div>
             ))}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">المولات بتربطها إدارة فاليو عقار بحسابك، ووحداتها بتتعرض من الوسطاء والملاك.</p>

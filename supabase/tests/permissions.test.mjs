@@ -1567,4 +1567,32 @@ commit;`);
     await exec(`begin;\n${sql}\ncommit;`);
     return as(DMU.ownA, `select count(*)::int n from public.my_direct_threads()`);
   }, (r) => r[0].n === 2);
+
+  // Mall gallery (release 29): up to 10 photos; admins, or the mall developer's owner / manager, through set_mall_images.
+  const mallG = (await sys(`insert into public.malls (name, developer_id, logo_url) values ('مول المعرض', '${DEV}', null) returning id`))[0].id;
+  const pic = (n) => `https://x.supabase.co/storage/v1/object/sign/media/p${n}.jpg`;
+  await expectOk("the mall developer sets its photos; the first becomes the cover", async () => {
+    await as(U.dev, `select public.set_mall_images('${mallG}', array['${pic(1)}','${pic(2)}'])`);
+    return sys(`select images, logo_url from public.malls where id='${mallG}'`);
+  }, (r) => r[0].images.length === 2 && r[0].logo_url === pic(1));
+  await expectOk("the admin sets photos too", () => as(U.admin, `select public.set_mall_images('${mallG}', array['${pic(3)}'])`), () => true);
+  await expectErr("another account can't", () => as(U.owner, `select public.set_mall_images('${mallG}', array['${pic(4)}'])`));
+  await expectErr("a sales member of another company can't", () => as(U.sales, `select public.set_mall_images('${mallG}', array['${pic(4)}'])`));
+  await expectErr("more than 10 photos is refused", () => as(U.admin, `select public.set_mall_images('${mallG}', array(select '${pic(0)}' || g from generate_series(1, 11) g))`));
+  await expectErr("only https photo links", () => as(U.dev, `select public.set_mall_images('${mallG}', array['javascript:alert(1)'])`));
+  await expectErr("the developer still can't edit the mall itself", () => as(U.dev, `update public.malls set name='تغيير' where id='${mallG}' returning id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; }));
+  await expectOk("release 29 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017500000_mall-gallery.sql", import.meta.url), "utf8");
+    await exec(`begin;
+${sql}
+commit;`);
+    return sys(`select cardinality(images) n from public.malls where id='${mallG}'`);
+  }, (r) => r[0].n === 1);
+
+  await expectOk("the admin approves all waiting units of a mall at once (drafts and sent for review)", async () => {
+    await sys(`insert into public.properties (broker_id, category, mall_id, title, type, status, price, size, area, review_status) values
+      ('${CO}','mall','${mallG}','محل 1','محل تجاري','بيع',1000000,30,'مول المعرض','draft'),
+      ('${CO}','mall','${mallG}','محل 2','محل تجاري','بيع',1200000,35,'مول المعرض','pending')`);
+    return as(U.admin, `update public.properties set review_status='approved', review_note=null where category='mall' and mall_id='${mallG}' and review_status in ('pending','draft') returning id`);
+  }, (r) => r.length === 2);
 }
