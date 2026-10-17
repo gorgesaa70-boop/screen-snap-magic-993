@@ -8,6 +8,7 @@ import { DashShell } from "@/components/dash/DashShell";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
 import { Tabs, btnOutline, btnPrimary } from "@/components/site/ui";
 import { REVIEW, formatPrice, listingTerm } from "@/components/site/data";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/_authenticated/my-listings")({
   head: () => ({ meta: [{ title: "إعلاناتي | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -34,7 +35,7 @@ function MyListingsPage() {
               const review = REVIEW[p.review_status as keyof typeof REVIEW];
               return (
                 <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
-                  <img src={p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
+                  <img src={thumb(p.image_url) || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {review && <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${review.cls}`}>{p.review_status === "pending" ? "بيتراجع من فاليو عقار" : review.label}</span>}

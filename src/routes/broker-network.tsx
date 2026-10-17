@@ -8,6 +8,7 @@ import { useMe } from "@/hooks/useAuth";
 import { pageHead, breadcrumbs } from "@/lib/seo";
 import { PageShell, inputCls, btnPrimary, btnOutline, btnTeal } from "@/components/site/ui";
 import { ALL_AREAS, formatPrice, useLocations } from "@/components/site/data";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/broker-network")({
   head: () => pageHead({
@@ -88,7 +89,7 @@ function Market() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {list.map((x) => (
               <a key={`${x.target_kind}-${x.id}`} href={href(x)} className="flex flex-col overflow-hidden rounded-2xl border bg-card transition hover:border-teal hover:shadow-card">
-                <img src={x.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+                <img src={thumb(x.image_url) || "/demo/p1.jpg"} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
                 <div className="flex flex-1 flex-col gap-1 p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{t(KIND[x.target_kind] ?? "")}</span>

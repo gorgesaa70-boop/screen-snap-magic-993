@@ -10,6 +10,7 @@ import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/c
 import { AreaPicker } from "@/components/site/AreaPicker";
 import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, servicePlanLines, serviceRequestNo, starsText, uploadImage, waLink } from "@/components/site/data";
 import { useIsNativeApp } from "@/lib/native";
+import { thumb } from "@/lib/images";
 
 type Provider = Tables<"service_providers">;
 type Tab = "requests" | "photos" | "reviews" | "plan" | "profile";
@@ -204,7 +205,7 @@ function ProviderPhotos({ provider, max, onChanged }: { provider: Provider; max:
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {list.map((p) => (
           <div key={p.id} className="group relative overflow-hidden rounded-2xl border bg-card">
-            <img src={p.url} alt={p.caption ?? ""} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+            <img src={thumb(p.url)} alt={p.caption ?? ""} loading="lazy" className="aspect-[4/3] w-full object-cover" />
             <button aria-label="حذف الصورة" onClick={async () => { if (!confirm("حذف الصورة؟")) return; const { error } = await supabase.from("service_provider_photos").delete().eq("id", p.id); if (error) toast.error(error.message); else { q.refetch(); onChanged(); } }}
               className="absolute top-2 end-2 grid size-9 place-items-center rounded-full bg-card/90 text-destructive shadow"><Trash2 className="size-4" /></button>
           </div>

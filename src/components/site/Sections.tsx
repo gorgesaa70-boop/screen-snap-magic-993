@@ -18,6 +18,7 @@ import { t as tr, useLang } from "@/lib/i18n";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { downPct } from "@/lib/installments";
 import { WhatsAppMark } from "./FloatingWhatsApp";
+import { thumb } from "@/lib/images";
 
 function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) {
   return (
@@ -74,7 +75,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
-        <img src={p.image} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
+        <img src={thumb(p.image)} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
           className="size-full object-cover transition duration-500 group-hover:scale-105" />
         <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : p.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>
           {tr(PURPOSE_LABEL[p.status] ?? p.status)}
@@ -304,7 +305,7 @@ function RequestForm() {
             className={`h-10 rounded-xl border text-sm font-bold transition ${f.purpose === v ? "border-teal bg-teal/10 text-primary" : "text-muted-foreground hover:border-teal/50"}`}>{tr(l)}</button>
         ))}
       </div>
-      <select className={`${inputCls} sm:col-span-2`} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
+      <select aria-label={tr("نوع العقار")} className={`${inputCls} sm:col-span-2`} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
       <select className={inputCls} value={typed ? "__other__" : f.city} aria-label={tr("المدينة")} onChange={(e) => {
         const other = e.target.value === "__other__";
         setTyped(other); setF({ ...f, city: other ? "" : e.target.value, area: "" });
@@ -423,11 +424,11 @@ export function Footer() {
           </div>
         </div>
         <div>
-          <h4 className="font-bold text-primary-foreground">{tr("روابط")}</h4>
+          <h2 className="font-bold text-primary-foreground">{tr("روابط")}</h2>
           <ul className="mt-3 text-sm">{pages.map(([l, h]) => <li key={h}><a href={h} className="inline-block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
         </div>
         <div>
-          <h4 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h4>
+          <h2 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             <li><a href="https://maps.google.com/?cid=6237911875878729662" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-teal"><MapPin className="size-4 shrink-0 text-teal" />{tr("عمارات المستثمرين، برج العرب — موقعنا على الخريطة")}</a></li>
             <li><a href={waLink(WHATSAPP_NUMBER, tr("أهلاً فاليو عقار"))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 py-1 hover:text-teal"><MessageCircle className="size-4 text-teal" />{tr("راسلنا على واتساب")}</a></li>

@@ -26,6 +26,7 @@ import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, listingTerm, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
 import { AreaPicker } from "@/components/site/AreaPicker";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "لوحة التحكم | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -194,7 +195,7 @@ function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string;
       {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لم تضف أي عقار بعد.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center">
-          <img src={p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
+          <img src={thumb(p.image_url) || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover sm:h-20 sm:w-28" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>

@@ -7,6 +7,7 @@ import { formatPrice } from "@/components/site/data";
 import { COMPOUND_ROLE_LABEL, compoundCover, compoundWhere } from "@/components/site/compounds";
 import { btnPrimary } from "@/components/site/ui";
 import { CompoundForm } from "@/components/dash/CompoundForm";
+import { thumb } from "@/lib/images";
 
 /** The compounds the signed-in person works on (and, for a developer, their malls). Each opens its dashboard. */
 export function CompoundsHub({ developerId, canAdd }: { developerId?: string | null; canAdd?: boolean }) {
@@ -49,7 +50,7 @@ export function CompoundsHub({ developerId, canAdd }: { developerId?: string | n
           const cnt = (s: string) => u.filter((x) => x.status === s).length;
           return (
             <Link key={c.id} to="/my-compounds/$id" params={{ id: c.id }} className="group flex gap-3 rounded-2xl border bg-card p-3 transition hover:border-teal">
-              <img src={compoundCover(c)} alt="" loading="lazy" className="size-24 shrink-0 rounded-xl object-cover" />
+              <img src={thumb(compoundCover(c))} alt="" loading="lazy" className="size-24 shrink-0 rounded-xl object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5">
                   <span className="rounded-full bg-teal-soft px-2 py-0.5 text-[10px] font-bold text-primary">{COMPOUND_ROLE_LABEL[c.role]}</span>

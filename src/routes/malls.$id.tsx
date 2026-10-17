@@ -9,6 +9,7 @@ import { MALL_UNIT_TYPES, fetchMallUnits } from "@/components/site/malls";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { PlaceMap } from "@/components/site/Gallery";
 import { t, useLang } from "@/lib/i18n";
+import { thumb } from "@/lib/images";
 
 async function fetchMall(id: string) {
   const { data, error } = await supabase.from("malls").select("*").eq("id", id).maybeSingle();
@@ -87,7 +88,7 @@ function MallPage() {
             return (
               <div key={u.id} className="overflow-hidden rounded-2xl border bg-card shadow-card">
                 <div className="relative aspect-[4/3] bg-muted">
-                  {u.image_url ? <img src={u.image_url} alt={u.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Store className="size-12 text-muted-foreground" /></div>}
+                  {u.image_url ? <img src={thumb(u.image_url)} alt={u.title} loading="lazy" className="size-full object-cover" /> : <div className="grid size-full place-items-center"><Store className="size-12 text-muted-foreground" /></div>}
                   <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t("لل")}{t(u.status)}</span>
                 </div>
                 <div className="p-4">

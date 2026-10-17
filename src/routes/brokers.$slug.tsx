@@ -10,6 +10,7 @@ import { BrokerInquiry } from "@/components/site/BrokerInquiry";
 import { compoundCover, compoundWhere } from "@/components/site/compounds";
 import { projectCover } from "@/components/site/projects";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { thumb } from "@/lib/images";
 
 /** A developer's compounds, malls and projects (public ones only — the database hides the rest). */
 async function fetchDeveloperPortfolio(id: string) {
@@ -102,7 +103,7 @@ function BrokerProfile() {
                   <h2 className="mb-3 text-xl font-extrabold text-primary">{t("الكمبوندات")} ({pf.compounds.length})</h2>
                   <div className="grid gap-3 sm:grid-cols-2">{pf.compounds.map((c) => (
                     <Link key={c.id} to="/compounds/$id" params={{ id: c.id }} className={card}>
-                      <img src={compoundCover(c)} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <img src={thumb(compoundCover(c))} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
                       <div className="min-w-0"><p className="truncate font-bold text-primary">{c.name}</p><p className="truncate text-xs text-muted-foreground">{t(compoundWhere(c))}</p></div>
                     </Link>))}
                   </div>
@@ -113,7 +114,7 @@ function BrokerProfile() {
                   <h2 className="mb-3 text-xl font-extrabold text-primary">{t("المولات")} ({pf.malls.length})</h2>
                   <div className="grid gap-3 sm:grid-cols-2">{pf.malls.map((m) => (
                     <Link key={m.id} to="/malls/$id" params={{ id: m.id }} className={card}>
-                      <img src={m.logo_url || "/demo/p2.jpg"} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <img src={thumb(m.logo_url) || "/demo/p2.jpg"} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
                       <div className="min-w-0"><p className="truncate font-bold text-primary">{m.name}</p>{m.location && <p className="truncate text-xs text-muted-foreground">{m.location}</p>}</div>
                     </Link>))}
                   </div>
@@ -124,7 +125,7 @@ function BrokerProfile() {
                   <h2 className="mb-3 text-xl font-extrabold text-primary">{t("المشروعات")} ({pf.projects.length})</h2>
                   <div className="grid gap-3 sm:grid-cols-2">{pf.projects.map((p) => (
                     <Link key={p.id} to="/projects/$id" params={{ id: p.id }} className={card}>
-                      <img src={projectCover(p)} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
+                      <img src={thumb(projectCover(p))} alt="" loading="lazy" className="size-16 shrink-0 rounded-xl object-cover" />
                       <div className="min-w-0"><p className="truncate font-bold text-primary">{p.name}</p><p className="truncate text-xs text-muted-foreground">{t(p.area)}</p></div>
                     </Link>))}
                   </div>

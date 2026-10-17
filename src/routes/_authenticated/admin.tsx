@@ -38,6 +38,7 @@ import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { createBrokerAccount, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { cleanPhone } from "@/lib/phone";
+import { thumb } from "@/lib/images";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "لوحة الإدارة | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
@@ -290,7 +291,7 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
         <div key={p.id} className="rounded-2xl border bg-card">
         <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
           <a href={p.images[0] || p.image_url || "/demo/p1.jpg"} target="_blank" rel="noreferrer" className="relative shrink-0">
-            <img src={p.images[0] || p.image_url || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
+            <img src={thumb(p.images[0] || p.image_url) || "/demo/p1.jpg"} alt="" loading="lazy" className="h-28 w-full rounded-xl object-cover md:h-20 md:w-28" />
             {p.images.length > 1 && <span className="absolute bottom-1 left-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-bold text-primary">{p.images.length} صور</span>}
           </a>
           <div className="min-w-0 flex-1">

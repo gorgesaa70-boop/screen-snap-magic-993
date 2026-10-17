@@ -8,6 +8,7 @@ import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/l
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PROVIDER_KIND, SERVICE_CATEGORIES, formatDate, formatPrice, starsText } from "@/components/site/data";
 import { ServiceRequestForm } from "@/components/site/ServiceForms";
+import { thumb } from "@/lib/images";
 
 type Profile = {
   id: string; kind: string; category: string; name: string; specialty: string | null; areas: string[]; bio: string | null; photo_url: string | null;
@@ -86,7 +87,7 @@ function ProviderProfilePage() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {p.photos.map((ph, i) => (
                   <button key={i} type="button" onClick={() => setZoom(ph.url)} className="overflow-hidden rounded-xl border">
-                    <img src={ph.url} alt={ph.caption ?? p.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition hover:scale-105" />
+                    <img src={thumb(ph.url)} alt={ph.caption ?? p.name} loading="lazy" className="aspect-[4/3] w-full object-cover transition hover:scale-105" />
                   </button>
                 ))}
               </div>
