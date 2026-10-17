@@ -7,7 +7,7 @@ import { Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { PhoneOtp } from "@/components/auth/PhoneOtp";
-import { btnOutline, inputCls } from "@/components/site/ui";
+import { btnOutline, btnPrimary, inputCls } from "@/components/site/ui";
 import { useMe } from "@/hooks/useAuth";
 import { deleteMyAccount } from "@/lib/account.functions";
 
@@ -39,12 +39,53 @@ function AccountPage() {
             <button className={btnOutline} onClick={() => setChanging(true)}>{user.phone ? "تغيير رقم الهاتف" : "إضافة رقم هاتف"}</button>
           )}
         </div>
+        {user.email && !user.email.endsWith(".invalid") && <ChangePassword email={user.email} />}
         <DeleteAccount isAdmin={!!me?.isAdmin} hasBusiness={!!me?.broker} />
         <p className="text-xs text-muted-foreground">
           <Link to="/privacy" className="font-bold text-primary hover:text-teal">سياسة الخصوصية</Link> · <Link to="/terms" className="font-bold text-primary hover:text-teal">شروط الاستخدام</Link>
         </p>
       </div>
     </DashShell>
+  );
+}
+
+/** Change the e-mail sign-in password (accounts created by phone have no real e-mail, so they don't see this). */
+function ChangePassword({ email }: { email: string }) {
+  const [open, setOpen] = useState(false);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (pw.length < 8) { toast.error("كلمة السر لازم 8 حروف أو أرقام على الأقل"); return; }
+    if (pw !== pw2) { toast.error("كلمتين السر مش زي بعض"); return; }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
+    if (error) {
+      toast.error(/reauth|recent/i.test(error.message) ? "لازم تسجّل دخول من جديد الأول، وبعدين غيّر كلمة السر" : /weak|short|pwned/i.test(error.message) ? "كلمة السر ضعيفة — خليها أطول وفيها حروف وأرقام" : /same/i.test(error.message) ? "دي نفس كلمة السر القديمة" : "مااتغيّرتش، جرّب تاني");
+      return;
+    }
+    toast.success("اتغيّرت كلمة السر ✓");
+    setPw(""); setPw2(""); setOpen(false);
+  }
+  return (
+    <div className="rounded-2xl border bg-card p-5 md:p-6">
+      <p className="text-sm font-bold text-primary">كلمة السر</p>
+      <p className="mt-1 text-xs text-muted-foreground">للدخول بالإيميل <span dir="ltr">{email}</span>.</p>
+      {open ? (
+        <form onSubmit={save} className="mt-3 space-y-3">
+          <input type="password" dir="ltr" required minLength={8} autoComplete="new-password" placeholder="كلمة السر الجديدة (8 على الأقل)" className={inputCls} value={pw} onChange={(e) => setPw(e.target.value)} />
+          <input type="password" dir="ltr" required autoComplete="new-password" placeholder="اكتبها تاني" className={inputCls} value={pw2} onChange={(e) => setPw2(e.target.value)} />
+          <div className="flex gap-2">
+            <button disabled={busy} className={btnPrimary}>{busy ? "..." : "حفظ"}</button>
+            <button type="button" onClick={() => setOpen(false)} className="h-11 px-4 text-sm font-bold text-muted-foreground">إلغاء</button>
+          </div>
+        </form>
+      ) : (
+        <button className={`${btnOutline} mt-3`} onClick={() => setOpen(true)}>تغيير كلمة السر</button>
+      )}
+    </div>
   );
 }
 
