@@ -4,8 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSessionUser } from "@/hooks/useAuth";
 import type { Tables } from "@/integrations/supabase/types";
 
-/** Messages inside the platform: one conversation per request, between the customer, the company and Value Aqar. */
-export type ChatMessage = Tables<"lead_messages">;
+/**
+ * Messages inside the platform: one conversation per request (customer, company and Value Aqar), plus direct
+ * conversations between Value Aqar and an account, or between two brokers.
+ */
+export type ChatMessage = Omit<Tables<"lead_messages">, "lead_id">;
 export type ChatSide = "customer" | "company" | "platform";
 
 export const MESSAGES_BUCKET = "lead-messages";
@@ -13,12 +16,21 @@ export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 
 /** Uploads a photo or PDF into the conversation's folder; the database checks who may write there. */
-export async function uploadAttachment(leadId: string, file: File) {
+export function uploadAttachment(leadId: string, file: File) {
+  return uploadInto(leadId, file);
+}
+
+/** Direct conversations keep their files under dm/<conversation>/. */
+export function uploadDirectAttachment(threadId: string, file: File) {
+  return uploadInto(`dm/${threadId}`, file);
+}
+
+async function uploadInto(folder: string, file: File) {
   const isPdf = file.type === "application/pdf";
   if (!isPdf && !IMAGE_TYPES.includes(file.type)) throw new Error("ينفع صور (JPG / PNG / WEBP) أو ملفات PDF بس");
   if (file.size > MAX_ATTACHMENT_BYTES) throw new Error("الملف أكبر من 5 ميجا");
   const ext = isPdf ? "pdf" : (file.type.split("/")[1] ?? "jpg").replace("jpeg", "jpg");
-  const path = `${leadId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from(MESSAGES_BUCKET).upload(path, file, { contentType: file.type });
   if (error) throw new Error(error.message);
   return { path, name: file.name.slice(0, 150), type: isPdf ? ("pdf" as const) : ("image" as const) };
@@ -54,6 +66,10 @@ export function useUnreadMessages() {
         qc.invalidateQueries({ queryKey: ["unread-messages", user.id] });
         qc.invalidateQueries({ queryKey: ["conversations", user.id] });
       })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, () => {
+        qc.invalidateQueries({ queryKey: ["unread-messages", user.id] });
+        qc.invalidateQueries({ queryKey: ["direct-threads", user.id] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, qc, uid]);
@@ -71,6 +87,26 @@ export function useConversations() {
       return data ?? [];
     },
   });
+}
+
+/** Direct conversations (Value Aqar ↔ account, broker ↔ broker). Empty before release-27 is applied. */
+export function useDirectThreads() {
+  const { user } = useSessionUser();
+  return useQuery({
+    queryKey: ["direct-threads", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("my_direct_threads");
+      return error ? [] : (data ?? []);
+    },
+  });
+}
+
+/** Opens (or creates) the direct conversation with an account; without one, an account's conversation with Value Aqar. */
+export async function startDirectThread(brokerId?: string) {
+  const { data, error } = await supabase.rpc("start_direct_thread", brokerId ? { _broker: brokerId } : {});
+  if (error) throw new Error(/start_direct_thread/.test(error.message) ? "الرسايل المباشرة لسه مش متاحة" : error.message);
+  return data;
 }
 
 export function chatTime(iso: string) {

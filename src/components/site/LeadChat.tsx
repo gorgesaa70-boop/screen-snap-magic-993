@@ -1,15 +1,37 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CheckCheck, FileText, Flag, Lock, LockOpen, Paperclip, Send, ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionUser } from "@/hooks/useAuth";
-import { attachmentUrl, chatTime, uploadAttachment, type ChatMessage, type ChatSide } from "@/lib/messages";
+import { attachmentUrl, chatTime, uploadAttachment, uploadDirectAttachment, type ChatMessage, type ChatSide } from "@/lib/messages";
 
 const SIDE_LABEL: Record<ChatSide, string> = { customer: "العميل", company: "الشركة", platform: "فاليو عقار" };
 const OPEN_STAGES = ["reserved", "contracted", "sold"];
 
-function Attachment({ m }: { m: ChatMessage }) {
+type Attachment = { path: string; name: string; type: "image" | "pdf" };
+type Result = PromiseLike<{ error: { message: string } | null }>;
+
+/** What a conversation needs from the database; request conversations and direct conversations differ only here. */
+type ChatSource = {
+  id: string;
+  side: () => Promise<string | null>;
+  messages: () => Promise<ChatMessage[]>;
+  reads: () => Promise<{ side: string; last_read_at: string }[]>;
+  live: { messages: string; reads: string; column: string };
+  markRead: () => PromiseLike<unknown>;
+  upload: (file: File) => Promise<Attachment>;
+  send: (body: string, att: Attachment | null) => Result;
+  report: (id: string, reason: string) => Result;
+  setClosed: (closed: boolean) => Result;
+  /** Second part of the sender line for messages from the other side, e.g. « · الشركة». */
+  senderNote: (m: ChatMessage) => string;
+  /** Contact details are hidden for this side. */
+  masking: (side: string) => boolean;
+  closeConfirm: string;
+};
+
+function AttachmentView({ m }: { m: ChatMessage }) {
   const url = useQuery({ queryKey: ["chat-file", m.attachment_path], enabled: !!m.attachment_path, staleTime: 50 * 60_000, queryFn: () => attachmentUrl(m.attachment_path!) });
   if (!m.attachment_path) return null;
   if (m.attachment_type === "image") {
@@ -29,6 +51,57 @@ function Attachment({ m }: { m: ChatMessage }) {
  * (the lead file for the company and Value Aqar, the inbox for the customer).
  */
 export function LeadChat({ leadId, closed = false, stage, className = "" }: { leadId: string; closed?: boolean; stage?: string | null; className?: string }) {
+  const source = useMemo<ChatSource>(() => ({
+    id: `lead:${leadId}`,
+    side: async () => (await supabase.rpc("lead_chat_side", { _lead: leadId })).data ?? null,
+    messages: async () => {
+      const { data, error } = await supabase.from("lead_messages").select("*").eq("lead_id", leadId).order("created_at").limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    reads: async () => (await supabase.from("lead_message_reads").select("side, last_read_at").eq("lead_id", leadId)).data ?? [],
+    live: { messages: "lead_messages", reads: "lead_message_reads", column: "lead_id" },
+    markRead: () => supabase.rpc("mark_lead_messages_read", { _lead: leadId }),
+    upload: (file) => uploadAttachment(leadId, file),
+    send: (body, att) => supabase.rpc("send_lead_message", {
+      _lead: leadId, _body: body, _attachment_path: att?.path ?? "", _attachment_name: att?.name ?? "", _attachment_type: att?.type ?? "",
+    }),
+    report: (id, reason) => supabase.rpc("report_lead_message", { _message: id, _reason: reason }),
+    setClosed: (c) => supabase.rpc("set_lead_chat_closed", { _lead: leadId, _closed: c }),
+    senderNote: (m) => ` · ${SIDE_LABEL[m.sender_side as ChatSide] ?? ""}`,
+    masking: (side) => side !== "platform" && !OPEN_STAGES.includes(stage ?? ""),
+    closeConfirm: "تقفل المحادثة؟ العميل والشركة مش هيقدروا يبعتوا رسايل، بس هيشوفوا اللي فات.",
+  }), [leadId, stage]);
+  return <ChatView source={source} closed={closed} className={className} />;
+}
+
+/** A direct conversation: Value Aqar ↔ an account, or broker ↔ broker (`brokers` = both accounts are brokers). */
+export function DirectChat({ threadId, closed = false, brokers, className = "" }: { threadId: string; closed?: boolean; brokers: boolean; className?: string }) {
+  const source = useMemo<ChatSource>(() => ({
+    id: `dm:${threadId}`,
+    side: async () => (await supabase.rpc("direct_thread_side", { _thread: threadId })).data ?? null,
+    messages: async () => {
+      const { data, error } = await supabase.from("direct_messages").select("*").eq("thread_id", threadId).order("created_at").limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    reads: async () => (await supabase.from("direct_message_reads").select("side, last_read_at").eq("thread_id", threadId)).data ?? [],
+    live: { messages: "direct_messages", reads: "direct_message_reads", column: "thread_id" },
+    markRead: () => supabase.rpc("mark_direct_read", { _thread: threadId }),
+    upload: (file) => uploadDirectAttachment(threadId, file),
+    send: (body, att) => supabase.rpc("send_direct_message", {
+      _thread: threadId, _body: body, _attachment_path: att?.path ?? "", _attachment_name: att?.name ?? "", _attachment_type: att?.type ?? "",
+    }),
+    report: (id, reason) => supabase.rpc("report_direct_message", { _message: id, _reason: reason }),
+    setClosed: (c) => supabase.rpc("set_direct_thread_closed", { _thread: threadId, _closed: c }),
+    senderNote: () => "",
+    masking: (side) => brokers && side !== "platform",
+    closeConfirm: "تقفل المحادثة؟ الطرفين مش هيقدروا يبعتوا رسايل، بس هيشوفوا اللي فات.",
+  }), [threadId, brokers]);
+  return <ChatView source={source} closed={closed} className={className} />;
+}
+
+function ChatView({ source, closed, className }: { source: ChatSource; closed: boolean; className: string }) {
   const { user } = useSessionUser();
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -39,53 +112,44 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
   const fileRef = useRef<HTMLInputElement>(null);
   const uid = useId();
   useEffect(() => setIsClosed(closed), [closed]);
+  const { id, live } = source;
 
-  const side = useQuery({
-    queryKey: ["chat-side", leadId, user?.id], enabled: !!user,
-    queryFn: async () => ((await supabase.rpc("lead_chat_side", { _lead: leadId })).data ?? null) as ChatSide | null,
-  });
-  const msgs = useQuery({
-    queryKey: ["chat", leadId], enabled: !!side.data,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("lead_messages").select("*").eq("lead_id", leadId).order("created_at").limit(500);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-  const reads = useQuery({
-    queryKey: ["chat-reads", leadId], enabled: !!side.data,
-    queryFn: async () => (await supabase.from("lead_message_reads").select("user_id, side, last_read_at").eq("lead_id", leadId)).data ?? [],
-  });
+  const side = useQuery({ queryKey: ["chat-side", id, user?.id], enabled: !!user, queryFn: source.side });
+  const msgs = useQuery({ queryKey: ["chat", id], enabled: !!side.data, queryFn: source.messages });
+  const reads = useQuery({ queryKey: ["chat-reads", id], enabled: !!side.data, queryFn: source.reads });
 
   // Live: new messages and read marks of this conversation.
   useEffect(() => {
     if (!side.data) return;
+    const key = id.slice(id.indexOf(":") + 1);
     const ch = supabase
-      .channel(`chat-${leadId}-${uid}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "lead_messages", filter: `lead_id=eq.${leadId}` },
-        () => qc.invalidateQueries({ queryKey: ["chat", leadId] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "lead_message_reads", filter: `lead_id=eq.${leadId}` },
-        () => qc.invalidateQueries({ queryKey: ["chat-reads", leadId] }))
+      .channel(`chat-${id}-${uid}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: live.messages, filter: `${live.column}=eq.${key}` },
+        () => qc.invalidateQueries({ queryKey: ["chat", id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: live.reads, filter: `${live.column}=eq.${key}` },
+        () => qc.invalidateQueries({ queryKey: ["chat-reads", id] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [leadId, side.data, qc, uid]);
+  }, [id, live, side.data, qc, uid]);
 
   // Reading the conversation marks it read (and its bell notifications), and scrolls to the newest message.
   const count = msgs.data?.length ?? 0;
+  const markRead = source.markRead;
   useEffect(() => {
     if (!side.data || !count) return;
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-    void supabase.rpc("mark_lead_messages_read", { _lead: leadId }).then(() => {
+    void Promise.resolve(markRead()).then(() => {
       qc.invalidateQueries({ queryKey: ["unread-messages"] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["direct-threads"] });
       qc.invalidateQueries({ queryKey: ["notifications"] });
     });
-  }, [count, side.data, leadId, qc]);
+  }, [count, side.data, markRead, qc]);
 
   if (!user || side.isLoading) return <div className={`h-64 animate-pulse rounded-2xl bg-muted ${className}`} />;
-  if (!side.data) return <p className={`rounded-2xl border bg-card p-4 text-sm text-muted-foreground ${className}`}>الرسايل مش متاحة على الطلب ده.</p>;
+  if (!side.data) return <p className={`rounded-2xl border bg-card p-4 text-sm text-muted-foreground ${className}`}>الرسايل مش متاحة هنا.</p>;
   const mySide = side.data;
-  const masking = mySide !== "platform" && !OPEN_STAGES.includes(stage ?? "");
+  const masking = source.masking(mySide);
 
   // "Seen" under my last message when someone on another side has read past it.
   const mine = (msgs.data ?? []).filter((m) => m.sender_id === user.id);
@@ -97,13 +161,11 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
     if (!body && !file) return;
     setBusy(true);
     try {
-      const att = file ? await uploadAttachment(leadId, file) : null;
-      const { error } = await supabase.rpc("send_lead_message", {
-        _lead: leadId, _body: body || "", _attachment_path: att?.path ?? "", _attachment_name: att?.name ?? "", _attachment_type: att?.type ?? "",
-      });
+      const att = file ? await source.upload(file) : null;
+      const { error } = await source.send(body || "", att);
       if (error) throw new Error(error.message);
       setText(""); setFile(null);
-      qc.invalidateQueries({ queryKey: ["chat", leadId] });
+      qc.invalidateQueries({ queryKey: ["chat", id] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "الرسالة ماتبعتتش، جرّب تاني");
     } finally {
@@ -114,15 +176,15 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
   async function report(m: ChatMessage) {
     const reason = window.prompt("إيه المشكلة في الرسالة دي؟ (اختياري)");
     if (reason === null) return;
-    const { error } = await supabase.rpc("report_lead_message", { _message: m.id, _reason: reason });
+    const { error } = await source.report(m.id, reason);
     if (error) toast.error(error.message);
-    else { toast.success("البلاغ وصل لفاليو عقار"); qc.invalidateQueries({ queryKey: ["chat", leadId] }); }
+    else { toast.success("البلاغ وصل لفاليو عقار"); qc.invalidateQueries({ queryKey: ["chat", id] }); }
   }
 
   async function toggleClosed() {
     const next = !isClosed;
-    if (next && !window.confirm("تقفل المحادثة؟ العميل والشركة مش هيقدروا يبعتوا رسايل، بس هيشوفوا اللي فات.")) return;
-    const { error } = await supabase.rpc("set_lead_chat_closed", { _lead: leadId, _closed: next });
+    if (next && !window.confirm(source.closeConfirm)) return;
+    const { error } = await source.setClosed(next);
     if (error) { toast.error(error.message); return; }
     setIsClosed(next);
     toast.success(next ? "المحادثة اتقفلت" : "المحادثة اتفتحت تاني");
@@ -134,7 +196,9 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
       {masking && (
         <p className="flex items-start gap-1.5 border-b bg-teal-soft/60 px-3 py-2 text-[11px] leading-relaxed text-primary">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-          لأمانك، أرقام التليفون ولينكات واتساب بتتخفي لحد مرحلة الحجز، والتواصل بيفضل من خلال فاليو عقار.
+          {source.id.startsWith("dm:")
+            ? "أرقام التليفون ولينكات واتساب بتتخفي في الرسايل بين الوسطاء، والتعاون بيكون من خلال «إحالة عميل»."
+            : "لأمانك، أرقام التليفون ولينكات واتساب بتتخفي لحد مرحلة الحجز، والتواصل بيفضل من خلال فاليو عقار."}
         </p>
       )}
       {mySide === "platform" && (
@@ -156,12 +220,12 @@ export function LeadChat({ leadId, closed = false, stage, className = "" }: { le
               <div key={m.id} className={`flex max-w-[85%] flex-col ${own ? "self-end items-end" : "self-start items-start"}`}>
                 {!own && (
                   <span className={`mb-0.5 px-1 text-[11px] font-bold ${platform ? "text-teal" : "text-muted-foreground"}`}>
-                    {m.sender_label}{!platform && ` · ${SIDE_LABEL[m.sender_side as ChatSide] ?? ""}`}
+                    {m.sender_label}{!platform && source.senderNote(m)}
                   </span>
                 )}
                 <div className={`rounded-2xl px-3 py-2 text-sm ${own ? "bg-primary text-primary-foreground" : platform ? "border border-teal/50 bg-teal-soft text-primary" : "bg-secondary text-foreground"}`}>
                   {m.body && <p className="whitespace-pre-line break-words">{m.body}</p>}
-                  <Attachment m={m} />
+                  <AttachmentView m={m} />
                 </div>
                 <span className="mt-0.5 flex items-center gap-1 px-1 text-[10px] text-muted-foreground">
                   {chatTime(m.created_at)}

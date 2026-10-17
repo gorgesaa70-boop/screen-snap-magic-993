@@ -1471,4 +1471,100 @@ commit;`);
     await exec(`begin;\n${sql}\ncommit;`);
     return as(U.admin, `select count(*)::int n from public.admin_accounts()`);
   }, (r) => r[0].n > 0);
+  console.log("\nDirect messages (Value Aqar ↔ accounts, broker ↔ broker)");
+  const DMU = {
+    ownA: "00000000-0000-0000-0000-00000000d0a1", mgrA: "00000000-0000-0000-0000-00000000d0a2",
+    salesA: "00000000-0000-0000-0000-00000000d0a3", ownB: "00000000-0000-0000-0000-00000000d0b1",
+    ownO: "00000000-0000-0000-0000-00000000d0c1",
+  };
+  const DMA = "c0000000-0000-0000-0000-00000000d0a0", DMB = "c0000000-0000-0000-0000-00000000d0b0", DMO = "c0000000-0000-0000-0000-00000000d0c0";
+  await sys(`insert into auth.users (id, phone) values ('${DMU.ownA}','201077770001'), ('${DMU.mgrA}','201077770002'),
+    ('${DMU.salesA}','201077770003'), ('${DMU.ownB}','201077770004'), ('${DMU.ownO}','201077770005')`);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values
+    ('${DMA}','${DMU.ownA}','dm-a','شركة ألف','201077770001','company', true),
+    ('${DMB}','${DMU.ownB}','dm-b','وسيط باء','201077770004','individual', true),
+    ('${DMO}','${DMU.ownO}','dm-o','مالك','201077770005','owner', true)`);
+  await sys(`insert into public.company_members (company_id, name, phone, role) values
+    ('${DMA}','مدير ألف','201077770002','manager'), ('${DMA}','بياع ألف','201077770003','sales')`);
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  const dmNotes = (u, t) => sys(`select title, message, related_url, is_read from public.notifications where user_id='${u}' and type='new_message' and related_id='${t}' order by created_at`);
+  let dmt = null, dmp = null;
+  // The re-run check of release 21 above put back its own header-badge function; release 27 always comes after it.
+  await exec(`begin;
+${(await import("node:fs")).readFileSync(new URL("../migrations/20261017300000_direct-messages.sql", import.meta.url), "utf8")}
+commit;`);
+
+  await expectErr("a sales member can't start direct messages", () => as(DMU.salesA, `select public.start_direct_thread('${DMB}')`));
+  await expectOk("an account starts a conversation with another broker; both sides get the same one", async () => {
+    dmt = (await as(DMU.ownA, `select public.start_direct_thread('${DMB}') id`))[0].id;
+    return [dmt, (await as(DMU.ownB, `select public.start_direct_thread('${DMA}') id`))[0].id];
+  }, (r) => !!r[0] && r[0] === r[1]);
+  await expectErr("an owner (مالك) account isn't in the broker directory", () => as(DMU.ownA, `select public.start_direct_thread('${DMO}')`));
+  await expectErr("you can't message your own account", () => as(DMU.ownA, `select public.start_direct_thread('${DMA}')`));
+  await expectOk("a phone number between brokers is hidden", async () => {
+    await as(DMU.ownA, `select public.send_direct_message('${dmt}', 'عندي عميل، كلمني 0101 234 5678')`);
+    return sys(`select body, masked, sender_label, sender_side from public.direct_messages where thread_id='${dmt}' order by created_at desc limit 1`);
+  }, (r) => r[0].masked === true && r[0].body.includes("[رقم مخفي]") && r[0].sender_label === "شركة ألف" && r[0].sender_side === DMA);
+  await expectOk("the other broker gets a notification that opens the conversation", () => dmNotes(DMU.ownB, dmt),
+    (r) => r.length === 1 && r[0].title === "رسالة جديدة من شركة ألف" && r[0].related_url === `/messages?dm=${dmt}`);
+  await expectOk("the sender's own team isn't notified", () => dmNotes(DMU.mgrA, dmt), (r) => r.length === 0);
+  await expectOk("the manager reads and writes for the account; sales and outsiders see nothing", async () => [
+    await as(DMU.mgrA, `select public.direct_thread_side('${dmt}') s`),
+    await as(DMU.mgrA, `select count(*)::int c from public.direct_messages where thread_id='${dmt}'`),
+    await as(DMU.salesA, `select count(*)::int c from public.direct_messages`),
+    await as(U.outsider, `select count(*)::int c from public.direct_messages`),
+    await as(U.outsider, `select count(*)::int c from public.direct_threads`)],
+    (r) => r[0][0].s === DMA && r[1][0].c === 1 && r[2][0].c === 0 && r[3][0].c === 0 && r[4][0].c === 0);
+  await expectOk("inbox and header badge count it as unread for the other broker", async () => [
+    await as(DMU.ownB, `select * from public.my_direct_threads()`), await as(DMU.ownB, `select public.my_unread_messages() n`)],
+    (r) => r[0].length === 1 && r[0][0].other_label === "شركة ألف" && r[0][0].other_slug === "dm-a" && r[0][0].kind === "broker" && r[0][0].unread === 1 && r[1][0].n >= 1);
+  await expectOk("a colleague's message isn't unread for the sender's side", () => as(DMU.mgrA, `select unread, last_mine from public.my_direct_threads()`),
+    (r) => r[0].unread === 0 && r[0].last_mine === true);
+  await expectOk("opening it marks it read (messages and bell)", async () => {
+    await as(DMU.ownB, `select public.mark_direct_read('${dmt}')`);
+    return [await as(DMU.ownB, `select unread from public.my_direct_threads()`), await dmNotes(DMU.ownB, dmt)];
+  }, (r) => r[0][0].unread === 0 && r[1].every((n) => n.is_read));
+  await expectOk("Value Aqar reads every conversation, labelled with both accounts", () => as(U.staff, `select side, other_label, kind from public.my_direct_threads() where thread_id='${dmt}'`),
+    (r) => r[0].side === "platform" && r[0].other_label === "شركة ألف ↔ وسيط باء");
+
+  await expectOk("an account writes to Value Aqar (numbers not hidden) and the team is notified", async () => {
+    dmp = (await as(DMU.ownA, `select public.start_direct_thread() id`))[0].id;
+    await as(DMU.ownA, `select public.send_direct_message('${dmp}', 'محتاج مساعدة، رقمي 01033330001')`);
+    return [await sys(`select masked from public.direct_messages where thread_id='${dmp}'`), await dmNotes(U.admin, dmp), await dmNotes(U.staff, dmp)];
+  }, (r) => r[0][0].masked === false && r[1].length === 1 && r[2].length === 1);
+  await expectOk("the admin opening the same account gets the same conversation, and the account hears the reply", async () => {
+    const id = (await as(U.admin, `select public.start_direct_thread('${DMA}') id`))[0].id;
+    await as(U.admin, `select public.send_direct_message('${id}', 'أهلا، بنكلمك حالا')`);
+    return [id, await dmNotes(DMU.ownA, dmp), await dmNotes(DMU.mgrA, dmp), await as(DMU.ownA, `select other_label, kind from public.my_direct_threads() where thread_id='${dmp}'`)];
+  }, (r) => r[0] === dmp && r[1].length === 1 && r[2].length === 1 && r[3][0].other_label === "فاليو عقار" && r[3][0].kind === "platform");
+  await expectOk("the admin can message an owner (مالك) account", () => as(U.admin, `select public.start_direct_thread('${DMO}') id`), (r) => !!r[0].id);
+  await expectErr("another broker can't write in Value Aqar's conversation with an account", () => as(DMU.ownB, `select public.send_direct_message('${dmp}', 'دخيل')`));
+
+  await expectErr("nobody writes to the table directly", () => as(DMU.ownA, `insert into public.direct_messages (thread_id, sender_id, sender_side, sender_label, body) values ('${dmt}','${DMU.ownA}','platform','فاليو عقار','مزيف')`));
+  await expectErr("messages can't be edited", () => as(DMU.ownA, `update public.direct_messages set body='x' where thread_id='${dmt}'`));
+  await expectErr("an attachment from another folder is refused", () => as(DMU.ownA, `select public.send_direct_message('${dmt}', null, 'dm/${dmp}/x.jpg', 'x.jpg', 'image')`));
+  await expectOk("an attachment in the conversation's folder is accepted", () => as(DMU.ownA, `select public.send_direct_message('${dmt}', null, 'dm/${dmt}/x.jpg', 'x.jpg', 'image') id`), (r) => !!r[0].id);
+  await expectOk("members upload files into the conversation folder", () => as(DMU.ownB, `insert into storage.objects (bucket_id, name) values ('lead-messages', 'dm/${dmt}/y.pdf') returning id`), (r) => r.length === 1);
+  await expectErr("…outsiders can't", () => as(U.outsider, `insert into storage.objects (bucket_id, name) values ('lead-messages', 'dm/${dmt}/z.pdf')`));
+  await expectOk("reporting a message alerts Value Aqar", async () => {
+    const m = (await as(DMU.ownB, `select id from public.direct_messages where thread_id='${dmt}' and sender_id='${DMU.ownA}' limit 1`))[0].id;
+    await as(DMU.ownB, `select public.report_direct_message('${m}', 'رسالة مزعجة')`);
+    return sys(`select reported_by from public.direct_messages where id='${m}'`);
+  }, (r) => r[0].reported_by === DMU.ownB);
+  await expectErr("only Value Aqar closes a conversation", () => as(DMU.ownB, `select public.set_direct_thread_closed('${dmt}', true)`));
+  await expectErr("a closed conversation refuses new messages from accounts…", async () => {
+    await as(U.admin, `select public.set_direct_thread_closed('${dmt}', true)`);
+    return as(DMU.ownB, `select public.send_direct_message('${dmt}', 'لسه موجود؟')`);
+  });
+  await expectOk("…but Value Aqar can still write and both still read it", async () => {
+    await as(U.admin, `select public.send_direct_message('${dmt}', 'المحادثة اتقفلت')`);
+    return as(DMU.ownA, `select closed from public.my_direct_threads() where thread_id='${dmt}'`);
+  }, (r) => r[0].closed === true);
+  await expectOk("request conversations still count in the header badge", () => as(MU.cust, `select public.my_unread_messages() n`), (r) => typeof r[0].n === "number");
+  await expectOk("release 27 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017300000_direct-messages.sql", import.meta.url), "utf8");
+    await exec(`begin;\n${sql}\ncommit;`);
+    return as(DMU.ownA, `select count(*)::int n from public.my_direct_threads()`);
+  }, (r) => r[0].n === 2);
 }
