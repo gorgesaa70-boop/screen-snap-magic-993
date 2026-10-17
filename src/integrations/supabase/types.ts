@@ -73,6 +73,7 @@ export type Database = {
           featured_week_price: number
           finishing_ratios: Json
           id: number
+          indexnow_sent_at: string | null
           ios_url: string | null
           last_backup_at: string | null
           owner_listing_co_broke_share: number | null
@@ -99,6 +100,7 @@ export type Database = {
           featured_week_price?: number
           finishing_ratios?: Json
           id?: number
+          indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
@@ -125,6 +127,7 @@ export type Database = {
           featured_week_price?: number
           finishing_ratios?: Json
           id?: number
+          indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
@@ -927,6 +930,142 @@ export type Database = {
           },
         ]
       }
+      direct_message_reads: {
+        Row: {
+          last_read_at: string
+          side: string
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          side: string
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          side?: string
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_reads_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "direct_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_type: string | null
+          body: string | null
+          created_at: string
+          id: string
+          masked: boolean
+          report_reason: string | null
+          reported_at: string | null
+          reported_by: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+          thread_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id: string
+          sender_label: string
+          sender_side: string
+          thread_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          attachment_type?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          masked?: boolean
+          report_reason?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
+          sender_id?: string
+          sender_label?: string
+          sender_side?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "direct_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_threads: {
+        Row: {
+          broker_a: string
+          broker_b: string | null
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_message_at: string | null
+        }
+        Insert: {
+          broker_a: string
+          broker_b?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string | null
+        }
+        Update: {
+          broker_a?: string
+          broker_b?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_threads_broker_a_fkey"
+            columns: ["broker_a"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_threads_broker_b_fkey"
+            columns: ["broker_b"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           created_at: string
@@ -1683,6 +1822,48 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          area: string | null
+          area_en: string | null
+          city: string
+          city_en: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          reviewed_at: string | null
+          sort: number
+          source: string | null
+          status: string
+        }
+        Insert: {
+          area?: string | null
+          area_en?: string | null
+          city: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          area?: string | null
+          area_en?: string | null
+          city?: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       malls: {
         Row: {
           created_at: string
@@ -2200,6 +2381,7 @@ export type Database = {
           created_at: string
           deposit: number | null
           description: string | null
+          down_payment: number | null
           featured_until: string | null
           finishing: string | null
           floor: string | null
@@ -2212,17 +2394,22 @@ export type Database = {
           id: string
           image_url: string | null
           images: string[]
+          installment_note: string | null
+          installment_years: number | null
           is_demo: boolean
           is_featured: boolean
           is_highlight: boolean
           land_size: number | null
           lat: number | null
           listed_until: string | null
+          listing_no: number
           listing_notice: number
           lng: number | null
           mall_id: string | null
           min_months: number | null
+          monthly_installment: number | null
           owner_lead_id: string | null
+          payment_method: string | null
           price: number
           price_month: number | null
           price_night: number | null
@@ -2259,6 +2446,7 @@ export type Database = {
           created_at?: string
           deposit?: number | null
           description?: string | null
+          down_payment?: number | null
           featured_until?: string | null
           finishing?: string | null
           floor?: string | null
@@ -2271,17 +2459,22 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          installment_note?: string | null
+          installment_years?: number | null
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           listed_until?: string | null
+          listing_no?: number
           listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
+          monthly_installment?: number | null
           owner_lead_id?: string | null
+          payment_method?: string | null
           price: number
           price_month?: number | null
           price_night?: number | null
@@ -2318,6 +2511,7 @@ export type Database = {
           created_at?: string
           deposit?: number | null
           description?: string | null
+          down_payment?: number | null
           featured_until?: string | null
           finishing?: string | null
           floor?: string | null
@@ -2330,17 +2524,22 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          installment_note?: string | null
+          installment_years?: number | null
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
           land_size?: number | null
           lat?: number | null
           listed_until?: string | null
+          listing_no?: number
           listing_notice?: number
           lng?: number | null
           mall_id?: string | null
           min_months?: number | null
+          monthly_installment?: number | null
           owner_lead_id?: string | null
+          payment_method?: string | null
           price?: number
           price_month?: number | null
           price_night?: number | null
@@ -3303,10 +3502,36 @@ export type Database = {
     Functions: {
       accept_referral: { Args: { _id: string }; Returns: string }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
+      account_people: { Args: { _broker: string }; Returns: string[] }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
         Args: { _from: string; _mins: number }
         Returns: string
+      }
+      admin_accounts: {
+        Args: never
+        Returns: {
+          account_type: string
+          banned_until: string
+          broker_active: boolean
+          broker_id: string
+          broker_name: string
+          created_at: string
+          email: string
+          favorites: number
+          full_name: string
+          last_sign_in_at: string
+          listings: number
+          member_of: string
+          owner_listings: number
+          phone: string
+          provider_id: string
+          provider_name: string
+          provider_status: string
+          requests: number
+          roles: string[]
+          user_id: string
+        }[]
       }
       admin_brokers: {
         Args: never
@@ -3542,6 +3767,11 @@ export type Database = {
         Returns: undefined
       }
       demo_visible: { Args: never; Returns: boolean }
+      direct_folder_side: {
+        Args: { _name: string; _upload?: boolean }
+        Returns: string
+      }
+      direct_thread_side: { Args: { _thread: string }; Returns: string }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
         Args: {
@@ -3613,6 +3843,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_direct_read: { Args: { _thread: string }; Returns: undefined }
       mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
       mark_payment_failed: {
         Args: { _id: string; _reason: string }
@@ -3628,6 +3859,7 @@ export type Database = {
         Returns: Record<string, unknown>
       }
       member_user_id: { Args: { _member: string }; Returns: string }
+      merge_location: { Args: { _from: string; _to: string }; Returns: number }
       meta_inbound_lead: {
         Args: {
           _ad: string
@@ -3696,6 +3928,21 @@ export type Database = {
           side: string
           stage: string
           title: string
+          unread: number
+        }[]
+      }
+      my_direct_threads: {
+        Args: never
+        Returns: {
+          closed: boolean
+          kind: string
+          last_at: string
+          last_body: string
+          last_mine: boolean
+          other_label: string
+          other_slug: string
+          side: string
+          thread_id: string
           unread: number
         }[]
       }
@@ -3841,6 +4088,10 @@ export type Database = {
         Returns: string
       }
       normalize_phone: { Args: { _p: string }; Returns: string }
+      note_location: {
+        Args: { _area: string; _city: string; _source: string }
+        Returns: undefined
+      }
       notify_admins: {
         Args: {
           _except?: string
@@ -3950,7 +4201,10 @@ export type Database = {
         }
       }
       phone_user_id: { Args: { _phone: string }; Returns: string }
-      prepare_account_deletion: { Args: { _uid: string }; Returns: string }
+      prepare_account_deletion: {
+        Args: { _by?: string; _uid: string }
+        Returns: string
+      }
       price_index: {
         Args: never
         Returns: {
@@ -4002,6 +4256,10 @@ export type Database = {
         Args: { _reply: string; _review: string }
         Returns: boolean
       }
+      report_direct_message: {
+        Args: { _message: string; _reason: string }
+        Returns: undefined
+      }
       report_lead_message: {
         Args: { _message: string; _reason: string }
         Returns: undefined
@@ -4023,6 +4281,16 @@ export type Database = {
           _endpoint: string
           _p256dh: string
           _ua?: string
+        }
+        Returns: string
+      }
+      send_direct_message: {
+        Args: {
+          _attachment_name?: string
+          _attachment_path?: string
+          _attachment_type?: string
+          _body: string
+          _thread: string
         }
         Returns: string
       }
@@ -4108,11 +4376,16 @@ export type Database = {
         Args: { _provider: string }
         Returns: number
       }
+      set_direct_thread_closed: {
+        Args: { _closed: boolean; _thread: string }
+        Returns: undefined
+      }
       set_lead_chat_closed: {
         Args: { _closed: boolean; _lead: string }
         Returns: undefined
       }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      start_direct_thread: { Args: { _broker?: string }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
         Returns: string
