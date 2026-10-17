@@ -63,7 +63,7 @@ function ChangePassword({ email }: { email: string }) {
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
     if (error) {
-      toast.error(/reauth|recent/i.test(error.message) ? "لازم تسجّل دخول من جديد الأول، وبعدين غيّر كلمة السر" : /weak|short|pwned/i.test(error.message) ? "كلمة السر ضعيفة — خليها أطول وفيها حروف وأرقام" : /same/i.test(error.message) ? "دي نفس كلمة السر القديمة" : "مااتغيّرتش، جرّب تاني");
+      toast.error(/reauth|recent/i.test(error.message) ? "لازم تسجّل دخول من جديد الأول، وبعدين غيّر كلمة السر" : /weak|short|pwned/i.test(error.message) ? "كلمة السر ضعيفة — خليها أطول وفيها حروف وأرقام" : /same|different/i.test(error.message) ? "دي نفس كلمة السر القديمة — اكتب واحدة جديدة" : /should contain|characters/i.test(error.message) ? "كلمة السر لازم يكون فيها حرف إنجليزي كبير وحرف صغير ورقم ورمز (زي @ أو #)" : /session|jwt|not authenticated/i.test(error.message) ? "سجّل خروج وادخل تاني، وبعدين غيّر كلمة السر" : `مااتغيّرتش: ${error.message}`);
       return;
     }
     toast.success("اتغيّرت كلمة السر ✓");
