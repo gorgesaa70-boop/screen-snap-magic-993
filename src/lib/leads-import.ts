@@ -1,3 +1,4 @@
+import { mapFields, type MapField } from "@/lib/sheet-mapping";
 /** CRM: validation for importing customers (leads) from Excel / CSV. Pure functions — no I/O. Duplicates are flagged, never merged. */
 import { normalizePhone } from "./broker-login";
 import { key, norm, num } from "./units-import";
@@ -69,3 +70,15 @@ export function parseLeadsSheet(rows: unknown[][], existingPhones: Iterable<stri
   });
   return out;
 }
+
+/** Fields for «طابق الأعمدة» (any file layout, e.g. an export from another CRM); source and campaign can be one value. */
+export const leadFields = (): MapField[] => mapFields(HEADERS, [
+  ["name", "الاسم", { required: true }],
+  ["phone", "الموبايل", { required: true }],
+  ["source", "المصدر", { constant: "text" }],
+  ["campaign", "الحملة", { constant: "text" }],
+  ["property_type", "نوع العقار", { constant: "text" }],
+  ["area", "المنطقة", { constant: "text" }],
+  ["budget", "الميزانية"],
+  ["details", "التفاصيل"],
+]);

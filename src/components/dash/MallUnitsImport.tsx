@@ -4,9 +4,10 @@ import { toast } from "sonner";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/components/site/data";
-import { fetchMalls, MALL_FLOORS, MALL_UNIT_TYPES } from "@/components/site/malls";
+import { fetchMalls } from "@/components/site/malls";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { MALL_UNIT_HEADERS, MAX_MALL_UNITS, parseMallUnitsSheet, type MallUnitDefaults, type MallUnitImport } from "@/lib/mall-units-import";
+import { MAX_MALL_UNITS, mallUnitFields, parseMallUnitsSheet } from "@/lib/mall-units-import";
+import { ColumnMapper, readSheetFile, shiftRows } from "./ColumnMapper";
 
 /**
  * Upload many mall units from Excel. Brokers add to their own account (within their plan);
@@ -16,11 +17,16 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
   brokerId?: string; brokers?: { id: string; name: string }[]; remaining?: number | null; onCancel: () => void; onDone: () => void;
 }) {
   const malls = useQuery({ queryKey: ["malls-all"], queryFn: () => fetchMalls(true) });
-  const [sheet, setSheet] = useState<{ rows: unknown[][]; file: string } | null>(null);
-  // Applied to rows without a type / floor / purpose (a developer's price list has none of them).
-  const [defaults, setDefaults] = useState<MallUnitDefaults>({ type: "محل تجاري", floor: "الأرضي", status: "بيع" });
-  const result = useMemo(() => (sheet ? { ...parseMallUnitsSheet(sheet.rows, malls.data ?? [], defaults), file: sheet.file } : null), [sheet, malls.data, defaults]);
-  const setResult = (v: null) => setSheet(v);
+  // Any file layout: the raw sheet goes through «طابق الأعمدة», then the parser reads the matched columns.
+  const [raw, setRaw] = useState<{ rows: unknown[][]; file: string } | null>(null);
+  const [mapped, setMapped] = useState<{ rows: unknown[][]; offset: number } | null>(null);
+  const result = useMemo(() => {
+    if (!raw || !mapped) return null;
+    const r = parseMallUnitsSheet(mapped.rows, malls.data ?? []);
+    return { units: shiftRows(r.units, mapped.offset), errors: shiftRows(r.errors, mapped.offset), file: raw.file };
+  }, [raw, mapped, malls.data]);
+  const fields = useMemo(() => mallUnitFields((malls.data ?? []).map((m) => m.name)), [malls.data]);
+  const setResult = (v: null) => { setRaw(v); setMapped(v); };
   const [owner, setOwner] = useState(brokerId ?? "");
   const [publish, setPublish] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -29,17 +35,12 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    if (!/\.xlsx$/i.test(file.name)) { toast.error("ارفع ملف Excel (.xlsx)"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("الملف أكبر من 5 ميجا"); return; }
     setBusy(true);
     try {
-      const { readSheet } = await import("read-excel-file/browser");
-      const rows = (await readSheet(file)) as unknown[][];
-      // Skip blank rows above the header (developer sheets often start lower).
-      const start = rows.findIndex((r) => (r ?? []).some((c) => String(c ?? "").trim() !== ""));
-      setSheet({ rows: start > 0 ? rows.slice(start) : rows, file: file.name });
-    } catch {
-      toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) سليم");
+      setRaw({ rows: await readSheetFile(file), file: file.name });
+      setMapped(null);
+    } catch (err) {
+      toast.error(err instanceof Error && /ميجا|ارفع/.test(err.message) ? err.message : "تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
     } finally { setBusy(false); }
   }
 
@@ -76,24 +77,20 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
         <button onClick={onCancel} className="text-sm font-bold text-muted-foreground hover:text-primary">رجوع</button>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel"}<input type="file" accept=".xlsx" className="hidden" disabled={busy || malls.isLoading} onChange={read} /></label>
+        <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel أو CSV"}<input type="file" accept=".xlsx,.csv" className="hidden" disabled={busy || malls.isLoading} onChange={read} /></label>
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج المولات</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {MALL_UNIT_HEADERS.join("، ")}. الإجباري: المول (بنفس اسمه على الموقع)، المساحة، السعر. اسم الوحدة لو فاضي بيتكتب لوحده. لحد {MAX_MALL_UNITS} صف.
-        بيقبل كمان ملف المطوّر (اسم المشروع، المساحات، سعر المتر، انظمه السداد، الاستلام): السعر = المساحة × سعر المتر، والتقسيط بيتحسب من نص السداد.
+        ارفع ملف المول بأي شكل — بعدها هتطابق الأعمدة (المول والنوع والدور والغرض ممكن تختار لهم قيمة واحدة لكل الصفوف). السعر إجمالي أو سعر متر (بيتضرب في المساحة)، والتقسيط بيتحسب من نص نظام السداد. لحد {MAX_MALL_UNITS} صف.
         {remaining != null && ` باقتك تسمح بـ ${formatPrice(Math.max(remaining, 0))} وحدة كمان.`}
       </p>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <label className="text-xs font-bold text-primary">نوع الوحدة لو مش مكتوب
-          <select className={`${inputCls} mt-1`} value={defaults.type} onChange={(e) => setDefaults({ ...defaults, type: e.target.value })}>{MALL_UNIT_TYPES.map((x) => <option key={x}>{x}</option>)}</select></label>
-        <label className="text-xs font-bold text-primary">الدور لو مش مكتوب
-          <select className={`${inputCls} mt-1`} value={defaults.floor} onChange={(e) => setDefaults({ ...defaults, floor: e.target.value })}>{MALL_FLOORS.map((x) => <option key={x}>{x}</option>)}</select></label>
-        <label className="text-xs font-bold text-primary">الغرض لو مش مكتوب
-          <select className={`${inputCls} mt-1`} value={defaults.status} onChange={(e) => setDefaults({ ...defaults, status: e.target.value as "بيع" | "إيجار" })}><option>بيع</option><option>إيجار</option></select></label>
-      </div>
+      {raw && !mapped && (
+        <ColumnMapper importer="mall-units" file={raw.file} rows={raw.rows} fields={fields} notesKey="الوصف"
+          onApply={(rows, offset) => setMapped({ rows, offset })} onCancel={() => setResult(null)} />
+      )}
       {result && (
         <div className="space-y-3 border-t pt-3">
+          <button onClick={() => setMapped(null)} className="text-xs font-bold text-primary underline">تعديل مطابقة الأعمدة</button>
           <p className="text-sm font-bold text-primary">{result.file}: {result.units.length} وحدة سليمة{result.errors.length ? ` · ${result.errors.length} صف فيه أخطاء` : ""}</p>
           {result.errors.length > 0 && (
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-3 text-xs text-destructive">

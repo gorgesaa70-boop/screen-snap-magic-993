@@ -2,8 +2,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { parseCsv } from "@/lib/units-import";
-import { LISTING_HEADERS, MAX_LISTINGS, parseListingsSheet, type ListingImport } from "@/lib/properties-import";
+import { MAX_LISTINGS, listingFields, parseListingsSheet, type ListingImport } from "@/lib/properties-import";
+import { ColumnMapper, readSheetFile, shiftRows } from "./ColumnMapper";
 import { formatPrice } from "@/components/site/data";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
 
@@ -13,6 +13,8 @@ import { btnOutline, btnPrimary } from "@/components/site/ui";
  */
 export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brokerId: string; remaining: number | null; onDone: () => void; onCancel: () => void }) {
   const [result, setResult] = useState<(ListingImport & { file: string }) | null>(null);
+  // Any file layout goes through «طابق الأعمدة» first.
+  const [raw, setRaw] = useState<{ rows: unknown[][]; file: string } | null>(null);
   const [publish, setPublish] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -21,16 +23,12 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("الملف أكبر من 5 ميجا"); return; }
     setBusy(true);
     try {
-      let rows: unknown[][];
-      if (/\.csv$/i.test(file.name)) rows = parseCsv(await file.text());
-      else if (/\.xlsx$/i.test(file.name)) { const { readSheet } = await import("read-excel-file/browser"); rows = (await readSheet(file)) as unknown[][]; }
-      else { toast.error("ارفع ملف Excel (.xlsx) أو CSV"); return; }
-      setResult({ ...parseListingsSheet(rows), file: file.name });
-    } catch {
-      toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
+      setRaw({ rows: await readSheetFile(file), file: file.name });
+      setResult(null);
+    } catch (err) {
+      toast.error(err instanceof Error && /ميجا|ارفع/.test(err.message) ? err.message : "تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
     } finally { setBusy(false); }
   }
   const over = result && remaining != null && result.listings.length > remaining;
@@ -68,11 +66,16 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل النموذج</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {LISTING_HEADERS.join("، ")}. الإجباري: النوع، الغرض (بيع / إيجار / مصيف)، المدينة، السعر (والمنطقة للمدن اللي فيها أحياء). مدينة أو منطقة جديدة بتتقبل وتستنى مراجعة الأدمن. طريقة الدفع: كاش / تقسيط / كاش أو تقسيط، ومع التقسيط اكتب سنين التقسيط (والمقدم والقسط اختياري). لو العنوان فاضي بيتكتب لوحده. في المصيف السعر = سعر الليلة. لحد {MAX_LISTINGS} صف.
+        ارفع ملفك بأي شكل وطابق الأعمدة (النوع والغرض والمدينة والمنطقة ممكن قيمة واحدة لكل الصفوف). الإجباري: النوع، الغرض (بيع / إيجار / مصيف)، المدينة، السعر (والمنطقة للمدن اللي فيها أحياء). مدينة أو منطقة جديدة بتتقبل وتستنى مراجعة الأدمن. طريقة الدفع: كاش / تقسيط / كاش أو تقسيط، ومع التقسيط اكتب سنين التقسيط (والمقدم والقسط اختياري). لو العنوان فاضي بيتكتب لوحده. في المصيف السعر = سعر الليلة. لحد {MAX_LISTINGS} صف.
         {remaining != null && ` باقتك تسمح بـ ${formatPrice(Math.max(remaining, 0))} عقار كمان.`}
       </p>
+      {raw && !result && (
+        <ColumnMapper importer="listings" file={raw.file} rows={raw.rows} fields={listingFields()} notesKey="الوصف" onCancel={() => setRaw(null)}
+          onApply={(rows, offset) => { const r = parseListingsSheet(rows); setResult({ ...r, listings: shiftRows(r.listings, offset), errors: shiftRows(r.errors, offset), file: raw.file }); }} />
+      )}
       {result && (
         <div className="space-y-3 border-t pt-3">
+          <button onClick={() => setResult(null)} className="text-xs font-bold text-primary underline">تعديل مطابقة الأعمدة</button>
           <p className="text-sm font-bold text-primary">{result.file}: {result.listings.length} عقار سليم{result.errors.length ? ` · ${result.errors.length} صف فيه أخطاء` : ""}</p>
           {result.errors.length > 0 && (
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-3 text-xs text-destructive">
@@ -99,7 +102,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
           </label>
           <div className="flex flex-wrap gap-2">
             <button disabled={busy || !result.listings.length || !!over} onClick={save} className={btnPrimary}>{busy ? "..." : `إضافة ${result.listings.length} عقار`}</button>
-            <button onClick={() => setResult(null)} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
+            <button onClick={() => { setResult(null); setRaw(null); }} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
           </div>
           {result.errors.length > 0 && result.listings.length > 0 && <p className="text-xs text-muted-foreground">الصفوف اللي فيها أخطاء مش هتتضاف — صلّحها وارفعها في ملف تاني.</p>}
         </div>

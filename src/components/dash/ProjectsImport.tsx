@@ -3,7 +3,8 @@ import { toast } from "sonner";
 import { Download, FileSpreadsheet } from "lucide-react";
 import { dbx } from "@/lib/dbx";
 import { inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { PROJECT_HEADERS, MAX_PROJECTS, parseProjectsSheet, type ProjectImport } from "@/lib/projects-import";
+import { MAX_PROJECTS, parseProjectsSheet, projectFields, type ProjectImport } from "@/lib/projects-import";
+import { ColumnMapper, readSheetFile, shiftRows } from "./ColumnMapper";
 
 /**
  * Upload many compounds (projects) from Excel. Developers add to their own account; the admin picks the
@@ -14,6 +15,8 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
 }) {
   const [owner, setOwner] = useState(developerId ?? "");
   const [result, setResult] = useState<(ProjectImport & { file: string }) | null>(null);
+  // Any file layout goes through «طابق الأعمدة» first.
+  const [raw, setRaw] = useState<{ rows: unknown[][]; file: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const template = () => { const a = document.createElement("a"); a.href = "/templates/value-aqar-compounds-template.xlsx"; a.download = "value-aqar-compounds-template.xlsx"; a.click(); };
 
@@ -21,17 +24,19 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
     if (!owner) { toast.error("اختر شركة التطوير الأول"); return; }
-    if (!/\.xlsx$/i.test(file.name)) { toast.error("ارفع ملف Excel (.xlsx)"); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error("الملف أكبر من 5 ميجا"); return; }
     setBusy(true);
     try {
-      const { readSheet } = await import("read-excel-file/browser");
-      const rows = (await readSheet(file)) as unknown[][];
-      const { data } = await dbx.from("projects").select("name").eq("developer_id", owner);
-      setResult({ ...parseProjectsSheet(rows, (data ?? []).map((p) => p.name)), file: file.name });
-    } catch {
-      toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) سليم");
+      setRaw({ rows: await readSheetFile(file), file: file.name });
+      setResult(null);
+    } catch (err) {
+      toast.error(err instanceof Error && /ميجا|ارفع/.test(err.message) ? err.message : "تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
     } finally { setBusy(false); }
+  }
+  async function applyMapped(rows: unknown[][], offset: number) {
+    if (!raw) return;
+    const { data } = await dbx.from("projects").select("name").eq("developer_id", owner);
+    const r = parseProjectsSheet(rows, (data ?? []).map((p) => p.name));
+    setResult({ projects: shiftRows(r.projects, offset), errors: shiftRows(r.errors, offset), file: raw.file });
   }
 
   async function save() {
@@ -57,14 +62,21 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
         </select>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel"}<input type="file" accept=".xlsx" className="hidden" disabled={busy || !owner} onChange={read} /></label>
+        <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel أو CSV"}<input type="file" accept=".xlsx,.csv" className="hidden" disabled={busy || !owner} onChange={read} /></label>
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل نموذج المشروعات</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {PROJECT_HEADERS.join("، ")}. الإجباري: اسم المشروع والمدينة (والمنطقة للمدن اللي فيها أحياء). المميزات من القايمة، مفصولة بـ «،». لحد {MAX_PROJECTS} كمبوند. الصور والوحدات بتتضاف بعدين لكل كمبوند.
+        ارفع ملفك بأي شكل وطابق الأعمدة. كل صف = كمبوند واحد (لو الملف فيه وحدات — مساحات وأسعار — ارفعه من «وحدات» جوه الكمبوند أو «رفع وحدات مولات»). الإجباري: اسم المشروع والمدينة (والمنطقة للمدن اللي فيها أحياء). المميزات من القايمة، مفصولة بـ «،». لحد {MAX_PROJECTS} كمبوند. الصور والوحدات بتتضاف بعدين لكل كمبوند.
       </p>
+      {raw && !result && (
+        <ColumnMapper importer="projects" file={raw.file} rows={raw.rows} fields={projectFields()} notesKey="الوصف" onCancel={() => setRaw(null)} onApply={(rows, offset) => void applyMapped(rows, offset)} />
+      )}
       {result && (
         <div className="space-y-3 border-t pt-3">
+          <button onClick={() => setResult(null)} className="text-xs font-bold text-primary underline">تعديل مطابقة الأعمدة</button>
+          {result.errors.length >= 3 && result.errors.filter((e) => /متكرر|موجود/.test(e.message)).length >= result.errors.length * 0.8 && (
+            <p className="rounded-xl bg-amber-50 p-3 text-xs font-bold text-amber-800">الملف ده شكله ملف وحدات (نفس الاسم متكرر في صفوف كتير)، مش ملف كمبوندات. متضيفوش هنا — ارفعه من «رفع وحدات مولات من Excel» أو من «الوحدات» جوه الكمبوند.</p>
+          )}
           <p className="text-sm font-bold text-primary">{result.file}: {result.projects.length} كمبوند سليم{result.errors.length ? ` · ${result.errors.length} صف فيه أخطاء` : ""}</p>
           {result.errors.length > 0 && (
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-3 text-xs text-destructive">
@@ -85,7 +97,7 @@ export function ProjectsImport({ developerId, developers, onCancel, onDone }: {
           )}
           <div className="flex flex-wrap gap-2">
             <button disabled={busy || !result.projects.length} onClick={save} className={btnPrimary}>{busy ? "..." : `إضافة ${result.projects.length} كمبوند`}</button>
-            <button onClick={() => setResult(null)} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
+            <button onClick={() => { setResult(null); setRaw(null); }} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
           </div>
         </div>
       )}

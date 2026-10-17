@@ -2,8 +2,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { parseCsv } from "@/lib/units-import";
-import { LEAD_HEADERS, MAX_LEADS, parseLeadsSheet, type LeadImport } from "@/lib/leads-import";
+import { LEAD_HEADERS, MAX_LEADS, leadFields, parseLeadsSheet, type LeadImport } from "@/lib/leads-import";
+import { ColumnMapper, readSheetFile, shiftRows } from "./ColumnMapper";
 import { LEAD_SOURCES } from "@/components/site/data";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
 
@@ -15,6 +15,8 @@ import { btnOutline, btnPrimary } from "@/components/site/ui";
 export function LeadsImport({ existingPhones, onDone }: { existingPhones: string[]; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [result, setResult] = useState<(LeadImport & { file: string }) | null>(null);
+  // Any file layout (e.g. an export from another CRM) goes through «طابق الأعمدة» first.
+  const [raw, setRaw] = useState<{ rows: unknown[][]; file: string } | null>(null);
   const [withDups, setWithDups] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -26,17 +28,13 @@ export function LeadsImport({ existingPhones, onDone }: { existingPhones: string
   async function read(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast.error("الملف أكبر من 5 ميجا"); return; }
     setBusy(true);
     try {
-      let rows: unknown[][];
-      if (/\.csv$/i.test(file.name)) rows = parseCsv(await file.text());
-      else if (/\.xlsx$/i.test(file.name)) { const { readSheet } = await import("read-excel-file/browser"); rows = (await readSheet(file)) as unknown[][]; }
-      else { toast.error("ارفع ملف Excel (.xlsx) أو CSV"); return; }
-      setResult({ ...parseLeadsSheet(rows, existingPhones), file: file.name });
+      setRaw({ rows: await readSheetFile(file), file: file.name });
+      setResult(null);
       setWithDups(false);
-    } catch {
-      toast.error("تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
+    } catch (err) {
+      toast.error(err instanceof Error && /ميجا|ارفع/.test(err.message) ? err.message : "تعذّر قراءة الملف — اتأكد إنه Excel (.xlsx) أو CSV سليم");
     } finally { setBusy(false); }
   }
   const toAdd = result ? [...result.leads, ...(withDups ? result.duplicates : [])] : [];
@@ -55,7 +53,7 @@ export function LeadsImport({ existingPhones, onDone }: { existingPhones: string
     }
     setBusy(false);
     toast.success(`اتضاف ${saved} عميل واتوزعوا حسب قواعد التوزيع`);
-    setResult(null); setOpen(false); onDone();
+    setResult(null); setRaw(null); setOpen(false); onDone();
   }
 
   if (!open) return <button onClick={() => setOpen(true)} className={btnOutline}><Upload className="size-4" />رفع عملاء من Excel</button>;
@@ -63,15 +61,20 @@ export function LeadsImport({ existingPhones, onDone }: { existingPhones: string
     <div className="w-full space-y-3 rounded-2xl border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-extrabold text-primary">رفع عملاء من Excel</h2>
-        <button onClick={() => { setOpen(false); setResult(null); }} className="text-sm font-bold text-muted-foreground hover:text-primary">قفل</button>
+        <button onClick={() => { setOpen(false); setResult(null); setRaw(null); }} className="text-sm font-bold text-muted-foreground hover:text-primary">قفل</button>
       </div>
       <div className="flex flex-wrap gap-2">
         <label className={`${btnPrimary} cursor-pointer`}><FileSpreadsheet className="size-4" />{busy ? "..." : "اختار ملف Excel أو CSV"}<input type="file" accept=".xlsx,.csv" className="hidden" disabled={busy} onChange={read} /></label>
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل النموذج</button>
       </div>
-      <p className="text-xs text-muted-foreground">الأعمدة: {LEAD_HEADERS.join("، ")}. الإجباري: الاسم والموبايل. المصدر بالعربي أو الإنجليزي (فيسبوك، واتساب، جوجل…) ولو مش معروف بيتسجل «ملف Excel». لحد {MAX_LEADS} صف. الأرقام المكررة مش بتتدمج.</p>
+      <p className="text-xs text-muted-foreground">ارفع أي ملف (حتى تصدير من CRM تاني) وطابق الأعمدة. النموذج: {LEAD_HEADERS.join("، ")}. الإجباري: الاسم والموبايل. المصدر بالعربي أو الإنجليزي (فيسبوك، واتساب، جوجل…) ولو مش معروف بيتسجل «ملف Excel». لحد {MAX_LEADS} صف. الأرقام المكررة مش بتتدمج.</p>
+      {raw && !result && (
+        <ColumnMapper importer="leads" file={raw.file} rows={raw.rows} fields={leadFields()} notesKey="التفاصيل" onCancel={() => setRaw(null)}
+          onApply={(rows, offset) => { const r = parseLeadsSheet(rows, existingPhones); setResult({ ...r, leads: shiftRows(r.leads, offset), duplicates: shiftRows(r.duplicates, offset), errors: shiftRows(r.errors, offset), file: raw.file }); }} />
+      )}
       {result && (
         <div className="space-y-3 border-t pt-3">
+          <button onClick={() => setResult(null)} className="text-xs font-bold text-primary underline">تعديل مطابقة الأعمدة</button>
           <p className="text-sm font-bold text-primary">{result.file}: {result.leads.length} عميل جديد · {result.duplicates.length} رقم مكرر · {result.errors.length} صف فيه أخطاء</p>
           {result.errors.length > 0 && (
             <ul className="max-h-40 space-y-1 overflow-y-auto rounded-xl bg-destructive/5 p-3 text-xs text-destructive">{result.errors.map((er) => <li key={er.row}><b>صف {er.row}:</b> {er.message}</li>)}</ul>

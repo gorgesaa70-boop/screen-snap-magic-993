@@ -1,3 +1,4 @@
+import { mapFields, type MapField } from "@/lib/sheet-mapping";
 /** Item 32: validation for importing a company's / broker's listings from an Excel or CSV sheet. Pure functions — no I/O. */
 import { CITY_NAMES, TYPES_FOR, areasOf } from "@/components/site/data";
 import { key, norm, num } from "./units-import";
@@ -133,3 +134,22 @@ export function parseListingsSheet(rows: unknown[][]): ListingImport {
   });
   return { listings, errors, newPlaces: [...newPlaces] };
 }
+
+/** Fields for «طابق الأعمدة» (any file layout); type, purpose, city and area can be one value for all rows. */
+export const listingFields = (): MapField[] => mapFields(HEADERS, [
+  ["title", "عنوان الإعلان"],
+  ["type", "نوع العقار", { required: true, constant: "text" }],
+  ["status", "الغرض", { required: true, constant: ["بيع", "إيجار", "مصيف"] }],
+  ["city", "المدينة", { required: true, constant: "text" }],
+  ["area", "المنطقة / الحي", { constant: "text" }],
+  ["price", "السعر", { required: true }],
+  ["size", "المساحة"],
+  ["rooms", "الغرف"],
+  ["baths", "الحمامات"],
+  ["finishing", "التشطيب", { constant: "text" }],
+  ["payment_method", "طريقة الدفع", { constant: ["كاش", "تقسيط", "كاش أو تقسيط"] }],
+  ["down_payment", "المقدم"],
+  ["installment_years", "سنين التقسيط"],
+  ["monthly_installment", "القسط الشهري"],
+  ["description", "الوصف"],
+]);
