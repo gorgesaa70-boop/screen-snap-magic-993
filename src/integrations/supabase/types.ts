@@ -79,6 +79,8 @@ export type Database = {
           owner_listing_co_broke_share: number | null
           response_sla_minutes: number
           show_demo: boolean
+          site_closed: boolean
+          site_closed_message: string | null
           subscription_grace_days: number
           transfer_enabled: boolean
           transfer_max_companies: number
@@ -106,6 +108,8 @@ export type Database = {
           owner_listing_co_broke_share?: number | null
           response_sla_minutes?: number
           show_demo?: boolean
+          site_closed?: boolean
+          site_closed_message?: string | null
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
@@ -133,6 +137,8 @@ export type Database = {
           owner_listing_co_broke_share?: number | null
           response_sla_minutes?: number
           show_demo?: boolean
+          site_closed?: boolean
+          site_closed_message?: string | null
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number

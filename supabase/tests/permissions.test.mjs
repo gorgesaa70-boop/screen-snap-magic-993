@@ -1681,4 +1681,15 @@ ${sql}
 commit;`);
     return sys(`select count(*)::int n from public.brokers where deleted_at is not null`);
   }, (r) => r[0].n === 1);
+
+  // Release 32: «غلق الموقع».
+  await expectOk("the admin closes the site with a message; visitors can read it", async () => {
+    await as(U.admin, `update public.app_settings set site_closed = true, site_closed_message = 'تم غلق الموقع مؤقتًا' where id = 1`);
+    return as(null, `select site_closed, site_closed_message from public.app_settings where id = 1`);
+  }, (r) => r[0].site_closed === true && r[0].site_closed_message === "تم غلق الموقع مؤقتًا");
+  await expectOk("a broker can't open or close the site", async () => {
+    await as(U.owner, `update public.app_settings set site_closed = false where id = 1`).catch(() => null);
+    return sys(`select site_closed from public.app_settings where id = 1`);
+  }, (r) => r[0].site_closed === true);
+  await as(U.admin, `update public.app_settings set site_closed = false where id = 1`);
 }
