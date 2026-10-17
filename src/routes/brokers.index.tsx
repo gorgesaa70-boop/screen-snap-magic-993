@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { MapPin, Search, Users } from "lucide-react";
-import { PageShell, Avatar, inputCls } from "@/components/site/ui";
+import { ArrowLeft, Briefcase, MapPin, Search, Users } from "lucide-react";
+import { PageShell, Avatar, inputCls, btnTeal } from "@/components/site/ui";
+import { useMe } from "@/hooks/useAuth";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { CITIES, CITY_NAMES, areasOf, fetchPublicBrokers, formatPrice, useLocations } from "@/components/site/data";
+import { CITIES, CITY_NAMES, areasOf, citiesOf, fetchPublicBrokers, formatPrice, useLocations } from "@/components/site/data";
 
 export const Route = createFileRoute("/brokers/")({
   head: () => ({
@@ -27,6 +28,11 @@ function BrokersPage() {
   useLocations();
   useLang();
   const { data = [], isLoading, isError, refetch } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
+  // «انضم كوسيط» is for visitors and customers; anyone who already has (or asked for) an account doesn't see it.
+  const { user, me, loading } = useMe();
+  const canJoin = !loading && !me?.broker;
+  // Visitors sign in first and come straight back to the join form.
+  const joinHref = user ? "/join" : `/auth?next=${encodeURIComponent("/join")}`;
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [area, setArea] = useState("");
@@ -60,6 +66,15 @@ function BrokersPage() {
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-4 pt-8 md:px-6">
+        {canJoin && !isError && (
+          <div className="mb-6 flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold text-primary">{t("إنت وسيط أو شركة تسويق؟")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("اعرض عقاراتك واستقبل عملاء من فاليو عقار. سجّل برقم موبايلك وقدّم طلب الانضمام، وبعد المراجعة ملفك يظهر هنا.")}</p>
+            </div>
+            <a href={joinHref} className={`${btnTeal} shrink-0`}><Briefcase className="size-4" />{t("انضم كوسيط أو شركة")}<ArrowLeft className="size-4 ltr:rotate-180" /></a>
+          </div>
+        )}
         <p className="mb-4 text-sm font-bold text-primary" aria-live="polite">{isLoading ? t("بيحمّل...") : isError ? "" : `${formatPrice(list.length)} ${t("وسيط")}`}</p>
         {isError ? (
           // A loading problem is not "no results": say so and offer a retry.
@@ -86,7 +101,7 @@ function BrokersPage() {
                     <p className="truncate text-sm text-muted-foreground">{b.specialty}</p>
                   </div>
                 </div>
-                <p className="mt-4 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => t(area)).join(" / ") || "—"}</p>
+                <p className="mt-4 flex items-start gap-2 text-sm text-foreground/75"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{citiesOf(b.areas).map((c) => t(c)).join(" · ") || "—"}</p>
                 <div className="mt-4 flex items-center justify-between">
                   {b.is_demo ? <span className="text-[11px] text-muted-foreground">{t("بيانات تجريبية")}</span> : <span />}
                   <span className="text-sm font-bold text-primary group-hover:text-teal">{t("عرض الملف ←")}</span>

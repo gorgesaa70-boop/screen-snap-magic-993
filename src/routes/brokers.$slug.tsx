@@ -5,7 +5,7 @@ import { MapPin, MessageCircle, Phone, Mail, Facebook } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PropertyCard } from "@/components/site/Sections";
-import { PUBLIC_BROKER_COLS, fetchPublicProperties, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, citiesOf, useLocations, fetchPublicProperties, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { BrokerInquiry } from "@/components/site/BrokerInquiry";
 import { compoundCover, compoundWhere } from "@/components/site/compounds";
 import { projectCover } from "@/components/site/projects";
@@ -54,6 +54,7 @@ export const Route = createFileRoute("/brokers/$slug")({
 
 function BrokerProfile() {
   useLang();
+  useLocations();
   const { slug } = Route.useParams();
   const initial = Route.useLoaderData();
   const broker = useQuery({ queryKey: ["broker", slug], queryFn: () => fetchBroker(slug), initialData: initial });
@@ -75,7 +76,7 @@ function BrokerProfile() {
           <div className="flex-1">
             <h1 className="text-2xl font-extrabold text-primary-foreground md:text-3xl">{b.name}</h1>
             <p className="mt-1 text-primary-foreground/80">{b.specialty}</p>
-            <p className="mt-3 flex items-start gap-2 text-sm text-primary-foreground/80"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{b.areas.map((area) => t(area)).join(" / ") || "—"}</p>
+            <p className="mt-3 flex items-start gap-2 text-sm text-primary-foreground/80"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{citiesOf(b.areas).map((c) => t(c)).join(" · ") || "—"}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:flex">
             <a href={waLink(b.whatsapp || b.phone, b.whatsapp || b.phone ? t("مرحبًا {name}، تواصلت معك عبر فاليو عقار", { name: b.name }) : t("مرحبًا فاليو عقار، أستفسر عن الوسيط {name}", { name: b.name }))} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp px-5 text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("واتساب")}</a>

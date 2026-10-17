@@ -82,6 +82,12 @@ export const CITIES: Record<string, string[]> = {
 };
 export let CITY_NAMES = Object.keys(CITIES);
 export const areasOf = (city: string) => (CITIES[city]?.length ? CITIES[city]! : city ? [city] : []);
+/** The main cities a list of areas falls in (e.g. a broker's areas → «برج العرب الجديدة، الساحل الشمالي»); unknown places stay as they are. */
+export function citiesOf(areas: string[]) {
+  const out = new Set<string>();
+  for (const a of areas) out.add(CITY_NAMES.find((c) => c === a || (CITIES[c] ?? []).includes(a)) ?? a);
+  return [...out];
+}
 /** Every selectable area across all cities (a city with no areas counts as one). */
 export let ALL_AREAS = CITY_NAMES.flatMap(areasOf);
 
