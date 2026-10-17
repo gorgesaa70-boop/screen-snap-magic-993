@@ -76,6 +76,45 @@ export const setBrokerActive = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Admin: stop or allow any login (brokers also go through setBrokerActive so their listings follow). Admins can't be stopped. */
+export const setAccountBlocked = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid(), blocked: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as Ctx;
+    await assertAdmin(ctx);
+    if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش توقف حسابك" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: data.userId, _role: "admin" });
+    if (isAdmin) return { ok: false as const, error: "مينفعش توقف حساب أدمن" };
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, { ban_duration: data.blocked ? "876000h" : "none" });
+    if (error) return { ok: false as const, error: error.message };
+    await supabaseAdmin.from("brokers").update({ is_active: !data.blocked, suspended_at: data.blocked ? new Date().toISOString() : null }).eq("user_id", data.userId);
+    return { ok: true as const };
+  });
+
+/**
+ * Admin: delete any account except an admin's or their own. Data is cleared by prepare_account_deletion (listings with
+ * customers / deals stay off the site for the records), then the login goes, so the same e-mail or phone can sign up again.
+ */
+export const deleteAccountAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const ctx = context as Ctx;
+    await assertAdmin(ctx);
+    if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش تمسح حسابك من هنا" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: r, error } = await supabaseAdmin.rpc("prepare_account_deletion", { _uid: data.userId, _by: ctx.userId });
+    if (error) return { ok: false as const, error: error.message };
+    if (r === "admin") return { ok: false as const, error: "مينفعش تمسح حساب أدمن — شيل صلاحية الأدمن الأول" };
+    if (r !== "missing") {
+      const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+      if (delErr) return { ok: false as const, error: delErr.message };
+    }
+    return { ok: true as const };
+  });
+
 /** Value Aqar staff are added by phone; they sign in with a WhatsApp code like everyone else. */
 export const listStaff = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -184,19 +223,30 @@ export const exportBackup = createServerFn({ method: "POST" })
     return { ok: true as const, at, missing, json: JSON.stringify({ generated_at: at, tables }) };
   });
 
-/** Admin: tell Bing, Yandex and other IndexNow engines about every public page (Google reads the sitemap instead). */
+/** Admin: tell Bing, Yandex and other IndexNow engines about new or changed public pages (Google reads the sitemap instead). */
 export const notifySearchEngines = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context as Ctx);
     const { INDEXNOW_KEY, absoluteUrl, publicPages } = await import("@/lib/site-urls");
     const { SITE_URL } = await import("@/lib/seo");
-    const urlList = (await publicPages()).map((e) => absoluteUrl(e.path));
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Sending the same pages again and again is treated as spam (429): send only what changed since the last send.
+    // Pages without a date (home, lists, brokers…) go only on the first send.
+    const { data: settings } = await supabaseAdmin.from("app_settings").select("id, indexnow_sent_at").limit(1).maybeSingle();
+    const since = settings?.indexnow_sent_at ? new Date(settings.indexnow_sent_at).getTime() : 0;
+    const urlList = (await publicPages())
+      .filter((e) => !since || (e.lastmod != null && new Date(e.lastmod).getTime() > since))
+      .map((e) => absoluteUrl(e.path)).slice(0, 10000);
+    if (!urlList.length) return { ok: true, status: 0, count: 0, sentAt: settings?.indexnow_sent_at ?? null };
     const res = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ host: new URL(SITE_URL).host, key: INDEXNOW_KEY, keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`, urlList }),
     });
     // 200 = accepted, 202 = accepted while the key is being checked; anything else is a problem worth showing.
-    return { ok: res.status === 200 || res.status === 202, status: res.status, count: urlList.length };
+    const ok = res.status === 200 || res.status === 202;
+    const sentAt = ok ? new Date().toISOString() : settings?.indexnow_sent_at ?? null;
+    if (ok && settings?.id != null) await supabaseAdmin.from("app_settings").update({ indexnow_sent_at: sentAt }).eq("id", settings.id);
+    return { ok, status: res.status, count: urlList.length, sentAt };
   });

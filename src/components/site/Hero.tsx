@@ -21,6 +21,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
   useLocations();
   const extras = extraCount(draft);
   const [more, setMore] = useState(extras > 0);
+  const [typed, setTyped] = useState(!!draft.place);
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [k]: e.target.value });
 
@@ -64,17 +65,26 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
           </label>
           <label>
             <span className={lbl}>{t("المدينة")}</span>
-            <select value={draft.city ?? ""} onChange={(e) => setDraft({ ...draft, city: e.target.value, area: "" })} className={field}>
+            <select value={typed ? "__other__" : draft.city ?? ""} className={field} onChange={(e) => {
+              const other = e.target.value === "__other__";
+              setTyped(other);
+              setDraft({ ...draft, city: other ? "" : e.target.value, area: "", place: "" });
+            }}>
               <option value="">{t("كل المدن")}</option>
               {CITY_NAMES.map((v) => <option key={v} value={v}>{t(v)}</option>)}
+              <option value="__other__">{t("مدينة تانية…")}</option>
             </select>
           </label>
           <label>
             <span className={lbl}>{t("المنطقة / الحي")}</span>
-            <select value={draft.area} onChange={set("area")} className={field} disabled={!CITIES[draft.city ?? ""]?.length}>
-              <option value="">{t("كل المناطق")}</option>
-              {(CITIES[draft.city ?? ""] ?? []).map((v) => <option key={v} value={v}>{t(v)}</option>)}
-            </select>
+            {typed ? (
+              <input value={draft.place ?? ""} onChange={set("place")} maxLength={60} className={field} placeholder={t("اكتب المدينة أو المنطقة")} />
+            ) : (
+              <select value={draft.area} onChange={set("area")} className={field} disabled={!CITIES[draft.city ?? ""]?.length}>
+                <option value="">{t("كل المناطق")}</option>
+                {(CITIES[draft.city ?? ""] ?? []).map((v) => <option key={v} value={v}>{t(v)}</option>)}
+              </select>
+            )}
           </label>
           <label>
             <span className={lbl}>{t(PRICE_LABEL[draft.status] ?? "السعر من (ج.م)")}</span>
@@ -90,7 +100,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
               <Search className="size-5 shrink-0" /> {t("ابحث عن عقار")}
             </button>
             {!isEmpty(draft) && (
-              <button type="button" onClick={() => { setDraft(emptyFilters); onClear(); }}
+              <button type="button" onClick={() => { setDraft(emptyFilters); setTyped(false); onClear(); }}
                 className="flex h-12 items-center justify-center gap-1.5 rounded-xl border px-4 text-sm font-bold text-primary transition hover:bg-secondary focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98] md:h-9">
                 <RotateCcw className="size-4 shrink-0" /> {t("مسح")}
               </button>

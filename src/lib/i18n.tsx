@@ -896,6 +896,10 @@ const EN: Record<string, string> = {
   "أي تشطيب": "Any finishing",
   "إخفاء زرار الواتساب": "Hide the WhatsApp button",
   "مرحبًا، أنا جاي من صفحة فاليو عقار وعندي استفسار / محتاج مساعدة.": "Hello, I came from the Value Aqar website and I have a question / need help.",
+  "اكتب المدينة أو المنطقة": "Type a city or area",
+  "اطلب عقار في المكان ده": "Request a property in this place",
+  "اكتب المدينة": "Type the city",
+  "المنطقة (اختياري)": "Area (optional)",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -130,11 +130,18 @@ function DemoData() {
 function SearchEngines() {
   const notify = useServerFn(notifySearchEngines);
   const [busy, setBusy] = useState(false);
+  const [sentAt, setSentAt] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from("app_settings").select("indexnow_sent_at").limit(1).maybeSingle().then(({ data }) => setSentAt(data?.indexnow_sent_at ?? null));
+  }, []);
   async function run() {
     setBusy(true);
     const r = await notify().catch(() => null);
     setBusy(false);
-    if (r?.ok) toast.success(`اتبعت ${r.count} صفحة لمحركات البحث ✓`);
+    if (r) setSentAt(r.sentAt ?? null);
+    if (r?.ok && r.count === 0) toast.info("مفيش صفحات جديدة أو متعدلة من آخر مرة");
+    else if (r?.ok) toast.success(`اتبعت ${r.count} صفحة جديدة أو متعدلة ✓`);
+    else if (r?.status === 429) toast.error("محركات البحث شايفة إننا بعتنا كتير — جرّب بعد ساعة");
     else toast.error(r ? `محركات البحث رفضت الطلب (كود ${r.status})` : "تعذّر الإرسال");
   }
   return (
@@ -142,7 +149,8 @@ function SearchEngines() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-bold text-primary">محركات البحث</p>
-          <p className="text-sm text-muted-foreground">بيبلّغ Bing وYandex بكل صفحات الموقع العامة (العقارات والوسطاء والمولات) عشان تتفهرس بسرعة. اضغطه بعد ما تنزل عقارات جديدة. جوجل بيقرا خريطة الموقع من Search Console.</p>
+          <p className="text-sm text-muted-foreground">بيبلّغ Bing وYandex بالصفحات الجديدة أو اللي اتعدلت من آخر مرة (أول مرة بيبعت كل الصفحات) عشان تتفهرس بسرعة. اضغطه بعد ما تنزل عقارات جديدة. جوجل بيقرا خريطة الموقع من Search Console.</p>
+          {sentAt && <p className="mt-1 text-xs font-semibold text-muted-foreground">آخر إرسال: {new Date(sentAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</p>}
         </div>
         <button disabled={busy} onClick={run} className={btnOutline}>{busy ? "بيتبعت..." : "بلّغ محركات البحث"}</button>
       </div>
