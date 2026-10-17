@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { dbx } from "@/lib/dbx";
 import { X } from "lucide-react";
 import { WHATSAPP_NUMBER, waLink } from "./data";
 import { t, useLang } from "@/lib/i18n";
@@ -16,6 +18,13 @@ export function WhatsAppMark({ className }: { className?: string }) {
 const HIDDEN = ["/admin", "/dashboard", "/account", "/auth", "/reset-password", "/commissions", "/deals", "/inquiries", "/leads", "/messages",
   "/my-", "/notifications", "/pending", "/reports", "/tasks", "/investor", "/join", "/investments/new", "/delete-account"];
 
+/** The number the admin set in الإعدادات ← رقم الواتساب العائم, or null (before release 33, or empty) for the built-in one. */
+export async function fetchFloatingWhatsapp(): Promise<string | null> {
+  const { data, error } = await dbx.from("app_settings").select("floating_whatsapp").eq("id", 1).maybeSingle();
+  return error || !data?.floating_whatsapp ? null : data.floating_whatsapp;
+}
+export const useFloatingWhatsapp = () => useQuery({ queryKey: ["floating-whatsapp"], queryFn: fetchFloatingWhatsapp, staleTime: 5 * 60_000 });
+
 const HIDE_KEY = "va-wa-hidden";
 const hiddenByVisitor = () => { try { return sessionStorage.getItem(HIDE_KEY) === "1"; } catch { return false; } };
 
@@ -27,6 +36,7 @@ export function FloatingWhatsApp() {
   useLang();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [hidden, setHidden] = useState(true);
+  const number = useFloatingWhatsapp().data || WHATSAPP_NUMBER;
   useEffect(() => setHidden(hiddenByVisitor()), []);
   if (hidden || HIDDEN.some((p) => pathname.startsWith(p))) return null;
   const hide = () => {
@@ -35,7 +45,7 @@ export function FloatingWhatsApp() {
   };
   const open = () => {
     const text = t("مرحبًا، أنا جاي من صفحة فاليو عقار وعندي استفسار / محتاج مساعدة.");
-    window.open(waLink(WHATSAPP_NUMBER, text), "_blank", "noopener,noreferrer");
+    window.open(waLink(number, text), "_blank", "noopener,noreferrer");
   };
   return (
     <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 ltr:right-4 rtl:left-4 lg:bottom-6 print:hidden">

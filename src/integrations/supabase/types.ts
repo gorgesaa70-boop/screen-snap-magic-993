@@ -71,6 +71,7 @@ export type Database = {
           announce_url: string | null
           featured_month_price: number
           featured_week_price: number
+          floating_whatsapp: string | null
           finishing_ratios: Json
           id: number
           indexnow_sent_at: string | null
@@ -100,6 +101,7 @@ export type Database = {
           announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
+          floating_whatsapp?: string | null
           finishing_ratios?: Json
           id?: number
           indexnow_sent_at?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
+          floating_whatsapp?: string | null
           finishing_ratios?: Json
           id?: number
           indexnow_sent_at?: string | null
