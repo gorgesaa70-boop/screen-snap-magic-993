@@ -308,7 +308,7 @@ function SellForm() {
         </Field>
       </div>
       <button disabled={busy || compressing} className={`${btnTeal} h-12 sm:col-span-2`}>{busy ? t("بيتبعت...") : t("ابعت بيانات العقار")} <ArrowLeft className="size-4" /></button>
-      <p className="text-xs text-muted-foreground sm:col-span-2">{t("هنبعتلك رمز تحقق على واتساب للتأكد من رقمك. رقمك مش هيظهر لحد غير فريق فاليو عقار.")}</p>
+      <p className="text-xs text-muted-foreground sm:col-span-2">{t("هتبعتلنا كود على واتساب من رقمك للتأكد منه. رقمك مش هيظهر لحد غير فريق فاليو عقار.")}</p>
     </form>
   );
 }

@@ -163,7 +163,7 @@ const EN: Record<string, string> = {
   "الدور، التشطيب، عدد الغرف...": "Floor, finishing, rooms...",
   "رقم الموبايل (واتساب)": "Mobile number (WhatsApp)",
   "ابعت بيانات العقار": "Send property details",
-  "هنبعتلك رمز تحقق على واتساب للتأكد من رقمك. رقمك مش هيظهر لحد غير فريق فاليو عقار.": "We will send a WhatsApp code to confirm your number. Only the Value Aqar team will see it.",
+  "هتبعتلنا كود على واتساب من رقمك للتأكد منه. رقمك مش هيظهر لحد غير فريق فاليو عقار.": "You'll send us a code on WhatsApp from your number to confirm it. Only the Value Aqar team will see it.",
   "اكتب اسمك": "Enter your name",
   "اكتب رقم موبايل مصري صحيح": "Enter a valid Egyptian mobile number",
   "اختار نوع العقار": "Choose the property type",
