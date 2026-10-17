@@ -1692,4 +1692,12 @@ commit;`);
     return sys(`select site_closed from public.app_settings where id = 1`);
   }, (r) => r[0].site_closed === true);
   await as(U.admin, `update public.app_settings set site_closed = false where id = 1`);
+
+  // Release 33: floating WhatsApp number.
+  await expectOk("the admin sets the floating WhatsApp number; visitors read it", async () => {
+    await as(U.admin, `update public.app_settings set floating_whatsapp = '201012345678' where id = 1`);
+    return as(null, `select floating_whatsapp from public.app_settings where id = 1`);
+  }, (r) => r[0].floating_whatsapp === "201012345678");
+  await expectErr("only digits with the country code", () => as(U.admin, `update public.app_settings set floating_whatsapp = '+20 101' where id = 1`));
+  await as(U.admin, `update public.app_settings set floating_whatsapp = null where id = 1`);
 }
