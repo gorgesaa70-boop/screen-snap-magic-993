@@ -14,8 +14,13 @@ export type ListingInput = {
   baths: number | null;
   finishing: string | null;
   description: string | null;
+  payment_method: "cash" | "installment" | "both" | null;
+  down_payment: number | null;
+  installment_years: number | null;
+  monthly_installment: number | null;
 };
-export type ListingImport = { listings: (ListingInput & { row: number })[]; errors: { row: number; message: string }[] };
+/** newPlaces: cities / areas not on the site yet; they are saved and wait for the admin before showing in filters. */
+export type ListingImport = { listings: (ListingInput & { row: number })[]; errors: { row: number; message: string }[]; newPlaces: string[] };
 
 type Field = keyof ListingInput;
 const HEADERS: Record<Field, string[]> = {
@@ -30,6 +35,15 @@ const HEADERS: Record<Field, string[]> = {
   baths: ["الحمامات", "عدد الحمامات", "baths", "bathrooms"],
   finishing: ["التشطيب", "حالة التشطيب", "finishing"],
   description: ["الوصف", "التفاصيل", "description"],
+  payment_method: ["طريقة الدفع", "التقسيط", "كاش أو تقسيط", "payment"],
+  down_payment: ["المقدم", "المقدم (ج.م)", "down payment"],
+  installment_years: ["سنين التقسيط", "مدة التقسيط", "عدد سنين التقسيط", "years"],
+  monthly_installment: ["القسط الشهري", "القسط", "monthly"],
+};
+const PAYMENT: Record<string, ListingInput["payment_method"]> = {
+  "كاش": "cash", "نقدي": "cash", "cash": "cash",
+  "تقسيط": "installment", "قسط": "installment", "installment": "installment", "installments": "installment",
+  "كاش او تقسيط": "both", "كاش وتقسيط": "both", "الاتنين": "both", "الاثنين": "both", "both": "both",
 };
 const PURPOSE: Record<string, ListingInput["status"]> = {
   "بيع": "بيع", "للبيع": "بيع", sale: "بيع", sell: "بيع",
@@ -37,7 +51,7 @@ const PURPOSE: Record<string, ListingInput["status"]> = {
   "مصيف": "مصيف", "إيجار مصيفي": "مصيف", "ايجار مصيفي": "مصيف", summer: "مصيف",
 };
 export const MAX_LISTINGS = 500;
-export const LISTING_HEADERS = ["العنوان", "النوع", "الغرض", "المدينة", "المنطقة", "السعر", "المساحة", "الغرف", "الحمامات", "الوصف", "التشطيب"];
+export const LISTING_HEADERS = ["العنوان", "النوع", "الغرض", "المدينة", "المنطقة", "السعر", "المساحة", "الغرف", "الحمامات", "الوصف", "التشطيب", "طريقة الدفع", "المقدم", "سنين التقسيط", "القسط الشهري"];
 /** Finishing words people write in sheets → properties.finishing. Blank is allowed. */
 const FINISHING: Record<string, string> = {
   "عمدان": "skeleton", "طوب احمر": "skeleton", "عمدان / طوب احمر": "skeleton", "على الطوب": "skeleton", "علي الطوب": "skeleton", skeleton: "skeleton",
@@ -53,13 +67,14 @@ const pick = (v: string, list: string[]) => list.find((x) => loose(x) === loose(
 export function parseListingsSheet(rows: unknown[][]): ListingImport {
   const errors: ListingImport["errors"] = [];
   const listings: ListingImport["listings"] = [];
+  const newPlaces = new Set<string>();
   const header = (rows[0] ?? []).map(key);
   const col = {} as Record<Field, number>;
   for (const f of Object.keys(HEADERS) as Field[]) col[f] = header.findIndex((h) => HEADERS[f].some((a) => a.toLowerCase() === h));
   const missing = (["type", "status", "city", "price"] as Field[]).filter((f) => col[f] < 0);
-  if (missing.length) return { listings, errors: [{ row: 1, message: `الملف ناقصه عمود: ${missing.map((f) => HEADERS[f][0]).join("، ")}` }] };
+  if (missing.length) return { listings, newPlaces: [], errors: [{ row: 1, message: `الملف ناقصه عمود: ${missing.map((f) => HEADERS[f][0]).join("، ")}` }] };
   const data = rows.slice(1);
-  if (data.length > MAX_LISTINGS) return { listings, errors: [{ row: 1, message: `الملف فيه أكتر من ${MAX_LISTINGS} صف — قسّمه على أكتر من ملف` }] };
+  if (data.length > MAX_LISTINGS) return { listings, newPlaces: [], errors: [{ row: 1, message: `الملف فيه أكتر من ${MAX_LISTINGS} صف — قسّمه على أكتر من ملف` }] };
 
   data.forEach((r, i) => {
     const row = i + 2;
@@ -70,14 +85,23 @@ export function parseListingsSheet(rows: unknown[][]): ListingImport {
     if (!status) problems.push(`الغرض «${norm(cell("status"))}» مش معروف (بيع / إيجار / مصيف)`);
     const type = pick(norm(cell("type")), TYPES_FOR[status ?? ""] ?? TYPES_FOR[""]!);
     if (!type) problems.push(`النوع «${norm(cell("type"))}» مش متاح${status ? ` لـ${status}` : ""} (${(TYPES_FOR[status ?? ""] ?? []).join(" / ")})`);
-    const city = pick(norm(cell("city")), CITY_NAMES);
-    if (!city) problems.push(`المدينة «${norm(cell("city"))}» مش في المدن المتاحة (${CITY_NAMES.join(" / ")})`);
+    // A city or area we don't have yet is kept as written (it waits for the admin before showing in filters).
+    const cityText = norm(cell("city")).replace(/\s+/g, " ");
+    const knownCity = pick(cityText, CITY_NAMES);
+    const city = knownCity ?? (cityText.length >= 2 && cityText.length <= 60 ? cityText : undefined);
+    if (!city) problems.push("اكتب المدينة (من 2 لـ 60 حرف)");
+    const areaText = norm(cell("area")).replace(/\s+/g, " ");
     let area = city ?? "";
-    // Cities with districts need one; cities without districts store the city name as the area.
-    if (city && areasOf(city)[0] !== city) {
-      const a = pick(norm(cell("area")), areasOf(city));
-      if (!a) problems.push(`المنطقة «${norm(cell("area"))}» مش من مناطق ${city}`);
-      else area = a;
+    // Known cities with districts need one; cities without districts store the city name as the area.
+    if (knownCity && areasOf(knownCity)[0] !== knownCity) {
+      const a = pick(areaText, areasOf(knownCity));
+      if (a) area = a;
+      else if (!areaText) problems.push(`اكتب المنطقة في ${knownCity}`);
+      else if (areaText.length > 60) problems.push("اسم المنطقة طويل (أقصى 60 حرف)");
+      else { area = areaText; newPlaces.add(`${areaText}، ${knownCity}`); }
+    } else if (city && !knownCity) {
+      if (areaText.length >= 2 && areaText.length <= 60) area = areaText;
+      newPlaces.add(area === city ? city : `${area}، ${city}`);
     }
     const price = num(cell("price"));
     if (price === null || price === "bad" || price <= 0) problems.push("السعر لازم رقم أكبر من صفر");
@@ -91,9 +115,21 @@ export function parseListingsSheet(rows: unknown[][]): ListingImport {
     const finishing = !finText || type === "أرض" ? null : FINISHING[loose(finText)] ?? null;
     if (finText && type !== "أرض" && !finishing) problems.push(`التشطيب «${finText}» مش معروف (عمدان / نص تشطيب / تشطيب كامل / سوبر لوكس)`);
     const description = norm(cell("description")).slice(0, 2000) || null;
+    const payText = norm(cell("payment_method"));
+    const payment_method = !payText || status !== "بيع" ? null : PAYMENT[loose(payText)] ?? null;
+    if (payText && status === "بيع" && !payment_method) problems.push(`طريقة الدفع «${payText}» مش معروفة (كاش / تقسيط / كاش أو تقسيط)`);
+    const inst = payment_method === "installment" || payment_method === "both";
+    const down = num(cell("down_payment")), years = num(cell("installment_years")), monthly = num(cell("monthly_installment"));
+    if (inst) {
+      if (typeof years !== "number" || !Number.isInteger(years) || years < 1 || years > 30) problems.push("سنين التقسيط لازم رقم من 1 لـ 30");
+      if (down === "bad" || (typeof down === "number" && typeof price === "number" && down >= price)) problems.push("المقدم لازم رقم أقل من السعر");
+      if (monthly === "bad") problems.push("القسط الشهري لازم رقم");
+    }
     const title = (norm(cell("title")) || [type, status === "مصيف" ? "مصيف" : status && `لل${status}`, area && `في ${area}`].filter(Boolean).join(" ")).slice(0, 150);
     if (problems.length) { errors.push({ row, message: problems.join(" · ") }); return; }
-    listings.push({ row, title, type: type!, status: status!, city: city!, area, price: price as number, size: (size as number | null) ?? 0, rooms: rooms as number | null, baths: baths as number | null, finishing, description });
+    listings.push({ row, title, type: type!, status: status!, city: city!, area, price: price as number, size: (size as number | null) ?? 0, rooms: rooms as number | null, baths: baths as number | null, finishing, description,
+      payment_method, down_payment: inst && typeof down === "number" ? down : null, installment_years: inst ? (years as number) : null,
+      monthly_installment: inst && typeof monthly === "number" && monthly > 0 ? monthly : null });
   });
-  return { listings, errors };
+  return { listings, errors, newPlaces: [...newPlaces] };
 }

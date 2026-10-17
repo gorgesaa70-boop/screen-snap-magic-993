@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { TrendingUp, Plus, UserPlus } from "lucide-react";
 import { PageShell, inputCls } from "@/components/site/ui";
-import { CITY_NAMES } from "@/components/site/data";
+import { CITY_NAMES, useLocations } from "@/components/site/data";
 import { OpportunityCard } from "@/components/site/OpportunityCard";
 import { OPP_KINDS, fetchOpportunities } from "@/lib/investments";
 import { pageHead } from "@/lib/seo";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/investments/")({
 const BUDGETS: [string, number, number][] = [["أقل من 10 مليون", 0, 10e6], ["10 – 50 مليون", 10e6, 50e6], ["50 – 200 مليون", 50e6, 200e6], ["أكتر من 200 مليون", 200e6, Infinity]];
 
 function InvestmentsPage() {
+  useLocations();
   useLang();
   const q = useQuery({ queryKey: ["opportunities"], queryFn: fetchOpportunities });
   const [kind, setKind] = useState("");

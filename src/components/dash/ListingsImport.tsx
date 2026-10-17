@@ -53,7 +53,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
       saved += rows.slice(i, i + 100).length;
     }
     setBusy(false);
-    toast.success(publish ? `اتنشر ${saved} عقار` : `اتضاف ${saved} عقار كمسودة — زوّد الصور وانشرهم`);
+    toast.success(publish ? `اتبعت ${saved} عقار للمراجعة — هيظهروا أول ما الإدارة تعتمدهم` : `اتضاف ${saved} عقار كمسودة — زوّد الصور وانشرهم`);
     onDone();
   }
 
@@ -68,7 +68,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
         <button onClick={template} className={btnOutline}><Download className="size-4" />تنزيل النموذج</button>
       </div>
       <p className="text-xs text-muted-foreground">
-        الأعمدة: {LISTING_HEADERS.join("، ")}. الإجباري: النوع، الغرض (بيع / إيجار / مصيف)، المدينة، السعر (والمنطقة للمدن اللي فيها أحياء). لو العنوان فاضي بيتكتب لوحده. في المصيف السعر = سعر الليلة. لحد {MAX_LISTINGS} صف.
+        الأعمدة: {LISTING_HEADERS.join("، ")}. الإجباري: النوع، الغرض (بيع / إيجار / مصيف)، المدينة، السعر (والمنطقة للمدن اللي فيها أحياء). مدينة أو منطقة جديدة بتتقبل وتستنى مراجعة الأدمن. طريقة الدفع: كاش / تقسيط / كاش أو تقسيط، ومع التقسيط اكتب سنين التقسيط (والمقدم والقسط اختياري). لو العنوان فاضي بيتكتب لوحده. في المصيف السعر = سعر الليلة. لحد {MAX_LISTINGS} صف.
         {remaining != null && ` باقتك تسمح بـ ${formatPrice(Math.max(remaining, 0))} عقار كمان.`}
       </p>
       {result && (
@@ -79,6 +79,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
               {result.errors.map((er) => <li key={er.row}><b>صف {er.row}:</b> {er.message}</li>)}
             </ul>
           )}
+          {result.newPlaces.length > 0 && <p className="rounded-xl bg-secondary p-3 text-xs font-semibold text-primary">مناطق جديدة مش على الموقع لسه: {result.newPlaces.join("، ")}. العقارات هتتحفظ بيها، والمناطق هتظهر في البحث بعد مراجعة فريق فاليو عقار. لو فيه غلطة في الكتابة صلّحها في الملف الأول.</p>}
           {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.listings.length} عقار وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف أو اطلب ترقية الباقة.</p>}
           {result.listings.length > 0 && (
             <div className="max-h-64 overflow-auto rounded-xl border">
@@ -94,7 +95,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
           )}
           <label className="flex items-center gap-2 text-sm font-bold text-primary">
             <input type="checkbox" className="size-4" checked={publish} onChange={(e) => setPublish(e.target.checked)} />
-            انشرهم على طول (من غير صور هيظهروا بصورة افتراضية — الأفضل تسيبهم مسودة وتزوّد الصور)
+            ابعتهم للمراجعة على طول (من غير صور هيظهروا بصورة افتراضية — الأفضل تسيبهم مسودة وتزوّد الصور)
           </label>
           <div className="flex flex-wrap gap-2">
             <button disabled={busy || !result.listings.length || !!over} onClick={save} className={btnPrimary}>{busy ? "..." : `إضافة ${result.listings.length} عقار`}</button>

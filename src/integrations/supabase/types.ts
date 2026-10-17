@@ -1683,6 +1683,48 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          area: string | null
+          area_en: string | null
+          city: string
+          city_en: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          reviewed_at: string | null
+          sort: number
+          source: string | null
+          status: string
+        }
+        Insert: {
+          area?: string | null
+          area_en?: string | null
+          city: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          area?: string | null
+          area_en?: string | null
+          city?: string
+          city_en?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          reviewed_at?: string | null
+          sort?: number
+          source?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       malls: {
         Row: {
           created_at: string
@@ -2220,6 +2262,12 @@ export type Database = {
           listed_until: string | null
           listing_notice: number
           lng: number | null
+          down_payment: number | null
+          installment_note: string | null
+          installment_years: number | null
+          listing_no: number
+          monthly_installment: number | null
+          payment_method: string | null
           mall_id: string | null
           min_months: number | null
           owner_lead_id: string | null
@@ -2279,6 +2327,12 @@ export type Database = {
           listed_until?: string | null
           listing_notice?: number
           lng?: number | null
+          down_payment?: number | null
+          installment_note?: string | null
+          installment_years?: number | null
+          listing_no?: number | null
+          monthly_installment?: number | null
+          payment_method?: string | null
           mall_id?: string | null
           min_months?: number | null
           owner_lead_id?: string | null
@@ -2338,6 +2392,12 @@ export type Database = {
           listed_until?: string | null
           listing_notice?: number
           lng?: number | null
+          down_payment?: number | null
+          installment_note?: string | null
+          installment_years?: number | null
+          listing_no?: number | null
+          monthly_installment?: number | null
+          payment_method?: string | null
           mall_id?: string | null
           min_months?: number | null
           owner_lead_id?: string | null
@@ -3613,6 +3673,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      merge_location: { Args: { _from: string; _to: string }; Returns: number }
       mark_lead_messages_read: { Args: { _lead: string }; Returns: undefined }
       mark_payment_failed: {
         Args: { _id: string; _reason: string }

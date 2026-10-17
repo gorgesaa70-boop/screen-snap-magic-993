@@ -184,11 +184,16 @@ const listingSchema = z.object({
   // Summer listings: what the asking price is per (defaults to a night).
   price_unit: z.enum(["night", "week", "month", "season"]).optional(),
   property_type: z.string().trim().min(1).max(40),
-  city: z.string().trim().min(1).max(80),
-  area: z.string().trim().min(1).max(80),
+  city: z.string().trim().min(2).max(60),
+  area: z.string().trim().min(2).max(60),
   asking_price: z.number().positive().max(1e12),
   size_m2: z.number().positive().max(1e7),
   finishing: z.enum(["skeleton", "semi", "full", "super_lux"]).optional(),
+  payment_method: z.enum(["cash", "installment", "both"]).optional(),
+  down_payment: z.number().min(0).max(1e12).optional(),
+  installment_years: z.number().int().min(1).max(30).optional(),
+  monthly_installment: z.number().positive().max(1e12).optional(),
+  installment_note: z.string().trim().max(500).optional(),
   rooms: z.number().int().min(0).max(50).optional(),
   baths: z.number().int().min(0).max(50).optional(),
   floor: z.string().trim().max(50).optional(),
@@ -265,6 +270,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       description: data.details || null, price: data.asking_price, type: data.property_type, status,
       city: data.city, area: data.area, size: data.size_m2, finishing: data.property_type === "أرض" ? null : data.finishing ?? null, rooms: data.rooms ?? null, baths: data.baths ?? null,
       floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
+      ...(status === "بيع" && data.payment_method ? {
+        payment_method: data.payment_method, down_payment: data.down_payment ?? null, installment_years: data.installment_years ?? null,
+        monthly_installment: data.monthly_installment ?? null, installment_note: data.installment_note || null,
+      } : {}),
       lat: data.lat ?? null, lng: data.lng ?? null,
     });
     // The lead is already saved, so the team can still follow up if this fails.

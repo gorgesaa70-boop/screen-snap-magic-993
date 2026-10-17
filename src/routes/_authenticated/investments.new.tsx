@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { useMe } from "@/hooks/useAuth";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
-import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage, formatDate } from "@/components/site/data";
+import { CITY_NAMES, DEFAULT_CITY, areasOf, uploadImage, formatDate, useLocations } from "@/components/site/data";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ACTIVITIES, DEAL_KINDS, OPP_KINDS, investmentRange, oppNo } from "@/lib/investments";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/investments/new")({
 const STATUS: Record<string, string> = { pending: "بانتظار مراجعة فاليو عقار", approved: "منشورة", rejected: "مرفوضة", closed: "مقفولة" };
 
 function NewOpportunityPage() {
+  useLocations();
   const { me } = useMe();
   const mine = useQuery({ queryKey: ["my-opportunities"], queryFn: async () => (await supabase.rpc("my_opportunities")).data ?? [] });
   const blank = {

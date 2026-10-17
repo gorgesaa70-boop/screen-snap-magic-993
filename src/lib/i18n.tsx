@@ -859,9 +859,52 @@ const EN: Record<string, string> = {
   "انتهت صلاحية الرابط، اطلب رابطًا جديدًا": "The link expired — request a new one",
   "تم حفظ كلمة المرور": "Password saved",
   "حفظ": "Save",
+  "مدينة تانية…": "Another city…",
+  "منطقة تانية…": "Another area…",
+  "اكتب اسم المدينة، مثال: الإسكندرية": "Type the city, e.g. Alexandria",
+  "اسم المنطقة (سيبها فاضية لو المدينة كلها)": "Area (leave empty for the whole city)",
+  "اكتب اسم المنطقة": "Type the area",
+  "المنطقة الجديدة هتظهر في البحث بعد مراجعة فريق فاليو عقار.": "A new area shows in search after the Value Aqar team reviews it.",
+  "كاش": "Cash",
+  "تقسيط": "Installments",
+  "كاش أو تقسيط": "Cash or installments",
+  "طريقة الدفع": "Payment",
+  "المقدم (ج.م)": "Down payment (EGP)",
+  "عدد سنين التقسيط": "Installment years",
+  "القسط الشهري (ج.م)": "Monthly installment (EGP)",
+  "ملاحظات التقسيط (اختياري)": "Installment notes (optional)",
+  "مثال: 300000": "e.g. 300000",
+  "مثال: 5": "e.g. 5",
+  "مثال: خصم 10% للكاش، أو أقساط ربع سنوية": "e.g. 10% off for cash, or quarterly payments",
+  "محسوب لوحده:": "Calculated:",
+  "غيّره لو مختلف": "change it if different",
+  "اكتب عدد سنين التقسيط (من 1 لـ 30)": "Enter the installment years (1 to 30)",
+  "المقدم لازم يكون أقل من السعر": "The down payment must be less than the price",
+  "نظام التقسيط": "Payment plan",
+  "المدة": "Term",
+  "سنين": "years",
+  "احسب قسطك": "Calculate your installment",
+  "القسط التقريبي:": "Approx. installment:",
+  "شهريًا": "per month",
+  "اكتب مقدم أقل من السعر وعدد سنين": "Enter a down payment below the price and the years",
+  "* حساب تقريبي بدون فوايد، والنظام النهائي بيتحدد مع البايع.": "* Rough figure without interest; the final plan is agreed with the seller.",
+  "كود العقار:": "Listing code:",
+  "تقسيط بس": "Installments only",
+  "أقصى مقدم (ج.م)": "Max down payment (EGP)",
+  "عدد الغرف (على الأقل)": "Rooms (at least)",
+  "أي عدد": "Any",
+  "أي تشطيب": "Any finishing",
+  "مرحبًا فاليو عقار، عندي استفسار.": "Hello Value Aqar, I have a question.",
+  "الصفحة:": "Page:",
+  "إخفاء زرار الواتساب": "Hide the WhatsApp button",
 };
 
 /** Translate a string (or data value like a property type) into the current language. */
+/** English names that come from the database (e.g. places added by the admin). Existing entries win. */
+export function addTranslations(map: Record<string, string>) {
+  for (const [k, v] of Object.entries(map)) if (!(k in EN)) EN[k] = v;
+}
+
 export function t(s: string, vars?: Record<string, string | number>): string {
   let out = currentLang === "en" ? (EN[s] ?? s) : s;
   if (vars) {

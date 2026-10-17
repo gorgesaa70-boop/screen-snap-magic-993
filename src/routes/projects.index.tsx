@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Building2, MapPin, CalendarClock } from "lucide-react";
 import { PageShell, inputCls } from "@/components/site/ui";
-import { CITY_NAMES, formatPrice } from "@/components/site/data";
+import { CITY_NAMES, formatPrice, useLocations } from "@/components/site/data";
 import { fetchProjects, projectCover } from "@/components/site/projects";
 import { pageHead } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
@@ -18,6 +18,7 @@ export const Route = createFileRoute("/projects/")({
 });
 
 function ProjectsPage() {
+  useLocations();
   useLang();
   const q = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
   const [city, setCity] = useState("");

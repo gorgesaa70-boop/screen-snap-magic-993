@@ -5,7 +5,7 @@ import { TrendingUp } from "lucide-react";
 import { t, useLang } from "@/lib/i18n";
 import { pageHead, breadcrumbs } from "@/lib/seo";
 import { PageShell, inputCls, btnPrimary } from "@/components/site/ui";
-import { CITY_NAMES } from "@/components/site/data";
+import { CITY_NAMES, useLocations } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMalls } from "@/components/site/malls";
 import { fetchFinishingRatios, fetchPriceIndex, hasData, mallIdsWithData, DEFAULT_RATIOS } from "@/components/site/prices";
 import { DistrictTable, MallFloors, PriceCalculator } from "@/components/site/PriceTools";
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/prices/")({
 });
 
 function PricesPage() {
+  useLocations();
   useLang();
   const idx = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
   const malls = useQuery({ queryKey: ["malls"], queryFn: () => fetchMalls() });

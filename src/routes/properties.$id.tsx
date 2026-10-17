@@ -5,12 +5,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink } from "lucide-react";
+import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, Wallet } from "lucide-react";
+import { PAYMENT_LABEL, monthlyFor } from "@/lib/installments";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
-import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, FINISHING_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, FINISHING_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, listingMessage, WHATSAPP_NUMBER, withContacts, type PublicBroker } from "@/components/site/data";
 import { AlertButton, FavoriteButton, ShareButton, VerifiedBadge } from "@/components/site/CustomerTools";
 import { PropertyCard } from "@/components/site/Sections";
 import { TYPE_GROUPS } from "@/components/site/search";
@@ -89,7 +91,9 @@ function PropertyPage() {
               <p className="mt-1 text-[11px] text-muted-foreground">{t("* تقديري ومش ضمان.")}</p>
             </div>
           )}
+          {p.code && <p className="mt-1 text-xs font-bold text-muted-foreground">{t("كود العقار:")} <span dir="ltr" className="text-primary">{p.code}</span></p>}
           {p.rent && <RentDetails p={p} />}
+          {p.installments && <InstallmentPlan p={p} />}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{t(p.type)}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)} / ${t(p.city)}`}</span>
@@ -111,14 +115,49 @@ function PropertyPage() {
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><span className="text-xs font-bold text-muted-foreground">{t(ACCOUNT_LABEL[broker.account_type] ?? "وسيط عقاري")}</span><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">{t("عرض الملف")}</Link></div>
               </div>
-              <a href={waLink(broker.whatsapp || broker.phone, `${t("مرحبًا، أستفسر عن:")} ${p.title}`)} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
+              <a href={waLink(broker.whatsapp || broker.phone, listingMessage(p))} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
             </div>
+          )}
+          {!broker && (
+            <a href={waLink(WHATSAPP_NUMBER, listingMessage(p))} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
           )}
           <InquiryForm propertyId={p.id} />
           {coBroke && <ReferButton kind="property" targetId={p.id} share={coBroke.share} ownerId={p.brokerId} ownerListing={coBroke.ownerListing} />}
         </aside>
       </div>
     </PageShell>
+  );
+}
+
+/** «نظام التقسيط» on a sale listing, with a small calculator to try another down payment or term. */
+function InstallmentPlan({ p }: { p: Property }) {
+  useLang();
+  const plan = p.installments!;
+  const [down, setDown] = useState(String(plan.down ?? ""));
+  const [years, setYears] = useState(String(plan.years ?? ""));
+  const d = Number(down || 0), y = Number(years || 0);
+  const monthly = monthlyFor(p.price, d, y);
+  const clean = (v: string, max: number) => v.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, max);
+  return (
+    <div className="mt-4 rounded-2xl border bg-card p-4">
+      <h2 className="flex items-center gap-1.5 text-lg font-extrabold text-primary"><Wallet className="size-5 text-teal" />{t("نظام التقسيط")}</h2>
+      <p className="mt-1 text-sm font-semibold text-foreground/80">{t(PAYMENT_LABEL[plan.method])}</p>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-xl bg-secondary p-2"><p className="text-[11px] font-semibold text-muted-foreground">{t("المقدم")}</p><p className="font-extrabold text-primary">{plan.down != null ? `${formatPrice(plan.down)}` : "—"}</p></div>
+        <div className="rounded-xl bg-secondary p-2"><p className="text-[11px] font-semibold text-muted-foreground">{t("المدة")}</p><p className="font-extrabold text-primary">{plan.years ? `${plan.years} ${t("سنين")}` : "—"}</p></div>
+        <div className="rounded-xl bg-secondary p-2"><p className="text-[11px] font-semibold text-muted-foreground">{t("القسط الشهري")}</p><p className="font-extrabold text-primary">{plan.monthly ? formatPrice(plan.monthly) : "—"}</p></div>
+      </div>
+      {plan.note && <p className="mt-2 text-sm text-foreground/80">{plan.note}</p>}
+      <div className="mt-4 border-t pt-3">
+        <p className="text-sm font-bold text-primary">{t("احسب قسطك")}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <label className="text-xs font-semibold text-muted-foreground">{t("المقدم (ج.م)")}<input className={`${inputCls} mt-1`} inputMode="numeric" dir="ltr" value={down} onChange={(e) => setDown(clean(e.target.value, 13))} /></label>
+          <label className="text-xs font-semibold text-muted-foreground">{t("عدد السنين")}<input className={`${inputCls} mt-1`} inputMode="numeric" dir="ltr" value={years} onChange={(e) => setYears(clean(e.target.value, 2))} /></label>
+        </div>
+        <p className="mt-2 text-sm font-bold text-teal">{monthly > 0 ? `${t("القسط التقريبي:")} ${formatPrice(monthly)} ${t("ج.م")} ${t("شهريًا")}` : t("اكتب مقدم أقل من السعر وعدد سنين")}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground">{t("* حساب تقريبي بدون فوايد، والنظام النهائي بيتحدد مع البايع.")}</p>
+      </div>
+    </div>
   );
 }
 

@@ -1,8 +1,9 @@
-import { CITY_NAMES, areasOf } from "./data";
+import { CITY_NAMES, areasOf, useLocations } from "./data";
 import { t } from "@/lib/i18n";
 
 /** Multi-select of areas grouped under their city; "الكل" toggles every area of that city. */
 export function AreaPicker({ value, onChange, small }: { value: string[]; onChange: (v: string[]) => void; small?: boolean }) {
+  useLocations();
   const toggle = (a: string) => onChange(value.includes(a) ? value.filter((x) => x !== a) : [...value, a]);
   const chip = `rounded-full border font-bold transition ${small ? "h-9 px-3 text-xs" : "h-10 px-4 text-sm"}`;
   return (
