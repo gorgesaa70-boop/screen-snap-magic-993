@@ -1438,4 +1438,37 @@ commit;`);
     const after = await sys(`select (select count(*)::int from public.locations) n, (select max(listing_no)::int from public.properties) m`);
     return [before[0], after[0]];
   }, (r) => r[0].n === r[1].n && r[0].m === r[1].m);
+
+  console.log("\nAdmin: every account, delete any account (release 26)");
+  const XU = "00000000-0000-0000-0000-0000000000e7", XB = "b0000000-0000-0000-0000-0000000000e7";
+  await sys(`insert into auth.users (id, phone, email, raw_user_meta_data) values ('${XU}','201088800001','gone@x.com','{"full_name":"وسيط هيتمسح"}')`);
+  await sys(`insert into public.user_roles (user_id, role) values ('${XU}','broker')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, email, account_type, is_active, plan_id) values ('${XB}','${XU}','x-del','وسيط هيتمسح','201088800001','gone@x.com','individual', true, (select id from public.plans where code='business'))`);
+  const xFree = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${XB}','إعلان من غير عملاء',1,'شقة','الحي الأول','بيع','approved') returning id`))[0].id;
+  const xKept = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${XB}','إعلان عليه عميل',1,'شقة','الحي الأول','بيع','approved') returning id`))[0].id;
+  await sys(`insert into public.leads (name, phone, property_id) values ('عميل مهتم','01088800009','${xKept}')`);
+  await expectOk("the admin sees every login with its details", () => as(U.admin, `select * from public.admin_accounts() where user_id='${XU}'`),
+    (r) => r.length === 1 && r[0].email === "gone@x.com" && r[0].full_name === "وسيط هيتمسح" && r[0].broker_id === XB && r[0].roles.includes("broker") && r[0].listings === 2);
+  await expectOk("customers without a company show too", () => as(U.admin, `select count(*)::int n from public.admin_accounts() where broker_id is null`), (r) => r[0].n > 0);
+  await expectErr("staff can't list accounts", () => as(U.staff, `select * from public.admin_accounts()`));
+  await expectErr("a broker can't list accounts", () => as(XU, `select * from public.admin_accounts()`));
+  await expectErr("nobody but the server deletes", () => as(U.admin, `select public.prepare_account_deletion('${XU}', '${U.admin}')`));
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await expectOk("deleting by the admin: free listing removed, listing with a customer kept off the site, logged", async () => {
+    const r = (await sys(`select public.prepare_account_deletion('${XU}', '${U.admin}') r`))[0].r;
+    return [r, await sys(`select id, review_status from public.properties where id in ('${xFree}','${xKept}')`),
+      await sys(`select changes from public.audit_log where table_name='accounts' and row_id='${XU}'`),
+      await sys(`select is_active, email, user_id, review_note from public.brokers where id='${XB}'`)];
+  }, (r) => r[0] === "ok" && r[1].length === 1 && r[1][0].id === xKept && r[1][0].review_status === "draft"
+    && r[2][0].changes.listings_removed === 1 && r[2][0].changes.listings_hidden === 1
+    && r[3][0].is_active === false && r[3][0].email === null && r[3][0].user_id === null && r[3][0].review_note === "الحساب اتمسح من الإدارة");
+  await expectOk("an admin account can't be deleted", () => sys(`select public.prepare_account_deletion('${U.admin}', '${U.admin}') r`), (r) => r[0].r === "admin");
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("search engines: the last send is remembered", () => sys(`select indexnow_sent_at from public.app_settings limit 1`), (r) => r.length <= 1);
+
+  await expectOk("release 26 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017200000_admin-accounts.sql", import.meta.url), "utf8");
+    await exec(`begin;\n${sql}\ncommit;`);
+    return as(U.admin, `select count(*)::int n from public.admin_accounts()`);
+  }, (r) => r[0].n > 0);
 }

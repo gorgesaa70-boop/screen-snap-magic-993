@@ -1,8 +1,8 @@
 import type { Property } from "./data";
 
 /** «فلاتر أكتر»: pay = "installment" (installments only), maxDown = highest down payment, rooms = at least, finishing. */
-export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string; group?: string; pay?: string; maxDown?: string; rooms?: string; finishing?: string };
-export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "", group: "", pay: "", maxDown: "", rooms: "", finishing: "" };
+export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string; group?: string; pay?: string; maxDown?: string; rooms?: string; finishing?: string; place?: string };
+export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "", group: "", pay: "", maxDown: "", rooms: "", finishing: "", place: "" };
 /** How many of the extra filters are set (shown on the «فلاتر أكتر» button). */
 export const extraCount = (f: Filters) => [f.pay, f.maxDown, f.rooms, f.finishing].filter(Boolean).length;
 
@@ -17,7 +17,11 @@ export const GROUP_LABELS: Record<string, string> = { land: "أراضي", reside
 
 export const isEmpty = (f: Filters) => Object.values(f).every((v) => !v);
 
+/** Loose Arabic compare for typed places (أ/ا، ة/ه، ى/ي, spaces). */
+const loosePlace = (s: string) => s.trim().replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/\s+/g, " ").toLowerCase();
+
 export function applyFilters(list: Property[], f: Filters) {
+  const place = f.place ? loosePlace(f.place) : "";
   const min = f.min ? Number(f.min) : null;
   const max = f.max ? Number(f.max) : null;
   const maxDown = f.maxDown ? Number(f.maxDown) : null;
@@ -34,6 +38,7 @@ export function applyFilters(list: Property[], f: Filters) {
       (!f.pay || !!p.installments) &&
       (maxDown === null || (!!p.installments && (p.installments.down ?? 0) <= maxDown)) &&
       (rooms === null || (p.rooms ?? 0) >= rooms) &&
-      (!f.finishing || p.finishing === f.finishing),
+      (!f.finishing || p.finishing === f.finishing) &&
+      (!place || loosePlace(`${p.city} ${p.area}`).includes(place)),
   );
 }

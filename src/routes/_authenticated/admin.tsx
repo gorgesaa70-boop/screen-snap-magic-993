@@ -23,6 +23,7 @@ import { ReferralsAdmin } from "@/components/dash/ReferralsAdmin";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ProjectsAdmin } from "@/components/dash/ProjectsAdmin";
 import { LocationsAdmin } from "@/components/dash/LocationsAdmin";
+import { AccountsAdmin } from "@/components/dash/AccountsAdmin";
 import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "audit" | "health" | "routing" | "investments" | "locations";
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts";
 
 function useAdminData(enabled: boolean) {
   return useQuery({
@@ -85,7 +86,7 @@ function AdminPage() {
       {/* 16 sections grouped in 5 (UX review): pick a group, then a section inside it. */}
       {(() => {
         const labels: Record<Tab, string> = {
-          reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار",
+          reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
           review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
           industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
@@ -94,7 +95,7 @@ function AdminPage() {
           { id: "customers", label: "العملاء", tabs: ["leads", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
-          { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "staff", "plans"] },
+          { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "accounts", "staff", "plans"] },
           { id: "settings", label: "الإعدادات", tabs: ["announce", "app", "health"] },
         ];
         const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!;
@@ -133,6 +134,7 @@ function AdminPage() {
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
           {tab === "locations" && <LocationsAdmin />}
+          {tab === "accounts" && <AccountsAdmin />}
           {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </>
