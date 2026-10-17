@@ -87,8 +87,10 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
       crypto.getRandomValues(t);
       const ticket = Array.from(t).map((b) => b.toString(16).padStart(2, "0")).join("");
       await db.from("whatsapp_otps").update({ consumed_at: new Date().toISOString() }).eq("phone", phone).is("consumed_at", null);
-      await db.from("whatsapp_otps").insert({ phone, code_hash: await hmac(`${phone}:${code}`), ticket_hash: await hmac(`ticket:${ticket}`),
+      const { error: insErr } = await db.from("whatsapp_otps").insert({ phone, code_hash: await hmac(`${phone}:${code}`), ticket_hash: await hmac(`ticket:${ticket}`),
         expires_at: new Date(now + INBOUND_TTL_MS).toISOString(), ip_hash: ipHash });
+      // e.g. release-28 not applied yet: never show a code that can't be confirmed.
+      if (insErr) { console.error("wa inbound insert failed", insErr.code); return { ok: false, error: "server" }; }
       await log("wa_otp_sent", phone, "inbound code shown");
       return { ok: true, mode: "inbound", code, ticket, expiresIn: INBOUND_TTL_MS / 1000 };
     }

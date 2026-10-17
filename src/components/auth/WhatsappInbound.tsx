@@ -56,7 +56,8 @@ export function WhatsappInbound({ start, busy, onConfirmed, onBack, onRestart }:
       <p className="text-sm text-foreground/80">
         {t("علشان نتأكد إن الرقم بتاعك، ابعت الكود ده لفاليو عقار على واتساب من رقم")} <span dir="ltr" className="font-bold text-primary">+{start.phone}</span>
       </p>
-      <div dir="ltr" className="rounded-xl border bg-muted/40 py-3 text-center text-3xl font-extrabold tracking-[0.4em] text-primary">{start.code}</div>
+      <a href={loginLink(start.code)} target="_blank" rel="noopener noreferrer" dir="ltr"
+        className="block rounded-xl border bg-muted/40 py-3 text-center text-3xl font-extrabold tracking-[0.4em] text-primary">{start.code}</a>
       {expired ? (
         <button type="button" onClick={onRestart} className={`${btnTeal} w-full`}>{t("كود جديد")}</button>
       ) : status === "confirmed" || busy ? (
