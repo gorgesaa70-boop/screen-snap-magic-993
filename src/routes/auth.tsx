@@ -6,6 +6,8 @@ import { Logo } from "@/components/site/Navbar";
 import { Field, inputCls, btnPrimary } from "@/components/site/ui";
 import { PhoneOtp, destinationFor } from "@/components/auth/PhoneOtp";
 import { SocialRow } from "@/components/auth/SocialLogin";
+import { CompleteProfile } from "@/components/auth/CompleteProfile";
+import { knownName, needsProfile } from "@/lib/profile";
 import { AppDownload } from "@/components/site/AppDownload";
 import { t, useLang } from "@/lib/i18n";
 
@@ -38,11 +40,23 @@ function AuthPage() {
     if (!data.user) return;
     const to = await destinationFor(data.user.id);
     if (to === "suspended") { await supabase.auth.signOut(); toast.error("هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة"); return; }
+    // «كمّل بياناتك» once for every account, whatever the sign-in method (admins skip it).
+    if (needsProfile(data.user) && to !== "/admin") {
+      const { data: broker } = await supabase.from("brokers").select("id").eq("user_id", data.user.id).maybeSingle();
+      setProfile({ to, askRole: to === "/dashboard" && !broker, name: knownName(data.user) });
+      return;
+    }
+    finish(to);
+  };
+  const finish = (to: Exclude<Awaited<ReturnType<typeof destinationFor>>, "suspended">) => {
     // Back to the page that asked for sign-in (favourite / alert), when it is a path on this site.
     const next = new URLSearchParams(window.location.search).get("next");
     if (next && /^\/(?![/\\])/.test(next) && to !== "/admin") { window.location.replace(next); return; }
     nav({ to, replace: true });
   };
+  const [profile, setProfile] = useState<{ to: Exclude<Awaited<ReturnType<typeof destinationFor>>, "suspended">; askRole: boolean; name: string } | null>(null);
+  // Back from Google/Apple without a profile yet: the root sends the user here with ?welcome.
+  useEffect(() => { if (new URLSearchParams(window.location.search).has("welcome")) void go(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -113,6 +127,17 @@ function AuthPage() {
       toast.success("أرسلنا رابط إعادة تعيين كلمة المرور إلى بريدك");
       setMode("login");
     }
+  }
+
+  if (profile) {
+    return (
+      <div className="min-h-screen bg-secondary px-4 py-8 md:py-12">
+        <div className="mx-auto w-full max-w-md space-y-6 rounded-3xl border bg-card p-6 shadow-card md:p-8">
+          <Logo />
+          <CompleteProfile askRole={profile.askRole} initialName={profile.name} onDone={(role) => (role === "broker" ? nav({ to: "/join", replace: true }) : finish(profile.to))} />
+        </div>
+      </div>
+    );
   }
 
   return (

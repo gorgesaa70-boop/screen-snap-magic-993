@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { destinationFor } from "@/components/auth/PhoneOtp";
+import { needsProfile } from "@/lib/profile";
 import { t, useLang } from "@/lib/i18n";
 
 // Set before leaving for Google so the returning page knows to route the user to their dashboard.
@@ -96,6 +97,8 @@ export function useSocialReturn(navigate: (to: string) => void) {
       try { sessionStorage.removeItem(RETURN_FLAG); } catch { /* ignore */ }
       void destinationFor(session.user.id).then(async (to) => {
         if (to === "suspended") { await supabase.auth.signOut(); toast.error(t("هذا الحساب موقوف ولا يمكنه الدخول، تواصل مع الإدارة")); return; }
+        // First time: «كمّل بياناتك» on the sign-in page (same step as WhatsApp / e-mail).
+        if (needsProfile(session.user) && to !== "/admin") { window.location.replace("/auth?welcome=1"); return; }
         navigate(to);
       });
     });
