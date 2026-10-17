@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import type { Tables } from "@/integrations/supabase/types";
 import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
+import { DeleteButton } from "@/components/dash/ManageActions";
 
 type Loc = Tables<"locations">;
 const label = (l: Loc) => (l.area ? `${l.area}، ${l.city}` : l.city);
@@ -82,9 +83,12 @@ export function LocationsAdmin() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {l.status !== "approved" && <button className={btnPrimary} onClick={() => upd(l.id, { status: "approved" }, "اتعتمدت")}><Check className="size-4" />اعتماد</button>}
-                {l.status !== "approved" && <button className={btnOutline} onClick={() => { setMergeFrom(l.id); setMergeTo(""); }}><GitMerge className="size-4" />دمج</button>}
+                <button className={btnOutline} onClick={() => { setMergeFrom(l.id); setMergeTo(""); }}><GitMerge className="size-4" />دمج في منطقة تانية</button>
                 {l.status === "pending" && <button className={btnOutline} onClick={() => upd(l.id, { status: "rejected" }, "اترفضت")}><X className="size-4" />رفض</button>}
                 {l.status === "approved" && l.source !== "seed" && <button className={btnOutline} onClick={() => upd(l.id, { status: "pending" }, "اتشالت من الفلاتر")}>إخفاء من الفلاتر</button>}
+                {listingsOf(l) === 0
+                  ? <DeleteButton kind="location" id={l.id} name={label(l)} onDone={() => void q.refetch()} />
+                  : <span className="self-center text-[11px] text-muted-foreground" title="عليها إعلانات — ادمجها في منطقة تانية الأول">للحذف: ادمجها الأول</span>}
               </div>
             </div>
             {l.status !== "rejected" && (
@@ -101,7 +105,7 @@ export function LocationsAdmin() {
                   <Field label={`دمج «${label(l)}» في:`}>
                     <select className={inputCls} value={mergeTo} onChange={(e) => setMergeTo(e.target.value)}>
                       <option value="">اختار منطقة معتمدة</option>
-                      {approved.map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
+                      {approved.filter((a) => a.id !== l.id).map((a) => <option key={a.id} value={a.id}>{label(a)}</option>)}
                     </select>
                   </Field>
                 </div>

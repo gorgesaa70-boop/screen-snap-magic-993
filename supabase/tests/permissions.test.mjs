@@ -1595,4 +1595,65 @@ commit;`);
       ('${CO}','mall','${mallG}','محل 2','محل تجاري','بيع',1200000,35,'مول المعرض','pending')`);
     return as(U.admin, `update public.properties set review_status='approved', review_note=null where category='mall' and mall_id='${mallG}' and review_status in ('pending','draft') returning id`);
   }, (r) => r.length === 2);
+
+  // Release 30: availability + admin_delete.
+  // Earlier checks re-run release 25, which restores its review guard: load release 30 again first.
+  await exec(`begin;
+${(await import("node:fs")).readFileSync(new URL("../migrations/20261017600000_manage-everything.sql", import.meta.url), "utf8")}
+commit;`);
+  const avP = (await sys(`insert into public.properties (broker_id, title, type, status, price, size, city, area, review_status) values ('${CO}','شقة للحجز','شقة','بيع',1000000,100,'برج العرب الجديدة','الحي الأول','approved') returning id`))[0].id;
+  await exec(`begin; set local request.jwt.claim.role to 'service_role'; update public.properties set review_status='approved' where id='${avP}'; commit;`);
+  await expectOk("the account owner marks a listing reserved; it stays approved and is stamped", async () => {
+    await as(U.owner, `update public.properties set availability='reserved' where id='${avP}'`);
+    return sys(`select availability, review_status, availability_at is not null stamped from public.properties where id='${avP}'`);
+  }, (r) => r[0].availability === "reserved" && r[0].review_status === "approved" && r[0].stamped === true);
+  await expectErr("availability only takes available / reserved / sold", () => as(U.owner, `update public.properties set availability='gone' where id='${avP}'`));
+  await expectErr("a sales member can't change availability (team rule)", () => as(U.sales, `update public.properties set availability='sold' where id='${avP}'`));
+  await expectErr("only the admin calls admin_delete", () => as(U.owner, `select public.admin_delete('property', '${avP}')`));
+  await expectOk("admin deletes a listing with no deal", async () => { await as(U.admin, `select public.admin_delete('property', '${avP}') r`); return sys(`select count(*)::int n from public.properties where id='${avP}'`); }, (r) => r[0].n === 0);
+  await expectOk("a listing with a deal is hidden, not deleted", async () => {
+    const pid = (await sys(`insert into public.properties (broker_id, title, type, status, price, size, city, area, review_status) values ('${CO}','شقة مباعة','شقة','بيع',900000,90,'برج العرب الجديدة','الحي الأول','approved') returning id`))[0].id;
+    const lid = (await sys(`insert into public.leads (name, phone, assigned_broker_id, property_id) values ('مشتري','01099990001','${CO}','${pid}') returning id`))[0].id;
+    await exec(`begin; set local request.jwt.claim.role to 'service_role'; insert into public.deals (lead_id, broker_id, property_id) values ('${lid}','${CO}','${pid}'); commit;`);
+    const r = await as(U.admin, `select public.admin_delete('property', '${pid}') r`);
+    const row = await sys(`select review_status from public.properties where id='${pid}'`);
+    const del = await as(U.admin, `select public.admin_delete('lead', '${lid}') r`).then(() => "deleted", (e) => String(e.message));
+    return [{ r: r[0].r, rs: row[0]?.review_status, del }];
+  }, (r) => r[0].r === "hidden" && r[0].rs === "rejected" && /صفقة/.test(r[0].del));
+  await expectOk("admin deletes a customer request without a deal (its notes go with it)", async () => {
+    const lid = (await sys(`insert into public.leads (name, phone, assigned_broker_id) values ('تجربة','01099990002','${CO}') returning id`))[0].id;
+    await as(U.admin, `select public.admin_delete('lead', '${lid}')`);
+    return sys(`select (select count(*) from public.leads where id='${lid}')::int n, (select count(*) from public.audit_log where table_name='lead' and row_id='${lid}')::int logged`);
+  }, (r) => r[0].n === 0 && r[0].logged === 1);
+  await expectOk("deleting a mall can move its units to another mall", async () => {
+    const a = (await sys(`insert into public.malls (name) values ('مول قديم') returning id`))[0].id;
+    const b = (await sys(`insert into public.malls (name) values ('مول جديد') returning id`))[0].id;
+    await sys(`insert into public.properties (broker_id, category, mall_id, title, type, status, price, size, area, review_status) values ('${CO}','mall','${a}','محل','محل تجاري','بيع',1,10,'مول قديم','approved')`);
+    await as(U.admin, `select public.admin_delete('mall', '${a}', '${b}')`);
+    return sys(`select (select count(*) from public.malls where id='${a}')::int gone, (select count(*) from public.properties where mall_id='${b}' and area='مول جديد')::int moved`);
+  }, (r) => r[0].gone === 0 && r[0].moved === 1);
+  await expectOk("deleting a mall without a target deletes its units", async () => {
+    const a = (await sys(`insert into public.malls (name) values ('مول للمسح') returning id`))[0].id;
+    await sys(`insert into public.properties (broker_id, category, mall_id, title, type, status, price, size, area, review_status) values ('${CO}','mall','${a}','محل','محل تجاري','بيع',1,10,'مول للمسح','approved')`);
+    await as(U.admin, `select public.admin_delete('mall', '${a}')`);
+    return sys(`select count(*)::int n from public.properties where area='مول للمسح'`);
+  }, (r) => r[0].n === 0);
+  await expectOk("a provider with requests is suspended, one without is deleted; a plan with subscribers is turned off", async () => {
+    const p1 = (await sys(`insert into public.service_providers (category, name, phone, status) values ('media','مقدم عليه شغل','201000009991','approved') returning id`))[0].id;
+    const p2 = (await sys(`insert into public.service_providers (category, name, phone, status) values ('media','مقدم فاضي','201000009992','pending') returning id`))[0].id;
+    await exec(`begin; set local request.jwt.claim.role to 'service_role'; update public.service_providers set status='approved' where id='${p1}'; insert into public.service_requests (name, phone, category, assigned_provider_id) values ('طالب خدمة','01011119999','media','${p1}'); commit;`);
+    const r1 = (await as(U.admin, `select public.admin_delete('service_provider', '${p1}') r`))[0].r;
+    const r2 = (await as(U.admin, `select public.admin_delete('service_provider', '${p2}') r`))[0].r;
+    const st = (await sys(`select status from public.service_providers where id='${p1}'`))[0].status;
+    const req = (await sys(`select id from public.service_requests where name='طالب خدمة'`))[0].id;
+    const r3 = (await as(U.admin, `select public.admin_delete('service_request', '${req}') r`))[0].r;
+    return [{ r1, r2, st, r3 }];
+  }, (r) => r[0].r1 === "deactivated" && r[0].st === "suspended" && r[0].r2 === "deleted" && r[0].r3 === "deleted");
+  await expectOk("release 30 can be re-run safely", async () => {
+    const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261017600000_manage-everything.sql", import.meta.url), "utf8");
+    await exec(`begin;
+${sql}
+commit;`);
+    return sys(`select count(*)::int n from public.properties where availability not in ('available','reserved','sold')`);
+  }, (r) => r[0].n === 0);
 }

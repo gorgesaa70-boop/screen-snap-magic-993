@@ -5,6 +5,7 @@ import { addTranslations, getLang } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/seo";
 import { THUMB_SIDE, UploadError, extensionFor, prepareImage, uploadErrorMessage, withThumb } from "@/lib/images";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { availabilityOf } from "./availability";
 
 export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
@@ -43,6 +44,8 @@ export type Property = {
   updated: string;
   isDemo: boolean;
   featured: boolean;
+  /** available | reserved | sold (release 30; older rows count as available). */
+  availability?: "available" | "reserved" | "sold" | undefined;
   finishing?: string | undefined;
   brokerId: string | null;
   /** Short public code (VA-1234); missing until release 25 is applied. */
@@ -149,6 +152,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   status: r.status as Property["status"],
   updated: r.updated_at,
   isDemo: r.is_demo,
+  availability: availabilityOf(r),
   finishing: r.finishing ?? undefined,
   featured: r.is_featured,
   brokerId: r.broker_id,

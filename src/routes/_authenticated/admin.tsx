@@ -4,7 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, X, Star, Phone } from "lucide-react";
+import { Check, X, Star, Phone, Pencil } from "lucide-react";
+import { AvailabilitySelect, DeleteButton } from "@/components/dash/ManageActions";
+import { PropertyForm } from "@/components/dash/PropertyForm";
+import { MallUnitForm } from "@/components/dash/MallUnitForm";
+import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 
@@ -277,7 +281,15 @@ function NewBroker({ plans, onDone }: { plans: PlanRow[]; onDone: () => void }) 
 function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
   const [filter, setFilter] = useState("pending");
   const [locFor, setLocFor] = useState<string | null>(null);
+  const [editing, setEditing] = useState<D["properties"][number] | null>(null);
   const brokerName = (id: string | null) => d.brokers.find((b) => b.id === id)?.name ?? "—";
+  const active = d.brokers.filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
+  if (editing) {
+    const done = () => { setEditing(null); reload(); };
+    if (editing.category === "mall") return <MallUnitForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
+    if (editing.category === "industrial") return <IndustrialForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
+    return <PropertyForm admin brokerId={editing.broker_id ?? ""} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
+  }
   const list = d.properties.filter((p) => !filter || p.review_status === filter);
   const upd = async (id: string, patch: TablesUpdate<"properties">, msg: string) => {
     const { error } = await supabase.from("properties").update(patch).eq("id", id);
@@ -314,6 +326,9 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {p.review_status !== "approved" && <button className={btnPrimary} onClick={() => upd(p.id, { review_status: "approved", review_note: null }, "تم الاعتماد")}><Check className="size-4" />اعتماد</button>}
+            <AvailabilitySelect p={p} onChanged={reload} />
+            <button className={btnOutline} onClick={() => setEditing(p)}><Pencil className="size-4" />تعديل</button>
+            <DeleteButton kind="property" id={p.id} name={p.title} onDone={reload} />
             <button className={p.is_highlight ? btnPrimary : btnOutline} title={p.highlight_requested_at ? "الشركة طالبة ترشيحه" : "عرض بسعر مميز"} onClick={async () => {
               if (p.is_highlight) { await upd(p.id, { is_highlight: false }, "اتشال من العروض المميزة"); return; }
               const reason = prompt("ليه ده عرض بسعر مميز؟ (سطر واحد بيظهر للناس)", p.highlight_reason ?? ""); if (!reason?.trim()) return;

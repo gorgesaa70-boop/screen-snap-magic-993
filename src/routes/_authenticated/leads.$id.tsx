@@ -20,6 +20,42 @@ import { ReferralProof } from "@/components/dash/ReferralProof";
 import { LeadTasks } from "@/components/dash/Tasks";
 import { ResponseStatus } from "@/components/dash/ResponseStatus";
 import { LeadChat } from "@/components/site/LeadChat";
+import { adminDelete } from "@/components/dash/ManageActions";
+import { cleanPhone } from "@/lib/phone";
+
+/** Admin corrects a customer's details or deletes the request (refused by the server when it has a deal). */
+function LeadAdminEdit({ lead, onSaved, onDeleted }: { lead: { id: string; name: string; phone: string; details: string | null; area: string | null; property_type: string | null; budget: number | null }; onSaved: () => void; onDeleted: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ name: lead.name, phone: lead.phone, details: lead.details ?? "", area: lead.area ?? "", property_type: lead.property_type ?? "", budget: lead.budget?.toString() ?? "" });
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    const phone = cleanPhone(f.phone);
+    if (f.name.trim().length < 2 || !phone) { toast.error("اكتب الاسم ورقم صحيح"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("leads").update({ name: f.name.trim().slice(0, 100), phone, details: f.details.trim().slice(0, 1000) || null, area: f.area.trim().slice(0, 60) || null, property_type: f.property_type.trim().slice(0, 40) || null, budget: f.budget ? Number(f.budget.replace(/[^\d]/g, "")) || null : null }).eq("id", lead.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("اتحفظت بيانات العميل"); setOpen(false); onSaved();
+  }
+  if (!open) return (
+    <div className="flex flex-wrap gap-2">
+      <button className={btnOutline} onClick={() => setOpen(true)}>تعديل البيانات</button>
+      <button className="inline-flex h-11 items-center rounded-xl border border-destructive/40 px-3 text-sm font-bold text-destructive hover:bg-destructive/5" onClick={async () => { if (await adminDelete("lead", lead.id, lead.name, { extra: "المهام والرسايل وسجل التواصل بتاعه هيتمسحوا معاه." })) onDeleted(); }}>حذف العميل</button>
+    </div>
+  );
+  const field = (k: keyof typeof f, label: string, ltr = false) => <Field label={label}><input dir={ltr ? "ltr" : undefined} className={inputCls} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></Field>;
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {field("name", "الاسم")}
+      {field("phone", "الموبايل", true)}
+      {field("property_type", "نوع العقار")}
+      {field("area", "المنطقة")}
+      {field("budget", "الميزانية", true)}
+      <div className="sm:col-span-2"><Field label="التفاصيل"><textarea className={`${inputCls} h-20 py-2`} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} /></Field></div>
+      <div className="flex gap-2 sm:col-span-2"><button disabled={busy} className={btnPrimary} onClick={save}>{busy ? "..." : "حفظ"}</button><button className="h-11 px-4 text-sm font-bold text-muted-foreground" onClick={() => setOpen(false)}>إلغاء</button></div>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   validateSearch: (s: Record<string, unknown>): { stage?: string } => (typeof s["stage"] === "string" ? { stage: s["stage"] } : {}),
@@ -149,6 +185,13 @@ function LeadPage() {
             <section id="messages" className={`${card} scroll-mt-24`}>
               <h2 className={h2}>الرسايل مع العميل</h2>
               <LeadChat leadId={l.id} closed={!!l.chat_closed_at} stage={l.stage} />
+            </section>
+          )}
+
+          {me?.isAdmin && (
+            <section className={card}>
+              <h2 className={h2}>بيانات العميل (للإدارة)</h2>
+              <LeadAdminEdit lead={l} onSaved={() => q.refetch()} onDeleted={() => { window.location.assign("/inquiries"); }} />
             </section>
           )}
 

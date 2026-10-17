@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
-import { Plus, BadgeCheck, Phone, RefreshCw, Timer, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Plus, BadgeCheck, Phone, RefreshCw, Timer, ExternalLink, Eye, EyeOff, Pencil } from "lucide-react";
+import { DeleteButton } from "@/components/dash/ManageActions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { Field, Stat, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
@@ -70,6 +71,7 @@ function RequestsAdmin() {
 function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_requests">; all: Provider[]; providers: Provider[]; onChanged: () => void }) {
   const name = (id: string | null) => all.find((p) => p.id === id)?.name ?? "مقدم خدمة";
   const [notes, setNotes] = useState(r.notes ?? "");
+  const [edit, setEdit] = useState<{ name: string; phone: string; details: string; area: string } | null>(null);
   async function save(patch: TablesUpdate<"service_requests">, ok = "اتحفظ") {
     const { error } = await supabase.from("service_requests").update(patch).eq("id", r.id);
     if (error) toast.error(error.message); else { toast.success(ok); onChanged(); }
@@ -111,6 +113,23 @@ function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_reque
         <input className={inputCls} placeholder="ملاحظات" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         <button className={btnOutline} onClick={() => save({ notes: notes.trim() || null })}>حفظ</button>
       </div>
+      {edit ? (
+        <div className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2">
+          <Field label="اسم طالب الخدمة"><input className={inputCls} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} maxLength={100} /></Field>
+          <Field label="الموبايل"><input dir="ltr" className={inputCls} value={edit.phone} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
+          <Field label="المنطقة"><input className={inputCls} value={edit.area} onChange={(e) => setEdit({ ...edit, area: e.target.value })} maxLength={60} /></Field>
+          <div className="sm:col-span-2"><Field label="تفاصيل الطلب"><textarea className={`${inputCls} h-20 py-2`} value={edit.details} onChange={(e) => setEdit({ ...edit, details: e.target.value })} maxLength={2000} /></Field></div>
+          <div className="flex gap-2 sm:col-span-2">
+            <button className={btnPrimary} onClick={async () => { const ph = cleanPhone(edit.phone); if (edit.name.trim().length < 2 || !ph) { toast.error("اكتب الاسم ورقم صحيح"); return; } await save({ name: edit.name.trim(), phone: ph, area: edit.area.trim() || null, details: edit.details.trim() || null }, "اتحفظت بيانات الطلب"); setEdit(null); }}>حفظ</button>
+            <button className="h-11 px-4 text-sm font-bold text-muted-foreground" onClick={() => setEdit(null)}>إلغاء</button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button className={`${btnOutline} h-10`} onClick={() => setEdit({ name: r.name, phone: r.phone, details: r.details ?? "", area: r.area ?? "" })}><Pencil className="size-4" />تعديل الطلب</button>
+          <DeleteButton kind="service_request" id={r.id} name={`طلب ${r.name}`} onDone={onChanged} />
+        </div>
+      )}
     </div>
   );
 }
@@ -164,6 +183,7 @@ function AddProvider({ onDone }: { onDone: () => void }) {
 
 function ProviderRow({ p, plans, onChanged }: { p: Provider; plans: Plan[]; onChanged: () => void }) {
   const [sub, setSub] = useState({ plan: "", months: "1" });
+  const [edit, setEdit] = useState<{ name: string; phone: string; contact_person: string; specialty: string; areas: string } | null>(null);
   const plan = plans.find((x) => x.id === p.plan_id);
   async function update(patch: TablesUpdate<"service_providers">, ok: string) {
     const { error } = await supabase.from("service_providers").update(patch).eq("id", p.id);
@@ -195,8 +215,23 @@ function ProviderRow({ p, plans, onChanged }: { p: Provider; plans: Plan[]; onCh
           {p.status === "approved" && <button className={btnOutline} onClick={() => { const note = prompt("سبب الإيقاف:") ?? ""; update({ status: "suspended", review_note: note.trim().slice(0, 500) || null }, "اتوقف"); }}>إيقاف</button>}
           <button className={btnOutline} onClick={() => update({ verified: !p.verified }, p.verified ? "اتشالت علامة التوثيق" : "اتوثّق")}>{p.verified ? "شيل التوثيق" : "توثيق"}</button>
           {p.status === "approved" && <Link to="/services/$id" params={{ id: p.id }} className={btnOutline}><ExternalLink className="size-4" />الملف العام</Link>}
+          <button className={btnOutline} onClick={() => setEdit({ name: p.name, phone: p.phone, contact_person: p.contact_person ?? "", specialty: p.specialty ?? "", areas: p.areas.join("، ") })}><Pencil className="size-4" />تعديل</button>
+          <DeleteButton kind="service_provider" id={p.id} name={p.name} extra="لو عليه طلبات أو باقة، هيتوقف بدل ما يتمسح." onDone={onChanged} />
         </div>
       </div>
+      {edit && (
+        <div className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2">
+          <Field label="الاسم"><input className={inputCls} value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} maxLength={120} /></Field>
+          <Field label="الموبايل"><input dir="ltr" className={inputCls} value={edit.phone} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></Field>
+          <Field label="المسؤول"><input className={inputCls} value={edit.contact_person} onChange={(e) => setEdit({ ...edit, contact_person: e.target.value })} maxLength={100} /></Field>
+          <Field label="التخصص"><input className={inputCls} value={edit.specialty} onChange={(e) => setEdit({ ...edit, specialty: e.target.value })} maxLength={120} /></Field>
+          <div className="sm:col-span-2"><Field label="المناطق (مفصولة بـ «،»)"><input className={inputCls} value={edit.areas} onChange={(e) => setEdit({ ...edit, areas: e.target.value })} /></Field></div>
+          <div className="flex gap-2 sm:col-span-2">
+            <button className={btnPrimary} onClick={async () => { const ph = cleanPhone(edit.phone); if (edit.name.trim().length < 2 || !ph) { toast.error("اكتب الاسم ورقم صحيح"); return; } await update({ name: edit.name.trim(), phone: ph, contact_person: edit.contact_person.trim() || null, specialty: edit.specialty.trim() || null, areas: edit.areas.split(/[،,]/).map((x) => x.trim()).filter(Boolean).slice(0, 20) }, "اتحفظت بيانات مقدم الخدمة"); setEdit(null); }}>حفظ</button>
+            <button className="h-11 px-4 text-sm font-bold text-muted-foreground" onClick={() => setEdit(null)}>إلغاء</button>
+          </div>
+        </div>
+      )}
       {p.status === "approved" && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
           <span className="text-xs font-bold text-primary">تفعيل باقة:</span>
@@ -251,7 +286,10 @@ function PlanEditor({ p, onSaved }: { p: Plan; onSaved: () => void }) {
       </div>
       <Field label="مميزات إضافية (كل سطر ميزة)"><textarea className={`${inputCls} h-32 py-2 text-sm`} value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} /></Field>
       <label className="flex items-center gap-2 text-sm font-bold text-primary"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} />ظاهرة لمقدمي الخدمة</label>
-      <button onClick={save} className={btnPrimary}>حفظ</button>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={save} className={btnPrimary}>حفظ</button>
+        {p.code !== "free" && <DeleteButton kind="service_plan" id={p.id} name={p.name} extra="لو فيه مشتركين عليها، هتتقفل للجديد بس." onDone={onSaved} />}
+      </div>
     </div>
   );
 }

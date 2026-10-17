@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Star, FileText } from "lucide-react";
+import { Star, FileText, Pencil } from "lucide-react";
+import { DeleteButton } from "@/components/dash/ManageActions";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { Tabs, btnOutline, btnPrimary } from "@/components/site/ui";
+import { Tabs, btnOutline, btnPrimary, inputCls } from "@/components/site/ui";
 import { formatDate, formatPrice } from "@/components/site/data";
 import { DEAL_KINDS, OPP_KINDS, investmentRange, oppNo } from "@/lib/investments";
 import { PlaceMap } from "@/components/site/Gallery";
@@ -56,7 +57,7 @@ function Opportunities({ isAdmin }: { isAdmin: boolean }) {
             <span className="font-bold">{o.title}</span>
             <span className="text-xs text-muted-foreground">{OPP_KINDS[o.kind]} · {o.activity} · {investmentRange(o)} · {formatDate(o.created_at)}</span>
           </button>
-          {open === o.id && <OpportunityReview id={o.id} o={o} isAdmin={isAdmin} upd={upd} />}
+          {open === o.id && <OpportunityReview id={o.id} o={o} isAdmin={isAdmin} upd={upd} reload={() => { setOpen(null); void q.refetch(); }} />}
         </div>
       ))}
     </div>
@@ -65,7 +66,8 @@ function Opportunities({ isAdmin }: { isAdmin: boolean }) {
 
 type Opp = NonNullable<Awaited<ReturnType<typeof supabase.rpc<"admin_opportunities">>>["data"]>[number];
 
-function OpportunityReview({ id, o, isAdmin, upd }: { id: string; o: Opp; isAdmin: boolean; upd: (id: string, patch: TablesUpdate<"investment_opportunities">, msg: string) => void }) {
+function OpportunityReview({ id, o, isAdmin, upd, reload }: { id: string; o: Opp; isAdmin: boolean; upd: (id: string, patch: TablesUpdate<"investment_opportunities">, msg: string) => void; reload: () => void }) {
+  const [editing, setEditing] = useState(false);
   const docs = useQuery({ queryKey: ["opp-docs", id], queryFn: async () => (await supabase.storage.from("investment-docs").list(id)).data ?? [] });
   async function openDoc(name: string) {
     const { data, error } = await supabase.storage.from("investment-docs").createSignedUrl(`${id}/${name}`, 300);
@@ -90,6 +92,7 @@ function OpportunityReview({ id, o, isAdmin, upd }: { id: string; o: Opp; isAdmi
         {docs.data?.map((d) => <button key={d.name} onClick={() => openDoc(d.name)} className="me-3 inline-flex items-center gap-1 font-bold text-primary underline"><FileText className="size-4 text-teal" />{d.name.replace(/^\d+-/, "")}</button>)}
       </div>
       {o.review_note && <p className="text-destructive">ملاحظة: {o.review_note}</p>}
+      {editing && <OppEdit o={o} onSaved={() => { setEditing(false); reload(); }} onCancel={() => setEditing(false)} />}
       {isAdmin ? (
         <div className="flex flex-wrap gap-2">
           {o.review_status !== "approved" && <button onClick={() => upd(o.id, { review_status: "approved", review_note: null }, "اتنشرت الفرصة")} className={btnPrimary}>نشر</button>}
@@ -97,8 +100,39 @@ function OpportunityReview({ id, o, isAdmin, upd }: { id: string; o: Opp; isAdmi
           {o.review_status === "approved" && <button onClick={() => upd(o.id, { review_status: "closed" }, "اتقفلت الفرصة")} className={btnOutline}>قفل (اتباعت / خلصت)</button>}
           <button onClick={() => upd(o.id, { is_featured: !o.is_featured }, o.is_featured ? "اتشال التمييز" : "اتميزت")} className={`grid size-11 place-items-center rounded-xl border ${o.is_featured ? "bg-[#f2b84b] text-primary" : "text-primary"}`} aria-label="تمييز"><Star className="size-4" /></button>
           {o.review_status === "approved" && <Link to="/investments/$id" params={{ id: o.id }} className={btnOutline}>صفحة الفرصة</Link>}
+          <button onClick={() => setEditing(!editing)} className={btnOutline}><Pencil className="size-4" />تعديل</button>
+          <DeleteButton kind="opportunity" id={o.id} name={o.title} onDone={reload} />
         </div>
       ) : <p className="text-xs text-muted-foreground">النشر والرفض من الأدمن.</p>}
+    </div>
+  );
+}
+
+/** Admin edits the public text and numbers of an opportunity (confidential details stay with the submitter). */
+function OppEdit({ o, onSaved, onCancel }: { o: Opp; onSaved: () => void; onCancel: () => void }) {
+  const [f, setF] = useState({ title: o.title, teaser: o.teaser, details: o.details ?? "", city: o.city, area: o.area, investment_min: o.investment_min?.toString() ?? "", investment_max: o.investment_max?.toString() ?? "", expected_return: o.expected_return?.toString() ?? "" });
+  const [busy, setBusy] = useState(false);
+  const n = (v: string) => (v.trim() === "" ? null : Number(v.replace(/[^\d.]/g, "")) || null);
+  async function save() {
+    if (f.title.trim().length < 3) { toast.error("اكتب العنوان"); return; }
+    setBusy(true);
+    const { error } = await supabase.from("investment_opportunities").update({ title: f.title.trim().slice(0, 150), teaser: f.teaser.trim().slice(0, 600), details: f.details.trim() || null, city: f.city.trim(), area: f.area.trim(), investment_min: n(f.investment_min), investment_max: n(f.investment_max), expected_return: n(f.expected_return) }).eq("id", o.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("اتحفظت التعديلات"); onSaved();
+  }
+  const input = (k: keyof typeof f, label: string, extra = "") => <label className="text-xs font-bold text-primary">{label}<input className={`${inputCls} mt-1 ${extra}`} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>;
+  return (
+    <div className="grid gap-2 rounded-xl border bg-secondary/40 p-3 sm:grid-cols-2">
+      {input("title", "العنوان")}
+      {input("city", "المدينة")}
+      {input("area", "المنطقة")}
+      {input("expected_return", "العائد المتوقع %")}
+      {input("investment_min", "أقل استثمار (ج.م)")}
+      {input("investment_max", "أعلى استثمار (ج.م)")}
+      <label className="text-xs font-bold text-primary sm:col-span-2">الملخص العام<textarea className={`${inputCls} mt-1 h-20 py-2`} value={f.teaser} onChange={(e) => setF({ ...f, teaser: e.target.value })} /></label>
+      <label className="text-xs font-bold text-primary sm:col-span-2">التفاصيل<textarea className={`${inputCls} mt-1 h-24 py-2`} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} /></label>
+      <div className="flex gap-2 sm:col-span-2"><button disabled={busy} onClick={save} className={btnPrimary}>{busy ? "..." : "حفظ"}</button><button onClick={onCancel} className="h-11 px-4 text-sm font-bold text-muted-foreground">إلغاء</button></div>
     </div>
   );
 }
