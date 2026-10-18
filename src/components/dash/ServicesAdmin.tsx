@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Plus, BadgeCheck, Phone, RefreshCw, Timer, ExternalLink, Eye, EyeOff, Pencil } from "lucide-react";
-import { DeleteButton } from "@/components/dash/ManageActions";
+import { DeleteAccountButton, DeleteButton } from "@/components/dash/ManageActions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { Field, Stat, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
@@ -128,6 +128,7 @@ function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_reque
         <div className="mt-3 flex flex-wrap gap-2">
           <button className={`${btnOutline} h-10`} onClick={() => setEdit({ name: r.name, phone: r.phone, details: r.details ?? "", area: r.area ?? "" })}><Pencil className="size-4" />تعديل الطلب</button>
           <DeleteButton kind="service_request" id={r.id} name={`طلب ${r.name}`} onDone={onChanged} />
+          {r.customer_id && <DeleteAccountButton userId={r.customer_id} name={r.name} onDone={onChanged} />}
         </div>
       )}
     </div>
@@ -217,6 +218,7 @@ function ProviderRow({ p, plans, onChanged }: { p: Provider; plans: Plan[]; onCh
           {p.status === "approved" && <Link to="/services/$id" params={{ id: p.id }} className={btnOutline}><ExternalLink className="size-4" />الملف العام</Link>}
           <button className={btnOutline} onClick={() => setEdit({ name: p.name, phone: p.phone, contact_person: p.contact_person ?? "", specialty: p.specialty ?? "", areas: p.areas.join("، ") })}><Pencil className="size-4" />تعديل</button>
           <DeleteButton kind="service_provider" id={p.id} name={p.name} extra="لو عليه طلبات أو باقة، هيتوقف بدل ما يتمسح." onDone={onChanged} />
+          {p.user_id && <DeleteAccountButton userId={p.user_id} name={p.name} onDone={onChanged} />}
         </div>
       </div>
       {edit && (
