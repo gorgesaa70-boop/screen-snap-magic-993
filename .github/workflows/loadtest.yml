@@ -1,0 +1,68 @@
+name: Load test (read-only)
+
+# Runs only on the loadtest/run branch; never on main.
+on:
+  push:
+    branches: [loadtest/run]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schedule:
+    runs-on: ubuntu-latest
+    outputs:
+      start_at: ${{ steps.t.outputs.start_at }}
+    steps:
+      - id: t
+        # All runners wait for the same moment so the 1000 users ramp up together
+        run: echo "start_at=$(( ($(date +%s) + 150) * 1000 ))" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: schedule
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: loadtest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node loadtest/loadtest.mjs
+        env:
+          SB_URL: ${{ secrets.LOADTEST_SB_URL }}
+          SB_KEY: ${{ secrets.LOADTEST_SB_KEY }}
+          MAX_VUS: 100
+          START_AT: ${{ needs.schedule.outputs.start_at }}
+          OUT: result-${{ matrix.runner }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result-${{ matrix.runner }}
+          path: result-${{ matrix.runner }}.json
+
+  report:
+    needs: run
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: loadtest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+      - run: node loadtest/report.mjs results >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: combined
+          path: results/combined.json
