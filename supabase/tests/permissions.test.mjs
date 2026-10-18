@@ -1716,4 +1716,25 @@ commit;`);
   }, (r) => r[0].floating_whatsapp === "201012345678");
   await expectErr("only digits with the country code", () => as(U.admin, `update public.app_settings set floating_whatsapp = '+20 101' where id = 1`));
   await as(U.admin, `update public.app_settings set floating_whatsapp = null where id = 1`);
+
+  // Release 36: WhatsApp bot + team inbox.
+  await sys(`insert into public.wa_conversations (phone, name, unread) values ('201099999999', 'عميل', 2)`);
+  await sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201099999999', 'in', 'customer', 'عاوز شقة')`);
+  await expectOk("the admin reads WhatsApp conversations and messages", () => as(U.admin, `select (select count(*) from public.wa_conversations)::int c, (select count(*) from public.wa_messages)::int m`), (r) => r[0].c === 1 && r[0].m === 1);
+  await expectOk("staff read them too", () => as(U.staff, `select count(*)::int n from public.wa_messages`), (r) => r[0].n === 1);
+  await expectOk("a broker sees no WhatsApp conversations", () => as(U.owner, `select count(*)::int n from public.wa_conversations`), (r) => r[0].n === 0);
+  await expectErr("visitors can't read WhatsApp messages", () => as(null, `select count(*)::int n from public.wa_messages`));
+  await expectErr("nobody writes messages directly, not even the admin", () => as(U.admin, `insert into public.wa_messages (phone, direction, sender, body) values ('201099999999', 'out', 'staff', 'x')`));
+  await expectErr("a broker can't mark a conversation read", () => as(U.owner, `select public.wa_mark_read('201099999999')`));
+  await expectOk("the admin marks it read", async () => {
+    await as(U.admin, `select public.wa_mark_read('201099999999')`);
+    return sys(`select unread from public.wa_conversations where phone = '201099999999'`);
+  }, (r) => r[0].unread === 0);
+  await expectErr("only the service role sends WhatsApp team notifications", () => as(U.admin, `select public.wa_notify_team('x', 'y', '201099999999')`));
+  await expectOk("the bot switches are on by default and public to read", () => as(null, `select wa_bot_enabled, wa_bot_ai from public.app_settings where id = 1`), (r) => r[0].wa_bot_enabled === true && r[0].wa_bot_ai === true);
+  await expectOk("the admin turns the AI off", async () => {
+    await as(U.admin, `update public.app_settings set wa_bot_ai = false where id = 1`);
+    return sys(`select wa_bot_ai from public.app_settings where id = 1`);
+  }, (r) => r[0].wa_bot_ai === false);
+  await as(U.admin, `update public.app_settings set wa_bot_ai = true where id = 1`);
 }
