@@ -138,20 +138,23 @@ function SearchEngines() {
   }, []);
   async function run() {
     setBusy(true);
-    const r = await notify().catch(() => null);
+    const r = await notify().catch((e: Error) => ({ ok: false as const, status: -1, count: 0, sentAt: null, error: e.message }));
     setBusy(false);
-    if (r) setSentAt(r.sentAt ?? null);
-    if (r?.ok && r.count === 0) toast.info("مفيش صفحات جديدة أو متعدلة من آخر مرة");
-    else if (r?.ok) toast.success(`اتبعت ${r.count} صفحة جديدة أو متعدلة ✓`);
-    else if (r?.status === 429) toast.error("محركات البحث شايفة إننا بعتنا كتير — جرّب بعد ساعة");
-    else toast.error(r ? `محركات البحث رفضت الطلب (كود ${r.status})` : "تعذّر الإرسال");
+    if (r.sentAt) setSentAt(r.sentAt);
+    // Say exactly what happened: IndexNow reaches Bing / Yandex only, and «accepted» is not «indexed».
+    const google = "جوجل مش بيستقبل من الزرار ده — بيقرا خريطة الموقع لوحده.";
+    if (r.ok && r.count === 0) toast.info(`مفيش صفحات جديدة أو متعدلة من آخر إرسال. ${google}`, { duration: 8000 });
+    else if (r.ok) toast.success(`Bing وYandex استلموا ${r.count} صفحة. ظهورها في نتايج البحث بياخد من أيام لأسابيع. ${google}`, { duration: 10000 });
+    else if (r.status === 429) toast.error("Bing رفض: شايف إننا بعتنا كتير. جرّب بكرة.", { duration: 10000 });
+    else if (r.status === -1) toast.error(`الإرسال وقف قبل ما يوصل لمحركات البحث: ${"error" in r ? r.error : ""}`, { duration: 10000 });
+    else toast.error(`محركات البحث رفضت الطلب (كود ${r.status}).`, { duration: 10000 });
   }
   return (
     <section className="rounded-2xl border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-bold text-primary">محركات البحث</p>
-          <p className="text-sm text-muted-foreground">بيبلّغ Bing وYandex بالصفحات الجديدة أو اللي اتعدلت من آخر مرة (أول مرة بيبعت كل الصفحات) عشان تتفهرس بسرعة. اضغطه بعد ما تنزل عقارات جديدة. جوجل بيقرا خريطة الموقع من Search Console.</p>
+          <p className="text-sm text-muted-foreground">بيبلّغ <b>Bing وYandex بس</b> بالصفحات الجديدة أو اللي اتعدلت من آخر إرسال (أول مرة بيبعت كل الصفحات). اضغطه بعد ما تنزل عقارات أو وحدات جديدة. <b>جوجل مش بيستقبل من الزرار ده</b>: بيقرا خريطة الموقع (sitemap.xml) لوحده من Search Console.</p>
           {sentAt && <p className="mt-1 text-xs font-semibold text-muted-foreground">آخر إرسال: {new Date(sentAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}</p>}
         </div>
         <button disabled={busy} onClick={run} className={btnOutline}>{busy ? "بيتبعت..." : "بلّغ محركات البحث"}</button>

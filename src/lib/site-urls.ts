@@ -24,12 +24,15 @@ async function collect(table: string, cols: string, apply: (q: any) => any, toEn
 
 /** Every public page search engines should know about. Demo listings and demo brokers are never included. */
 export async function publicPages(): Promise<SiteEntry[]> {
-  const [res, ind, brokers, malls, compounds, projects] = await Promise.all([
+  // Every entry has a date where the table has one: the search-engine button sends only pages added or changed since
+  // its last send, so an undated page (a new mall, broker…) would never be sent after the first time.
+  const [res, mallUnits, ind, brokers, malls, compounds, projects] = await Promise.all([
     collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "residential").eq("is_demo", false), (r) => ({ path: `/properties/${r.id}`, lastmod: r.updated_at })),
+    collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "mall").eq("is_demo", false), (r) => ({ path: `/properties/${r.id}`, lastmod: r.updated_at })),
     collect("properties", "id,updated_at", (q) => q.eq("review_status", "approved").eq("category", "industrial").eq("is_demo", false), (r) => ({ path: `/industrial/${r.id}`, lastmod: r.updated_at })),
-    collect("brokers", "id,slug", (q) => q.eq("is_active", true).eq("is_demo", false), (r) => ({ path: `/brokers/${encodeURIComponent(r.slug)}` })),
-    collect("malls", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}` })),
-    collect("compounds", "id", (q) => q.eq("is_active", true), (r) => ({ path: `/compounds/${r.id}` })),
+    collect("brokers", "id,slug,created_at", (q) => q.eq("is_active", true).eq("is_demo", false), (r) => ({ path: `/brokers/${encodeURIComponent(r.slug)}`, lastmod: r.created_at })),
+    collect("malls", "id,created_at", (q) => q.eq("is_active", true), (r) => ({ path: `/malls/${r.id}`, lastmod: r.created_at })),
+    collect("compounds", "id,updated_at", (q) => q.eq("is_active", true), (r) => ({ path: `/compounds/${r.id}`, lastmod: r.updated_at })),
     collect("projects", "id,updated_at", (q) => q.eq("review_status", "approved"), (r) => ({ path: `/projects/${r.id}`, lastmod: r.updated_at })),
   ]);
   // Price pages only once they have numbers (empty ones are noindex anyway).
@@ -43,7 +46,7 @@ export async function publicPages(): Promise<SiteEntry[]> {
   // Approved service providers' public profiles (the directory function returns approved ones only).
   const { data: providers } = await (await import("@/integrations/supabase/client")).supabase.rpc("service_directory", {});
   const services: SiteEntry[] = (providers ?? []).map((p) => ({ path: `/services/${p.id}` }));
-  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices, ...services];
+  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...mallUnits, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices, ...services];
 }
 
 export const absoluteUrl = (path: string) => SITE_URL + (path === "/" ? "/" : path);
