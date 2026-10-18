@@ -36,5 +36,9 @@ async function replyText(to: string, body: string) {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body } }),
   }).catch(() => null);
-  if (res && !res.ok) console.error("wa login reply failed", res.status);
+  if (res && !res.ok) {
+    // Meta's own reason (code + message, never the token) so a refused reply can be fixed from the logs.
+    const err = (await res.json().catch(() => null) as { error?: { code?: number; error_subcode?: number; message?: string; error_data?: { details?: string } } } | null)?.error;
+    console.error("wa login reply failed", res.status, err?.code, err?.error_subcode ?? "", (err?.error_data?.details ?? err?.message ?? "").slice(0, 200));
+  }
 }
