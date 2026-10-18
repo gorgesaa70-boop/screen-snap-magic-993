@@ -4,8 +4,8 @@ import hero640 from "@/assets/hero-640.webp";
 import hero960 from "@/assets/hero-960.webp";
 import hero1440 from "@/assets/hero-1440.webp";
 import hero1920 from "@/assets/hero-1920.webp";
-import { CITY_NAMES, CITIES, TYPES_FOR, FINISHING_LABEL, useLocations } from "./data";
-import { emptyFilters, extraCount, isEmpty, type Filters } from "./search";
+import { CITY_NAMES, CITIES, FINISHING_LABEL, useLocations } from "./data";
+import { emptyFilters, extraCount, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t, useLang } from "@/lib/i18n";
 
@@ -54,7 +54,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
         <div role="tablist" aria-label={t("الغرض")} className="flex w-fit gap-1 rounded-t-2xl bg-card p-1.5 pb-0 shadow-float">
           {TABS.map(([v, label]) => (
             <button key={v || "all"} type="button" role="tab" aria-selected={draft.status === v}
-              onClick={() => setDraft({ ...draft, status: v, type: TYPES_FOR[v]!.includes(draft.type) ? draft.type : "", min: "", max: "", ...(v && v !== "بيع" ? { pay: "", maxDown: "" } : {}) })}
+              onClick={() => setDraft({ ...draft, status: v, type: SEARCH_TYPES_FOR[v]!.includes(draft.type) ? draft.type : "", min: "", max: "", ...(v && v !== "بيع" ? { pay: "", maxDown: "" } : {}) })}
               className={`rounded-xl px-4 py-2 text-sm font-extrabold transition md:px-5 ${draft.status === v ? "bg-primary text-primary-foreground" : "text-primary hover:bg-secondary"}`}>
               {t(label)}
             </button>
@@ -66,7 +66,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
             <span className={lbl}>{t("نوع العقار")}</span>
             <select value={draft.type} onChange={set("type")} className={field}>
               <option value="">{t("الكل")}</option>
-              {TYPES_FOR[draft.status]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
+              {SEARCH_TYPES_FOR[draft.status]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
             </select>
           </label>
           <label>
