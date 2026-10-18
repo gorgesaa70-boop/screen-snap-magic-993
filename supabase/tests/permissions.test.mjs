@@ -609,6 +609,22 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
     return [r.properties, Number((await sys(`select count(*) c from public.properties where is_demo`))[0].c), Number((await sys(`select count(*) c from public.properties where not is_demo`))[0].c) === realBefore, (await sys(`select show_demo from public.app_settings`))[0].show_demo];
   }, (r) => r[0] === before[0] && r[1] === 0 && r[2] === true && r[3] === false);
 
+  console.log("\nNo DELETE / UPDATE without WHERE in functions (Supabase's pg_safeupdate refuses them on the live API)");
+  await expectOk("every function's DELETE / UPDATE has a WHERE", async () => {
+    const fns = await sys(`select p.proname, p.prosrc from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prolang in (select oid from pg_language where lanname in ('plpgsql', 'sql'))`);
+    const bad = [];
+    for (const f of fns) {
+      const src = f.prosrc.replace(/--[^\n]*/g, "").replace(/'(?:[^']|'')*'/g, "''");
+      for (const m of src.matchAll(/(\w+\s+)?\b(delete\s+from|update)\s+[\w."]+[^;]*/gi)) {
+        if (m[1] && /^(do|for|of|before|after|or|on)\s+$/i.test(m[1])) continue; // on conflict do update, for update, trigger events
+        if (!/\bwhere\b/i.test(m[0])) bad.push(`${f.proname}: ${m[0].replace(/\s+/g, " ").slice(0, 80)}`);
+      }
+    }
+    if (bad.length) console.log("   ", bad.join("\n    "));
+    return bad;
+  }, (bad) => bad.length === 0);
+
   console.log("\nAccount deletion (store compliance)");
   const DU = "00000000-0000-0000-0000-0000000000d1", DB = "00000000-0000-0000-0000-0000000000d2";
   await sys(`insert into auth.users (id, phone) values ('${DU}','201000000091'), ('${DB}','201000000092')`);
