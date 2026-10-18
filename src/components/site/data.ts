@@ -8,7 +8,7 @@ import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { availabilityOf } from "./availability";
 import { viaFeed } from "@/lib/feed";
 
-export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
+export const WHATSAPP_NUMBER = "201011125243"; // رقم واتساب الشركة على الـ API (البوت + صندوق المحادثات في لوحة الإدارة)
 
 export type PropertyRow = Tables<"properties">;
 export type BrokerRow = Tables<"brokers">;

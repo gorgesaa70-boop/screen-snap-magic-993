@@ -28,9 +28,11 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
           .upsert(events, { onConflict: "event_key", ignoreDuplicates: true }).select("kind, wa_message_id, status, error_code, error_title");
         if (error) { console.error("wa webhook insert failed", error.code); return new Response("error", { status: 500 }); }
 
-        // Only newly inserted status events update the matching notification copy.
+        const { handleInbound, updateInboxStatus } = await import("@/lib/whatsapp-bot.server");
+        // Only newly inserted status events update the matching notification copy (and the team inbox).
         for (const ev of inserted ?? []) {
           if (ev.kind !== "status" || !ev.wa_message_id) continue;
+          if (ev.status) await updateInboxStatus(db, ev.wa_message_id, ev.status).catch(() => {});
           if (ev.status === "failed") {
             await db.from("notifications").update({ whatsapp_status: "failed", whatsapp_error: `meta_${ev.error_code ?? "unknown"}` }).eq("whatsapp_message_id", ev.wa_message_id);
           } else if (ev.status === "delivered" || ev.status === "read") {
@@ -45,8 +47,10 @@ export const Route = createFileRoute("/api/public/whatsapp/webhook")({
           if (!fresh.has(m.wa_message_id)) continue;
           const isLogin = await confirmInboundLogin(db, m.phone, m.text).catch((e: Error) => { console.error("wa login confirm failed", e.message); return false; });
           if (isLogin) continue;
-          const { error: leadErr } = await db.rpc("whatsapp_inbound_lead", { _phone: m.phone, _name: m.name ?? "", _text: m.text ?? "", _msg_id: m.wa_message_id });
+          const { data: leadResult, error: leadErr } = await db.rpc("whatsapp_inbound_lead", { _phone: m.phone, _name: m.name ?? "", _text: m.text ?? "", _msg_id: m.wa_message_id });
           if (leadErr) console.error("wa inbound lead failed", leadErr.code);
+          // Team inbox + bot reply. Never fails the webhook (Meta would retry; the message ids keep retries from repeating).
+          await handleInbound(db, m, (leadResult as string | null) ?? null).catch((e: Error) => console.error("wa bot failed", e.message));
         }
         return new Response("ok");
       },
