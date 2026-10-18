@@ -36,8 +36,6 @@ jobs:
           node-version: 22
       - run: node loadtest/loadtest.mjs
         env:
-          SB_URL: ${{ secrets.LOADTEST_SB_URL }}
-          SB_KEY: ${{ secrets.LOADTEST_SB_KEY }}
           MAX_VUS: 100
           START_AT: ${{ needs.schedule.outputs.start_at }}
           OUT: result-${{ matrix.runner }}.json

@@ -1,10 +1,22 @@
 // Read-only load test for valueaqar.com, run on several GitHub runners at once (see .github/workflows/loadtest.yml).
-// Env: SB_URL, SB_KEY (secrets), MAX_VUS (users on this runner), START_AT (epoch ms, so all runners ramp together), OUT.
+// Env: MAX_VUS (users on this runner), START_AT (epoch ms, so all runners ramp together), OUT.
 import fs from "node:fs";
 
-const SB = process.env.SB_URL, KEY = process.env.SB_KEY;
-const MAX = Number(process.env.MAX_VUS || 100), START_AT = Number(process.env.START_AT || Date.now());
 const SITE = "https://valueaqar.com";
+// The database URL and publishable key are the public ones every visitor's browser loads, so read them from the
+// live site instead of storing them anywhere.
+async function discover() {
+  const html = await (await fetch(SITE + "/")).text();
+  const assets = [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.js)"/g)].map((m) => m[1]))];
+  for (const a of assets) {
+    const js = await (await fetch(SITE + a)).text();
+    const url = js.match(/https:\/\/[a-z0-9]+\.supabase\.co/)?.[0], key = js.match(/sb_publishable_[\w-]+|eyJ[\w-]+\.[\w-]+\.[\w-]+/)?.[0];
+    if (url && key) return [url, key];
+  }
+  throw new Error("could not find the public database settings on the site");
+}
+const [SB, KEY] = process.env.SB_URL && process.env.SB_KEY ? [process.env.SB_URL, process.env.SB_KEY] : await discover();
+const MAX = Number(process.env.MAX_VUS || 100), START_AT = Number(process.env.START_AT || Date.now());
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 const UA = "Mozilla/5.0 (Linux; Android 14) ValueAqarLoadTest";
 
