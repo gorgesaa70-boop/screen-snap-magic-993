@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
+import { viaFeed } from "@/lib/feed";
 import type { Tables } from "@/integrations/supabase/types";
 import { PUBLIC_BROKER_COLS, withContacts, type PublicBroker } from "@/components/site/data";
 
@@ -21,6 +22,9 @@ export const projectCover = (p: Pick<ProjectRow, "images">) => p.images[0] || "/
 
 /** Public projects, featured first. */
 export async function fetchProjects() {
+  return viaFeed("projects", queryProjects);
+}
+async function queryProjects() {
   const { data, error } = await dbx.from("projects").select("*, project_units(status)")
     .eq("review_status", "approved")
     .order("is_featured", { ascending: false }).order("created_at", { ascending: false });

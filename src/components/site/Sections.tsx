@@ -12,10 +12,9 @@ import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
-import { fetchMalls } from "./malls";
+import { fetchMallSummary } from "./malls";
 import { fetchSearchEverything } from "./search-everything";
-import { AvailabilityBadge, isAvailable } from "./availability";
-import { fetchAll } from "@/lib/fetch-all";
+import { AvailabilityBadge } from "./availability";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
 import { t as tr, useLang } from "@/lib/i18n";
@@ -257,20 +256,7 @@ export function InvestmentsStrip() {
 /** Malls with units on sale or rent: count and starting price per mall. Hidden until at least one mall has units. */
 export function MallsStrip() {
   useLang();
-  const { data = [] } = useQuery({
-    queryKey: ["home-malls"],
-    queryFn: async () => {
-      const [malls, units] = await Promise.all([
-        fetchMalls(),
-        // "*" keeps working before the availability column (release 30); only available units count.
-        fetchAll((a, b) => supabase.from("properties").select("*").eq("category", "mall").eq("review_status", "approved").order("id").range(a, b)).then((rows) => rows.filter(isAvailable)),
-      ]);
-      return malls
-        .map((m) => { const mine = units.filter((u) => u.mall_id === m.id); return { m, n: mine.length, from: mine.length ? Math.min(...mine.map((u) => Number(u.price))) : 0 }; })
-        .filter((x) => x.n > 0)
-        .sort((a, b) => b.n - a.n);
-    },
-  });
+  const { data = [] } = useQuery({ queryKey: ["home-malls"], queryFn: fetchMallSummary });
   if (data.length === 0) return null;
   return (
     <section className="mx-auto max-w-7xl px-4 pt-12 md:px-6 md:pt-20">

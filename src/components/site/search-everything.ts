@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
+import { viaFeed } from "@/lib/feed";
 import { toProperty, type Property } from "./data";
 import { mallImages } from "./malls";
 import { compoundCover } from "./compounds";
@@ -11,6 +12,9 @@ import { projectCover } from "./projects";
  * stays residential only (fetchPublicProperties) so the mall units don't flood it.
  */
 export async function fetchSearchEverything(): Promise<Property[]> {
+  return viaFeed("search", querySearchEverything);
+}
+async function querySearchEverything(): Promise<Property[]> {
   const [props, malls, compounds, projects] = await Promise.all([
     supabase.from("properties").select("*").eq("review_status", "approved").in("category", ["residential", "mall", "industrial"])
       .order("is_featured", { ascending: false }).order("created_at", { ascending: false }),
