@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteAccountAsAdmin } from "@/lib/admin.functions";
 import { inputCls } from "@/components/site/ui";
 import { AVAILABILITY, availabilityOf, type Availability } from "@/components/site/availability";
 
@@ -37,6 +39,31 @@ export function DeleteButton({ kind, id, name, extra, onDone, label = "حذف" }
     <button type="button" disabled={busy} onClick={async () => { setBusy(true); const r = await adminDelete(kind, id, name, { extra }); setBusy(false); if (r) onDone(); }}
       className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-destructive/40 px-3 text-sm font-bold text-destructive hover:bg-destructive/5 disabled:opacity-50">
       <Trash2 className="size-4" />{busy ? "..." : label}
+    </button>
+  );
+}
+
+/**
+ * «حذف الحساب بالكامل»: removes the person's login (same as الحسابات ← كل الحسابات), so they can't sign in and their
+ * phone / e-mail are free to sign up again. Their records stay without the link (a provider is suspended).
+ */
+export function DeleteAccountButton({ userId, name, onDone }: { userId: string; name: string; onDone: () => void }) {
+  const remove = useServerFn(deleteAccountAsAdmin);
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    if (!confirm(`متأكد إنك عايز تمسح حساب «${name}» بالكامل؟
+مش هيقدر يدخل الموقع تاني، ورقمه وإيميله هيبقوا متاحين لتسجيل جديد.`)) return;
+    if (!confirm("تأكيد أخير: الحذف نهائي ومش هيرجع.")) return;
+    setBusy(true);
+    const r = await remove({ data: { userId } }).catch((e: Error) => ({ ok: false as const, error: e.message }));
+    setBusy(false);
+    if (!r.ok) { toast.error(r.error); return; }
+    toast.success("الحساب اتمسح بالكامل"); onDone();
+  }
+  return (
+    <button type="button" disabled={busy} onClick={run}
+      className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-destructive/40 px-3 text-sm font-bold text-destructive hover:bg-destructive/5 disabled:opacity-50">
+      <UserX className="size-4" />{busy ? "..." : "حذف الحساب بالكامل"}
     </button>
   );
 }
