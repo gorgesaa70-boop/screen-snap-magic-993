@@ -6,6 +6,7 @@ import { SITE_URL } from "@/lib/seo";
 import { THUMB_SIDE, UploadError, extensionFor, prepareImage, uploadErrorMessage, withThumb } from "@/lib/images";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { availabilityOf } from "./availability";
+import { viaFeed } from "@/lib/feed";
 
 export const WHATSAPP_NUMBER = "201031958820"; // رقم واتساب بيزنس الخاص بالشركة
 
@@ -103,11 +104,19 @@ export let ALL_AREAS = CITY_NAMES.flatMap(areasOf);
 let locationsVersion = 0;
 let locationsLoading: Promise<void> | null = null;
 const locationListeners = new Set<() => void>();
+export async function fetchLocationRows() {
+  return viaFeed("locations", async () => {
+    const { data, error } = await supabase.from("locations").select("city, area, city_en, area_en, sort").eq("status", "approved").order("sort").order("city").order("area");
+    if (error) throw error;
+    return data;
+  });
+}
+
 /** Loads the approved places once per page load. */
 export function loadLocations() {
   locationsLoading ??= (async () => {
-    const { data, error } = await supabase.from("locations").select("city, area, city_en, area_en, sort").eq("status", "approved").order("sort").order("city").order("area");
-    if (error || !data?.length) return;
+    const data = await fetchLocationRows().catch(() => null);
+    if (!data?.length) return;
     const next: Record<string, string[]> = {};
     const en: Record<string, string> = {};
     for (const l of data) {
@@ -192,6 +201,9 @@ export async function withContacts<T extends { id: string }>(rows: T[]): Promise
 }
 
 export async function fetchPublicProperties(brokerId?: string) {
+  return brokerId ? queryPublicProperties(brokerId) : viaFeed("properties", () => queryPublicProperties());
+}
+async function queryPublicProperties(brokerId?: string) {
   let q = supabase.from("properties").select("*").eq("review_status", "approved").eq("category", "residential");
   if (brokerId) q = q.eq("broker_id", brokerId);
   const { data, error } = await q.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
@@ -200,6 +212,9 @@ export async function fetchPublicProperties(brokerId?: string) {
 }
 
 export async function fetchPublicBrokers() {
+  return viaFeed("brokers", queryPublicBrokers);
+}
+async function queryPublicBrokers() {
   const { data, error } = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("created_at");
   if (error) throw error;
   return (await withContacts(data ?? [])) as PublicBroker[];

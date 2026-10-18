@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { PUBLIC_BROKER_COLS } from "@/components/site/data";
 import { matchesArea } from "@/components/site/AreaFilter";
+import { viaFeed } from "@/lib/feed";
 
 export type CompoundRow = Tables<"compounds">;
 export type CompoundUnitRow = Tables<"compound_units">;
@@ -41,6 +42,9 @@ export type CompoundCard = CompoundRow & {
 
 /** Public list with a unit summary per compound (for cards and filters). */
 export async function fetchCompoundCards(): Promise<CompoundCard[]> {
+  return viaFeed("compounds", queryCompoundCards);
+}
+async function queryCompoundCards(): Promise<CompoundCard[]> {
   const { data, error } = await supabase.from("compounds")
     .select("*, compound_units(unit_type,size,price,status,rooms), developer:brokers!compounds_developer_id_fkey(id,name,slug)")
     .eq("is_active", true).eq("review_status", "approved")

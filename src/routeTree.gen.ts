@@ -60,6 +60,7 @@ import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMyCompoundsIdRouteImport } from './routes/_authenticated/my-compounds.$id'
 import { Route as PricesAreasAreaRouteImport } from './routes/prices.areas.$area'
 import { Route as PricesMallsIdRouteImport } from './routes/prices.malls.$id'
+import { Route as ApiPublicFeedNameRouteImport } from './routes/api/public/feed/$name'
 import { Route as ApiPublicMetaLeadsRouteImport } from './routes/api/public/meta/leads'
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push/dispatch'
@@ -324,6 +325,11 @@ const PricesMallsIdRoute = PricesMallsIdRouteImport.update({
   path: '/prices/malls/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFeedNameRoute = ApiPublicFeedNameRouteImport.update({
+  id: '/api/public/feed/$name',
+  path: '/api/public/feed/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMetaLeadsRoute = ApiPublicMetaLeadsRouteImport.update({
   id: '/api/public/meta/leads',
   path: '/api/public/meta/leads',
@@ -403,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
+  '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
@@ -460,6 +467,7 @@ export interface FileRoutesByTo {
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
+  '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
@@ -519,6 +527,7 @@ export interface FileRoutesById {
   '/_authenticated/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
+  '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
   '/api/public/meta/leads': typeof ApiPublicMetaLeadsRoute
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
@@ -578,6 +587,7 @@ export interface FileRouteTypes {
     | '/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
+    | '/api/public/feed/$name'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
@@ -635,6 +645,7 @@ export interface FileRouteTypes {
     | '/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
+    | '/api/public/feed/$name'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
@@ -693,6 +704,7 @@ export interface FileRouteTypes {
     | '/_authenticated/my-compounds/$id'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
+    | '/api/public/feed/$name'
     | '/api/public/meta/leads'
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
@@ -733,6 +745,7 @@ export interface RootRouteChildren {
   ServicesIndexRoute: typeof ServicesIndexRoute
   PricesAreasAreaRoute: typeof PricesAreasAreaRoute
   PricesMallsIdRoute: typeof PricesMallsIdRoute
+  ApiPublicFeedNameRoute: typeof ApiPublicFeedNameRoute
   ApiPublicMetaLeadsRoute: typeof ApiPublicMetaLeadsRoute
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
@@ -1099,6 +1112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricesMallsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/feed/$name': {
+      id: '/api/public/feed/$name'
+      path: '/api/public/feed/$name'
+      fullPath: '/api/public/feed/$name'
+      preLoaderRoute: typeof ApiPublicFeedNameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/meta/leads': {
       id: '/api/public/meta/leads'
       path: '/api/public/meta/leads'
@@ -1217,6 +1237,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesIndexRoute: ServicesIndexRoute,
   PricesAreasAreaRoute: PricesAreasAreaRoute,
   PricesMallsIdRoute: PricesMallsIdRoute,
+  ApiPublicFeedNameRoute: ApiPublicFeedNameRoute,
   ApiPublicMetaLeadsRoute: ApiPublicMetaLeadsRoute,
   ApiPublicNotificationsWhatsappDispatchRoute:
     ApiPublicNotificationsWhatsappDispatchRoute,

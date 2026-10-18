@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatPrice } from "@/components/site/data";
+import { viaFeed } from "@/lib/feed";
 
 /** Investment opportunities (item 40): big deals with a public teaser; details are shared after an approved request. */
 export type OpportunityRow = Tables<"investment_opportunities">;
@@ -35,6 +36,9 @@ export function investmentRange(o: Pick<OpportunityRow, "investment_min" | "inve
 }
 
 export async function fetchOpportunities() {
+  return viaFeed("opportunities", queryOpportunities);
+}
+async function queryOpportunities() {
   const { data, error } = await supabase.from("investment_opportunities").select(PUBLIC_OPP_COLS)
     .eq("review_status", "approved").order("is_featured", { ascending: false }).order("created_at", { ascending: false });
   if (error) throw error;
