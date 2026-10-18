@@ -52,6 +52,12 @@ export type Property = {
   code?: string | undefined;
   /** Sale listings paid in installments (or cash or installments). */
   installments?: { method: "installment" | "both"; down?: number | undefined; years?: number | undefined; monthly?: number | undefined; note?: string | undefined } | undefined;
+  /** Search results only: where the result lives (missing = a regular listing). Compound / project price-list
+   * units open their compound / project page (parentId). */
+  kind?: "mall" | "industrial" | "compound" | "project" | undefined;
+  /** The mall / compound / project name shown on the card. */
+  place?: string | undefined;
+  parentId?: string | undefined;
 };
 
 export const TYPES = ["شقة", "دوبلكس", "فيلا", "بيت", "عمارة", "استوديو", "شاليه", "أرض", "محل", "مكتب", "عيادة"];

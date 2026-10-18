@@ -13,6 +13,7 @@ import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
 import { fetchMalls } from "./malls";
+import { fetchSearchEverything } from "./search-everything";
 import { AvailabilityBadge, isAvailable } from "./availability";
 import { fetchAll } from "@/lib/fetch-all";
 import { Avatar, inputCls } from "./ui";
@@ -73,6 +74,15 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
   );
 }
 
+/** «تفاصيل العقار»: industrial listings have their own page; compound / project price-list units open their compound / project. */
+function DetailsLink({ p, className }: { p: Property; className: string }) {
+  const label = tr("تفاصيل العقار");
+  if (p.kind === "industrial") return <Link to="/industrial/$id" params={{ id: p.id }} className={className}>{label}</Link>;
+  if (p.kind === "compound" && p.parentId) return <Link to="/compounds/$id" params={{ id: p.parentId }} className={className}>{label}</Link>;
+  if (p.kind === "project" && p.parentId) return <Link to="/projects/$id" params={{ id: p.parentId }} className={className}>{label}</Link>;
+  return <Link to="/properties/$id" params={{ id: p.id }} className={className}>{label}</Link>;
+}
+
 export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string | null }) {
   useLang();
   return (
@@ -88,13 +98,14 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         <AvailabilityBadge p={p} className="absolute top-12 right-3" />
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
-        <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />
+        {!p.parentId && <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />}
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">
           {p.status === "مصيف" && <span className="text-sm font-semibold text-muted-foreground">{tr("من")} </span>}{formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.priceUnit ? tr(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span>
         </p>
         <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{p.title}</h3>
+        {p.place && <p className="mt-1 line-clamp-1 flex items-center gap-1 text-xs font-bold text-teal">{p.kind === "mall" ? <Landmark className="size-3.5 shrink-0" /> : <House className="size-3.5 shrink-0" />}{tr(p.kind === "mall" ? "داخل مول" : p.kind === "project" ? "داخل مشروع" : "داخل كمبوند")} {p.place}</p>}
         {p.highlight && <p className="mt-1 line-clamp-1 text-xs font-bold text-teal">★ {p.highlight.reason}{p.highlight.yield ? ` · ${tr("عائد تقريبي")} ${formatPrice(p.highlight.yield)}%` : ""}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
           <span className="rounded-lg bg-secondary px-2.5 py-1.5 text-primary">{tr(p.type)}</span>
@@ -112,7 +123,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
           <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />{tr("تحديث:")} {formatDate(p.updated)}</span>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
-          <Link to="/properties/$id" params={{ id: p.id }} className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]">{tr("تفاصيل العقار")}</Link>
+          <DetailsLink p={p} className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]" />
           <a href={waLink(whatsapp, listingMessage(p))} target="_blank" rel="noreferrer"
             className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
             <MessageCircle className="size-4 shrink-0" /> {tr("واتساب")}
@@ -125,9 +136,12 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
 
 export function FeaturedProperties({ filters, onClear }: { filters: Filters; onClear: () => void }) {
   useLang();
-  const { data: properties = [], isLoading, isError } = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
-  const results = applyFilters(properties, filters);
   const filtered = !isEmpty(filters);
+  const base = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
+  // A search looks through everything (mall units, industrial, compound / project price lists); the plain list stays residential.
+  const everything = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything, enabled: filtered });
+  const { data: properties = [], isLoading, isError } = filtered ? everything : base;
+  const results = applyFilters(properties, filters);
   // Show a few first (the home page was very long on phones); more on request. Reset when the search changes.
   const step = filtered ? 12 : 6;
   const [shown, setShown] = useState(step);
@@ -135,7 +149,9 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   const searchKey = JSON.stringify(filters);
   const [lastKey, setLastKey] = useState(searchKey);
   if (searchKey !== lastKey) { setLastKey(searchKey); setShown(step); }
-  const located = results.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng)).length;
+  // Price-list units have no page of their own, so they stay off the map (their compound / project is on it).
+  const mappable = results.filter((p) => !p.parentId && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  const located = mappable.length;
   return (
     <section id="properties" className="mx-auto max-w-7xl scroll-mt-28 px-4 pt-12 md:px-6 md:pt-24">
       <SectionHead eyebrow={filtered ? tr("نتائج البحث") : tr("مختارات فاليو عقار")} title={filtered ? tr("العقارات المطابقة") : tr("العقارات المميزة")} />
@@ -183,7 +199,7 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
             <button type="button" onClick={() => setShowMap(!showMap)} aria-expanded={showMap} className="inline-flex h-10 items-center gap-1.5 rounded-xl border bg-card px-4 text-sm font-bold text-primary transition hover:border-teal">
               <MapPin className="size-4 text-teal" />{showMap ? tr("إخفاء الخريطة") : `${tr("اعرض على الخريطة")} (${formatPrice(located)})`}
             </button>
-            {showMap && <div className="mt-3"><PropertiesMap properties={results} /></div>}
+            {showMap && <div className="mt-3"><PropertiesMap properties={mappable} /></div>}
           </div>
         )}
         <div className="grid gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
