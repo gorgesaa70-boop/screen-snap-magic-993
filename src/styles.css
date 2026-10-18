@@ -83,7 +83,8 @@
   --teal-soft: oklch(0.95 0.03 172);
   --accent: oklch(0.77 0.085 172);
   --accent-foreground: oklch(0.22 0.06 263);
-  --whatsapp: oklch(0.56 0.15 150);
+  /* White text on it needs 4.5:1 contrast (PageSpeed accessibility): 0.56 gave 4.2, 0.52 gives 5.0. */
+  --whatsapp: oklch(0.52 0.14 150);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.01 255);
   --input: oklch(0.92 0.01 255);
