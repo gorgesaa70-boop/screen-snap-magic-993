@@ -48,7 +48,8 @@ jobs:
           cp resources/icon.png assets/icon-only.png
           cp resources/icon-foreground.png assets/icon-foreground.png
           cp resources/icon-background.png assets/icon-background.png
-          # Navy splash with the mark in the middle
+          # Navy splash with the mark in the middle (ImageMagick is no longer preinstalled on runners)
+          sudo apt-get install -y -qq imagemagick >/dev/null
           convert -size 2732x2732 xc:"#02162E" \( resources/splash-icon.png -resize 900x900 \) -gravity center -composite assets/splash.png
           cp assets/splash.png assets/splash-dark.png
           bunx @capacitor/assets@3 generate --android --iconBackgroundColor "#02162E" --iconBackgroundColorDark "#02162E" --splashBackgroundColor "#02162E" --splashBackgroundColorDark "#02162E"
