@@ -95,7 +95,8 @@ function AdminPage() {
     queryKey: ["admin-locations-pending"], enabled: can(perms, "locations"),
     queryFn: async () => (await supabase.from("locations").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0,
   }).data ?? 0;
-  const q = useAdminData(allowed, !!me?.isAdmin);
+  // Full account rows (status, contacts) for the admin and employees holding «الحسابات والشركات».
+  const q = useAdminData(allowed, !!me?.isAdmin || can(perms, "brokers"));
   if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
   if (!allowed) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">{me?.isStaff ? "لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك." : "ليست لديك صلاحية الوصول."} <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
   const visible = (id: Tab) => (id === "staff" ? !!me?.isAdmin : can(perms, id));
@@ -154,7 +155,7 @@ function AdminPage() {
           {tab === "wa" && <WhatsappSettingsAdmin />}
           {tab === "wa_inbox" && <WhatsappInbox />}
           {tab === "assistant" && <AssistantSettingsAdmin />}
-          {tab === "investments" && <InvestmentsAdmin isAdmin={!!me?.isAdmin} />}
+          {tab === "investments" && <InvestmentsAdmin isAdmin={can(perms, "investments", "edit")} />}
           {tab === "audit" && <AuditLog />}
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}

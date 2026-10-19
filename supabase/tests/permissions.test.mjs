@@ -1838,4 +1838,22 @@ commit;`);
     return as(S2, `update public.staff_permissions set perms = '{"leads":"edit"}' where user_id = '${S2}' returning user_id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; });
   });
   await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+
+  // Team alerts follow the permissions; new-customer routing doesn't change.
+  const teamAlerts = (uid, title) => sys(`select count(*)::int n from public.notifications where user_id = '${uid}' and title = '${title}'`).then((r) => r[0].n);
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 1', 'x', '${other}', '/leads/${other}')`);
+  await expectOk("an employee without customers doesn't get customer alerts; the admin does", async () => [await teamAlerts(S2, "تنبيه اختبار 1"), await teamAlerts(U.admin, "تنبيه اختبار 1")], (r) => r[0] === 0 && r[1] === 1);
+  await grant({ leads: "view", leads_scope: "all" });
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 2', 'x', '${other}', '/leads/${other}')`);
+  await expectOk("with «طلبات العملاء: الكل» they do", () => teamAlerts(S2, "تنبيه اختبار 2"), (n) => n === 1);
+  await grant({ leads: "view", leads_scope: "mine" });
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 3', 'x', '${other}', '/leads/${other}')`);
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 4', 'x', '${mine}', '/leads/${mine}')`);
+  await expectOk("«بتوعه بس»: only alerts about their own customers", async () => [await teamAlerts(S2, "تنبيه اختبار 3"), await teamAlerts(S2, "تنبيه اختبار 4")], (r) => r[0] === 0 && r[1] === 1);
+  await expectOk("a customer assigned to the employee still notifies them (routing unchanged)", async () => {
+    await as(U.admin, `update public.leads set assigned_staff_id = null where id = '${other}'`);
+    await as(U.admin, `update public.leads set assigned_staff_id = '${S2}' where id = '${other}'`);
+    return sys(`select count(*)::int n from public.notifications where user_id = '${S2}' and related_id = '${other}' and type = 'new_request'`);
+  }, (r) => r[0].n >= 1);
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
 }
