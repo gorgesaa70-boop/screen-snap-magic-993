@@ -9,6 +9,22 @@ async function assertAdmin(context: Ctx) {
   if (error || !data) throw new Error("غير مصرح لك بهذا الإجراء");
 }
 
+/** The admin, or an employee granted «يعدّل» on that section (release 38; admin only before it). Returns whether it's the admin. */
+async function assertCan(context: Ctx, section: string): Promise<boolean> {
+  const admin = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (admin.data) return true;
+  const can = await context.supabase.rpc("staff_can", { _section: section, _need: "edit" });
+  if (can.error || !can.data) throw new Error("غير مصرح لك بهذا الإجراء");
+  return false;
+}
+
+/** Employees never block or delete the admin or other Value Aqar staff. */
+async function assertNotTeam(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
+  if ((data ?? []).some((r) => r.role === "admin" || r.role === "staff")) throw new Error("الحساب ده تبع فريق فاليو عقار، والأدمن بس يقدر يغيّره");
+}
+
 const createSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(255),
@@ -25,7 +41,7 @@ export const createBrokerAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "brokers");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let userId: string;
@@ -65,7 +81,7 @@ export const setBrokerActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ brokerId: z.string().uuid(), active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "brokers");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: b, error } = await supabaseAdmin.from("brokers").update({ is_active: data.active, suspended_at: data.active ? null : new Date().toISOString() }).eq("id", data.brokerId).select("user_id").single();
     if (error) return { ok: false as const, error: error.message };
@@ -82,8 +98,9 @@ export const setAccountBlocked = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ userId: z.string().uuid(), blocked: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = context as Ctx;
-    await assertAdmin(ctx);
+    const callerIsAdmin = await assertCan(ctx, "accounts");
     if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش توقف حسابك" };
+    if (!callerIsAdmin) await assertNotTeam(data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: data.userId, _role: "admin" });
     if (isAdmin) return { ok: false as const, error: "مينفعش توقف حساب أدمن" };
@@ -102,8 +119,9 @@ export const deleteAccountAsAdmin = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = context as Ctx;
-    await assertAdmin(ctx);
+    const isAdmin = await assertCan(ctx, "accounts");
     if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش تمسح حسابك من هنا" };
+    if (!isAdmin) await assertNotTeam(data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: r, error } = await supabaseAdmin.rpc("prepare_account_deletion", { _uid: data.userId, _by: ctx.userId });
     if (error) return { ok: false as const, error: error.message };
@@ -125,7 +143,18 @@ export const listStaff = createServerFn({ method: "GET" })
     if (error) return { ok: false as const, error: error.message };
     const staff = await Promise.all((roles ?? []).map(async ({ user_id }) => {
       const { data } = await supabaseAdmin.auth.admin.getUserById(user_id);
-      return { userId: user_id, phone: data.user?.phone ?? "", name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? "" };
+      const phone = data.user?.phone ?? "";
+      // Also a broker / company (own account, or a team member of one)? The permissions screen warns about it.
+      const [own, byPhone] = await Promise.all([
+        supabaseAdmin.from("brokers").select("name").eq("user_id", user_id).limit(1),
+        phone ? supabaseAdmin.rpc("brokers_by_phone", { _phone: phone }) : Promise.resolve({ data: [] as { id: string }[] }),
+      ]);
+      let brokerName: string | null = own.data?.[0]?.name ?? null;
+      if (!brokerName && (byPhone.data ?? []).length) {
+        const id = (byPhone.data as { id: string }[])[0]!.id;
+        brokerName = (await supabaseAdmin.from("brokers").select("name").eq("id", id).maybeSingle()).data?.name ?? null;
+      }
+      return { userId: user_id, phone, name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? "", brokerName };
     }));
     return { ok: true as const, staff };
   });
@@ -142,9 +171,11 @@ export const addStaff = createServerFn({ method: "POST" })
     const { data: ids } = await supabaseAdmin.rpc("auth_user_ids_by_phone", { _phone: phone });
     const list = (ids ?? []) as string[];
     if (list.length > 1) return { ok: false as const, error: "الرقم ده مربوط بأكتر من حساب — راجعه الأول" };
+    // A broker / company on this number becomes an employee on the SAME account (both roles; the admin limits what
+    // they see in «الصلاحيات», e.g. only their own customers).
     const { data: brokers } = await supabaseAdmin.rpc("brokers_by_phone", { _phone: phone });
-    if ((brokers ?? []).length) return { ok: false as const, error: "الرقم ده مسجّل كحساب وسيط أو شركة" };
-    let userId = list[0];
+    const owner = (brokers ?? []).find((b: { user_id: string | null }) => b.user_id)?.user_id ?? null;
+    let userId = owner ?? list[0];
     if (!userId) {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         phone, phone_confirm: true, email: `wa-${phone}@phone.valueaqar.invalid`, email_confirm: true, user_metadata: { full_name: data.name },
@@ -167,6 +198,9 @@ export const removeStaff = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", "staff");
     if (error) return { ok: false as const, error: error.message };
+    // Their permissions go too, so re-adding the same person starts from nothing (release 38; harmless before it).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin as any).from("staff_permissions").delete().eq("user_id", data.userId);
     return { ok: true as const };
   });
 
@@ -201,7 +235,7 @@ const BACKUP_TABLES = [
 export const exportBackup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "health");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic table loop
     const db = supabaseAdmin as any;
@@ -227,7 +261,7 @@ export const exportBackup = createServerFn({ method: "POST" })
 export const notifySearchEngines = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "health");
     const { INDEXNOW_KEY, absoluteUrl, publicPages } = await import("@/lib/site-urls");
     const { SITE_URL } = await import("@/lib/seo");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

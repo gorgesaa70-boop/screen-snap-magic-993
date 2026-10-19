@@ -16,6 +16,8 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
     ('${U.admin}','201000000010'), ('${U.owner}','201000000001'), ('${U.sales}','201000000002'), ('${U.manager}','201000000003'),
     ('${U.staff}','201000000004'), ('${U.outsider}','201000000005'), ('${U.dev}','201000000006'), ('${U.applicant}','201000000007')`);
   await sys(`insert into public.user_roles (user_id, role) values ('${U.admin}','admin'), ('${U.staff}','staff')`);
+  // Release 38: employees only get what the admin grants. The older checks below assume a full-access employee.
+  await sys(`insert into public.staff_permissions (user_id, perms) values ('${U.staff}', '{"leads":"edit","leads_scope":"all","commissions":"view","deals":"view","wa_inbox":"edit","brokers":"view"}')`);
   await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values
     ('${CO}','${U.owner}','co','شركة تسويق','201000000001','company', true),
     ('${DEV}','${U.dev}','dev','شركة تطوير','201000000006','developer', true)`);
@@ -1754,4 +1756,118 @@ commit;`);
     return sys(`select instructions from public.assistant_settings where id = 1`);
   }, (r) => r[0].instructions === "مواعيدنا من 10 لـ 10");
   await expectErr("only one settings row", () => as(U.admin, `insert into public.assistant_settings (id) values (2)`));
+
+  // Release 38: per-employee permissions.
+  const S2 = "00000000-0000-0000-0000-0000000005a8";
+  await sys(`insert into auth.users (id, phone) values ('${S2}','201000000099')`);
+  await sys(`insert into public.user_roles (user_id, role) values ('${S2}','staff')`);
+  const mine = (await sys(`insert into public.leads (name, phone) values ('عميل الموظف','01033334444') returning id`))[0].id;
+  await as(U.admin, `update public.leads set assigned_staff_id = '${S2}' where id = '${mine}'`);
+  const other = (await sys(`insert into public.leads (name, phone) values ('عميل تاني','01055556666') returning id`))[0].id;
+  const seen = (uid) => as(uid, `select id from public.leads where id in ('${mine}','${other}')`);
+  await expectOk("a new employee sees no customers at all", () => seen(S2), (r) => r.length === 0);
+  await expectOk("…and no permissions", () => as(S2, `select public.my_permissions() p`), (r) => JSON.stringify(r[0].p) === "{}");
+  await expectErr("an employee can't grant themselves permissions", () => as(S2, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '{"leads":"edit"}')`));
+  await expectOk("the admin grants «customers: view, only mine»", async () => {
+    await as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '{"leads":"view","leads_scope":"mine"}')`);
+    return seen(S2);
+  }, (r) => r.length === 1 && r[0].id === mine);
+  await expectOk("view only: the employee can't change their customer", async () => {
+    await as(S2, `update public.leads set notes = 'x' where id = '${mine}'`);
+    return sys(`select notes from public.leads where id = '${mine}'`);
+  }, (r) => r[0].notes !== "x");
+  await expectOk("«all customers» shows the rest too", async () => {
+    await as(U.admin, `update public.staff_permissions set perms = '{"leads":"edit","leads_scope":"all"}' where user_id = '${S2}'`);
+    return seen(S2);
+  }, (r) => r.length === 2);
+  await expectOk("edit: the employee updates a customer", async () => {
+    await as(S2, `update public.leads set notes = 'اتصلت بيه' where id = '${other}'`);
+    return sys(`select notes from public.leads where id = '${other}'`);
+  }, (r) => r[0].notes === "اتصلت بيه");
+  await expectOk("no money permission: commissions and agreements are hidden", () => as(S2, `select (select count(*) from public.commissions)::int c, (select count(*) from public.company_agreements)::int a`), (r) => r[0].c === 0 && r[0].a === 0);
+  await expectOk("no deals permission: deals are hidden even on visible customers", () => as(S2, `select count(*)::int n from public.deals`), (r) => r[0].n === 0);
+  await expectErr("an employee never opens a deal", () => as(S2, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة')`));
+  await expectErr("…even with the deals permission", async () => {
+    await as(U.admin, `update public.staff_permissions set perms = perms || '{"deals":"edit"}' where user_id = '${S2}'`);
+    return as(S2, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة')`);
+  });
+  await expectOk("staff_can follows the grant (view / edit)", () => as(S2, `select public.staff_can('leads','edit') le, public.staff_can('review','view') rv`), (r) => r[0].le === true && r[0].rv === false);
+  await expectOk("the admin can do everything", () => as(U.admin, `select public.staff_can('anything','edit') a, public.my_permissions() p`), (r) => r[0].a === true && r[0].p["*"] === "edit");
+  await expectOk("no WhatsApp permission: the inbox is hidden", () => as(S2, `select count(*)::int n from public.wa_conversations`), (r) => r[0].n === 0);
+  await expectErr("…and it can't be marked read", () => as(S2, `select public.wa_mark_read('201099999999')`));
+  await expectOk("removing the row takes everything away", async () => {
+    await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+    return seen(S2);
+  }, (r) => r.length === 0);
+
+  // Release 38, phase 2: a granted section works in the database.
+  const grant = (perms) => as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '${JSON.stringify(perms)}') on conflict (user_id) do update set perms = excluded.perms`);
+  await expectErr("without «المولات» an employee can't add a mall", () => as(S2, `insert into public.malls (name, kind) values ('مول موظف', 'commercial')`));
+  await expectOk("with «المولات: يعدّل» they can", async () => {
+    await grant({ malls: "edit" });
+    await as(S2, `insert into public.malls (name, kind) values ('مول موظف', 'commercial')`);
+    return sys(`select count(*)::int n from public.malls where name = 'مول موظف'`);
+  }, (r) => r[0].n === 1);
+  await expectErr("«يشوف» isn't enough to change", async () => {
+    await grant({ malls: "view" });
+    return as(S2, `insert into public.malls (name, kind) values ('مول تاني', 'commercial')`);
+  });
+  await expectOk("«المناطق: يعدّل» adds a place", async () => {
+    await grant({ locations: "edit" });
+    await as(S2, `insert into public.locations (city, area, status) values ('مدينة موظف', 'حي موظف', 'approved')`);
+    return sys(`select count(*)::int n from public.locations where city = 'مدينة موظف'`);
+  }, (r) => r[0].n === 1);
+  await expectOk("but can't change a service plan (not granted)", async () => {
+    await as(S2, `update public.service_plans set name = 'باقة الموظف'`).catch(() => null);
+    return sys(`select count(*)::int n from public.service_plans where name = 'باقة الموظف'`);
+  }, (r) => r[0].n === 0);
+  await expectOk("settings: an employee changes only their section's columns", async () => {
+    await grant({ closed: "edit" });
+    await as(S2, `update public.app_settings set site_closed_message = 'صيانة' where id = 1`);
+    return sys(`select site_closed_message from public.app_settings where id = 1`);
+  }, (r) => r[0].site_closed_message === "صيانة");
+  await expectErr("…not another section's (the WhatsApp number)", () => as(S2, `update public.app_settings set floating_whatsapp = '201012345678' where id = 1`));
+  await expectErr("…nor admin-only settings", () => as(S2, `update public.app_settings set show_demo = true where id = 1`));
+  await expectErr("accounts list needs «الحسابات والشركات»", () => as(S2, `select count(*) from public.admin_brokers()`));
+  await expectOk("…and works with it", async () => {
+    await grant({ brokers: "view" });
+    return as(S2, `select count(*)::int n from public.admin_brokers()`);
+  }, (r) => r[0].n > 0);
+  await expectErr("an employee never edits the team or permissions, whatever they hold", async () => {
+    await grant({ ...Object.fromEntries(["leads","malls","brokers","accounts","plans","assistant","announce","closed","wa","app","health","audit"].map((k) => [k, "edit"])) });
+    return as(S2, `update public.staff_permissions set perms = '{"leads":"edit"}' where user_id = '${S2}' returning user_id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; });
+  });
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+
+  // Team alerts follow the permissions; new-customer routing doesn't change.
+  const teamAlerts = (uid, title) => sys(`select count(*)::int n from public.notifications where user_id = '${uid}' and title = '${title}'`).then((r) => r[0].n);
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 1', 'x', '${other}', '/leads/${other}')`);
+  await expectOk("an employee without customers doesn't get customer alerts; the admin does", async () => [await teamAlerts(S2, "تنبيه اختبار 1"), await teamAlerts(U.admin, "تنبيه اختبار 1")], (r) => r[0] === 0 && r[1] === 1);
+  await grant({ leads: "view", leads_scope: "all" });
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 2', 'x', '${other}', '/leads/${other}')`);
+  await expectOk("with «طلبات العملاء: الكل» they do", () => teamAlerts(S2, "تنبيه اختبار 2"), (n) => n === 1);
+  await grant({ leads: "view", leads_scope: "mine" });
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 3', 'x', '${other}', '/leads/${other}')`);
+  await sys(`select public.notify_team('admin', 'تنبيه اختبار 4', 'x', '${mine}', '/leads/${mine}')`);
+  await expectOk("«بتوعه بس»: only alerts about their own customers", async () => [await teamAlerts(S2, "تنبيه اختبار 3"), await teamAlerts(S2, "تنبيه اختبار 4")], (r) => r[0] === 0 && r[1] === 1);
+  await expectOk("a customer assigned to the employee still notifies them (routing unchanged)", async () => {
+    await as(U.admin, `update public.leads set assigned_staff_id = null where id = '${other}'`);
+    await as(U.admin, `update public.leads set assigned_staff_id = '${S2}' where id = '${other}'`);
+    return sys(`select count(*)::int n from public.notifications where user_id = '${S2}' and related_id = '${other}' and type = 'new_request'`);
+  }, (r) => r[0].n >= 1);
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+
+  // One account, both roles: the company owner is also an employee (customers: only theirs).
+  await sys(`insert into public.user_roles (user_id, role) values ('${U.owner}', 'staff') on conflict do nothing`);
+  await as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${U.owner}', '{"leads":"edit","leads_scope":"mine","review":"view"}')`);
+  // ${other} is routed to the owner's company (CO); a fresh lead lands on another company by the routing rules.
+  const elsewhere = (await sys(`insert into public.leads (name, phone) values ('عميل شركة تانية', '01077778888') returning id`))[0].id;
+  await as(U.admin, `update public.leads set assigned_broker_id = '${DEV}' where id = '${elsewhere}'`);
+  await expectOk("as a company they still see their company's customers", () => as(U.owner, `select id from public.leads where id = '${other}'`), (r) => r.length === 1);
+  await expectOk("as an employee with «بتوعه بس» they don't see another company's customers", () => as(U.owner, `select id from public.leads where id = '${elsewhere}'`), (r) => r.length === 0);
+  await expectOk("they still open a deal on their own company's customer", () => as(U.owner, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة 100م') returning broker_id`), (r) => r[0].broker_id === CO);
+  await expectOk("…and see it without the deals permission", () => as(U.owner, `select count(*)::int n from public.deals where lead_id = '${other}'`), (r) => r[0].n >= 1);
+  await expectOk("the work panel shows their granted sections", () => as(U.owner, `select public.my_permissions() p`), (r) => r[0].p.review === "view");
+  await sys(`delete from public.user_roles where user_id = '${U.owner}' and role = 'staff'`);
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${U.owner}'`);
 }

@@ -18,7 +18,11 @@ import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow, leadKindLabel } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow, leadKindLabel, PUBLIC_BROKER_COLS } from "@/components/site/data";
+import { can, hasAny } from "@/lib/permissions";
+import type { Database } from "@/integrations/supabase/types";
+
+type AdminBroker = Database["public"]["Functions"]["admin_brokers"]["Returns"][number];
 import { AreaPicker } from "@/components/site/AreaPicker";
 import { MallsAdmin } from "@/components/dash/MallsAdmin";
 import { CompoundsAdmin } from "@/components/dash/CompoundsAdmin";
@@ -55,13 +59,16 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant";
+const ALL_TABS: Tab[] = ["reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "app", "health", "alerts", "audit"];
 
-function useAdminData(enabled: boolean) {
+function useAdminData(enabled: boolean, isAdmin: boolean) {
   return useQuery({
-    queryKey: ["admin-data"], enabled,
+    queryKey: ["admin-data", isAdmin], enabled,
     queryFn: async () => {
       const [b, p, l, pl] = await Promise.all([
-        supabase.rpc("admin_brokers"),
+        // Employees (release 38) don't get the admin's account list with contacts; the public columns are enough to assign.
+        isAdmin ? supabase.rpc("admin_brokers")
+          : supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("name").then((r) => ({ ...r, data: r.data as unknown as AdminBroker[] | null })),
         paged(() => fetchAll((a, b) => supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }).order("id").range(a, b))),
         paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
         supabase.from("plans").select("*").order("audience").order("sort_order"),
@@ -77,23 +84,31 @@ function useAdminData(enabled: boolean) {
 function AdminPage() {
   const { me, loading } = useMe();
   // Notifications can open a section directly (e.g. /admin?tab=locations).
-  const [tab, setTab] = useState<Tab>(() => {
+  const [rawTab, setTab] = useState<Tab>(() => {
     const t = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tab");
-    return t === "locations" || t === "review" || t === "wa_inbox" ? t : "reports";
+    return t && (ALL_TABS as string[]).includes(t) ? (t as Tab) : "reports";
   });
+  // The admin sees everything; an employee only the sections granted in «فريق فاليو عقار» (release 38).
+  const perms = me?.perms;
+  const allowed = !!me?.isAdmin || (!!me?.isStaff && hasAny(perms));
   const pendingPlaces = useQuery({
-    queryKey: ["admin-locations-pending"], enabled: !!me?.isAdmin,
+    queryKey: ["admin-locations-pending"], enabled: can(perms, "locations"),
     queryFn: async () => (await supabase.from("locations").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0,
   }).data ?? 0;
-  const q = useAdminData(!!me?.isAdmin);
+  // Full account rows (status, contacts) for the admin and employees holding «الحسابات والشركات».
+  const q = useAdminData(allowed, !!me?.isAdmin || can(perms, "brokers"));
   if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
-  if (!me?.isAdmin) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">ليست لديك صلاحية الوصول. <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
+  if (!allowed) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">{me?.isStaff ? "لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك." : "ليست لديك صلاحية الوصول."} <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
+  const visible = (id: Tab) => (id === "staff" ? !!me?.isAdmin : can(perms, id));
+  // A section that isn't granted opens the first one that is.
+  const tab: Tab = visible(rawTab) ? rawTab : (ALL_TABS.find(visible) ?? rawTab);
+  const viewOnly = !me?.isAdmin && !can(perms, tab, "edit");
   const d = q.data;
   const reload = () => q.refetch();
   const pending = d?.properties.filter((p) => p.review_status === "pending").length ?? 0;
   const pendingAccounts = d?.brokers.filter((b) => accountStatus(b) === "pending").length ?? 0;
   return (
-    <DashShell title="لوحة الإدارة" isAdmin>
+    <DashShell title={me?.isAdmin ? "لوحة الإدارة" : "لوحة العمل"} isAdmin={!!me?.isAdmin}>
       {/* 16 sections grouped in 5 (UX review): pick a group, then a section inside it. */}
       {(() => {
         const labels: Record<Tab, string> = {
@@ -101,14 +116,14 @@ function AdminPage() {
           wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
           industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
-        const groups: { id: string; label: string; tabs: Tab[] }[] = [
+        const groups: { id: string; label: string; tabs: Tab[] }[] = ([
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "wa_inbox", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "accounts", "staff", "plans"] },
           { id: "settings", label: "الإعدادات", tabs: ["assistant", "announce", "closed", "wa", "app", "health"] },
-        ];
+        ] as { id: string; label: string; tabs: Tab[] }[]).map((g) => ({ ...g, tabs: g.tabs.filter(visible) })).filter((g) => g.tabs.length);
         const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!;
         return (
           <>
@@ -124,9 +139,13 @@ function AdminPage() {
           </>
         );
       })()}
-      {!d ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
-        <>
-          {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: true, companyId: null }} />}
+      {viewOnly && visible(tab) && (
+        <p className="mb-4 rounded-xl border border-teal/40 bg-teal-soft px-4 py-2 text-sm font-bold text-primary">👁️ القسم ده عندك «عرض بس»؛ أي تعديل محتاج صلاحية من الأدمن.</p>
+      )}
+      {!d || !visible(tab) ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
+        // «يشوف بس»: every button and field inside is disabled (the database refuses the change anyway).
+        <fieldset disabled={viewOnly} className="m-0 min-w-0 border-0 p-0">
+          {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: !!me?.isAdmin, companyId: null }} />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}
@@ -136,7 +155,7 @@ function AdminPage() {
           {tab === "wa" && <WhatsappSettingsAdmin />}
           {tab === "wa_inbox" && <WhatsappInbox />}
           {tab === "assistant" && <AssistantSettingsAdmin />}
-          {tab === "investments" && <InvestmentsAdmin isAdmin />}
+          {tab === "investments" && <InvestmentsAdmin isAdmin={can(perms, "investments", "edit")} />}
           {tab === "audit" && <AuditLog />}
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}
@@ -152,7 +171,7 @@ function AdminPage() {
           {tab === "accounts" && <AccountsAdmin />}
           {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
-        </>
+        </fieldset>
       )}
     </DashShell>
   );
