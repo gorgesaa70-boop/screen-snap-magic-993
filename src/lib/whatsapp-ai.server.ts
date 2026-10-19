@@ -104,7 +104,8 @@ async function generate(contents: Content[], channel: Channel, extra: string): P
   // GEMINI_APT_KEY: the name the secret was first saved under (typo) — accepted so it works without re-entering the key.
   const key = process.env["GEMINI_API_KEY"] || process.env["GEMINI_APT_KEY"];
   if (!key) return null;
-  const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
+  // gemini-2.5-flash is closed to new API keys (404), so default to the current flash model.
+  const model = process.env["GEMINI_MODEL"] || "gemini-3.8-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
