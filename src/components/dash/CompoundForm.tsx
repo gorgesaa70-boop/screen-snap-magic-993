@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { FileSpreadsheet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DEFAULT_CITY, areasOf, uploadImage } from "@/components/site/data";
 import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
 import { AMENITIES, type CompoundRow } from "@/components/site/compounds";
-import { Field, inputCls, btnPrimary } from "@/components/site/ui";
+import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import type { UnitInput } from "@/lib/units-import";
+import { UnitsImport } from "./UnitsImport";
 
 type Props = {
   /** Developer adding to their own account. */
@@ -19,6 +22,7 @@ type Props = {
 };
 
 const MAX_IMAGES = 12;
+const chunks = <T,>(list: T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
 
 export function CompoundForm({ developerId, developers, initial, onDone, onCancel }: Props) {
   const admin = !!developers;
@@ -41,6 +45,15 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
   });
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
   const [busy, setBusy] = useState(false);
+  // Units from Excel, added right after the compound is saved.
+  const [showUnits, setShowUnits] = useState(false);
+  const [units, setUnits] = useState<UnitInput[] | null>(null);
+  const [codes, setCodes] = useState<string[]>([]);
+  useEffect(() => {
+    if (!showUnits || !initial) return;
+    supabase.from("compound_units").select("code").eq("compound_id", initial.id).then(({ data }) =>
+      setCodes((data ?? []).map((u) => u.code).filter((c): c is string => !!c)));
+  }, [showUnits, initial]);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const digits = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") });
   const num = (v: string) => (v === "" ? null : Number(v));
@@ -80,10 +93,21 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
     const res = initial
       ? await supabase.from("compounds").update(payload).eq("id", initial.id).select("id").single()
       : await supabase.from("compounds").insert({ ...payload, ...(admin ? {} : { developer_id: developerId! }) }).select("id").single();
+    if (res.error) { setBusy(false); toast.error(res.error.message); return; }
+    const id = res.data.id;
+    let added = 0;
+    for (const chunk of chunks(units ?? [], 200)) {
+      const { error } = await supabase.from("compound_units").insert(chunk.map((u) => ({ ...u, compound_id: id })));
+      if (error) {
+        toast.error(`الكمبوند اتحفظ، بس ${added ? `اتضاف ${added} وحدة بس — ` : "الوحدات ما اتضافتش — "}${error.code === "23505" ? "فيه كود وحدة متكرر" : error.message}. كمّل من لوحة الكمبوند ← الوحدات.`);
+        break;
+      }
+      added += chunk.length;
+    }
     setBusy(false);
-    if (res.error) { toast.error(res.error.message); return; }
-    toast.success(initial?.review_status === "rejected" ? "اتبعت للمراجعة" : initial ? "تم حفظ الكمبوند" : "تم نشر الكمبوند");
-    onDone(res.data.id);
+    const what = initial?.review_status === "rejected" ? "اتبعت للمراجعة" : initial ? "تم حفظ الكمبوند" : "تم نشر الكمبوند";
+    toast.success(added ? `${what} واتضافت ${added} وحدة` : what);
+    onDone(id);
   }
 
   const handover = admin && initial && !initial.developer_id && f.developer_id;
@@ -144,9 +168,16 @@ export function CompoundForm({ developerId, developers, initial, onDone, onCance
           )}
         </div>
         <div className="sm:col-span-2"><Field label="موقع الكمبوند على الخريطة"><MapPicker value={loc} onChange={setLoc} /></Field></div>
+        <div className="space-y-2 sm:col-span-2">
+          <p className="text-sm font-bold text-primary">وحدات الكمبوند من Excel</p>
+          {!showUnits
+            ? <button type="button" onClick={() => setShowUnits(true)} className={btnOutline}><FileSpreadsheet className="size-4" />{initial ? "ضيف وحدات من Excel" : "ارفع وحدات الكمبوند من Excel"}</button>
+            : <UnitsImport existingCodes={codes} onReady={setUnits} />}
+          <p className="text-xs text-muted-foreground">اختياري — تقدر تضيف الوحدات بعدين من لوحة الكمبوند ← الوحدات.</p>
+        </div>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
-        <button disabled={busy} onClick={save} className={btnPrimary}>{initial ? "حفظ" : "نشر الكمبوند"}</button>
+        <button disabled={busy} onClick={save} className={btnPrimary}>{busy ? "..." : `${initial ? "حفظ" : "نشر الكمبوند"}${units?.length ? ` + ${units.length} وحدة` : ""}`}</button>
         <button onClick={onCancel} className="h-11 px-4 text-sm font-bold text-muted-foreground hover:text-primary">إلغاء</button>
       </div>
     </div>

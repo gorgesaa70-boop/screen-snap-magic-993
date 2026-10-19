@@ -1,4 +1,4 @@
-/** Validation for importing project units from an Excel / CSV sheet (item 16). Pure functions — no I/O. */
+/** Validation for importing project or compound units from an Excel / CSV sheet (item 16). Pure functions — no I/O. */
 import { cleanNumber, sizeCell, type MapField } from "@/lib/sheet-mapping";
 
 export type UnitInput = {
@@ -11,7 +11,12 @@ export type UnitInput = {
   price: number | null;
   status: "available" | "reserved" | "sold" | "unavailable";
   notes: string | null;
+  /** Compound units only (project_units has no such columns). */
+  building?: string | null;
+  finishing?: string | null;
 };
+/** `compound`: also read the building and finishing columns, and word messages for a compound. */
+export type UnitsOptions = { compound?: boolean };
 export type ImportError = { row: number; message: string };
 export type ImportResult = { units: (UnitInput & { row: number })[]; errors: ImportError[] };
 
@@ -28,7 +33,10 @@ const HEADERS: Record<Field, string[]> = {
   price: ["السعر", "السعر (ج.م)", "price"],
   status: ["الحالة", "status"],
   notes: ["ملاحظات", "notes"],
+  building: ["العمارة", "عمارة", "رقم العمارة", "المبنى", "مبنى", "البلوك", "بلوك", "building", "block"],
+  finishing: ["التشطيب", "تشطيب", "نوع التشطيب", "finishing"],
 };
+const COMPOUND_ONLY: Field[] = ["building", "finishing"];
 const STATUS: Record<string, UnitInput["status"]> = {
   "متاحة": "available", "متاح": "available", available: "available",
   "محجوزة": "reserved", "محجوز": "reserved", reserved: "reserved",
@@ -37,6 +45,7 @@ const STATUS: Record<string, UnitInput["status"]> = {
 };
 export const MAX_ROWS = 1000;
 export const TEMPLATE_HEADERS = ["الكود", "النوع", "المساحة", "الغرف", "الحمامات", "الدور", "السعر", "الحالة", "ملاحظات"];
+export const COMPOUND_TEMPLATE_HEADERS = ["العمارة", "الدور", "الكود", "النوع", "المساحة", "الغرف", "الحمامات", "التشطيب", "السعر", "الحالة", "ملاحظات"];
 
 export const norm = (v: unknown) => String(v ?? "").replace(/[‏‎]/g, "").trim();
 export const key = (v: unknown) => norm(v).toLowerCase().replace(/\s+/g, " ");
@@ -50,9 +59,10 @@ export function num(v: unknown): number | null | "bad" {
 }
 
 /** Fields for «طابق الأعمدة» (any file layout). Type, floor and status can be one value for all rows. */
-export function unitFields(): MapField[] {
+export function unitFields(opts: UnitsOptions = {}): MapField[] {
   const f = (k: Field, label: string, extra: Partial<MapField> = {}): MapField => ({ key: HEADERS[k][0]!, label, aliases: HEADERS[k].slice(1), ...extra });
   return [
+    ...(opts.compound ? [f("building", "العمارة", { constant: "text" })] : []),
     f("code", "كود / رقم الوحدة"),
     f("unit_type", "نوع الوحدة", { required: true, constant: "text" }),
     f("size", "المساحة", { required: true }),
@@ -61,18 +71,19 @@ export function unitFields(): MapField[] {
     f("rooms", "الغرف"),
     f("baths", "الحمامات"),
     f("floor", "الدور", { constant: "text" }),
+    ...(opts.compound ? [f("finishing", "التشطيب", { constant: "text" })] : []),
     f("status", "الحالة", { constant: ["متاحة", "محجوزة", "مباعة", "غير متاحة"] }),
     f("notes", "ملاحظات"),
   ];
 }
 
 /** Rows (first row = headers) → valid units + errors with 1-based sheet row numbers. Duplicate codes are rejected. */
-export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<string> = []): ImportResult {
+export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<string> = [], opts: UnitsOptions = {}): ImportResult {
   const errors: ImportError[] = [];
   const units: ImportResult["units"] = [];
   const header = (rows[0] ?? []).map(key);
   const col = {} as Record<Field, number>;
-  for (const f of Object.keys(HEADERS) as Field[]) col[f] = header.findIndex((h) => HEADERS[f].some((a) => a.toLowerCase() === h));
+  for (const f of Object.keys(HEADERS) as Field[]) col[f] = !opts.compound && COMPOUND_ONLY.includes(f) ? -1 : header.findIndex((h) => HEADERS[f].some((a) => a.toLowerCase() === h));
   const missing = (["unit_type", "size"] as Field[]).filter((f) => col[f] < 0);
   if (missing.length) {
     return { units, errors: [{ row: 1, message: `الملف ناقصه عمود: ${missing.map((f) => HEADERS[f][0]).join("، ")}` }] };
@@ -109,7 +120,7 @@ export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<strin
     if (code && code.length > 50) problems.push("الكود أطول من 50 حرف");
     if (code) {
       const prev = seen.get(code.toLowerCase());
-      if (prev === 0) problems.push(`الكود ${code} موجود في المشروع بالفعل`);
+      if (prev === 0) problems.push(`الكود ${code} موجود في ${opts.compound ? "الكمبوند" : "المشروع"} بالفعل`);
       else if (prev) problems.push(`الكود ${code} متكرر (صف ${prev})`);
       else seen.set(code.toLowerCase(), row);
     }
@@ -117,6 +128,7 @@ export function parseUnitsSheet(rows: unknown[][], existingCodes: Iterable<strin
     units.push({
       row, code, unit_type, size: size as number, rooms: rooms as number | null, baths: baths as number | null,
       floor: norm(cell("floor")).slice(0, 50) || null, price: price as number | null, status: status!, notes: norm(cell("notes")).slice(0, 1000) || null,
+      ...(opts.compound ? { building: norm(cell("building")).slice(0, 50) || null, finishing: norm(cell("finishing")).slice(0, 50) || null } : {}),
     });
   });
   return { units, errors };
