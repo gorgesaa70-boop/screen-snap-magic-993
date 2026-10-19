@@ -18,11 +18,11 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.83",
-    "@capacitor/android": "^7",
-    "@capacitor/app": "^7",
-    "@capacitor/browser": "^7",
-    "@capacitor/core": "^7",
-    "@capacitor/ios": "^7",
+    "@capacitor/android": "^8",
+    "@capacitor/app": "^8",
+    "@capacitor/browser": "^8",
+    "@capacitor/core": "^8",
+    "@capacitor/ios": "^8",
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.2.1",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -82,7 +82,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7",
+    "@capacitor/cli": "^8",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.26.5",
     "@testing-library/jest-dom": "^6.6.0",
