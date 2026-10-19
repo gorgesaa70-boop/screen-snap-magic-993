@@ -1,7 +1,7 @@
 -- Staff permissions, part 3 (release 38): functions that let ANY employee act now ask for the section's permission.
 -- Customers' chats and alerts → «طلبات العملاء» / «تنبيهات المراجعة»; brokers' contacts → customers or accounts;
 -- investment details → «الفرص الاستثمارية»; rerouting a service request → «طلبات الخدمات: يعدّل»;
--- direct messages → «الرسايل»; «الكمبوندات: يعدّل» works on every compound like the admin (assigned compounds still work).
+-- direct messages → «الرسايل»; an employee who is also a broker / company answers their OWN company's chats as the company; «الكمبوندات: يعدّل» works on every compound like the admin (assigned compounds still work).
 -- Same bodies otherwise; staff_can() is true for the admin. Re-runnable.
 
 -- lead_alerts: edit the current definition in place (keeps everything later releases added).
@@ -74,7 +74,7 @@ begin
   if me is null then return null; end if;
   select * into l from public.leads where id = _lead;
   if not found or not public.lead_chat_enabled(l) then return null; end if;
-  if public.staff_can('leads', 'view') then return 'platform'; end if;
+  if public.has_role(me, 'admin') or (public.staff_can('leads', 'view') and l.assigned_broker_id is distinct from public.current_broker_id()) then return 'platform'; end if;
   if l.assigned_broker_id is not null and l.assigned_broker_id = public.current_broker_id() then
     role := public.current_member_role();
     if role in ('owner','manager') or (l.assigned_member_id is not null and l.assigned_member_id = public.my_member_id()) then
@@ -145,7 +145,7 @@ begin
   if me is null then return null; end if;
   select * into t from public.direct_threads where id = _thread;
   if not found then return null; end if;
-  if public.staff_can('messages', 'view') then return 'platform'; end if;
+  if public.has_role(me, 'admin') or (public.staff_can('messages', 'view') and public.current_broker_id() is distinct from t.broker_a and public.current_broker_id() is distinct from t.broker_b) then return 'platform'; end if;
   if coalesce(public.current_member_role(), '') not in ('owner','manager') then return null; end if;
   mine := public.current_broker_id();
   if mine is not null and (mine = t.broker_a or mine = t.broker_b) then return mine::text; end if;

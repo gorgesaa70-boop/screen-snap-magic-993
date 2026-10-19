@@ -75,19 +75,20 @@ create policy "staff reads agreements" on public.company_agreements for select t
 
 drop policy if exists "staff reads deals" on public.deals;
 create policy "staff reads deals" on public.deals for select to authenticated using (public.staff_can('deals', 'view'));
+-- An employee who is ALSO a broker / company (one account, both roles) still works on their own company's deals.
 drop policy if exists "staff never writes deals" on public.deals;
 create policy "staff never writes deals" on public.deals as restrictive for insert to authenticated
-  with check (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
+  with check (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
 drop policy if exists "staff never changes deals" on public.deals;
 create policy "staff never changes deals" on public.deals as restrictive for update to authenticated
-  using (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
+  using (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
 drop policy if exists "staff never deletes deals" on public.deals;
 create policy "staff never deletes deals" on public.deals as restrictive for delete to authenticated
-  using (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
--- Staff without the deals permission don't see them through a visible lead either.
+  using (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
+-- Staff without the deals permission don't see them through a visible lead either (their own company's still show).
 drop policy if exists "staff sees deals only when granted" on public.deals;
 create policy "staff sees deals only when granted" on public.deals as restrictive for select to authenticated
-  using (not public.is_staff() or public.staff_can('deals', 'view'));
+  using (not public.is_staff() or public.staff_can('deals', 'view') or broker_id = public.current_broker_id());
 
 -- WhatsApp inbox (release 36), only when that table exists.
 do $$

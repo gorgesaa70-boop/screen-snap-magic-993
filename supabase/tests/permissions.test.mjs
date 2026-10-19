@@ -1856,4 +1856,18 @@ commit;`);
     return sys(`select count(*)::int n from public.notifications where user_id = '${S2}' and related_id = '${other}' and type = 'new_request'`);
   }, (r) => r[0].n >= 1);
   await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+
+  // One account, both roles: the company owner is also an employee (customers: only theirs).
+  await sys(`insert into public.user_roles (user_id, role) values ('${U.owner}', 'staff') on conflict do nothing`);
+  await as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${U.owner}', '{"leads":"edit","leads_scope":"mine","review":"view"}')`);
+  // ${other} is routed to the owner's company (CO); a fresh lead lands on another company by the routing rules.
+  const elsewhere = (await sys(`insert into public.leads (name, phone) values ('عميل شركة تانية', '01077778888') returning id`))[0].id;
+  await as(U.admin, `update public.leads set assigned_broker_id = '${DEV}' where id = '${elsewhere}'`);
+  await expectOk("as a company they still see their company's customers", () => as(U.owner, `select id from public.leads where id = '${other}'`), (r) => r.length === 1);
+  await expectOk("as an employee with «بتوعه بس» they don't see another company's customers", () => as(U.owner, `select id from public.leads where id = '${elsewhere}'`), (r) => r.length === 0);
+  await expectOk("they still open a deal on their own company's customer", () => as(U.owner, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة 100م') returning broker_id`), (r) => r[0].broker_id === CO);
+  await expectOk("…and see it without the deals permission", () => as(U.owner, `select count(*)::int n from public.deals where lead_id = '${other}'`), (r) => r[0].n >= 1);
+  await expectOk("the work panel shows their granted sections", () => as(U.owner, `select public.my_permissions() p`), (r) => r[0].p.review === "view");
+  await sys(`delete from public.user_roles where user_id = '${U.owner}' and role = 'staff'`);
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${U.owner}'`);
 }

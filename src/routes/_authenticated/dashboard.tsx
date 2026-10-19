@@ -109,6 +109,9 @@ const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
   const isOwner = role === "owner";
+  // Also a Value Aqar employee on the same account (release 38): a shortcut to their «لوحة العمل».
+  const { me } = useMe();
+  const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
   const [tab, setTab] = useState<Tab>("overview");
   const props = useQuery({
@@ -139,6 +142,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       <div className="mb-3 flex flex-wrap gap-2">
         <span className="inline-block rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{broker.account_type === "individual" ? "وسيط فرد" : ACCOUNT_LABEL[broker.account_type] ?? broker.account_type}</span>
         {!isOwner && <span className="inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-primary">{broker.name} · {MEMBER_ROLES[role]?.label}</span>}
+        {worksForValueAqar && <Link to="/admin" className="inline-block rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">لوحة العمل (فاليو عقار) ←</Link>}
       </div>
       <Tabs<Tab> value={tab} onChange={setTab} tabs={[
         { id: "overview", label: "نظرة عامة" },

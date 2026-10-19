@@ -143,7 +143,18 @@ export const listStaff = createServerFn({ method: "GET" })
     if (error) return { ok: false as const, error: error.message };
     const staff = await Promise.all((roles ?? []).map(async ({ user_id }) => {
       const { data } = await supabaseAdmin.auth.admin.getUserById(user_id);
-      return { userId: user_id, phone: data.user?.phone ?? "", name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? "" };
+      const phone = data.user?.phone ?? "";
+      // Also a broker / company (own account, or a team member of one)? The permissions screen warns about it.
+      const [own, byPhone] = await Promise.all([
+        supabaseAdmin.from("brokers").select("name").eq("user_id", user_id).limit(1),
+        phone ? supabaseAdmin.rpc("brokers_by_phone", { _phone: phone }) : Promise.resolve({ data: [] as { id: string }[] }),
+      ]);
+      let brokerName: string | null = own.data?.[0]?.name ?? null;
+      if (!brokerName && (byPhone.data ?? []).length) {
+        const id = (byPhone.data as { id: string }[])[0]!.id;
+        brokerName = (await supabaseAdmin.from("brokers").select("name").eq("id", id).maybeSingle()).data?.name ?? null;
+      }
+      return { userId: user_id, phone, name: (data.user?.user_metadata?.["full_name"] as string | undefined) ?? "", brokerName };
     }));
     return { ok: true as const, staff };
   });
@@ -160,9 +171,11 @@ export const addStaff = createServerFn({ method: "POST" })
     const { data: ids } = await supabaseAdmin.rpc("auth_user_ids_by_phone", { _phone: phone });
     const list = (ids ?? []) as string[];
     if (list.length > 1) return { ok: false as const, error: "الرقم ده مربوط بأكتر من حساب — راجعه الأول" };
+    // A broker / company on this number becomes an employee on the SAME account (both roles; the admin limits what
+    // they see in «الصلاحيات», e.g. only their own customers).
     const { data: brokers } = await supabaseAdmin.rpc("brokers_by_phone", { _phone: phone });
-    if ((brokers ?? []).length) return { ok: false as const, error: "الرقم ده مسجّل كحساب وسيط أو شركة" };
-    let userId = list[0];
+    const owner = (brokers ?? []).find((b: { user_id: string | null }) => b.user_id)?.user_id ?? null;
+    let userId = owner ?? list[0];
     if (!userId) {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         phone, phone_confirm: true, email: `wa-${phone}@phone.valueaqar.invalid`, email_confirm: true, user_metadata: { full_name: data.name },

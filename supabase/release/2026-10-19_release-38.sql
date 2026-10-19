@@ -3,6 +3,7 @@
 -- * العملاء (بتوعه بس / الكل)، العمولات والاتفاقيات والصفقات (عرض بس)، ومحادثات الواتساب.
 -- * كل قسم بيشتغل في قاعدة البيانات: «يعدّل» بيفتح الكتابة على جداوله، و«يشوف» القراءة، والإعدادات كل موظف يغيّر أعمدة قسمه بس.
 -- * الدوال اللي كانت بتسمح لأي موظف بقت بتسأل عن صلاحية القسم، وتنبيهات الفريق بتروح للي معاه صلاحية بس.
+-- * الحساب الواحد ينفع يبقى وسيط/شركة + موظف: يفضل يشتغل على عملاء وصفقات شركته، ويرد على شاتهم كشركة.
 -- * توزيع العملاء الجدد على الشركات/الوسطاء/الموظفين وإشعاراتهم زي ما هو.
 -- ⚠️ الموظفين الحاليين بيبدأوا من غير أي صلاحيات لحد ما الأدمن يحددها من «فريق فاليو عقار».
 -- إضافة وتغيير صلاحيات بس، مفيش بيانات بتتمسح. ينفع يتشغل تاني. بعد إصدار 36 و37.
@@ -88,19 +89,20 @@ create policy "staff reads agreements" on public.company_agreements for select t
 
 drop policy if exists "staff reads deals" on public.deals;
 create policy "staff reads deals" on public.deals for select to authenticated using (public.staff_can('deals', 'view'));
+-- An employee who is ALSO a broker / company (one account, both roles) still works on their own company's deals.
 drop policy if exists "staff never writes deals" on public.deals;
 create policy "staff never writes deals" on public.deals as restrictive for insert to authenticated
-  with check (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
+  with check (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
 drop policy if exists "staff never changes deals" on public.deals;
 create policy "staff never changes deals" on public.deals as restrictive for update to authenticated
-  using (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
+  using (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
 drop policy if exists "staff never deletes deals" on public.deals;
 create policy "staff never deletes deals" on public.deals as restrictive for delete to authenticated
-  using (not public.is_staff() or public.has_role(auth.uid(), 'admin'));
--- Staff without the deals permission don't see them through a visible lead either.
+  using (not public.is_staff() or public.has_role(auth.uid(), 'admin') or broker_id = public.current_broker_id());
+-- Staff without the deals permission don't see them through a visible lead either (their own company's still show).
 drop policy if exists "staff sees deals only when granted" on public.deals;
 create policy "staff sees deals only when granted" on public.deals as restrictive for select to authenticated
-  using (not public.is_staff() or public.staff_can('deals', 'view'));
+  using (not public.is_staff() or public.staff_can('deals', 'view') or broker_id = public.current_broker_id());
 
 -- WhatsApp inbox (release 36), only when that table exists.
 do $$
@@ -538,7 +540,7 @@ end $$;
 -- Staff permissions, part 3 (release 38): functions that let ANY employee act now ask for the section's permission.
 -- Customers' chats and alerts → «طلبات العملاء» / «تنبيهات المراجعة»; brokers' contacts → customers or accounts;
 -- investment details → «الفرص الاستثمارية»; rerouting a service request → «طلبات الخدمات: يعدّل»;
--- direct messages → «الرسايل»; «الكمبوندات: يعدّل» works on every compound like the admin (assigned compounds still work).
+-- direct messages → «الرسايل»; an employee who is also a broker / company answers their OWN company's chats as the company; «الكمبوندات: يعدّل» works on every compound like the admin (assigned compounds still work).
 -- Same bodies otherwise; staff_can() is true for the admin. Re-runnable.
 
 -- lead_alerts: edit the current definition in place (keeps everything later releases added).
@@ -611,7 +613,7 @@ begin
   if me is null then return null; end if;
   select * into l from public.leads where id = _lead;
   if not found or not public.lead_chat_enabled(l) then return null; end if;
-  if public.staff_can('leads', 'view') then return 'platform'; end if;
+  if public.has_role(me, 'admin') or (public.staff_can('leads', 'view') and l.assigned_broker_id is distinct from public.current_broker_id()) then return 'platform'; end if;
   if l.assigned_broker_id is not null and l.assigned_broker_id = public.current_broker_id() then
     role := public.current_member_role();
     if role in ('owner','manager') or (l.assigned_member_id is not null and l.assigned_member_id = public.my_member_id()) then
@@ -682,7 +684,7 @@ begin
   if me is null then return null; end if;
   select * into t from public.direct_threads where id = _thread;
   if not found then return null; end if;
-  if public.staff_can('messages', 'view') then return 'platform'; end if;
+  if public.has_role(me, 'admin') or (public.staff_can('messages', 'view') and public.current_broker_id() is distinct from t.broker_a and public.current_broker_id() is distinct from t.broker_b) then return 'platform'; end if;
   if coalesce(public.current_member_role(), '') not in ('owner','manager') then return null; end if;
   mine := public.current_broker_id();
   if mine is not null and (mine = t.broker_a or mine = t.broker_b) then return mine::text; end if;

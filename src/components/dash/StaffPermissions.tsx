@@ -14,7 +14,7 @@ const LEVELS: { v: "" | "view" | "edit"; label: string }[] = [
 ];
 
 /** One employee's permissions: hidden / view / edit per section, with ready templates. Admin only (RLS). */
-export function StaffPermissions({ userId, name }: { userId: string; name: string }) {
+export function StaffPermissions({ userId, name, isBroker = false }: { userId: string; name: string; isBroker?: boolean }) {
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["staff-perms", userId],
@@ -41,6 +41,12 @@ export function StaffPermissions({ userId, name }: { userId: string; name: strin
 
   if (q.isError) return <p className="text-sm text-destructive">الصلاحيات محتاجة تحديث قاعدة البيانات (إصدار 38).</p>;
   const granted = Object.entries(perms).filter(([k, v]) => k !== "leads_scope" && v).length;
+  // A broker / company working as an employee: warn before giving them competitors' customers or the routing controls.
+  const risky = isBroker ? [
+    perms["leads"] && perms["leads_scope"] === "all" ? "«طلبات العملاء: كل العملاء» (هيشوف عملاء الشركات المنافسة)" : "",
+    perms["routing"] === "edit" ? "«قواعد التوزيع: يعدّل» (يقدر يوجّه العملاء لنفسه)" : "",
+    perms["brokers"] === "edit" ? "«الحسابات والشركات: يعدّل» (يقدر يغيّر حسابات المنافسين)" : "",
+  ].filter(Boolean) : [];
   return (
     <div className="mt-3 space-y-4 border-t pt-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -51,6 +57,14 @@ export function StaffPermissions({ userId, name }: { userId: string; name: strin
         <button type="button" onClick={() => setPerms({})} className="h-9 rounded-full border px-3 text-xs font-bold text-destructive">مسح الكل</button>
         <span className="ms-auto text-xs text-muted-foreground">{granted} قسم مفتوح</span>
       </div>
+      {isBroker && (
+        <p className="rounded-xl border border-teal/40 bg-teal-soft px-3 py-2 text-xs font-bold text-primary">
+          ده موظف وفي نفس الوقت وسيط/شركة. الأنسب: «طلبات العملاء: بتوعه بس»، ومن غير «قواعد التوزيع» و«الحسابات والشركات».
+        </p>
+      )}
+      {risky.length > 0 && (
+        <p className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">⚠️ انتبه: {risky.join("، ")}.</p>
+      )}
       {SECTION_GROUPS.map((g) => (
         <fieldset key={g.label} className="rounded-xl border p-3">
           <legend className="px-1 text-sm font-extrabold text-primary">{g.label}</legend>
