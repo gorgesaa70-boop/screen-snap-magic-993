@@ -34,7 +34,7 @@ export async function sendAndRecord(db: Db, phone: string, body: string, sender:
   return r;
 }
 
-async function findListings(db: Db, numbers: number[], ids: string[]): Promise<ListingCard[]> {
+export async function findListings(db: Db, numbers: number[], ids: string[]): Promise<ListingCard[]> {
   if (!numbers.length && !ids.length) return [];
   let q = db.from("properties").select("id, listing_no, type, status, city, area, size, rooms, price, availability").eq("review_status", "approved");
   q = numbers.length && ids.length ? q.or(`listing_no.in.(${numbers.join(",")}),id.in.(${ids.join(",")})`)

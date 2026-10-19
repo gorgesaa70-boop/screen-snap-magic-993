@@ -17,6 +17,7 @@ import { Toaster } from "sonner";
 import { AnnouncementPopup } from "@/components/site/SiteAnnouncement";
 import { SiteClosedGate } from "@/components/site/SiteClosed";
 import { FloatingWhatsApp } from "@/components/site/FloatingWhatsApp";
+import { SiteAssistant } from "@/components/site/SiteAssistant";
 import { supabase } from "@/integrations/supabase/client";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import cairoArabic from "@/assets/fonts/cairo-arabic.woff2?url";
@@ -149,6 +150,7 @@ function RootInner() {
         <Outlet />
         <AnnouncementPopup />
         <FloatingWhatsApp />
+        <SiteAssistant />
       </SiteClosedGate>
       <Toaster position="top-center" dir={dir} richColors theme="system" />
     </>

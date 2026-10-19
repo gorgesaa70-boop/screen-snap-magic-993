@@ -15,7 +15,7 @@ export function WhatsAppMark({ className }: { className?: string }) {
 }
 
 /** Dashboards and account pages have their own tools; the button is for visitors on the public site. */
-const HIDDEN = ["/admin", "/dashboard", "/account", "/auth", "/reset-password", "/commissions", "/deals", "/inquiries", "/leads", "/messages",
+export const HIDDEN = ["/admin", "/dashboard", "/account", "/auth", "/reset-password", "/commissions", "/deals", "/inquiries", "/leads", "/messages",
   "/my-", "/notifications", "/pending", "/reports", "/tasks", "/investor", "/join", "/investments/new", "/delete-account"];
 
 /** The number the admin set in الإعدادات ← رقم الواتساب العائم, or null (before release 33, or empty) for the built-in one. */
