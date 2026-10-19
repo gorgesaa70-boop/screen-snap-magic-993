@@ -28,7 +28,7 @@ const SYSTEM = `إنت مساعد ذكي لمنصة «فاليو عقار» (val
 /** Per-channel line: on WhatsApp we already have the number; on the site the visitor may leave it in the form. */
 const CHANNEL = {
   whatsapp: "إنت بترد على واتساب، ورقم العميل عندنا خلاص، فماتطلبهوش.",
-  web: "إنت جوه موقع فاليو عقار (فقاعة شات). لو العميل عاوز حد يكلّمه، استخدم handoff، والموقع هيطلب منه اسمه ورقمه في فورم صغير. ماتطلبش الرقم في الشات.",
+  web: "إنت جوه موقع فاليو عقار (فقاعة شات اسمها «فاليو عقار»). لو العميل عاوز حد يكلّمه أو سأل على عقار ومحدش رد عليه، استخدم handoff، والموقع هيطلب منه اسمه ورقمه في فورم صغير. ماتطلبش الرقم في الشات. لو سأل عن التطبيق: ينزّله من https://valueaqar.com/app.",
 } as const;
 export type Channel = keyof typeof CHANNEL;
 
@@ -100,7 +100,7 @@ export async function searchListings(db: Db, args: Record<string, unknown>): Pro
 type Part = { text?: string; functionCall?: { name: string; args?: Record<string, unknown> }; functionResponse?: unknown };
 type Content = { role: "user" | "model"; parts: Part[] };
 
-async function generate(contents: Content[], channel: Channel): Promise<Content | null> {
+async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
   const key = process.env["GEMINI_API_KEY"];
   if (!key) return null;
   const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
@@ -108,7 +108,7 @@ async function generate(contents: Content[], channel: Channel): Promise<Content 
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: `${SYSTEM}\n- ${CHANNEL[channel]}` }] },
+      systemInstruction: { parts: [{ text: `${SYSTEM}\n- ${CHANNEL[channel]}${extra}` }] },
       contents, tools: TOOLS,
       generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
     }),
@@ -123,9 +123,13 @@ async function generate(contents: Content[], channel: Channel): Promise<Content 
 /** One AI turn: reads the recent chat, may search / save / hand off, and returns the reply text (null = AI unavailable). */
 export async function aiReply(db: Db, history: Turn[], channel: Channel = "whatsapp"): Promise<(AiResult & { listings: ListingCard[] }) | null> {
   const contents: Content[] = history.slice(-12).map((t) => ({ role: t.role, parts: [{ text: t.text.slice(0, 1500) }] }));
+  // The admin's «تعليمات المساعد» come after the fixed rules, which still win.
+  const { getAssistantSettings } = await import("./assistant-settings.server");
+  const { instructions } = await getAssistantSettings();
+  const extra = instructions ? `\n\nتعليمات من إدارة فاليو عقار (التزم بيها طالما مش ضد القواعد اللي فوق):\n${instructions.slice(0, 4000)}` : "";
   const out: AiResult & { listings: ListingCard[] } = { text: "", handoff: false, request: {}, listings: [] };
   for (let step = 0; step < 3; step++) {
-    const reply = await generate(contents, channel);
+    const reply = await generate(contents, channel, extra);
     if (!reply) return step === 0 ? null : out;
     const calls = reply.parts.filter((p) => p.functionCall);
     const text = reply.parts.map((p) => p.text ?? "").join("").trim();

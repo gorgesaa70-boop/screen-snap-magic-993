@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Send, Sparkles, X, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { askAssistant } from "@/lib/assistant.functions";
+import { useQuery } from "@tanstack/react-query";
+import { askAssistant, assistantInfo } from "@/lib/assistant.functions";
 import type { ListingCard } from "@/lib/whatsapp-bot";
 import { cleanPhone } from "@/lib/phone";
 import { getAttribution } from "@/lib/attribution";
@@ -17,7 +18,12 @@ type Msg = { role: "user" | "model"; text: string; listings?: ListingCard[]; off
 type Request = Record<string, string | number>;
 
 const STORE = "va-assistant";
-const CHIPS = ["شقة للبيع في برج العرب", "شقة إيجار", "محل في مول", "عاوز أعرض عقاري"];
+const CHIPS = ["🏠 شقة للبيع في برج العرب", "🔑 شقة إيجار", "🏬 محل في مول", "📝 عاوز أعرض عقاري", "⏳ سألت على عقار ومحدش رد", "📱 التطبيق"];
+const POS = "va-assistant-pos";
+type Pos = { x: number; y: number };
+const loadPos = (): Pos | null => { try { const p = JSON.parse(localStorage.getItem(POS) || "null") as Pos | null; return p && Number.isFinite(p.x) && Number.isFinite(p.y) ? p : null; } catch { return null; } };
+/** Keep the button on screen (also after the phone rotates). */
+const clamp = (p: Pos, w = 180, h = 56): Pos => ({ x: Math.min(Math.max(8, p.x), window.innerWidth - w - 8), y: Math.min(Math.max(8, p.y), window.innerHeight - h - 8) });
 const load = (): Msg[] => { try { return JSON.parse(sessionStorage.getItem(STORE) || "[]") as Msg[]; } catch { return []; } };
 const save = (m: Msg[]) => { try { sessionStorage.setItem(STORE, JSON.stringify(m.slice(-30))); } catch { /* storage blocked */ } };
 
@@ -83,9 +89,40 @@ export function SiteAssistant() {
   const [request, setRequest] = useState<Request>({});
   const [sent, setSent] = useState(false);
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => setMsgs(load()), []);
+  const info = useServerFn(assistantInfo);
+  const settings = useQuery({ queryKey: ["assistant-info"], queryFn: () => info(), staleTime: 5 * 60_000 }).data;
+  // Draggable: the visitor can move the button anywhere; a press without moving opens the chat.
+  const [pos, setPos] = useState<Pos | null>(null);
+  const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  useEffect(() => { setMsgs(load()); const p = loadPos(); if (p) setPos(clamp(p)); }, []);
   useEffect(() => { save(msgs); end.current?.scrollIntoView({ block: "end" }); }, [msgs, open]);
-  if (HIDDEN.some((p) => pathname.startsWith(p))) return null;
+  useEffect(() => {
+    const fit = () => setPos((p) => (p ? clamp(p, btn.current?.offsetWidth, btn.current?.offsetHeight) : p));
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+  if (HIDDEN.some((p) => pathname.startsWith(p)) || (settings && settings.floating !== "assistant" && settings.floating !== "both")) return null;
+
+  function onDown(e: React.PointerEvent<HTMLButtonElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, sx: e.clientX, sy: e.clientY, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 8) return;
+    d.moved = true;
+    setPos(clamp({ x: e.clientX - d.dx, y: e.clientY - d.dy }, e.currentTarget.offsetWidth, e.currentTarget.offsetHeight));
+  }
+  function onUp() {
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    if (d.moved) { setPos((p) => { try { if (p) localStorage.setItem(POS, JSON.stringify(p)); } catch { /* storage blocked */ } return p; }); return; }
+    setOpen((o) => !o);
+  }
 
   async function send(raw: string) {
     const q = raw.trim();
@@ -110,21 +147,24 @@ export function SiteAssistant() {
   const transcript = msgs.filter((m) => m.role === "user").map((m) => `- ${m.text}`).join("\n");
 
   return (
-    <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 ltr:left-4 rtl:right-4 lg:bottom-6 print:hidden">
+    <div className="print:hidden">
       {open && (
-        <div role="dialog" aria-label={t("المساعد الذكي")}
-          className="fixed inset-x-2 bottom-[calc(10rem+env(safe-area-inset-bottom))] flex max-h-[70vh] flex-col overflow-hidden rounded-2xl border bg-card shadow-float sm:absolute sm:inset-x-auto sm:bottom-16 sm:w-96 ltr:sm:left-0 rtl:sm:right-0 lg:bottom-16">
+        <div role="dialog" aria-label={t("فاليو عقار")}
+          className="fixed inset-x-2 bottom-[calc(10rem+env(safe-area-inset-bottom))] z-50 flex max-h-[65vh] flex-col overflow-hidden rounded-2xl border bg-card shadow-float sm:inset-x-auto sm:w-96 ltr:sm:left-4 rtl:sm:right-4 lg:bottom-24">
           <div className="flex items-center gap-2 bg-primary px-4 py-3 text-primary-foreground">
             <Sparkles className="size-5 text-teal" />
             <div className="flex-1">
-              <p className="text-sm font-extrabold">{t("مساعد فاليو عقار")}</p>
-              <p className="text-[11px] opacity-75">{t("بيدوّر في العقارات المنشورة على الموقع")}</p>
+              <p className="text-sm font-extrabold">{t("فاليو عقار")}</p>
+              <p className="flex items-center gap-1.5 text-[11px] opacity-80"><span className="size-2 rounded-full bg-emerald-400" />{t("متاح دلوقتي · بيرد في ثواني")}</p>
             </div>
+            {/* WhatsApp lives here now, so the page keeps a single floating button. */}
+            <a href={waLink(wa, t("مرحبًا، أنا جاي من صفحة فاليو عقار وعندي استفسار / محتاج مساعدة."))} target="_blank" rel="noreferrer"
+              aria-label={t("كلّمنا واتساب")} title={t("كلّمنا واتساب")} className="grid size-9 place-items-center rounded-full bg-[#25D366] text-white"><WhatsAppMark className="size-5" /></a>
             <button type="button" onClick={() => setOpen(false)} aria-label={t("إغلاق")} className="grid size-8 place-items-center rounded-lg hover:bg-white/10"><X className="size-4" /></button>
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
             <div className="max-w-[90%] rounded-2xl bg-secondary px-3 py-2 text-sm text-primary">
-              {t("أهلاً بيك 👋 قولّي بتدوّر على إيه بكلامك، زي: «شقة إيجار في برج العرب لحد 8000»، أو ابعت كود الإعلان.")}
+              {settings?.welcome || t("أهلاً بيك 👋 قولّي بتدوّر على إيه بكلامك، زي: «شقة إيجار في برج العرب لحد 8000»، أو ابعت كود الإعلان.")}
             </div>
             {msgs.length === 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -154,9 +194,19 @@ export function SiteAssistant() {
           <p className="px-3 pb-2 text-[10px] text-muted-foreground">{t("مساعد بالذكاء الاصطناعي وممكن يغلط؛ التفاصيل الأكيدة في صفحة كل عقار.")}</p>
         </div>
       )}
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={t("المساعد الذكي")} title={t("المساعد الذكي")}
-        className="grid size-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-float transition hover:scale-105 active:scale-95">
-        {open ? <X className="size-6" /> : <Sparkles className="size-6 text-teal" />}
+      <button ref={btn} type="button" aria-expanded={open} aria-label={t("فاليو عقار — اسألني")} title={t("اسحبني لأي مكان")}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+        style={pos ? { left: pos.x, top: pos.y } : undefined}
+        className={`fixed z-40 flex touch-none select-none items-center gap-2 rounded-full bg-primary p-1.5 text-primary-foreground sm:pe-4 shadow-float transition-[transform,box-shadow] hover:scale-[1.03] active:cursor-grabbing ${pos ? "" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))] ltr:left-4 rtl:right-4 lg:bottom-6"} cursor-grab`}>
+        <span className="relative grid size-11 place-items-center rounded-full bg-white/10">
+          {open ? <X className="size-5" /> : <Sparkles className="size-5 text-teal" />}
+          <span className="absolute -bottom-0.5 size-3 rounded-full border-2 border-primary bg-emerald-400 ltr:-right-0.5 rtl:-left-0.5" />
+        </span>
+        <span className="hidden text-start leading-tight sm:block">
+          <span className="block text-sm font-extrabold">{t("فاليو عقار")}</span>
+          <span className="block text-[10px] opacity-75">{t("اسألني · بيرد في ثواني")}</span>
+        </span>
       </button>
     </div>
   );
