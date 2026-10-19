@@ -154,7 +154,7 @@ export function SiteAssistant() {
           <div className="flex items-center gap-2 bg-primary px-4 py-3 text-primary-foreground">
             <Sparkles className="size-5 text-teal" />
             <div className="flex-1">
-              <p className="text-sm font-extrabold">{t("فاليو عقار")}</p>
+              <p className="text-sm font-extrabold">{t("مساعد فاليو عقار")}</p>
               <p className="flex items-center gap-1.5 text-[11px] opacity-80"><span className="size-2 rounded-full bg-emerald-400" />{t("متاح دلوقتي · بيرد في ثواني")}</p>
             </div>
             {/* WhatsApp lives here now, so the page keeps a single floating button. */}
@@ -194,18 +194,18 @@ export function SiteAssistant() {
           <p className="px-3 pb-2 text-[10px] text-muted-foreground">{t("مساعد بالذكاء الاصطناعي وممكن يغلط؛ التفاصيل الأكيدة في صفحة كل عقار.")}</p>
         </div>
       )}
-      <button ref={btn} type="button" aria-expanded={open} aria-label={t("فاليو عقار — اسألني")} title={t("اسحبني لأي مكان")}
+      <button ref={btn} type="button" aria-expanded={open} aria-label={t("مساعد فاليو عقار — اسألني عن أي عقار")} title={t("اسحبني لأي مكان")}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={() => { drag.current = null; }}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
         style={pos ? { left: pos.x, top: pos.y } : undefined}
-        className={`fixed z-40 flex touch-none select-none items-center gap-2 rounded-full bg-primary p-1.5 text-primary-foreground sm:pe-4 shadow-float transition-[transform,box-shadow] hover:scale-[1.03] active:cursor-grabbing ${pos ? "" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))] ltr:left-4 rtl:right-4 lg:bottom-6"} cursor-grab`}>
+        className={`fixed z-40 flex touch-none select-none items-center gap-2 rounded-full bg-primary py-1.5 ps-1.5 pe-3.5 text-primary-foreground sm:pe-4 shadow-float transition-[transform,box-shadow] hover:scale-[1.03] active:cursor-grabbing ${pos ? "" : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))] ltr:left-4 rtl:right-4 lg:bottom-6"} cursor-grab`}>
         <span className="relative grid size-11 place-items-center rounded-full bg-white/10">
           {open ? <X className="size-5" /> : <Sparkles className="size-5 text-teal" />}
           <span className="absolute -bottom-0.5 size-3 rounded-full border-2 border-primary bg-emerald-400 ltr:-right-0.5 rtl:-left-0.5" />
         </span>
-        <span className="hidden text-start leading-tight sm:block">
-          <span className="block text-sm font-extrabold">{t("فاليو عقار")}</span>
-          <span className="block text-[10px] opacity-75">{t("اسألني · بيرد في ثواني")}</span>
+        <span className="text-start leading-tight">
+          <span className="block text-xs font-extrabold sm:text-sm">{t("مساعد فاليو عقار")}</span>
+          <span className="block text-[10px] opacity-75">{t("اسألني عن أي عقار")}</span>
         </span>
       </button>
     </div>
