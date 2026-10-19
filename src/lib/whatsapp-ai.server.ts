@@ -101,7 +101,8 @@ type Part = { text?: string; functionCall?: { name: string; args?: Record<string
 type Content = { role: "user" | "model"; parts: Part[] };
 
 async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
-  const key = process.env["GEMINI_API_KEY"];
+  // GEMINI_APT_KEY: the name the secret was first saved under (typo) — accepted so it works without re-entering the key.
+  const key = process.env["GEMINI_API_KEY"] || process.env["GEMINI_APT_KEY"];
   if (!key) return null;
   const model = process.env["GEMINI_MODEL"] || "gemini-2.5-flash";
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
