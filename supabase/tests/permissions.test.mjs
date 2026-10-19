@@ -1737,4 +1737,21 @@ commit;`);
     return sys(`select wa_bot_ai from public.app_settings where id = 1`);
   }, (r) => r[0].wa_bot_ai === false);
   await as(U.admin, `update public.app_settings set wa_bot_ai = true where id = 1`);
+
+  // Release 37: «تعليمات المساعد».
+  await expectOk("the admin writes the assistant's instructions", async () => {
+    await as(U.admin, `update public.assistant_settings set instructions = 'مواعيدنا من 10 لـ 10', welcome = 'أهلاً' where id = 1`);
+    return as(U.admin, `select instructions, welcome, floating from public.assistant_settings where id = 1`);
+  }, (r) => r[0].instructions === "مواعيدنا من 10 لـ 10" && r[0].welcome === "أهلاً" && r[0].floating === "assistant");
+  await expectOk("staff and brokers can't read them", async () => {
+    const a = await as(U.staff, `select count(*)::int n from public.assistant_settings`);
+    const b = await as(U.owner, `select count(*)::int n from public.assistant_settings`);
+    return [{ n: a[0].n + b[0].n }];
+  }, (r) => r[0].n === 0);
+  await expectErr("visitors can't read them", () => as(null, `select instructions from public.assistant_settings`));
+  await expectOk("a broker can't change them", async () => {
+    await as(U.owner, `update public.assistant_settings set instructions = 'x' where id = 1`).catch(() => null);
+    return sys(`select instructions from public.assistant_settings where id = 1`);
+  }, (r) => r[0].instructions === "مواعيدنا من 10 لـ 10");
+  await expectErr("only one settings row", () => as(U.admin, `insert into public.assistant_settings (id) values (2)`));
 }

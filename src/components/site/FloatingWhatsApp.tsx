@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { assistantInfo } from "@/lib/assistant.functions";
 import { dbx } from "@/lib/dbx";
 import { X } from "lucide-react";
 import { WHATSAPP_NUMBER, waLink } from "./data";
@@ -37,8 +39,12 @@ export function FloatingWhatsApp() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [hidden, setHidden] = useState(true);
   const number = useFloatingWhatsapp().data || WHATSAPP_NUMBER;
+  // The admin picks the floating button (الإعدادات ← المساعد الذكي). With «فاليو عقار» alone, WhatsApp lives inside it.
+  const info = useServerFn(assistantInfo);
+  const assistant = useQuery({ queryKey: ["assistant-info"], queryFn: () => info(), staleTime: 5 * 60_000 });
   useEffect(() => setHidden(hiddenByVisitor()), []);
-  if (hidden || HIDDEN.some((p) => pathname.startsWith(p))) return null;
+  const mode = assistant.data?.floating;
+  if (hidden || (mode !== "whatsapp" && mode !== "both") || HIDDEN.some((p) => pathname.startsWith(p))) return null;
   const hide = () => {
     try { sessionStorage.setItem(HIDE_KEY, "1"); } catch { /* storage blocked: hidden until the page reloads */ }
     setHidden(true);

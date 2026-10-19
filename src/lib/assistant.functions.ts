@@ -23,6 +23,13 @@ const input = z.object({
 
 export type AssistantReply = { ok: true; text: string; listings: ListingCard[]; handoff: boolean; request: Record<string, string | number>; ai: boolean } | { ok: false; error: string };
 
+/** Which floating button the site shows, and the admin's greeting (empty = built-in). */
+export const assistantInfo = createServerFn({ method: "GET" }).handler(async () => {
+  const { getAssistantSettings } = await import("./assistant-settings.server");
+  const s = await getAssistantSettings();
+  return { floating: s.floating, welcome: s.welcome };
+});
+
 export const askAssistant = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data }): Promise<AssistantReply> => {

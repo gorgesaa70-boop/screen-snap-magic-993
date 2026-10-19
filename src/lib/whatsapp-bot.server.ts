@@ -95,6 +95,8 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
 
   const hours = settings?.work_start_hour != null ? { start: settings.work_start_hour as number, end: settings.work_end_hour as number } : DEFAULT_HOURS;
   const workTime = isWorkTime(hours, now);
+  const { getAssistantSettings } = await import("./assistant-settings.server");
+  const greeting = (await getAssistantSettings()).welcome;
   const firstToday = now.getTime() - prevInbound > 24 * HOUR;
   const isMedia = /^\([a-z_]+\)$/.test(text);
 
@@ -117,10 +119,10 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
 
   // 5) Greeting / first message of the day → welcome + menu.
   if (isMedia || (firstToday && (isGreetingOnly(text) || text.length < 3))) {
-    await sendAndRecord(db, m.phone, firstToday ? welcome(m.name) : REPLY.fallback, "bot");
+    await sendAndRecord(db, m.phone, firstToday ? welcome(m.name, greeting) : REPLY.fallback, "bot");
     return;
   }
-  if (isGreetingOnly(text)) { await sendAndRecord(db, m.phone, welcome(m.name), "bot"); return; }
+  if (isGreetingOnly(text)) { await sendAndRecord(db, m.phone, welcome(m.name, greeting), "bot"); return; }
 
   // 6) Free text → AI (when on and configured), else the fixed reply.
   if (settings?.wa_bot_ai !== false) {
@@ -143,7 +145,7 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
     }
   }
   // AI off / unavailable: welcome once a day, otherwise one "we got it" per 6 hours (no repeating ourselves).
-  if (firstToday) { await sendAndRecord(db, m.phone, welcome(m.name), "bot"); return; }
+  if (firstToday) { await sendAndRecord(db, m.phone, welcome(m.name, greeting), "bot"); return; }
   const lastOut = conv?.last_outbound_at ? new Date(conv.last_outbound_at as string).getTime() : 0;
   if (now.getTime() - lastOut > 6 * HOUR) await sendAndRecord(db, m.phone, REPLY.fallback, "bot");
 }

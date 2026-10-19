@@ -48,8 +48,10 @@ export function isGreetingOnly(text: string) {
 
 export const MENU = "اكتب رقم:\n1️⃣ أدوّر على عقار\n2️⃣ أعرض عقاري للبيع أو الإيجار\n3️⃣ أكلّم حد من الفريق";
 
-export function welcome(name: string | null) {
+/** custom = the admin's greeting from «تعليمات المساعد» (replaces the middle text; the menu always follows). */
+export function welcome(name: string | null, custom = "") {
   const hi = name ? `أهلاً ${name.split(/\s+/)[0]} 👋` : "أهلاً بيك 👋";
+  if (custom.trim()) return `${hi}\n${custom.trim()}\n\n${MENU}`;
   return `${hi}\nده واتساب *فاليو عقار* — عقارات برج العرب والساحل الشمالي.\n\nتقدر تكتبلي إنت بتدوّر على إيه بكلامك (مثلاً: شقة إيجار في برج العرب لحد 8000)، أو تبعت كود الإعلان.\n\n${MENU}`;
 }
 
