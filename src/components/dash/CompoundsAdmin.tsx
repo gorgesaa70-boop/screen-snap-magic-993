@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, LayoutDashboard, ArrowLeftRight, Star, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,12 +23,15 @@ export function CompoundsAdmin({ brokers }: { brokers: BrokerRow[] }) {
       if (error) throw error; return data as Row[];
     },
   });
+  const nav = useNavigate();
   const [editing, setEditing] = useState<Row | "new" | null>(null);
   const [owner, setOwner] = useState("");
   const [search, setSearch] = useState("");
   const reload = () => q.refetch();
 
-  if (editing) return <CompoundForm developers={developers} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
+  // A new compound opens its dashboard (units map), like for developers.
+  if (editing) return <CompoundForm developers={developers} initial={editing === "new" ? null : editing} onCancel={() => setEditing(null)}
+    onDone={(id) => { const isNew = editing === "new"; setEditing(null); reload(); if (isNew) void nav({ to: "/my-compounds/$id", params: { id } }); }} />;
 
   async function update(c: Row, patch: Partial<CompoundRow>, ok: string) {
     const { error } = await supabase.from("compounds").update(patch).eq("id", c.id);
