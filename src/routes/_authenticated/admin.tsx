@@ -142,7 +142,8 @@ function AdminPage() {
         <p className="mb-4 rounded-xl border border-teal/40 bg-teal-soft px-4 py-2 text-sm font-bold text-primary">👁️ القسم ده عندك «عرض بس»؛ أي تعديل محتاج صلاحية من الأدمن.</p>
       )}
       {!d || !visible(tab) ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
-        <>
+        // «يشوف بس»: every button and field inside is disabled (the database refuses the change anyway).
+        <fieldset disabled={viewOnly} className="m-0 min-w-0 border-0 p-0">
           {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: !!me?.isAdmin, companyId: null }} />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
@@ -169,7 +170,7 @@ function AdminPage() {
           {tab === "accounts" && <AccountsAdmin />}
           {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
           {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
-        </>
+        </fieldset>
       )}
     </DashShell>
   );

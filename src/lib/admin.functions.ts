@@ -9,6 +9,22 @@ async function assertAdmin(context: Ctx) {
   if (error || !data) throw new Error("غير مصرح لك بهذا الإجراء");
 }
 
+/** The admin, or an employee granted «يعدّل» on that section (release 38; admin only before it). Returns whether it's the admin. */
+async function assertCan(context: Ctx, section: string): Promise<boolean> {
+  const admin = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (admin.data) return true;
+  const can = await context.supabase.rpc("staff_can", { _section: section, _need: "edit" });
+  if (can.error || !can.data) throw new Error("غير مصرح لك بهذا الإجراء");
+  return false;
+}
+
+/** Employees never block or delete the admin or other Value Aqar staff. */
+async function assertNotTeam(userId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", userId);
+  if ((data ?? []).some((r) => r.role === "admin" || r.role === "staff")) throw new Error("الحساب ده تبع فريق فاليو عقار، والأدمن بس يقدر يغيّره");
+}
+
 const createSchema = z.object({
   name: z.string().trim().min(2).max(100),
   email: z.string().trim().email().max(255),
@@ -25,7 +41,7 @@ export const createBrokerAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "brokers");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     let userId: string;
@@ -65,7 +81,7 @@ export const setBrokerActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ brokerId: z.string().uuid(), active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "brokers");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: b, error } = await supabaseAdmin.from("brokers").update({ is_active: data.active, suspended_at: data.active ? null : new Date().toISOString() }).eq("id", data.brokerId).select("user_id").single();
     if (error) return { ok: false as const, error: error.message };
@@ -82,8 +98,9 @@ export const setAccountBlocked = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ userId: z.string().uuid(), blocked: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = context as Ctx;
-    await assertAdmin(ctx);
+    const callerIsAdmin = await assertCan(ctx, "accounts");
     if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش توقف حسابك" };
+    if (!callerIsAdmin) await assertNotTeam(data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: data.userId, _role: "admin" });
     if (isAdmin) return { ok: false as const, error: "مينفعش توقف حساب أدمن" };
@@ -102,8 +119,9 @@ export const deleteAccountAsAdmin = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = context as Ctx;
-    await assertAdmin(ctx);
+    const isAdmin = await assertCan(ctx, "accounts");
     if (data.userId === ctx.userId) return { ok: false as const, error: "مينفعش تمسح حسابك من هنا" };
+    if (!isAdmin) await assertNotTeam(data.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: r, error } = await supabaseAdmin.rpc("prepare_account_deletion", { _uid: data.userId, _by: ctx.userId });
     if (error) return { ok: false as const, error: error.message };
@@ -204,7 +222,7 @@ const BACKUP_TABLES = [
 export const exportBackup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "health");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic table loop
     const db = supabaseAdmin as any;
@@ -230,7 +248,7 @@ export const exportBackup = createServerFn({ method: "POST" })
 export const notifySearchEngines = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await assertAdmin(context as Ctx);
+    await assertCan(context as Ctx, "health");
     const { INDEXNOW_KEY, absoluteUrl, publicPages } = await import("@/lib/site-urls");
     const { SITE_URL } = await import("@/lib/seo");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

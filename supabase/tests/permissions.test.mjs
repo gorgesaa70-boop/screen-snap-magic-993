@@ -17,7 +17,7 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
     ('${U.staff}','201000000004'), ('${U.outsider}','201000000005'), ('${U.dev}','201000000006'), ('${U.applicant}','201000000007')`);
   await sys(`insert into public.user_roles (user_id, role) values ('${U.admin}','admin'), ('${U.staff}','staff')`);
   // Release 38: employees only get what the admin grants. The older checks below assume a full-access employee.
-  await sys(`insert into public.staff_permissions (user_id, perms) values ('${U.staff}', '{"leads":"edit","leads_scope":"all","commissions":"view","deals":"view","wa_inbox":"edit"}')`);
+  await sys(`insert into public.staff_permissions (user_id, perms) values ('${U.staff}', '{"leads":"edit","leads_scope":"all","commissions":"view","deals":"view","wa_inbox":"edit","brokers":"view"}')`);
   await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values
     ('${CO}','${U.owner}','co','شركة تسويق','201000000001','company', true),
     ('${DEV}','${U.dev}','dev','شركة تطوير','201000000006','developer', true)`);
@@ -1799,4 +1799,43 @@ commit;`);
     await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
     return seen(S2);
   }, (r) => r.length === 0);
+
+  // Release 38, phase 2: a granted section works in the database.
+  const grant = (perms) => as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '${JSON.stringify(perms)}') on conflict (user_id) do update set perms = excluded.perms`);
+  await expectErr("without «المولات» an employee can't add a mall", () => as(S2, `insert into public.malls (name, kind) values ('مول موظف', 'commercial')`));
+  await expectOk("with «المولات: يعدّل» they can", async () => {
+    await grant({ malls: "edit" });
+    await as(S2, `insert into public.malls (name, kind) values ('مول موظف', 'commercial')`);
+    return sys(`select count(*)::int n from public.malls where name = 'مول موظف'`);
+  }, (r) => r[0].n === 1);
+  await expectErr("«يشوف» isn't enough to change", async () => {
+    await grant({ malls: "view" });
+    return as(S2, `insert into public.malls (name, kind) values ('مول تاني', 'commercial')`);
+  });
+  await expectOk("«المناطق: يعدّل» adds a place", async () => {
+    await grant({ locations: "edit" });
+    await as(S2, `insert into public.locations (city, area, status) values ('مدينة موظف', 'حي موظف', 'approved')`);
+    return sys(`select count(*)::int n from public.locations where city = 'مدينة موظف'`);
+  }, (r) => r[0].n === 1);
+  await expectOk("but can't change a service plan (not granted)", async () => {
+    await as(S2, `update public.service_plans set name = 'باقة الموظف'`).catch(() => null);
+    return sys(`select count(*)::int n from public.service_plans where name = 'باقة الموظف'`);
+  }, (r) => r[0].n === 0);
+  await expectOk("settings: an employee changes only their section's columns", async () => {
+    await grant({ closed: "edit" });
+    await as(S2, `update public.app_settings set site_closed_message = 'صيانة' where id = 1`);
+    return sys(`select site_closed_message from public.app_settings where id = 1`);
+  }, (r) => r[0].site_closed_message === "صيانة");
+  await expectErr("…not another section's (the WhatsApp number)", () => as(S2, `update public.app_settings set floating_whatsapp = '201012345678' where id = 1`));
+  await expectErr("…nor admin-only settings", () => as(S2, `update public.app_settings set show_demo = true where id = 1`));
+  await expectErr("accounts list needs «الحسابات والشركات»", () => as(S2, `select count(*) from public.admin_brokers()`));
+  await expectOk("…and works with it", async () => {
+    await grant({ brokers: "view" });
+    return as(S2, `select count(*)::int n from public.admin_brokers()`);
+  }, (r) => r[0].n > 0);
+  await expectErr("an employee never edits the team or permissions, whatever they hold", async () => {
+    await grant({ ...Object.fromEntries(["leads","malls","brokers","accounts","plans","assistant","announce","closed","wa","app","health","audit"].map((k) => [k, "edit"])) });
+    return as(S2, `update public.staff_permissions set perms = '{"leads":"edit"}' where user_id = '${S2}' returning user_id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; });
+  });
+  await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
 }
