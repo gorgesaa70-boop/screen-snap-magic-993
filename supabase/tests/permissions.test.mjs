@@ -16,6 +16,8 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
     ('${U.admin}','201000000010'), ('${U.owner}','201000000001'), ('${U.sales}','201000000002'), ('${U.manager}','201000000003'),
     ('${U.staff}','201000000004'), ('${U.outsider}','201000000005'), ('${U.dev}','201000000006'), ('${U.applicant}','201000000007')`);
   await sys(`insert into public.user_roles (user_id, role) values ('${U.admin}','admin'), ('${U.staff}','staff')`);
+  // Release 38: employees only get what the admin grants. The older checks below assume a full-access employee.
+  await sys(`insert into public.staff_permissions (user_id, perms) values ('${U.staff}', '{"leads":"edit","leads_scope":"all","commissions":"view","deals":"view","wa_inbox":"edit"}')`);
   await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values
     ('${CO}','${U.owner}','co','شركة تسويق','201000000001','company', true),
     ('${DEV}','${U.dev}','dev','شركة تطوير','201000000006','developer', true)`);
@@ -1754,4 +1756,47 @@ commit;`);
     return sys(`select instructions from public.assistant_settings where id = 1`);
   }, (r) => r[0].instructions === "مواعيدنا من 10 لـ 10");
   await expectErr("only one settings row", () => as(U.admin, `insert into public.assistant_settings (id) values (2)`));
+
+  // Release 38: per-employee permissions.
+  const S2 = "00000000-0000-0000-0000-0000000005a8";
+  await sys(`insert into auth.users (id, phone) values ('${S2}','201000000099')`);
+  await sys(`insert into public.user_roles (user_id, role) values ('${S2}','staff')`);
+  const mine = (await sys(`insert into public.leads (name, phone) values ('عميل الموظف','01033334444') returning id`))[0].id;
+  await as(U.admin, `update public.leads set assigned_staff_id = '${S2}' where id = '${mine}'`);
+  const other = (await sys(`insert into public.leads (name, phone) values ('عميل تاني','01055556666') returning id`))[0].id;
+  const seen = (uid) => as(uid, `select id from public.leads where id in ('${mine}','${other}')`);
+  await expectOk("a new employee sees no customers at all", () => seen(S2), (r) => r.length === 0);
+  await expectOk("…and no permissions", () => as(S2, `select public.my_permissions() p`), (r) => JSON.stringify(r[0].p) === "{}");
+  await expectErr("an employee can't grant themselves permissions", () => as(S2, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '{"leads":"edit"}')`));
+  await expectOk("the admin grants «customers: view, only mine»", async () => {
+    await as(U.admin, `insert into public.staff_permissions (user_id, perms) values ('${S2}', '{"leads":"view","leads_scope":"mine"}')`);
+    return seen(S2);
+  }, (r) => r.length === 1 && r[0].id === mine);
+  await expectOk("view only: the employee can't change their customer", async () => {
+    await as(S2, `update public.leads set notes = 'x' where id = '${mine}'`);
+    return sys(`select notes from public.leads where id = '${mine}'`);
+  }, (r) => r[0].notes !== "x");
+  await expectOk("«all customers» shows the rest too", async () => {
+    await as(U.admin, `update public.staff_permissions set perms = '{"leads":"edit","leads_scope":"all"}' where user_id = '${S2}'`);
+    return seen(S2);
+  }, (r) => r.length === 2);
+  await expectOk("edit: the employee updates a customer", async () => {
+    await as(S2, `update public.leads set notes = 'اتصلت بيه' where id = '${other}'`);
+    return sys(`select notes from public.leads where id = '${other}'`);
+  }, (r) => r[0].notes === "اتصلت بيه");
+  await expectOk("no money permission: commissions and agreements are hidden", () => as(S2, `select (select count(*) from public.commissions)::int c, (select count(*) from public.company_agreements)::int a`), (r) => r[0].c === 0 && r[0].a === 0);
+  await expectOk("no deals permission: deals are hidden even on visible customers", () => as(S2, `select count(*)::int n from public.deals`), (r) => r[0].n === 0);
+  await expectErr("an employee never opens a deal", () => as(S2, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة')`));
+  await expectErr("…even with the deals permission", async () => {
+    await as(U.admin, `update public.staff_permissions set perms = perms || '{"deals":"edit"}' where user_id = '${S2}'`);
+    return as(S2, `insert into public.deals (lead_id, unit_desc) values ('${other}', 'شقة')`);
+  });
+  await expectOk("staff_can follows the grant (view / edit)", () => as(S2, `select public.staff_can('leads','edit') le, public.staff_can('review','view') rv`), (r) => r[0].le === true && r[0].rv === false);
+  await expectOk("the admin can do everything", () => as(U.admin, `select public.staff_can('anything','edit') a, public.my_permissions() p`), (r) => r[0].a === true && r[0].p["*"] === "edit");
+  await expectOk("no WhatsApp permission: the inbox is hidden", () => as(S2, `select count(*)::int n from public.wa_conversations`), (r) => r[0].n === 0);
+  await expectErr("…and it can't be marked read", () => as(S2, `select public.wa_mark_read('201099999999')`));
+  await expectOk("removing the row takes everything away", async () => {
+    await as(U.admin, `delete from public.staff_permissions where user_id = '${S2}'`);
+    return seen(S2);
+  }, (r) => r.length === 0);
 }

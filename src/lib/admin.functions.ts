@@ -167,6 +167,9 @@ export const removeStaff = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", "staff");
     if (error) return { ok: false as const, error: error.message };
+    // Their permissions go too, so re-adding the same person starts from nothing (release 38; harmless before it).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabaseAdmin as any).from("staff_permissions").delete().eq("user_id", data.userId);
     return { ok: true as const };
   });
 

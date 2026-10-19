@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { Perms } from "@/lib/permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { dbx } from "@/lib/dbx";
 
@@ -46,9 +47,15 @@ export function useMe() {
         const m = (await dbx.rpc("my_membership")).data?.[0];
         if (m && m.company_id === account.id) { broker = account; memberRole = m.role as MemberRole; memberName = m.member_name; }
       }
+      // Per-employee permissions (release 38); the admin gets {"*": "edit"}. Before release 38: admin only.
+      let perms: Perms = {};
+      if (list.includes("admin") || list.includes("staff")) {
+        const p = await (supabase as unknown as SupabaseClient<any>).rpc("my_permissions"); // eslint-disable-line @typescript-eslint/no-explicit-any
+        perms = p.error ? (list.includes("admin") ? { "*": "edit", leads_scope: "all" } : {}) : ((p.data ?? {}) as Perms);
+      }
       return {
         isAdmin: list.includes("admin"), isStaff: list.includes("staff"), isBroker: list.includes("broker"),
-        broker, memberRole, memberName, adminExists: !!adminExists.data, provider,
+        broker, memberRole, memberName, adminExists: !!adminExists.data, provider, perms,
       };
     },
   });

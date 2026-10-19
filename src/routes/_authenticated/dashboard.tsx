@@ -1,3 +1,4 @@
+import { can, hasAny } from "@/lib/permissions";
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -51,10 +52,20 @@ function Dashboard() {
             <>
               <ShieldCheck className="size-10 text-teal" />
               <p className="mt-3 font-bold text-primary">أنت في فريق فاليو عقار.</p>
-              <p className="mt-2 text-sm text-muted-foreground">تقدر تتابع كل طلبات العملاء وتوزّعها على الوسطاء والشركات.</p>
-              <Link to="/inquiries" className={`${btnPrimary} mt-5`}>طلبات العملاء</Link>
-              <p className="mt-6 mb-2 font-bold text-primary">الكمبوندات اللي عليك</p>
-              <CompoundsHub />
+              {hasAny(me.perms) ? (
+                <>
+                  <p className="mt-2 text-sm text-muted-foreground">أقسام شغلك في «لوحة العمل»، حسب الصلاحيات اللي حددها الأدمن.</p>
+                  <Link to="/admin" className={`${btnPrimary} mt-5`}>افتح لوحة العمل</Link>
+                </>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك من «فريق فاليو عقار».</p>
+              )}
+              {can(me.perms, "compounds") && (
+                <>
+                  <p className="mt-6 mb-2 font-bold text-primary">الكمبوندات اللي عليك</p>
+                  <CompoundsHub />
+                </>
+              )}
             </>
           ) : !me.adminExists ? (
             <>

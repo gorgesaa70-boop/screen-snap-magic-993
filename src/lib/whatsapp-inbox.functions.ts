@@ -6,12 +6,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Ctx = { supabase: any; userId: string }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+/** The admin, or an employee granted «محادثات الواتساب: يعدّل» (release 38). */
 async function assertTeam(context: Ctx) {
-  const [admin, staff] = await Promise.all([
-    context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-    context.supabase.rpc("is_staff"),
-  ]);
-  if (!admin.data && !staff.data) throw new Error("غير مصرح لك بهذا الإجراء");
+  const can = await context.supabase.rpc("staff_can", { _section: "wa_inbox", _need: "edit" });
+  if (!can.error) { if (!can.data) throw new Error("غير مصرح لك بهذا الإجراء"); return; }
+  // Before release 38: admin only.
+  const admin = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  if (!admin.data) throw new Error("غير مصرح لك بهذا الإجراء");
 }
 
 const phone = z.string().regex(/^[0-9]{8,15}$/);
