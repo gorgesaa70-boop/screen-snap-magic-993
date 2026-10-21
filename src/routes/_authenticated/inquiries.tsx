@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
+import { can } from "@/lib/permissions";
 import { DashShell } from "@/components/dash/DashShell";
 import { LeadsBoard } from "@/components/dash/LeadsBoard";
 import { NewLeadForm } from "@/components/dash/NewLeadForm";
@@ -81,6 +82,7 @@ function InquiriesPage() {
           list={leads.data ?? []}
           brokers={seeAll ? (brokers.data ?? []) : undefined}
           reload={() => leads.refetch()}
+          canDelete={can(me?.perms, "leads", "edit")}
         />
         </div>
       )}

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Stat, inputCls, btnOutline } from "@/components/site/ui";
 import { DeadlineBadge } from "./Deadline";
+import { LeadsBulkDelete } from "./LeadsBulkDelete";
 import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow, leadKindLabel } from "@/components/site/data";
 
 export type LeadWithProp = {
@@ -222,7 +223,7 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
   );
 }
 
-export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; brokers?: BrokerRow[] | undefined; reload: () => void }) {
+export function LeadsBoard({ list, brokers, reload, canDelete = false }: { list: LeadWithProp[]; brokers?: BrokerRow[] | undefined; reload: () => void; canDelete?: boolean }) {
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState<"all" | "request" | "inquiry" | "listing">("all");
   const [stage, setStage] = useState<string>("all");
@@ -325,6 +326,8 @@ export function LeadsBoard({ list, brokers, reload }: { list: LeadWithProp[]; br
           <button className={btnOutline} disabled={!filtered.length} onClick={() => exportCsv(filtered, brokers)}><Download className="size-4" />تصدير CSV</button>
         </div>
       </div>
+
+      {canDelete && <LeadsBulkDelete list={filtered} onDone={reload} />}
 
       {filtered.length === 0 ? (
         <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">
