@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Store, MapPin, Maximize, Layers, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
+import { ContactActions } from "@/components/site/ContactActions";
 import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits, mallImages } from "@/components/site/malls";
 import { AvailabilityBadge, availabilityOf, byAvailability } from "@/components/site/availability";
@@ -105,7 +106,7 @@ function MallPage() {
                   </div>
                   {u.description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{u.description}</p>}
                   <p className="mt-3 text-lg font-extrabold text-primary">{formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">{t("ج.م")}{u.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
-                  <a href={waLink(b?.whatsapp || b?.phone, t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: m.name }))} target="_blank" rel="noreferrer" className="mt-3 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("استفسر واتساب")}</a>
+                  <ContactActions who={b} message={t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: m.name })} waLabel="استفسر واتساب" className="mt-3" />
                 </div>
               </div>
             );
