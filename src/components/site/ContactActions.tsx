@@ -1,9 +1,21 @@
 import { MessageCircle, Phone } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { waLink } from "@/components/site/data";
+import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+
+/** A saved number as people dial it: Egyptian mobiles as 01XXXXXXXXX (saved 20…/+20… too), others as +<digits>. */
+function dialable(raw: string) {
+  const d = raw.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").replace(/^00/, "");
+  const eg = d.match(/^(?:20|0)?(1[0125]\d{8})$/);
+  if (eg) return "0" + eg[1];
+  return d ? (d.startsWith("0") ? d : "+" + d) : null;
+}
 
 /** The number customers can reach an account on: its phone, or its WhatsApp when no phone is saved. */
-export const contactNumber = (c?: { phone?: string | null; whatsapp?: string | null } | null) => c?.phone || c?.whatsapp || null;
+export const contactNumber = (c?: { phone?: string | null; whatsapp?: string | null } | null) => {
+  const raw = c?.phone || c?.whatsapp;
+  return raw ? dialable(raw) : null;
+};
 
 /**
  * WhatsApp button for an account, plus the number and a call button when the database returned it

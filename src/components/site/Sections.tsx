@@ -1,5 +1,5 @@
 import { cleanPhone } from "@/lib/phone";
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
+import { contactNumber } from "./ContactActions";
 import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, listingMessage, WHATSAPP_NUMBER, TYPES_FOR, CITIES, CITY_NAMES, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property, useLocations } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
@@ -84,6 +85,11 @@ function DetailsLink({ p, className }: { p: Property; className: string }) {
 
 export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string | null }) {
   useLang();
+  // The listing's account, from the shared (cached) brokers list: its number is there only if the admin opened it up.
+  const { data: brokers } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers, staleTime: 60_000 });
+  const owner = p.brokerId ? brokers?.find((b) => b.id === p.brokerId) : undefined;
+  const num = contactNumber(owner);
+  const wa = whatsapp ?? (owner?.whatsapp || owner?.phone);
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
@@ -123,10 +129,15 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
           <DetailsLink p={p} className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]" />
-          <a href={waLink(whatsapp, listingMessage(p))} target="_blank" rel="noreferrer"
+          <a href={waLink(wa, listingMessage(p))} target="_blank" rel="noreferrer"
             className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
             <MessageCircle className="size-4 shrink-0" /> {tr("واتساب")}
           </a>
+          {num && (
+            <a href={`tel:${num}`} className="col-span-2 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal text-sm font-bold text-accent-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
+              <Phone className="size-4 shrink-0" />{tr("اتصال")} <span dir="ltr">{num}</span>
+            </a>
+          )}
         </div>
       </div>
     </article>
