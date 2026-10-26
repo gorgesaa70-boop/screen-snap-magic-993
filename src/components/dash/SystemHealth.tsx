@@ -163,7 +163,7 @@ function SearchEngines() {
   );
 }
 
-/** One pass over older listings: each uploaded photo gets a 640px card copy (new uploads get one automatically). */
+/** One pass over older listings and account photos: each uploaded photo gets a small copy (new uploads get one automatically). */
 function CardPhotos() {
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState("");
@@ -208,7 +208,25 @@ function CardPhotos() {
           if (e2) failed++;
         }
       }
-      if (!todo.length) toast.info("كل الصور متصغرة خلاص");
+      // Account photos show at ≤ 96px, so a 256px copy is plenty.
+      const { data: accounts } = await supabase.rpc("admin_brokers");
+      const avatars = (accounts ?? []).filter((b) => needs(b.photo_url));
+      for (const [n, b] of avatars.entries()) {
+        setStep(`صور الحسابات ${n + 1} من ${avatars.length}`);
+        try {
+          const res = await fetch(b.photo_url!);
+          if (!res.ok) throw new Error(String(res.status));
+          const blob = await res.blob();
+          const small = await prepareImage(new File([blob], "photo", { type: blob.type || "image/jpeg" }), 256, 0.8);
+          const path = `${uid}/cards/avatar-${b.id}-${Math.random().toString(36).slice(2, 8)}.${extensionFor(small.type)}`;
+          const { error: e3 } = await supabase.from("brokers").update({ photo_url: withThumb(b.photo_url!, await storeImage(path, small)) }).eq("id", b.id);
+          if (e3) throw e3;
+          photos++;
+        } catch {
+          failed++;
+        }
+      }
+      if (!todo.length && !avatars.length) toast.info("كل الصور متصغرة خلاص");
       else if (failed) toast.warning(`اتصغرت ${photos} صورة، و${failed} ماتصغرتش (هتفضل تظهر بحجمها الكامل) — ممكن تضغط تاني`);
       else toast.success(`اتصغرت ${photos} صورة ✓`);
     } catch {
@@ -224,7 +242,7 @@ function CardPhotos() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-bold text-primary">تصغير صور الإعلانات القديمة</p>
-          <p className="text-sm text-muted-foreground">بيعمل نسخة صغيرة من كل صورة اترفعت قبل كده، عشان الكروت تفتح أسرع على الموبايل. الصور الجديدة بتتصغر لوحدها. سيب الصفحة مفتوحة لحد ما يخلص.</p>
+          <p className="text-sm text-muted-foreground">بيعمل نسخة صغيرة من كل صورة اترفعت قبل كده (صور الإعلانات وصور الحسابات)، عشان الكروت تفتح أسرع على الموبايل. الصور الجديدة بتتصغر لوحدها. سيب الصفحة مفتوحة لحد ما يخلص.</p>
         </div>
         <button disabled={busy} onClick={run} className={btnOutline}>{busy ? `بيصغّر... ${step}` : "صغّر الصور"}</button>
       </div>

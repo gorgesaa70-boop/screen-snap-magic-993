@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navbar, MobileBar } from "./Navbar";
 import { Footer } from "./Sections";
+import { thumb } from "@/lib/images";
 
 export const inputCls =
   "h-11 w-full rounded-xl border bg-card px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-teal focus:ring-2 focus:ring-teal/30 disabled:opacity-60";
@@ -58,7 +59,8 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: { id: 
 
 export function Avatar({ name, url, size = "size-14" }: { name: string; url?: string | null; size?: string }) {
   return url ? (
-    <img src={url} alt={name} loading="lazy" className={`${size} shrink-0 rounded-2xl object-cover`} />
+    // The 640px card copy when the upload has one: avatars show at ≤ 96px, the original is up to 1600px.
+    <img src={thumb(url)} alt={name} loading="lazy" decoding="async" className={`${size} shrink-0 rounded-2xl object-cover`} />
   ) : (
     <span className={`${size} grid shrink-0 place-items-center rounded-2xl bg-primary text-lg font-extrabold text-teal`}>
       {name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("")}

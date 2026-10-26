@@ -6,6 +6,9 @@ import { MessagesButton, MessagesMenuLink } from "@/components/site/MessagesButt
 import { NewsTicker } from "@/components/site/NewsTicker";
 import { AnnouncementBar } from "@/components/site/SiteAnnouncement";
 import { ThemeToggle } from "@/components/site/ThemeToggle";
+// Bundled (hashed) so browsers cache them for a year; the copies in public/ stay for links from outside.
+import logoMark from "@/assets/logo-mark.png";
+import logoMarkDark from "@/assets/logo-mark-dark.png";
 import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { useSessionUser } from "@/hooks/useAuth";
@@ -17,11 +20,11 @@ export function Logo({ light = false }: { light?: boolean }) {
     // Brand mark (from the brand sheet) + the name in full, Arabic and English, as live text so it stays sharp.
     <a href="/" className="flex shrink-0 items-center gap-2 max-[359px]:gap-1.5" dir="rtl" aria-label="فاليو عقار — Value Aqar">
       {light ? (
-        <img src="/logo-mark-dark.png" alt="" width={57} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
+        <img src={logoMarkDark} alt="" width={57} height={60} className="h-10 w-auto shrink-0 rounded-lg" />
       ) : (<>
         {/* The navy mark disappears on the dark theme, so dark mode uses the version made for dark backgrounds. */}
-        <img src="/logo-mark.png" alt="" width={53} height={60} className="h-10 w-auto shrink-0 dark:hidden" />
-        <img src="/logo-mark-dark.png" alt="" width={57} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
+        <img src={logoMark} alt="" width={53} height={60} className="h-10 w-auto shrink-0 dark:hidden" />
+        <img src={logoMarkDark} alt="" width={57} height={60} className="hidden h-10 w-auto shrink-0 rounded-lg dark:block" />
       </>)}
       <span className="flex flex-col leading-none">
         <span className={`text-lg font-extrabold max-[359px]:text-base ${light ? "text-primary-foreground" : "text-primary"}`}>فاليو عقار</span>
