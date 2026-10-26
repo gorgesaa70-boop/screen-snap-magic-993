@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { PUBLIC_BROKER_COLS } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, withContacts, type PublicBroker } from "@/components/site/data";
 import { matchesArea } from "@/components/site/AreaFilter";
 import { viaFeed } from "@/lib/feed";
 
@@ -65,7 +65,9 @@ export async function fetchCompound(id: string) {
       .order("is_featured", { ascending: false }).order("created_at", { ascending: false }).limit(24),
   ]);
   if (u.error) throw u.error;
-  return { compound: data, units: u.data, developer: d.data, resale: resale.data ?? [] };
+  // Contacts only come back for a developer the admin opened up (see broker_contacts).
+  const developer = d.data ? ((await withContacts([d.data]))[0] as PublicBroker) : null;
+  return { compound: data, units: u.data, developer, resale: resale.data ?? [] };
 }
 
 /** Kept for the Lovable-era callers: approved broker listings inside a compound. */

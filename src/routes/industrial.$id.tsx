@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Factory, MapPin, Maximize, MessageCircle, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
+import { ContactActions } from "@/components/site/ContactActions";
 import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t } from "@/lib/i18n";
@@ -89,7 +90,7 @@ function Page() {
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">{t("عرض الملف")}</Link></div>
               </div>
-              <a href={waLink(broker.whatsapp || broker.phone, `${t("مرحبًا، أستفسر عن:")} ${p.title}`)} target="_blank" rel="noreferrer" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
+              <ContactActions who={broker} message={`${t("مرحبًا، أستفسر عن:")} ${p.title}`} />
             </div>
           )}
           <Link to="/industrial" className={`${btnOutline} w-full`}>{t("كل العقارات الصناعية")}</Link>

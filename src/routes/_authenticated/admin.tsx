@@ -253,6 +253,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
                   {[b.phone ? `+${b.phone}` : null, b.email, b.contact_person ? `المسؤول: ${b.contact_person}` : null, b.commercial_register ? `س.ت: ${b.commercial_register}` : null, b.address].filter(Boolean).join(" · ") || (b.user_id ? "" : "بدون حساب دخول")}
                 </p>
                 {st === "rejected" && b.review_note && <p className="text-xs text-destructive">سبب الرفض: {b.review_note}</p>}
+                {b.show_contact && !b.phone && !b.whatsapp && <p className="text-xs font-bold text-destructive">⚠️ التواصل ظاهر بس مفيش رقم متسجّل، فمش هيظهر رقم للعملاء. دوس «تعديل» واكتب الموبايل أو الواتساب.</p>}
                 {st === "approved" && (b.whatsapp || b.phone) && !b.is_demo && (
                   <a href={waLink(b.whatsapp || b.phone, welcomeMessage(b.name, b.account_type))} target="_blank" rel="noreferrer" className="inline-block text-xs font-bold text-teal hover:underline">📩 ابعت رسالة الترحيب على واتساب</a>
                 )}

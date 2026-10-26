@@ -13,6 +13,7 @@ import { UNIT_STATUS, fetchProject, projectCover, type UnitRow } from "@/compone
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { ContactActions, contactNumber } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
 
 export const Route = createFileRoute("/projects/$id")({
@@ -124,9 +125,12 @@ function ProjectPage() {
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">
           {developer && (
-            <div className="flex items-center gap-3 rounded-2xl border bg-card p-5">
-              <Avatar name={developer.name} url={developer.photo_url} size="size-12" />
-              <div className="min-w-0"><p className="truncate font-bold text-primary">{developer.name}</p><span className="text-xs font-bold text-muted-foreground">{t("شركة تطوير")}</span></div>
+            <div className="rounded-2xl border bg-card p-5">
+              <div className="flex items-center gap-3">
+                <Avatar name={developer.name} url={developer.photo_url} size="size-12" />
+                <div className="min-w-0"><p className="truncate font-bold text-primary">{developer.name}</p><span className="text-xs font-bold text-muted-foreground">{t("شركة تطوير")}</span></div>
+              </div>
+              {contactNumber(developer) && <ContactActions who={developer} message={t("مرحبًا، أستفسر عن مشروع {name}", { name: p.name })} />}
             </div>
           )}
           <ProjectInquiry project={p.name} projectId={p.id} unit={picked} onClearUnit={() => setPicked(null)} />
@@ -137,7 +141,7 @@ function ProjectPage() {
   );
 }
 
-/** Inquiries go to Value Aqar as a lead — the developer's contact details are not shown. */
+/** Inquiries go to Value Aqar as a lead — the developer's contact details show only if the admin opened them up. */
 function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: string; projectId: string; unit: UnitRow | null; onClearUnit: () => void }) {
   useLang();
   const [name, setName] = useState("");

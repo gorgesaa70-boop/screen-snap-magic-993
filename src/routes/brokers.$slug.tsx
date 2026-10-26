@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin, MessageCircle, Phone, Mail, Facebook } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
+import { contactNumber } from "@/components/site/ContactActions";
 import { PropertyCard } from "@/components/site/Sections";
 import { PUBLIC_BROKER_COLS, citiesOf, useLocations, fetchPublicProperties, waLink, withContacts, type PublicBroker } from "@/components/site/data";
 import { BrokerInquiry } from "@/components/site/BrokerInquiry";
@@ -65,6 +66,7 @@ function BrokerProfile() {
   // Other brokers (account holders and managers) can message this one inside the platform.
   const canMessage = !!b && !b.is_demo && !!me?.broker && me.broker.id !== b.id && (me.memberRole === "owner" || me.memberRole === "manager")
     && !["owner"].includes(me.broker.account_type) && b.account_type !== "owner";
+  const num = contactNumber(b);
   const props = useQuery({ queryKey: ["broker-props", b?.id], enabled: !!b, queryFn: () => b ? fetchPublicProperties(b.id) : Promise.resolve([]) });
   const portfolio = useQuery({ queryKey: ["developer-portfolio", b?.id], enabled: b?.account_type === "developer", queryFn: () => fetchDeveloperPortfolio(b!.id) });
   const pf = portfolio.data;
@@ -87,7 +89,7 @@ function BrokerProfile() {
           <div className="grid grid-cols-2 gap-2 md:flex">
             <a href={waLink(b.whatsapp || b.phone, b.whatsapp || b.phone ? t("مرحبًا {name}، تواصلت معك عبر فاليو عقار", { name: b.name }) : t("مرحبًا فاليو عقار، أستفسر عن الوسيط {name}", { name: b.name }))} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp px-5 text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("واتساب")}</a>
             {canMessage && <DirectMessageButton brokerId={b.id} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-primary-foreground/40 px-5 text-sm font-bold text-primary-foreground hover:bg-primary-foreground/10">{<><MessageCircle className="size-4" />{t("راسل")}</>}</DirectMessageButton>}
-            {b.phone && <a href={`tel:${b.phone}`} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-teal px-5 text-sm font-bold text-accent-foreground hover:brightness-95"><Phone className="size-4" />{t("اتصال")}</a>}
+            {num && <a href={`tel:${num}`} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-teal px-5 text-sm font-bold text-accent-foreground hover:brightness-95"><Phone className="size-4" />{t("اتصال")}</a>}
           </div>
         </div>
       </section>
@@ -96,12 +98,12 @@ function BrokerProfile() {
           <h2 className="font-bold text-primary">{t("نبذة تعريفية")}</h2>
           <p className="text-sm leading-relaxed text-foreground/80">{b.bio || t("لم يضف الوسيط نبذة بعد.")}</p>
           <ul className="space-y-2 border-t pt-4 text-sm">
-            {b.phone && <li className="flex items-center gap-2" dir="ltr"><Phone className="size-4 text-teal" />{b.phone}</li>}
+            {num && <li className="flex items-center gap-2" dir="ltr"><Phone className="size-4 text-teal" />{num}</li>}
             {b.email && <li className="flex items-center gap-2"><Mail className="size-4 text-teal" /><span className="truncate">{b.email}</span></li>}
             {b.facebook && <li><a href={b.facebook} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-teal"><Facebook className="size-4 text-teal" />{t("فيسبوك")}</a></li>}
           </ul>
           {b.is_demo && <p className="text-[11px] text-muted-foreground">{t("* بيانات تجريبية.")}</p>}
-          {!b.phone && <BrokerInquiry brokerId={b.id} brokerName={b.name} />}
+          {!num && <BrokerInquiry brokerId={b.id} brokerName={b.name} />}
         </aside>
         <section>
           {pf && pf.compounds.length + pf.malls.length + pf.projects.length > 0 && (

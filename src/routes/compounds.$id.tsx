@@ -14,6 +14,7 @@ import { UNIT_STATUS, compoundCover, compoundWhere, developerLabel, fetchCompoun
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
+import { ContactActions, contactNumber } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
 
 export const Route = createFileRoute("/compounds/$id")({
@@ -158,12 +159,15 @@ function CompoundPage() {
         </div>
         <aside className="h-fit space-y-4 lg:sticky lg:top-20">
           {dev && (
-            <div className="flex items-center gap-3 rounded-2xl border bg-card p-5">
+            <div className="rounded-2xl border bg-card p-5">
+            <div className="flex items-center gap-3">
               {developer ? <Avatar name={developer.name} url={developer.photo_url} size="size-12" /> : <span className="grid size-12 place-items-center rounded-full bg-secondary"><Building2 className="size-6 text-teal" /></span>}
               <div className="min-w-0">
                 {developer ? <Link to="/brokers/$slug" params={{ slug: developer.slug }} className="block truncate font-bold text-primary hover:text-teal">{dev}</Link> : <p className="truncate font-bold text-primary">{dev}</p>}
                 <span className="text-xs font-bold text-muted-foreground">{t("المطور")}</span>
               </div>
+            </div>
+            {contactNumber(developer) && <ContactActions who={developer} message={t("مرحبًا، أستفسر عن كمبوند {name}", { name: c.name })} />}
             </div>
           )}
           <CompoundInquiry compound={c.name} compoundId={c.id} unit={picked} onClearUnit={() => setPicked(null)} />
@@ -174,7 +178,7 @@ function CompoundPage() {
   );
 }
 
-/** Inquiries go to Value Aqar as a lead linked to the compound (and unit) — the developer's contacts are not shown. */
+/** Inquiries go to Value Aqar as a lead linked to the compound (and unit) — the developer's contacts show only if the admin opened them up. */
 function CompoundInquiry({ compound, compoundId, unit, onClearUnit }: { compound: string; compoundId: string; unit: CompoundUnitRow | null; onClearUnit: () => void }) {
   useLang();
   const [name, setName] = useState("");

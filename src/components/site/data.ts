@@ -347,8 +347,13 @@ export function listingMessage(p: Pick<Property, "id" | "title" | "type" | "stat
   ].filter(Boolean).join("\n");
 }
 
+/** wa.me needs the international form: Egyptian mobiles saved as 01XXXXXXXXX become 201XXXXXXXXX. */
+const waDigits = (num: string) => {
+  const d = num.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").replace(/^00/, "");
+  return /^01[0125]\d{8}$/.test(d) ? "2" + d : d;
+};
 export const waLink = (num: string | null | undefined, text: string) =>
-  `https://wa.me/${(num || WHATSAPP_NUMBER).replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "")}?text=${encodeURIComponent(text)}`;
+  `https://wa.me/${waDigits(num || WHATSAPP_NUMBER)}?text=${encodeURIComponent(text)}`;
 
 export const formatPrice = (n: number) => new Intl.NumberFormat(getLang() === "en" ? "en-US" : "ar-EG").format(n);
 export const formatDate = (d: string) =>
