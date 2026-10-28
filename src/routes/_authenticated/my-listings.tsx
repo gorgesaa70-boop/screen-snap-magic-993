@@ -6,6 +6,7 @@ import { HousePlus, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
+import { ListingStats } from "@/components/dash/ListingStats";
 import { Tabs, btnOutline, btnPrimary } from "@/components/site/ui";
 import { REVIEW, formatPrice, listingTerm } from "@/components/site/data";
 import { thumb } from "@/lib/images";
@@ -17,14 +18,14 @@ export const Route = createFileRoute("/_authenticated/my-listings")({
 
 /** An owner's listings sent from «اعرض عقارك» (matched by the phone they signed in with), with renewal and their plan. */
 function MyListingsPage() {
-  const [tab, setTab] = useState<"listings" | "plan">("listings");
+  const [tab, setTab] = useState<"listings" | "plan" | "stats">("listings");
   const q = useQuery({ queryKey: ["my-owner-listings"], queryFn: async () => { const { data, error } = await supabase.rpc("my_owner_listings"); if (error) throw error; return data; } });
   const plan = useMyListingPlan();
   const reload = () => { q.refetch(); plan.refetch(); };
   return (
     <DashShell title="إعلاناتي" customer>
-      <Tabs value={tab} onChange={setTab} tabs={[{ id: "listings", label: "إعلاناتي" }, { id: "plan", label: "باقتي" }]} />
-      {tab === "plan" ? <ListingPlan /> : (
+      <Tabs value={tab} onChange={setTab} tabs={[{ id: "listings", label: "إعلاناتي" }, { id: "plan", label: "باقتي" }, { id: "stats", label: "الإحصائيات" }]} />
+      {tab === "stats" ? <ListingStats /> : tab === "plan" ? <ListingPlan /> : (
         <div className="max-w-3xl space-y-3">
           {plan.data && <p className="text-sm text-muted-foreground">ظاهر دلوقتي {formatPrice(plan.data.used)} من {formatPrice(plan.data.max)} في باقتك ({plan.data.name}{plan.data.trial ? " — أول شهر مجانًا" : ""}).</p>}
           {plan.data?.expired && (

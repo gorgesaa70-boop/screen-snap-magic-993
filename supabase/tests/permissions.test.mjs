@@ -1305,6 +1305,7 @@ commit;`);
   await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261014100000_plans-and-providers.sql", import.meta.url), "utf8")}\ncommit;`);
   // …and the tiered plans that replaced parts of it.
   await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029100000_tiered-plans.sql", import.meta.url), "utf8")}\ncommit;`);
+  await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029300000_plan-perks.sql", import.meta.url), "utf8")}\ncommit;`);
   const SV = { e1: "00000000-0000-0000-0000-0000000000a1", e2: "00000000-0000-0000-0000-0000000000a2", cust: "00000000-0000-0000-0000-0000000000a3" };
   await sys(`insert into auth.users (id, phone) values ('${SV.e1}','201055500091'), ('${SV.e2}','201055500092'), ('${SV.cust}','201055500093')`);
   const E1 = (await sys(`insert into public.service_providers (kind, category, name, phone, areas) values ('technician','engineering','مهندس أول','201055500091', array['الحي الأول']) returning id`))[0].id;
@@ -1382,6 +1383,7 @@ commit;`);
 
   // The check above re-ran the older plans file; put the tiered plans back.
   await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029100000_tiered-plans.sql", import.meta.url), "utf8")}\ncommit;`);
+  await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029300000_plan-perks.sql", import.meta.url), "utf8")}\ncommit;`);
 
   console.log("\nReferrals between brokers («إحالة عميل»)");
   const RF = { seller: "00000000-0000-0000-0000-0000000000b1", ref: "00000000-0000-0000-0000-0000000000b2", other: "00000000-0000-0000-0000-0000000000b3" };
@@ -1978,4 +1980,69 @@ commit;`);
   const NOB = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values (null, 'إعلان مالك', 1, 'شقة', 'الحي الأول', 'بيع') returning id`))[0].id;
   await sys(`update public.properties set review_status = 'approved' where id = '${NOB}'`);
   await expectOk("a listing with no broker stays with the team", () => sys(`select public.wa_assign_owner('201077777777', '${NOB}') b`), (r) => r[0].b === null);
+
+  console.log("\nListing statistics (showings, views, contacts)");
+  const stProp = (await sys(`select id from public.properties where broker_id='${CO}' and review_status='approved' and not is_demo limit 1`))[0].id;
+  const track = (who, kind, dev, src = "home", ids = [stProp]) => as(who, `select public.track_listing(array[${ids.map((x) => `'${x}'`).join(",")}]::uuid[], '${kind}', '${dev}', '${src}') n`).then((r) => r[0].n);
+  await expectOk("a visitor's showing, view and contact are counted", async () => [await track(null, "impression", "devAAAAAAAA1"), await track(null, "view", "devAAAAAAAA1", "whatsapp"), await track(null, "contact", "devAAAAAAAA1")], (r) => r.every((n) => n === 1));
+  await expectOk("the same device the same day counts once", async () => [await track(null, "view", "devAAAAAAAA1", "google"), await track(null, "view", "devBBBBBBBB2", "google")], (r) => r[0] === 0 && r[1] === 1);
+  await expectOk("the account's own views don't count", () => track(U.owner, "view", "devOWNEROWN1"), (r) => r === 0);
+  await expectOk("bad input is ignored", async () => [await track(null, "like", "devCCCCCCCC3"), await track(null, "view", "x")], (r) => r[0] === 0 && r[1] === 0);
+  await expectErr("visitors can't read the raw counts", () => as(null, `select * from public.listing_stats_daily`).then((r) => { if (!r.length) throw new Error("no rows"); return r; }));
+  await expectOk("the company sees its stats with sources on a full plan", () => as(U.owner, `select public.my_listing_stats(30) s`), (r) => {
+    const st = r[0].s; const tot = st.series.reduce((a, d) => ({ i: a.i + d.impressions, v: a.v + d.views, c: a.c + d.contacts }), { i: 0, v: 0, c: 0 });
+    return st.level === "report" && st.days === 30 && tot.i === 1 && tot.v === 2 && tot.c === 1 && st.sources.whatsapp === 1 && st.sources.google === 1 && st.listings.find((x) => x.id === stProp).views === 2;
+  });
+  await expectOk("a basic plan sees 7 days, without contacts and sources", async () => {
+    await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_1'), 1)`);
+    const st = (await as(U.owner, `select public.my_listing_stats(30) s`))[0].s;
+    await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_3'), 1)`);
+    return st;
+  }, (st) => st.level === "basic" && st.days === 7 && st.series.length === 7 && st.series[6].contacts === null && st.sources === null);
+  await expectErr("sales members don't open the stats", () => as(U.sales, `select public.my_listing_stats(30)`));
+  await expectOk("the team sees every account's totals", () => as(U.admin, `select * from public.admin_listing_stats(30) where broker_id='${CO}'`), (r) => r.length === 1 && Number(r[0].views) === 2);
+  await expectErr("…but other accounts don't", () => as(U.owner, `select * from public.admin_listing_stats(30)`));
+
+
+  console.log("\nPlan perks: homepage pin, «متحقق», «عرض للكل», requests for the team");
+  const pk = (await sys(`select id from public.properties where broker_id='${CO}' and review_status='approved' and not is_demo order by created_at limit 2`)).map((r) => r.id);
+  await sys(`update public.properties set is_featured = false, featured_until = null where broker_id='${CO}'`);
+  await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_1'), 1)`);
+  await expectOk("a company on a plan with the badge shows «متحقق»", () => as(null, `select plan_badge from public.brokers where id='${CO}'`), (r) => r[0].plan_badge === true);
+  await expectOk("the company pins a listing on the homepage for the plan's days", () => as(U.owner, `select public.pin_listing('${pk[0]}') e`).then(async (r) => [Math.round((new Date(r[0].e) - Date.now()) / 864e5), (await as(null, `select is_featured from public.properties where id='${pk[0]}'`))[0].is_featured]),
+    (r) => r[0] === 7 && r[1] === true);
+  await expectErr("…but not a second one on a 1-pin plan", () => as(U.owner, `select public.pin_listing('${pk[1]}')`));
+  await expectErr("someone else can't pin the company's listing", () => as(U.dev, `select public.pin_listing('${pk[1]}')`));
+  await expectErr("a company can't feature a listing directly", () => as(U.owner, `update public.properties set is_featured = true, featured_until = now() + interval '1 year' where id='${pk[1]}' returning is_featured`).then((r) => { if (!r[0]?.is_featured) throw new Error("blocked"); return r; }));
+  await expectErr("«عرض للكل» isn't in this plan", () => as(U.owner, `select public.book_spotlight('${pk[0]}', (now() at time zone 'Africa/Cairo')::date)`));
+  await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_3'), 1)`);
+  await expectOk("on the top plan the company books today's «عرض للكل»", () => as(U.owner, `select public.book_spotlight('${pk[0]}', (now() at time zone 'Africa/Cairo')::date) id`), (r) => !!r[0].id);
+  await expectOk("…every visitor sees it today", () => as(null, `select id from public.today_spotlight()`), (r) => r.length === 1 && r[0].id === pk[0]);
+  await expectErr("…a taken day can't be booked again", () => as(U.dev, `select public.book_spotlight((select id from public.properties where broker_id='${DEV}' and review_status='approved' limit 1), (now() at time zone 'Africa/Cairo')::date)`));
+  await expectOk("…others see the day as taken, without names", () => as(U.dev, `select * from public.spotlight_taken_days((now() at time zone 'Africa/Cairo')::date, (now() at time zone 'Africa/Cairo')::date + 30) d`), (r) => r.length === 1);
+  await expectOk("the second booking of the month works, the third is refused (2 a month)", async () => {
+    const ok = (await as(U.owner, `select public.book_spotlight('${pk[1]}', (now() at time zone 'Africa/Cairo')::date + 1) id`))[0].id;
+    try { await as(U.owner, `select public.book_spotlight('${pk[1]}', (now() at time zone 'Africa/Cairo')::date + 2)`); return [ok, "booked"]; } catch { return [ok, "refused"]; }
+  }, (r) => !!r[0] && r[1] === "refused" || (r[1] === "booked" && new Date().getDate() > 27));
+  await expectOk("the company asks for a post (in the plan) and photos (paid extra); the team is told", async () => {
+    await as(U.owner, `select public.request_plan_task('post', '${pk[0]}', 'بوست للشقة')`);
+    await as(U.owner, `select public.request_plan_task('photos', '${pk[0]}')`);
+    return [await sys(`select kind, price, status from public.plan_tasks where broker_id='${CO}' order by task_no`), await sys(`select count(*)::int n from public.notifications where user_id='${U.admin}' and title like 'طلب تصوير صور — 500%'`)];
+  }, (r) => r[0].length === 2 && r[0][0].kind === "post" && Number(r[0][0].price) === 0 && Number(r[0][1].price) === 500 && r[1][0].n === 1);
+  await expectErr("…posts are limited by the plan (2 a month)", async () => { await as(U.owner, `select public.request_plan_task('post', '${pk[0]}')`); return as(U.owner, `select public.request_plan_task('post', '${pk[0]}')`); });
+  await expectOk("the team schedules a request and the company is told", async () => {
+    const t = (await sys(`select id from public.plan_tasks where broker_id='${CO}' and kind='photos'`))[0].id;
+    await as(U.admin, `select public.admin_update_plan_task('${t}', 'scheduled', (now() at time zone 'Africa/Cairo')::date + 3, 'المصور هيكلمك')`);
+    return [(await sys(`select status from public.plan_tasks where id='${t}'`))[0].status, (await sys(`select count(*)::int n from public.notifications where user_id='${U.owner}' and title like 'طلبك رقم % اتحدد ميعاده%'`))[0].n];
+  }, (r) => r[0] === "scheduled" && r[1] === 1);
+  await expectErr("companies can't update the team's requests", async () => { const t = (await sys(`select id from public.plan_tasks where broker_id='${CO}' limit 1`))[0].id; return as(U.owner, `select public.admin_update_plan_task('${t}', 'done')`); });
+  await expectOk("«مميزات باقتي» shows what's used this month", () => as(U.owner, `select public.my_plan_usage() u`), (r) => r[0].u.pins === 1 && r[0].u.posts === 2 && r[0].u.booked.length >= 1);
+  await expectOk("the top plan can be capped", async () => {
+    await as(U.admin, `update public.app_settings set plan_top_tier_cap = 1`);
+    let res = "allowed";
+    try { await as(U.dev, `select public.request_listing_plan((select id from public.plans where code='co_3'), 1)`); } catch (e) { res = String(e.message); }
+    await as(U.admin, `update public.app_settings set plan_top_tier_cap = null`);
+    return res;
+  }, (r) => r !== "allowed");
+
 }

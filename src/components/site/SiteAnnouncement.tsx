@@ -6,6 +6,8 @@ import { dbx } from "@/lib/dbx";
 import { t, useLang } from "@/lib/i18n";
 import { useInstallApp } from "@/lib/install-app";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useTodaySpotlight } from "@/lib/plan-perks";
+import { formatPrice } from "@/components/site/data";
 
 /** The pinned message the admin writes in لوحة الإدارة ← الإعدادات ← رسالة التثبيت. */
 export type Announcement = {
@@ -82,10 +84,32 @@ export function AnnouncementBar({ fallback }: { fallback: ReactNode }) {
   // localStorage is read after mount so the server render and the first client render match.
   const [closed, setClosed] = useState<string | null | undefined>(undefined);
   useEffect(() => { setClosed(read(BAR_KEY)); }, []);
-  if (closed === undefined || !isLive(a)) return <>{fallback}</>;
+  const spot = <SpotlightBar />;
+  if (closed === undefined || !isLive(a)) return <>{fallback}{spot}</>;
   const v = versionOf(a);
-  if (closed === v) return <>{fallback}</>;
-  return <AnnouncementBarView a={a} onClose={() => { write(BAR_KEY, v); setClosed(v); }} />;
+  if (closed === v) return <>{fallback}{spot}</>;
+  return <><AnnouncementBarView a={a} onClose={() => { write(BAR_KEY, v); setClosed(v); }} />{spot}</>;
+}
+
+const SPOT_KEY = "va-spotlight-closed";
+/** «عرض للكل»: the listing an account booked for today, in a slim bar every visitor sees (closable for the day). */
+function SpotlightBar() {
+  const { dir } = useLang();
+  const q = useTodaySpotlight();
+  const s = q.data;
+  const [closed, setClosed] = useState<string | null | undefined>(undefined);
+  useEffect(() => { setClosed(read(SPOT_KEY)); }, []);
+  if (!s || closed === undefined || closed === s.id) return null;
+  const place = s.area === s.city ? s.city : `${s.area}، ${s.city}`;
+  return (
+    <div dir={dir} className="flex min-h-9 items-center gap-2 bg-[#f2b84b] px-3 py-1.5 text-xs font-bold text-primary sm:text-sm">
+      <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">{t("عرض اليوم")}</span>
+      <a href={`/properties/${s.id}`} className="line-clamp-1 flex-1 hover:underline">{s.title} · {place} · {formatPrice(Number(s.price))} {t("ج.م")}</a>
+      <button type="button" onClick={() => { write(SPOT_KEY, s.id); setClosed(s.id); }} aria-label={t("إغلاق")} title={t("إغلاق")} className="grid size-7 shrink-0 place-items-center rounded-full hover:bg-black/10">
+        <X className="size-4" />
+      </button>
+    </div>
+  );
 }
 
 /** One-time popup for big announcements, on every page except the admin panel (which has its own preview). */

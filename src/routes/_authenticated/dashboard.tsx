@@ -24,6 +24,7 @@ import { MyProjects } from "@/components/dash/MyProjects";
 import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
+import { ListingStats } from "@/components/dash/ListingStats";
 import { Referrals, CoBrokeShare } from "@/components/dash/Referrals";
 import { OwnerChats, useOwnerThreads } from "@/components/dash/OwnerChats";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
@@ -105,7 +106,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile" | "stats";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -156,7 +157,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
         ...(broker.account_type === "developer" ? [{ id: "compounds" as const, label: "كمبونداتي" }] : []),
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
-        ...(canList ? [{ id: "plan" as const, label: "باقتي" }] : []),
+        ...(canList ? [{ id: "plan" as const, label: "باقتي" }, { id: "stats" as const, label: "الإحصائيات" }] : []),
         { id: "leads", label: "أحدث العملاء" },
         { id: "wa", label: chatsUnread ? `محادثات الواتساب (${chatsUnread})` : "محادثات الواتساب" },
         { id: "referrals", label: "الإحالات" },
@@ -203,6 +204,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
       {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} remaining={plan.data ? Math.max(0, plan.data.max - plan.data.used) : null} reload={() => { props.refetch(); plan.refetch(); }} />}
       {tab === "plan" && canList && <ListingPlan canRequest={isOwner} />}
+      {tab === "stats" && canList && <ListingStats />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "wa" && <OwnerChats />}
       {tab === "referrals" && <Referrals canManage={isOwner || role === "manager"} />}

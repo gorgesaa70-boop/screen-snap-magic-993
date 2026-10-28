@@ -7,6 +7,7 @@ import { Field, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { PLAN_AUDIENCES, PLAN_MONTHS_LABEL, formatDate, formatPrice, type BrokerRow, type PlanRow } from "@/components/site/data";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { cleanPhone } from "@/lib/phone";
+import { AdminListingStats } from "@/components/dash/ListingStats";
 
 const num = (x: string) => x.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
 /** Which plans an account can hold (same rule as the database's account_audience). */
@@ -20,6 +21,8 @@ export function PlansAdmin({ plans, reload, canEdit = true }: { plans: PlanRow[]
   return (
     <div className="space-y-5">
       <PlanRequests plans={plans} canEdit={canEdit} />
+      <PlanTasksAdmin canEdit={canEdit} />
+      <AdminListingStats />
       <PlanSettings canEdit={canEdit} />
       {PLAN_AUDIENCES.map((a) => (
         <div key={a.id} className="space-y-2">
@@ -87,10 +90,10 @@ function PlanRequests({ plans, canEdit }: { plans: PlanRow[]; canEdit: boolean }
 
 /** The free month length, term discounts, grace days and featured prices. */
 function PlanSettings({ canEdit }: { canEdit: boolean }) {
-  const q = useQuery({ queryKey: ["plan-settings-admin"], queryFn: async () => (await supabase.from("app_settings").select("plan_trial_days, plan_discount_3m, plan_discount_6m, plan_discount_12m, subscription_grace_days, featured_week_price, featured_month_price").eq("id", 1).maybeSingle()).data });
+  const q = useQuery({ queryKey: ["plan-settings-admin"], queryFn: async () => (await supabase.from("app_settings").select("plan_trial_days, plan_discount_3m, plan_discount_6m, plan_discount_12m, subscription_grace_days, featured_week_price, featured_month_price, plan_home_pins, plan_top_tier_cap, plan_addon_photos, plan_addon_video, plan_addon_photos_video, plan_addon_pin, plan_addon_whatsapp").eq("id", 1).maybeSingle()).data });
   const [f, setF] = useState<Record<string, string> | null>(null);
   const d = q.data;
-  const v = f ?? (d ? Object.fromEntries(Object.entries(d).map(([k, x]) => [k, String(x ?? 0)])) : null);
+  const v = f ?? (d ? Object.fromEntries(Object.entries(d).map(([k, x]) => [k, x == null ? "" : String(x)])) : null);
   if (!v) return null;
   const field = (k: string, label: string, max = 4) => <Field label={label}><input className={inputCls} inputMode="numeric" disabled={!canEdit} value={v[k]} onChange={(e) => setF({ ...v, [k]: num(e.target.value).slice(0, max) })} /></Field>;
   return (
@@ -104,6 +107,13 @@ function PlanSettings({ canEdit }: { canEdit: boolean }) {
         {field("subscription_grace_days", "أيام السماح بعد انتهاء الباقة", 2)}
         {field("featured_week_price", "تمييز إضافي أسبوع (ج.م)")}
         {field("featured_month_price", "تمييز إضافي شهر (ج.م)")}
+        {field("plan_home_pins", "أماكن التثبيت في الرئيسية", 2)}
+        {field("plan_top_tier_cap", "أقصى عدد في الباقة الأعلى (فاضي = مفتوح)", 3)}
+        {field("plan_addon_photos", "تصوير صور (ج.م)")}
+        {field("plan_addon_video", "تصوير فيديو (ج.م)")}
+        {field("plan_addon_photos_video", "صور + فيديو (ج.م)")}
+        {field("plan_addon_pin", "تثبيت إضافي 7 أيام (ج.م)")}
+        {field("plan_addon_whatsapp", "حملة واتساب إضافية (ج.م)")}
       </div>
       <p className="text-xs text-muted-foreground">التجربة المجانية بتبدأ لوحدها لكل حساب جديد أول ما يتعتمد، ولكل مالك مع أول إعلان، على الباقة الوسطى. بعد ما الباقة (أو الشهر المجاني) تخلص، الإعلانات بتستخبى عن الزوار، ومش بتتمسح، لحد ما يشترك.</p>
       {canEdit && (
@@ -112,6 +122,9 @@ function PlanSettings({ canEdit }: { canEdit: boolean }) {
           const { error } = await supabase.from("app_settings").update({
             plan_trial_days: n("plan_trial_days", 90), plan_discount_3m: n("plan_discount_3m", 90), plan_discount_6m: n("plan_discount_6m", 90), plan_discount_12m: n("plan_discount_12m", 90),
             subscription_grace_days: n("subscription_grace_days", 30), featured_week_price: Number(v["featured_week_price"] || 0), featured_month_price: Number(v["featured_month_price"] || 0),
+            plan_home_pins: Math.max(1, n("plan_home_pins", 30)), plan_top_tier_cap: v["plan_top_tier_cap"] ? Math.max(1, n("plan_top_tier_cap", 1000)) : null,
+            plan_addon_photos: Number(v["plan_addon_photos"] || 0), plan_addon_video: Number(v["plan_addon_video"] || 0), plan_addon_photos_video: Number(v["plan_addon_photos_video"] || 0),
+            plan_addon_pin: Number(v["plan_addon_pin"] || 0), plan_addon_whatsapp: Number(v["plan_addon_whatsapp"] || 0),
           }).eq("id", 1);
           if (error) toast.error(error.message); else { toast.success("تم الحفظ"); setF(null); q.refetch(); }
         }}>حفظ</button>
@@ -238,6 +251,59 @@ export function AccountPlan({ b, plans, reload }: { b: BrokerRow; plans: PlanRow
         const { error } = await supabase.from("brokers").update({ plan_exempt: e.target.checked }).eq("id", b.id);
         if (error) toast.error(error.message); else { toast.success(e.target.checked ? "الحساب معفي — إعلاناته ظاهرة من غير باقة" : "الحساب رجع للباقات"); reload(); }
       }} />معفي من الباقات (حسابات فاليو عقار)</label>
+    </div>
+  );
+}
+
+const TASK_LABEL: Record<string, string> = {
+  post: "بوست على صفحاتنا", video: "فيديو على صفحاتنا", whatsapp: "رسايل واتساب للعملاء المهتمين", photos: "تصوير صور", video_shoot: "تصوير فيديو",
+  photos_video: "تصوير صور + فيديو", extra_pin: "تثبيت إضافي 7 أيام", extra_whatsapp: "حملة واتساب إضافية",
+};
+
+/** Requests the team does by hand (plan perks and paid extras), and the «عرض للكل» days booked ahead. */
+function PlanTasksAdmin({ canEdit }: { canEdit: boolean }) {
+  const q = useQuery({
+    queryKey: ["admin-plan-tasks"],
+    queryFn: async () => (await supabase.from("plan_tasks").select("*, broker:brokers(name), property:properties(title)").order("created_at", { ascending: false }).limit(100)).data ?? [],
+  });
+  const spots = useQuery({
+    queryKey: ["admin-spotlights"],
+    queryFn: async () => (await supabase.from("plan_spotlights").select("day, property:properties(title), broker:brokers(name), phone").gte("day", new Date().toISOString().slice(0, 10)).order("day").limit(60)).data ?? [],
+  });
+  const [days, setDays] = useState<Record<string, string>>({});
+  const open = (q.data ?? []).filter((t) => t.status === "new" || t.status === "scheduled");
+  const set = async (id: string, status: string) => {
+    const note = status === "cancelled" ? prompt("سبب الإلغاء (هيوصل لصاحب الطلب):") : null;
+    if (status === "cancelled" && note === null) return;
+    const { error } = await supabase.rpc("admin_update_plan_task", { _id: id, _status: status, ...(days[id] ? { _day: days[id] } : {}), ...(note?.trim() ? { _note: note.trim() } : {}) });
+    if (error) toast.error(error.message); else { toast.success("اتحدّث وصاحب الطلب وصله إشعار"); q.refetch(); }
+  };
+  return (
+    <div className="space-y-3 rounded-2xl border bg-card p-4">
+      <p className="font-bold text-primary">طلبات المميزات والخدمات {open.length > 0 && <span className="ms-1 rounded-full bg-destructive px-2 py-0.5 text-xs text-white">{open.length}</span>}</p>
+      {open.length === 0 && <p className="text-sm text-muted-foreground">مفيش طلبات مفتوحة (بوستات، فيديوهات، رسايل واتساب، تصوير، تثبيت إضافي).</p>}
+      <ul className="divide-y">
+        {open.map((t) => (
+          <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span>#{t.task_no} · <b className="text-primary">{TASK_LABEL[t.kind] ?? t.kind}</b> · {t.broker?.name ?? `مالك — ${t.phone}`} · {t.property?.title ?? ""}{Number(t.price) > 0 ? <b> · {formatPrice(Number(t.price))} ج.م (اتأكد من الدفع)</b> : ""}{t.scheduled_for ? ` · ميعاده ${formatDate(t.scheduled_for)}` : ""}{t.note ? ` — ${t.note}` : ""}</span>
+            {canEdit && (
+              <span className="flex flex-wrap items-center gap-1.5">
+                <input type="date" aria-label="الميعاد" className={`${inputCls} h-9 w-36 text-xs`} value={days[t.id] ?? ""} onChange={(e) => setDays({ ...days, [t.id]: e.target.value })} />
+                <button className={`${btnOutline} h-9 px-3 text-xs`} onClick={() => set(t.id, "scheduled")}>حدّد الميعاد</button>
+                <button className={`${btnPrimary} h-9 px-3 text-xs`} onClick={() => set(t.id, "done")}><Check className="size-3.5" />اتعمل</button>
+                <button className="h-9 px-2 text-xs font-bold text-destructive" onClick={() => set(t.id, "cancelled")}>إلغاء</button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-muted-foreground">رسايل الواتساب: ابعت للعملاء المهتمين بالمنطقة ونوع العقار بس، ومحدش يوصله أكتر من رسالتين في الأسبوع، عشان رقم فاليو عقار مايتحظرش.</p>
+      {(spots.data?.length ?? 0) > 0 && (
+        <details className="text-sm">
+          <summary className="cursor-pointer font-bold text-primary">أيام «عرض للكل» المحجوزة ({spots.data!.length})</summary>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">{spots.data!.map((x) => <li key={x.day}>{formatDate(x.day)} · {x.property?.title} · {x.broker?.name ?? `مالك — ${x.phone}`}</li>)}</ul>
+        </details>
+      )}
     </div>
   );
 }

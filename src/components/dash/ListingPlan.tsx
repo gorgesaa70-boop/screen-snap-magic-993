@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { btnOutline, btnPrimary } from "@/components/site/ui";
 import { PLAN_MONTHS, PLAN_MONTHS_LABEL, formatDate, formatPrice, listingPlanLines, planTermPrice, type ListingPlanInfo } from "@/components/site/data";
 import { useIsNativeApp } from "@/lib/native";
+import { PlanPerks } from "@/components/dash/PlanPerks";
 
 export type MyListingPlan = {
   audience: "owner" | "owner_rent" | "owner_summer" | "individual" | "company" | "developer" | "broker"; plan_id: string; code: string; name: string; max: number; days: number | null;
@@ -169,6 +170,11 @@ export function ListingPlan({ canRequest = true }: { canRequest?: boolean }) {
           <p className="mt-1 text-muted-foreground">فريق فاليو عقار هيكلّمك ويفعّلها. لو عايز تغيّر اختيارك، اطلب باقة تانية وهتحل محل الطلب ده.</p>
         </div>
       )}
+
+      {!m.expired && !(m.kind && !m.has) && (() => {
+        const current = plans.data?.find((p) => p.id === m.plan_id);
+        return current ? <PlanPerks plan={current} owner={!!m.kind} /> : null;
+      })()}
 
       {native ? (
         <p className="rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">لتغيير باقتك ادخل على موقع فاليو عقار من المتصفح.</p>

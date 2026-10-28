@@ -169,7 +169,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   isDemo: r.is_demo,
   availability: availabilityOf(r),
   finishing: r.finishing ?? undefined,
-  featured: r.is_featured,
+  featured: r.is_featured && (!r.featured_until || Date.parse(r.featured_until) > Date.now()),
   brokerId: r.broker_id,
   code: r.listing_no != null ? listingCode(r.listing_no) : undefined,
   installments: r.status === "بيع" && (r.payment_method === "installment" || r.payment_method === "both") ? {

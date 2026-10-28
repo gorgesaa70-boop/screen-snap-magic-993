@@ -4,7 +4,7 @@ import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, Wallet } from "lucide-react";
 import { PAYMENT_LABEL, monthlyFor } from "@/lib/installments";
@@ -19,6 +19,7 @@ import { PropertyCard } from "@/components/site/Sections";
 import { TYPE_GROUPS } from "@/components/site/search";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { ContactActions } from "@/components/site/ContactActions";
+import { trackContact, trackView } from "@/lib/track";
 import { ReferButton } from "@/components/site/ReferButton";
 
 async function fetchProperty(id: string) {
@@ -68,6 +69,8 @@ function PropertyPage() {
   const { id } = Route.useParams();
   const initial = Route.useLoaderData();
   const q = useQuery({ queryKey: ["property", id], queryFn: () => fetchProperty(id), initialData: initial });
+  const counted = q.data && !q.data.p.isDemo ? q.data.p.id : null;
+  useEffect(() => { if (counted) trackView(counted); }, [counted]);
   if (q.isLoading) return <PageShell><div className="mx-auto max-w-5xl p-6"><div className="aspect-video animate-pulse rounded-2xl bg-muted" /></div></PageShell>;
   if (!q.data) return <PageShell><div className="mx-auto max-w-md p-10 text-center"><h1 className="text-xl font-bold text-primary">{t("العقار غير متاح")}</h1><Link to="/" className={`${btnOutline} mt-6`}>{t("الرئيسية")}</Link></div></PageShell>;
   const { p, broker, sourceUrl, coBroke } = q.data;
@@ -118,11 +121,11 @@ function PropertyPage() {
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><span className="text-xs font-bold text-muted-foreground">{t(ACCOUNT_LABEL[broker.account_type] ?? "وسيط عقاري")}</span><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">{t("عرض الملف")}</Link></div>
               </div>
-              <ContactActions who={broker} message={listingMessage(p)} />
+              <ContactActions who={broker} message={listingMessage(p)} onContact={() => { if (!p.isDemo) trackContact(p.id); }} />
             </div>
           )}
           {!broker && (
-            <a href={waLink(WHATSAPP_NUMBER, listingMessage(p))} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
+            <a href={waLink(WHATSAPP_NUMBER, listingMessage(p))} target="_blank" rel="noreferrer" onClick={() => { if (!p.isDemo) trackContact(p.id); }} className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>
           )}
           <InquiryForm propertyId={p.id} />
           {coBroke && <ReferButton kind="property" targetId={p.id} share={coBroke.share} ownerId={p.brokerId} ownerListing={coBroke.ownerListing} />}

@@ -61,6 +61,13 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          plan_home_pins: number
+          plan_top_tier_cap: number | null
+          plan_addon_photos: number
+          plan_addon_video: number
+          plan_addon_photos_video: number
+          plan_addon_pin: number
+          plan_addon_whatsapp: number
           plan_trial_days: number
           plan_discount_3m: number
           plan_discount_6m: number
@@ -97,6 +104,13 @@ export type Database = {
           work_start_hour: number
         }
         Insert: {
+          plan_home_pins?: number
+          plan_top_tier_cap?: number | null
+          plan_addon_photos?: number
+          plan_addon_video?: number
+          plan_addon_photos_video?: number
+          plan_addon_pin?: number
+          plan_addon_whatsapp?: number
           plan_trial_days?: number
           plan_discount_3m?: number
           plan_discount_6m?: number
@@ -133,6 +147,13 @@ export type Database = {
           work_start_hour?: number
         }
         Update: {
+          plan_home_pins?: number
+          plan_top_tier_cap?: number | null
+          plan_addon_photos?: number
+          plan_addon_video?: number
+          plan_addon_photos_video?: number
+          plan_addon_pin?: number
+          plan_addon_whatsapp?: number
           plan_trial_days?: number
           plan_discount_3m?: number
           plan_discount_6m?: number
@@ -259,6 +280,7 @@ export type Database = {
       }
       brokers: {
         Row: {
+          plan_badge: boolean
           access_until: string | null
           plan_exempt: boolean
           account_type: string
@@ -289,6 +311,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          plan_badge?: boolean
           access_until?: string | null
           plan_exempt?: boolean
           account_type?: string
@@ -319,6 +342,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          plan_badge?: boolean
           access_until?: string | null
           plan_exempt?: boolean
           account_type?: string
@@ -2214,6 +2238,153 @@ export type Database = {
           },
         ]
       }
+      listing_pins: {
+        Row: {
+          broker_id: string | null
+          created_by: string | null
+          ends_at: string
+          extra: boolean
+          id: string
+          phone: string | null
+          property_id: string
+          starts_at: string
+        }
+        Insert: {
+          broker_id?: string | null
+          created_by?: string | null
+          ends_at: string
+          extra?: boolean
+          id?: string
+          phone?: string | null
+          property_id: string
+          starts_at?: string
+        }
+        Update: {
+          broker_id?: string | null
+          created_by?: string | null
+          ends_at?: string
+          extra?: boolean
+          id?: string
+          phone?: string | null
+          property_id?: string
+          starts_at?: string
+        }
+        Relationships: []
+      }
+      plan_spotlights: {
+        Row: {
+          broker_id: string | null
+          created_at: string
+          created_by: string | null
+          day: string
+          id: string
+          phone: string | null
+          property_id: string
+        }
+        Insert: {
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          day: string
+          id?: string
+          phone?: string | null
+          property_id: string
+        }
+        Update: {
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          id?: string
+          phone?: string | null
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_spotlights_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_spotlights_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_tasks: {
+        Row: {
+          broker_id: string | null
+          created_at: string
+          created_by: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          phone: string | null
+          price: number
+          property_id: string | null
+          scheduled_for: string | null
+          status: string
+          task_no: number
+          team_note: string | null
+        }
+        Insert: {
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          phone?: string | null
+          price?: number
+          property_id?: string | null
+          scheduled_for?: string | null
+          status?: string
+          task_no?: number
+          team_note?: string | null
+        }
+        Update: {
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          phone?: string | null
+          price?: number
+          property_id?: string | null
+          scheduled_for?: string | null
+          status?: string
+          task_no?: number
+          team_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_tasks_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_tasks_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_requests: {
         Row: {
           amount: number
@@ -3855,6 +4026,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           plan_id: string | null
+          plan_badge: boolean
           plan_exempt: boolean
           rejected_at: string | null
           review_note: string | null
@@ -4203,6 +4375,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           plan_id: string | null
+          plan_badge: boolean
           plan_exempt: boolean
           rejected_at: string | null
           review_note: string | null
@@ -4260,7 +4433,17 @@ export type Database = {
         }[]
       }
       my_listing_plan: { Args: never; Returns: Json }
+      pin_listing: { Args: { _property: string }; Returns: string }
+      my_plan_usage: { Args: never; Returns: Json }
+      spotlight_taken_days: { Args: { _from: string; _to: string }; Returns: string[] }
+      book_spotlight: { Args: { _day: string; _property: string }; Returns: string }
+      today_spotlight: { Args: never; Returns: { id: string; title: string; price: number; status: string; area: string; city: string; image_url: string | null }[] }
+      request_plan_task: { Args: { _kind: string; _note?: string; _property: string }; Returns: string }
+      admin_update_plan_task: { Args: { _day?: string; _id: string; _note?: string; _status: string }; Returns: undefined }
       plan_price: { Args: { _months: number; _plan: string }; Returns: number }
+      track_listing: { Args: { _device: string; _ids: string[]; _kind: string; _source?: string }; Returns: number }
+      my_listing_stats: { Args: { _days?: number }; Returns: Json }
+      admin_listing_stats: { Args: { _days?: number }; Returns: { account: string; broker_id: string | null; listings: number; impressions: number; views: number; contacts: number; leads: number }[] }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
