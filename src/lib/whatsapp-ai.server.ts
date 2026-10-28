@@ -3,9 +3,10 @@ import type { Database } from "@/integrations/supabase/types";
 import { listingText, type ListingCard } from "./whatsapp-bot";
 
 /**
- * The bot's AI answers (Google Gemini, free tier). It may only talk about listings it found with search_listings,
- * never invents prices or places, never gives out brokers' numbers (all contact goes through Value Aqar), and hands
- * the chat to the team when asked or unsure. Without GEMINI_API_KEY the caller falls back to the fixed replies.
+ * The bot's AI answers via the Lovable AI Gateway (no external key, no extra bill). It may only talk about listings
+ * it found with search_listings, never invents prices or places, never gives out brokers' numbers (all contact goes
+ * through Value Aqar), and hands the chat to the team when asked or unsure. If the gateway is unreachable the caller
+ * falls back to the fixed replies.
  */
 
 type Db = SupabaseClient<Database>;
@@ -32,9 +33,10 @@ const CHANNEL = {
 } as const;
 export type Channel = keyof typeof CHANNEL;
 
-const TOOLS = [{
-  functionDeclarations: [
-    {
+const TOOLS = [
+  {
+    type: "function",
+    function: {
       name: "search_listings",
       description: "يدوّر في العقارات المنشورة على فاليو عقار. كل الحقول اختيارية.",
       parameters: {
@@ -49,7 +51,10 @@ const TOOLS = [{
         },
       },
     },
-    {
+  },
+  {
+    type: "function",
+    function: {
       name: "save_request",
       description: "يسجّل طلب العميل في ملفه عشان الفريق يتابعه.",
       parameters: {
@@ -62,13 +67,16 @@ const TOOLS = [{
         },
       },
     },
-    {
+  },
+  {
+    type: "function",
+    function: {
       name: "handoff",
       description: "يحوّل المحادثة لموظف من الفريق ويوقف الرد الآلي.",
       parameters: { type: "object", properties: { reason: { type: "string" } } },
     },
-  ],
-}];
+  },
+];
 
 const STATUS: Record<string, string> = { sale: "بيع", rent: "إيجار", summer: "مصيف" };
 const clean = (s: unknown, max = 40) => String(s ?? "").replace(/[^\p{L}\p{N} -]/gu, "").trim().slice(0, max);
@@ -97,73 +105,60 @@ export async function searchListings(db: Db, args: Record<string, unknown>): Pro
   }));
 }
 
-type Part = { text?: string; functionCall?: { name: string; args?: Record<string, unknown> }; functionResponse?: unknown };
-type Content = { role: "user" | "model"; parts: Part[] };
+type ToolCall = { id: string; function: { name: string; arguments: string } };
+type Message =
+  | { role: "system" | "user"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls?: ToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
 
-async function callModel(model: string, key: string, contents: Content[], channel: Channel, extra: string): Promise<Content | null | "retry"> {
-  // Two attempts per model: Google's free tier answers 503 "high demand" in bursts that clear within seconds.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: `${SYSTEM}\n- ${CHANNEL[channel]}${extra}` }] },
-        contents, tools: TOOLS,
-        generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
-      }),
-      signal: AbortSignal.timeout(12_000),
-    }).catch(() => null);
-    if (!res) { await new Promise((r) => setTimeout(r, 800)); continue; }
-    if (!res.ok) {
-      console.error("wa bot ai failed", model, res.status, (await res.text().catch(() => "")).slice(0, 200));
-      // 429/503 = overloaded (retry after a pause), 404 = model gone: move to the next model instead of giving up.
-      if (res.status === 429 || res.status === 503) { await new Promise((r) => setTimeout(r, 800)); continue; }
-      return res.status === 404 ? "retry" : null;
-    }
-    const json = (await res.json().catch(() => null)) as { candidates?: { content?: Content }[] } | null;
-    return json?.candidates?.[0]?.content ?? null;
-  }
-  return "retry";
-}
-
-async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
-  // GEMINI_APT_KEY: the name the secret was first saved under (typo) — accepted so it works without re-entering the key.
-  const key = process.env["GEMINI_API_KEY"] || process.env["GEMINI_APT_KEY"];
+async function generate(messages: Message[]): Promise<{ content: string; toolCalls: ToolCall[] } | null> {
+  const key = process.env["LOVABLE_API_KEY"];
   if (!key) return null;
-  // gemini-2.5-flash is closed to new API keys (404), so default to the current flash model.
-  // Fallbacks keep the assistant alive when the main model is overloaded or retired.
-  const preferred = process.env["GEMINI_MODEL"] || "gemini-3.8-flash";
-  const models = [preferred, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"].filter((m, i, a) => a.indexOf(m) === i);
-  for (const model of models) {
-    const out = await callModel(model, key, contents, channel, extra);
-    if (out !== "retry") return out;
-  }
-  return null;
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages, tools: TOOLS,
+      temperature: 0.3, max_tokens: 500,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  }).catch(() => null);
+  if (!res) return null;
+  if (!res.ok) { console.error("wa bot ai failed", res.status, (await res.text().catch(() => "")).slice(0, 200)); return null; }
+  const json = (await res.json().catch(() => null)) as {
+    choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[];
+  } | null;
+  const msg = json?.choices?.[0]?.message;
+  if (!msg) return null;
+  return { content: (msg.content ?? "").trim(), toolCalls: msg.tool_calls ?? [] };
 }
 
 /** One AI turn: reads the recent chat, may search / save / hand off, and returns the reply text (null = AI unavailable). */
 export async function aiReply(db: Db, history: Turn[], channel: Channel = "whatsapp"): Promise<(AiResult & { listings: ListingCard[] }) | null> {
-  const contents: Content[] = history.slice(-12).map((t) => ({ role: t.role, parts: [{ text: t.text.slice(0, 1500) }] }));
   // The admin's «تعليمات المساعد» come after the fixed rules, which still win.
   const { getAssistantSettings } = await import("./assistant-settings.server");
   const { instructions } = await getAssistantSettings();
   const extra = instructions ? `\n\nتعليمات من إدارة فاليو عقار (التزم بيها طالما مش ضد القواعد اللي فوق):\n${instructions.slice(0, 4000)}` : "";
+  const messages: Message[] = [
+    { role: "system", content: `${SYSTEM}\n- ${CHANNEL[channel]}${extra}` },
+    ...history.slice(-12).map((t): Message => ({ role: t.role === "model" ? "assistant" : "user", content: t.text.slice(0, 1500) })),
+  ];
   const out: AiResult & { listings: ListingCard[] } = { text: "", handoff: false, request: {}, listings: [] };
   for (let step = 0; step < 3; step++) {
-    const reply = await generate(contents, channel, extra);
+    const reply = await generate(messages);
     if (!reply) return step === 0 ? null : out;
-    const calls = reply.parts.filter((p) => p.functionCall);
-    const text = reply.parts.map((p) => p.text ?? "").join("").trim();
-    if (!calls.length) { out.text = text; return out; }
-    contents.push({ role: "model", parts: reply.parts });
-    const responses: Part[] = [];
-    for (const { functionCall } of calls) {
-      const args = functionCall!.args ?? {};
-      if (functionCall!.name === "search_listings") {
+    if (!reply.toolCalls.length) { out.text = reply.content; return out; }
+    messages.push({ role: "assistant", content: reply.content || null, tool_calls: reply.toolCalls });
+    for (const call of reply.toolCalls) {
+      let args: Record<string, unknown> = {};
+      try { args = JSON.parse(call.function.arguments || "{}") as Record<string, unknown>; } catch { /* bad args → empty */ }
+      let result: unknown;
+      if (call.function.name === "search_listings") {
         const found = await searchListings(db, args);
         out.listings = found;
-        responses.push({ functionResponse: { name: "search_listings", response: { count: found.length, results: found.map((f) => listingText(f)) } } });
-      } else if (functionCall!.name === "save_request") {
+        result = { count: found.length, results: found.map((f) => listingText(f)) };
+      } else if (call.function.name === "save_request") {
         const p = String(args["purpose"] ?? "");
         out.request = {
           ...(p === "sale" || p === "rent" || p === "summer" ? { purpose: p } : {}),
@@ -171,13 +166,15 @@ export async function aiReply(db: Db, history: Turn[], channel: Channel = "whats
           ...(clean(args["area"], 60) ? { area: clean(args["area"], 60) } : {}),
           ...(Number(args["budget"]) > 0 ? { budget: Math.round(Number(args["budget"])) } : {}),
         };
-        responses.push({ functionResponse: { name: "save_request", response: { saved: true } } });
-      } else if (functionCall!.name === "handoff") {
+        result = { saved: true };
+      } else if (call.function.name === "handoff") {
         out.handoff = true;
-        responses.push({ functionResponse: { name: "handoff", response: { done: true, note: "قول للعميل إن حد من الفريق هيرد عليه هنا قريب." } } });
+        result = { done: true, note: "قول للعميل إن حد من الفريق هيرد عليه هنا قريب." };
+      } else {
+        result = { error: "unknown tool" };
       }
+      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
     }
-    contents.push({ role: "user", parts: responses });
   }
   return out;
 }
