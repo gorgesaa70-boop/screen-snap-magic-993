@@ -20,6 +20,8 @@ const raw = (db: Db) => db as unknown as SupabaseClient<any>;
 const HOUR = 3_600_000;
 const BOT_PAUSE_AFTER_HANDOFF = 24 * HOUR;
 const MAX_BOT_REPLIES_PER_HOUR = 15;
+/** A team member or the listing's owner wrote in the chat this recently → the bot leaves listing questions to them. */
+const PERSON_ACTIVE_MS = 30 * 60_000;
 
 export type Inbound = { wa_message_id: string; phone: string; name: string | null; text: string | null };
 
@@ -107,7 +109,12 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
   const { data: settings } = await raw(db).from("app_settings").select("wa_bot_enabled, wa_bot_ai, work_start_hour, work_end_hour").eq("id", 1).maybeSingle();
   if (settings && settings.wa_bot_enabled === false) return;
   const paused = conv?.bot_paused_until && new Date(conv.bot_paused_until as string) > now;
-  if (paused) {
+  // A question about a specific listing (the site's «اسأل على واتساب» message carries its code) still gets its card and
+  // goes to the listing's owner while the bot is paused — unless a person is answering in this chat right now.
+  const listingQuestion = listingNumbers(text).length > 0 || listingIds(text).length > 0;
+  const personActive = paused && listingQuestion && ((await raw(db).from("wa_messages").select("id", { count: "exact", head: true })
+    .eq("phone", m.phone).in("sender", ["staff", "owner"]).gt("created_at", new Date(now.getTime() - PERSON_ACTIVE_MS).toISOString())).count ?? 0) > 0;
+  if (paused && !(listingQuestion && !personActive)) {
     // A staff member (or the listing's owner, who got their own bell above) is handling this chat:
     // only ping the team when a new unread message starts piling up.
     if (!conv?.unread && !conv?.owner_broker_id) await raw(db).rpc("wa_notify_team", { _title: "رسالة واتساب جديدة", _msg: `${m.name ?? "+" + m.phone}: ${text.slice(0, 140)}`, _phone: m.phone });
