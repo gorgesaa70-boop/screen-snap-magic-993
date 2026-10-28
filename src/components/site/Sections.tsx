@@ -15,6 +15,7 @@ import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
 import { fetchMallSummary } from "./malls";
 import { fetchSearchEverything } from "./search-everything";
+import { mixByKind } from "./mix";
 import { AvailabilityBadge } from "./availability";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -148,10 +149,11 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   useLang();
   const filtered = !isEmpty(filters);
   const base = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
-  // A search looks through everything (mall units, industrial, compound / project price lists); the plain list stays residential.
-  const everything = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything, enabled: filtered });
-  const { data: properties = [], isLoading, isError } = filtered ? everything : base;
-  const results = applyFilters(properties, filters);
+  // Everything = mall units, industrial, compound / project price lists too. The plain list shows the residential
+  // listings until it arrives, then all of them taking turns by kind (so a batch of lands doesn't fill the screen).
+  const everything = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything });
+  const { data: properties = [], isLoading, isError } = filtered || everything.data ? everything : base;
+  const results = filtered ? applyFilters(properties, filters) : mixByKind(properties);
   // Show a few first (the home page was very long on phones); more on request. Reset when the search changes.
   const step = filtered ? 12 : 6;
   const [shown, setShown] = useState(step);
