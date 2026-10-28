@@ -118,7 +118,7 @@ async function generate(messages: Message[]): Promise<{ content: string; toolCal
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3.8-flash",
       messages, tools: TOOLS,
       temperature: 0.3, max_tokens: 500,
     }),
