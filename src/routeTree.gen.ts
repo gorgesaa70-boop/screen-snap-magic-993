@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthFacebookRouteImport } from './routes/auth-facebook'
 import { Route as BrokerNetworkRouteImport } from './routes/broker-network'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as MapRouteImport } from './routes/map'
@@ -66,6 +67,8 @@ import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './ro
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push/dispatch'
 import { Route as ApiPublicPushKeyRouteImport } from './routes/api/public/push/key'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
+import { Route as ApiPublicAuthFacebookCallbackRouteImport } from './routes/api/public/auth/facebook/callback'
+import { Route as ApiPublicAuthFacebookStartRouteImport } from './routes/api/public/auth/facebook/start'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -84,6 +87,11 @@ const AppRoute = AppRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthFacebookRoute = AuthFacebookRouteImport.update({
+  id: '/auth-facebook',
+  path: '/auth-facebook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrokerNetworkRoute = BrokerNetworkRouteImport.update({
@@ -357,11 +365,24 @@ const ApiPublicWhatsappWebhookRoute =
     path: '/api/public/whatsapp/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAuthFacebookCallbackRoute =
+  ApiPublicAuthFacebookCallbackRouteImport.update({
+    id: '/api/public/auth/facebook/callback',
+    path: '/api/public/auth/facebook/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAuthFacebookStartRoute =
+  ApiPublicAuthFacebookStartRouteImport.update({
+    id: '/api/public/auth/facebook/start',
+    path: '/api/public/auth/facebook/start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
@@ -415,11 +436,14 @@ export interface FileRoutesByFullPath {
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
+  '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
@@ -473,6 +497,8 @@ export interface FileRoutesByTo {
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
+  '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -480,6 +506,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/app': typeof AppRoute
   '/auth': typeof AuthRoute
+  '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
@@ -533,6 +560,8 @@ export interface FileRoutesById {
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
+  '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -540,6 +569,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/auth-facebook'
     | '/broker-network'
     | '/delete-account'
     | '/map'
@@ -593,11 +623,14 @@ export interface FileRouteTypes {
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
     | '/api/public/whatsapp/webhook'
+    | '/api/public/auth/facebook/callback'
+    | '/api/public/auth/facebook/start'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
     | '/auth'
+    | '/auth-facebook'
     | '/broker-network'
     | '/delete-account'
     | '/map'
@@ -651,12 +684,15 @@ export interface FileRouteTypes {
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
     | '/api/public/whatsapp/webhook'
+    | '/api/public/auth/facebook/callback'
+    | '/api/public/auth/facebook/start'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/app'
     | '/auth'
+    | '/auth-facebook'
     | '/broker-network'
     | '/delete-account'
     | '/map'
@@ -710,6 +746,8 @@ export interface FileRouteTypes {
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
     | '/api/public/whatsapp/webhook'
+    | '/api/public/auth/facebook/callback'
+    | '/api/public/auth/facebook/start'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -717,6 +755,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AppRoute: typeof AppRoute
   AuthRoute: typeof AuthRoute
+  AuthFacebookRoute: typeof AuthFacebookRoute
   BrokerNetworkRoute: typeof BrokerNetworkRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   MapRoute: typeof MapRoute
@@ -751,6 +790,8 @@ export interface RootRouteChildren {
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicPushKeyRoute: typeof ApiPublicPushKeyRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  ApiPublicAuthFacebookCallbackRoute: typeof ApiPublicAuthFacebookCallbackRoute
+  ApiPublicAuthFacebookStartRoute: typeof ApiPublicAuthFacebookStartRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -781,6 +822,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-facebook': {
+      id: '/auth-facebook'
+      path: '/auth-facebook'
+      fullPath: '/auth-facebook'
+      preLoaderRoute: typeof AuthFacebookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/broker-network': {
@@ -1154,6 +1202,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/auth/facebook/callback': {
+      id: '/api/public/auth/facebook/callback'
+      path: '/api/public/auth/facebook/callback'
+      fullPath: '/api/public/auth/facebook/callback'
+      preLoaderRoute: typeof ApiPublicAuthFacebookCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/auth/facebook/start': {
+      id: '/api/public/auth/facebook/start'
+      path: '/api/public/auth/facebook/start'
+      fullPath: '/api/public/auth/facebook/start'
+      preLoaderRoute: typeof ApiPublicAuthFacebookStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1209,6 +1271,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AppRoute: AppRoute,
   AuthRoute: AuthRoute,
+  AuthFacebookRoute: AuthFacebookRoute,
   BrokerNetworkRoute: BrokerNetworkRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   MapRoute: MapRoute,
@@ -1244,6 +1307,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicPushKeyRoute: ApiPublicPushKeyRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
+  ApiPublicAuthFacebookCallbackRoute: ApiPublicAuthFacebookCallbackRoute,
+  ApiPublicAuthFacebookStartRoute: ApiPublicAuthFacebookStartRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
