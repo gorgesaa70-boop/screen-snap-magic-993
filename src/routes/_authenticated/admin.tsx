@@ -49,7 +49,7 @@ import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
 import { PlansAdmin, AccountPlan } from "@/components/dash/PlansAdmin";
-import { createBrokerAccount, deleteAccountAsAdmin, setBrokerActive } from "@/lib/admin.functions";
+import { createBrokerAccount, deleteAccountAsAdmin, notifySearchEnginesSoon, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { cleanPhone } from "@/lib/phone";
 import { thumb } from "@/lib/images";
@@ -366,9 +366,15 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
     return <PropertyForm admin brokerId={editing.broker_id ?? ""} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
   }
   const list = d.properties.filter((p) => !filter || p.review_status === filter);
+  const pingEngines = useServerFn(notifySearchEnginesSoon);
   const upd = async (id: string, patch: TablesUpdate<"properties">, msg: string) => {
     const { error } = await supabase.from("properties").update(patch).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success(msg); reload(); }
+    if (error) toast.error(error.message);
+    else {
+      toast.success(msg); reload();
+      // A newly approved listing: Bing / Yandex hear about it right away (Google reads the sitemap).
+      if (patch.review_status === "approved") void pingEngines().catch(() => {});
+    }
   };
   return (
     <div className="space-y-3">
