@@ -9,7 +9,7 @@ import { projectCover } from "./projects";
 /**
  * Everything the home search looks through: residential listings, mall units, industrial listings, and the
  * compound / project price lists (those cards open the compound or project page). The unfiltered home list
- * stays residential only (fetchPublicProperties) so the mall units don't flood it.
+ * shows it too, taking turns by kind (mixByKind) so the mall units don't flood it.
  */
 export async function fetchSearchEverything(): Promise<Property[]> {
   return viaFeed("search", querySearchEverything);
