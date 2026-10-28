@@ -262,25 +262,17 @@ export const notifySearchEngines = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertCan(context as Ctx, "health");
-    const { INDEXNOW_KEY, absoluteUrl, publicPages } = await import("@/lib/site-urls");
-    const { SITE_URL } = await import("@/lib/seo");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Sending the same pages again and again is treated as spam (429): send only what changed since the last send.
-    // Pages without a date (home, lists, brokers…) go only on the first send.
-    const { data: settings } = await supabaseAdmin.from("app_settings").select("id, indexnow_sent_at").limit(1).maybeSingle();
-    const since = settings?.indexnow_sent_at ? new Date(settings.indexnow_sent_at).getTime() : 0;
-    const urlList = (await publicPages())
-      .filter((e) => !since || (e.lastmod != null && new Date(e.lastmod).getTime() > since))
-      .map((e) => absoluteUrl(e.path)).slice(0, 10000);
-    if (!urlList.length) return { ok: true, status: 0, count: 0, sentAt: settings?.indexnow_sent_at ?? null };
-    const res = await fetch("https://api.indexnow.org/indexnow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ host: new URL(SITE_URL).host, key: INDEXNOW_KEY, keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`, urlList }),
-    });
-    // 200 = accepted, 202 = accepted while the key is being checked; anything else is a problem worth showing.
-    const ok = res.status === 200 || res.status === 202;
-    const sentAt = ok ? new Date().toISOString() : settings?.indexnow_sent_at ?? null;
-    if (ok && settings?.id != null) await supabaseAdmin.from("app_settings").update({ indexnow_sent_at: sentAt }).eq("id", settings.id);
-    return { ok, status: res.status, count: urlList.length, sentAt };
+    const { sendIndexNow } = await import("@/lib/indexnow.server");
+    return sendIndexNow();
+  });
+
+/** After the team approves a listing, project, compound or mall unit: the same send, at most once every 10 minutes. */
+export const notifySearchEnginesSoon = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as Ctx;
+    const { data: staff } = await ctx.supabase.rpc("is_staff");
+    if (!staff) return { ok: false, status: 0, count: 0, sentAt: null };
+    const { sendIndexNow } = await import("@/lib/indexnow.server");
+    return sendIndexNow({ minGapMs: 10 * 60_000 }).catch(() => ({ ok: false, status: 0, count: 0, sentAt: null }));
   });
