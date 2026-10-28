@@ -24,6 +24,7 @@ import { MyProjects } from "@/components/dash/MyProjects";
 import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
+import { ListingStats } from "@/components/dash/ListingStats";
 import { Referrals, CoBrokeShare } from "@/components/dash/Referrals";
 import { OwnerChats, useOwnerThreads } from "@/components/dash/OwnerChats";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
@@ -105,7 +106,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile" | "stats";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -114,8 +115,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const { me } = useMe();
   const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
-  // A WhatsApp-chat bell links to /dashboard?tab=wa.
-  const [tab, setTab] = useState<Tab>(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "wa" ? "wa" : "overview");
+  // A WhatsApp-chat bell links to /dashboard?tab=wa, a plan notice to /dashboard?tab=plan.
+  const [tab, setTab] = useState<Tab>(() => {
+    const q = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+    return q === "wa" || q === "plan" ? q : "overview";
+  });
   const chats = useOwnerThreads();
   const chatsUnread = (chats.data ?? []).reduce((n, t) => n + t.unread, 0);
   const props = useQuery({
@@ -153,7 +157,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         ...(canList && broker.account_type === "developer" ? [{ id: "projects" as const, label: "مشروعاتي" }] : []),
         ...(broker.account_type === "developer" ? [{ id: "compounds" as const, label: "كمبونداتي" }] : []),
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
-        ...(canList ? [{ id: "plan" as const, label: "باقتي" }] : []),
+        ...(canList ? [{ id: "plan" as const, label: "باقتي" }, { id: "stats" as const, label: "الإحصائيات" }] : []),
         { id: "leads", label: "أحدث العملاء" },
         { id: "wa", label: chatsUnread ? `محادثات الواتساب (${chatsUnread})` : "محادثات الواتساب" },
         { id: "referrals", label: "الإحالات" },
@@ -162,6 +166,13 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       ]} />
       {tab === "overview" && (
         <div className="space-y-4">
+          {canList && plan.data && !plan.data.exempt && (plan.data.expired || plan.data.trial) && (
+            <div className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3 text-sm font-bold ${plan.data.expired ? "border-destructive bg-destructive/10 text-destructive" : "border-teal bg-teal-soft/40 text-primary"}`}>
+              <span>{plan.data.expired ? "باقتك خلصت وعقاراتك مستخبية عن الزوار (مفيش حاجة اتمسحت). اختار باقة وهترجع على طول."
+                : `أول شهر مجانًا على باقة «${plan.data.name}»${plan.data.ends_at ? ` لحد ${formatDate(plan.data.ends_at)}` : ""}. اختار باقتك قبل ما يخلص.`}</span>
+              <button className={btnPrimary} onClick={() => setTab("plan")}>{plan.data.expired ? "اختار باقة" : "شوف الباقات"}</button>
+            </div>
+          )}
           {isOwner && (
             <BrokerGuide brokerId={broker.id} steps={[
               { done: !!(broker.photo_url && broker.bio), title: "كمّل ملفك", hint: "صورة أو لوجو ونبذة قصيرة — ده اللي العملاء بيشوفوه.", action: "الملف الشخصي", onClick: () => setTab("profile") },
@@ -193,6 +204,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "team" && isOwner && <CompanyTeam companyId={broker.id} />}
       {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} remaining={plan.data ? Math.max(0, plan.data.max - plan.data.used) : null} reload={() => { props.refetch(); plan.refetch(); }} />}
       {tab === "plan" && canList && <ListingPlan canRequest={isOwner} />}
+      {tab === "stats" && canList && <ListingStats />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "wa" && <OwnerChats />}
       {tab === "referrals" && <Referrals canManage={isOwner || role === "manager"} />}

@@ -48,6 +48,7 @@ import { RoutingRules } from "@/components/dash/RoutingRules";
 import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
+import { PlansAdmin, AccountPlan } from "@/components/dash/PlansAdmin";
 import { createBrokerAccount, deleteAccountAsAdmin, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { cleanPhone } from "@/lib/phone";
@@ -160,10 +161,10 @@ function AdminPage() {
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}
           {tab === "referrals" && <ReferralsAdmin />}
-          {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans.filter((p) => (p.audience ?? "broker") === "broker")} reload={reload} />}
+          {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
           {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
           {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
-          {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} />}
+          {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} canEdit={!viewOnly} />}
           {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
           {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
           {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
@@ -224,7 +225,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
   return (
     <div className="space-y-3">
       <button onClick={() => setShowNew(!showNew)} className={btnPrimary}>{showNew ? "إغلاق" : "إضافة وسيط / إرسال دعوة"}</button>
-      {showNew && <NewBroker plans={plans} onDone={() => { setShowNew(false); reload(); }} />}
+      {showNew && <NewBroker onDone={() => { setShowNew(false); reload(); }} />}
       <div className="flex flex-wrap gap-2">
         <select aria-label="الحالة" className={`${inputCls} w-auto`} value={status} onChange={(e) => setStatus(e.target.value as AccountStatus | "")}>
           <option value="">كل الحالات</option>{Object.entries(ACCOUNT_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -259,14 +260,7 @@ function BrokersAdmin({ brokers, plans, reload }: { brokers: BrokerRow[]; plans:
                 )}
               </div>
             </div>
-            {st === "approved" && (
-              <select aria-label="الباقة" className={`${inputCls} md:w-48`} value={b.plan_id ?? ""} onChange={async (e) => {
-                const { error } = await supabase.from("brokers").update({ plan_id: e.target.value || null }).eq("id", b.id);
-                if (error) toast.error(error.message); else { toast.success("تم تحديث الباقة"); reload(); }
-              }}>
-                <option value="">بدون باقة</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            )}
+            {st === "approved" && !b.is_demo && <AccountPlan b={b} plans={plans} reload={reload} />}
             <div className="flex flex-wrap gap-2">
               {!b.is_demo && <DirectMessageButton brokerId={b.id} className={btnOutline} />}
               {st === "approved" && (
@@ -331,7 +325,7 @@ function BrokerEdit({ b, onDone }: { b: BrokerRow; onDone: () => void }) {
   );
 }
 
-function NewBroker({ plans, onDone }: { plans: PlanRow[]; onDone: () => void }) {
+function NewBroker({ onDone }: { onDone: () => void }) {
   const create = useServerFn(createBrokerAccount);
   const [f, setF] = useState({ name: "", email: "", phone: "", specialty: "", password: "", mode: "invite" as "invite" | "password", planId: "", areas: [] as string[] });
   const [busy, setBusy] = useState(false);
@@ -350,7 +344,7 @@ function NewBroker({ plans, onDone }: { plans: PlanRow[]; onDone: () => void }) 
       <Field label="البريد الإلكتروني"><input required type="email" dir="ltr" className={inputCls} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
       <Field label="الهاتف"><input dir="ltr" className={inputCls} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} maxLength={20} /></Field>
       <Field label="التخصص"><input className={inputCls} value={f.specialty} onChange={(e) => setF({ ...f, specialty: e.target.value })} maxLength={120} /></Field>
-      <Field label="الباقة"><select className={inputCls} value={f.planId} onChange={(e) => setF({ ...f, planId: e.target.value })}><option value="">المجانية (افتراضي)</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+      <p className="self-end pb-2 text-xs text-muted-foreground">الحساب بياخد أول شهر مجانًا على الباقة الوسطى أول ما يتعتمد، وبعدها تفعّل باقته من هنا.</p>
       <Field label="طريقة الإنشاء"><select className={inputCls} value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value as "invite" | "password" })}><option value="invite">إرسال دعوة بالبريد</option><option value="password">إنشاء بكلمة مرور</option></select></Field>
       {f.mode === "password" && <Field label="كلمة المرور المؤقتة"><input dir="ltr" minLength={8} required className={inputCls} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>}
       <div className="sm:col-span-2"><AreaPicker small value={f.areas} onChange={(areas) => setF({ ...f, areas })} /></div>
@@ -487,107 +481,6 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function PlansAdmin({ plans, reload }: { plans: PlanRow[]; reload: () => void }) {
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">كل باقة بتحدد عدد الإعلانات الظاهرة في نفس الوقت، ومدة كل إعلان (بعدها بيستخبى لحد ما يتجدد — مش بيتمسح)، والإعلانات المميزة والأسعار. الباقة اللي سعرها صفر مش بتتدفع. الدفع الأونلاين هيشتغل لما بوابة الدفع تتربط؛ لحد كده الباقة بتتفعّل من هنا.</p>
-      <p className="font-extrabold text-primary">باقات الوسطاء والشركات</p>
-      <p className="-mt-3 text-xs text-muted-foreground">بتتفعّل من «الحسابات» ← اختار الباقة جنب الحساب.</p>
-      <div className="grid gap-3 md:grid-cols-3">
-        {plans.filter((p) => (p.audience ?? "broker") === "broker").map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
-      </div>
-      <p className="font-extrabold text-primary">باقات الملاك</p>
-      <p className="-mt-3 text-xs text-muted-foreground">الملاك اللي بيعرضوا عقاراتهم من «اعرض عقارك» — الباقة بتتحسب برقم الموبايل.</p>
-      <div className="grid gap-3 md:grid-cols-3">
-        {plans.filter((p) => p.audience === "owner").map((p) => <PlanCard key={p.id} p={p} reload={reload} />)}
-      </div>
-      <OwnerGrants plans={plans.filter((p) => p.audience === "owner" && p.code !== "owner_free")} />
-      <PaymentSettings />
-    </div>
-  );
-}
-
-/** Owner plans are given by phone number (owners have no company account). */
-function OwnerGrants({ plans }: { plans: PlanRow[] }) {
-  const q = useQuery({ queryKey: ["owner-grants"], queryFn: async () => (await supabase.from("owner_plan_grants").select("*").order("created_at", { ascending: false }).limit(100)).data ?? [] });
-  const [f, setF] = useState({ phone: "", plan: "", months: "1" });
-  return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4">
-      <p className="font-bold text-primary">تفعيل باقة لمالك</p>
-      <div className="flex flex-wrap items-end gap-2">
-        <Field label="موبايل المالك"><input className={`${inputCls} w-44`} dir="ltr" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} maxLength={20} /></Field>
-        <Field label="الباقة"><select className={`${inputCls} w-auto`} value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })}><option value="">اختار</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-        <Field label="المدة"><select className={`${inputCls} w-auto`} value={f.months} onChange={(e) => setF({ ...f, months: e.target.value })}>{[["1", "شهر"], ["3", "3 شهور"], ["6", "6 شهور"], ["12", "سنة"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
-        <button className={btnPrimary} disabled={!f.plan || !cleanPhone(f.phone)} onClick={async () => {
-          const ends = new Date(); ends.setMonth(ends.getMonth() + Number(f.months));
-          const { error } = await supabase.from("owner_plan_grants").insert({ phone: cleanPhone(f.phone)!, plan_id: f.plan, ends_at: ends.toISOString() });
-          if (error) toast.error(error.message); else { toast.success("الباقة اتفعّلت للرقم ده"); setF({ phone: "", plan: "", months: "1" }); q.refetch(); }
-        }}>تفعيل</button>
-      </div>
-      {(q.data?.length ?? 0) > 0 && (
-        <ul className="divide-y text-sm">
-          {q.data!.map((g) => {
-            const running = g.status === "active" && new Date(g.ends_at) > new Date();
-            return (
-              <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span><span dir="ltr">{g.phone}</span> · {plans.find((p) => p.id === g.plan_id)?.name ?? "باقة"} · {formatDate(g.starts_at)} ← {formatDate(g.ends_at)}{running ? "" : " · منتهية"}</span>
-                {running && <button className="text-xs font-bold text-destructive hover:underline" onClick={async () => { if (!confirm("إلغاء الباقة دي؟")) return; const { error } = await supabase.from("owner_plan_grants").update({ status: "cancelled" }).eq("id", g.id); if (error) toast.error(error.message); else q.refetch(); }}>إلغاء</button>}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function PlanCard({ p, reload }: { p: PlanRow; reload: () => void }) {
-  const [f, setF] = useState({ name: p.name, max_properties: String(p.max_properties), featured_slots: String(p.featured_slots), monthly_price: String(p.monthly_price), yearly_price: String(p.yearly_price ?? 0), trial_days: String(p.trial_days ?? 0),
-    listing_days: p.listing_days != null ? String(p.listing_days) : "", features: (p.features ?? []).join("\n") });
-  return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4">
-      <Field label="اسم الباقة"><input className={inputCls} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
-      <Field label="مدة الإعلان (يوم)"><input className={inputCls} inputMode="numeric" placeholder="من غير مدة" value={f.listing_days} onChange={(e) => setF({ ...f, listing_days: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 3) })} /></Field>
-      <Field label="الحد الأقصى للعقارات"><input className={inputCls} inputMode="numeric" value={f.max_properties} onChange={(e) => setF({ ...f, max_properties: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
-      <Field label="الإعلانات المميزة"><input className={inputCls} inputMode="numeric" value={f.featured_slots} onChange={(e) => setF({ ...f, featured_slots: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
-      <Field label="السعر الشهري (ج.م)"><input className={inputCls} inputMode="numeric" value={f.monthly_price} onChange={(e) => setF({ ...f, monthly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
-      <Field label="السعر السنوي (ج.م)"><input className={inputCls} inputMode="numeric" value={f.yearly_price} onChange={(e) => setF({ ...f, yearly_price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>
-      {Number(f.monthly_price) > 0 && Number(f.yearly_price) > 0 && Number(f.yearly_price) < Number(f.monthly_price) * 12 && <p className="-mt-2 text-xs font-bold text-teal">توفير {Math.round((1 - Number(f.yearly_price) / (Number(f.monthly_price) * 12)) * 100)}% على السنوي</p>}
-      <Field label="مميزات إضافية (كل سطر ميزة)"><textarea className={`${inputCls} h-24 py-2 text-sm`} value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} /></Field>
-      <Field label="أيام التجربة المجانية"><input className={inputCls} inputMode="numeric" value={f.trial_days} onChange={(e) => setF({ ...f, trial_days: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").slice(0, 2) })} /></Field>
-      <button className={`${btnPrimary} w-full`} onClick={async () => {
-        const { error } = await supabase.from("plans").update({ name: f.name.trim(), max_properties: Number(f.max_properties || 0), featured_slots: Number(f.featured_slots || 0), monthly_price: Number(f.monthly_price || 0), yearly_price: Number(f.yearly_price || 0), trial_days: Math.min(Number(f.trial_days || 0), 60),
-          listing_days: f.listing_days === "" ? null : Math.min(365, Math.max(1, Number(f.listing_days))), features: f.features.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 15) }).eq("id", p.id);
-        if (error) toast.error(error.message); else { toast.success("تم الحفظ"); reload(); }
-      }}>حفظ</button>
-    </div>
-  );
-}
-
-/** Featured-listing prices and the grace period after a subscription ends (payments phase 1). */
-function PaymentSettings() {
-  const q = useQuery({ queryKey: ["payment-settings"], queryFn: async () => (await supabase.from("app_settings").select("featured_week_price, featured_month_price, subscription_grace_days").eq("id", 1).maybeSingle()).data });
-  const [f, setF] = useState<{ week: string; month: string; grace: string } | null>(null);
-  const v = f ?? (q.data ? { week: String(q.data.featured_week_price), month: String(q.data.featured_month_price), grace: String(q.data.subscription_grace_days) } : null);
-  if (!v) return null;
-  const num = (x: string) => x.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "");
-  return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4">
-      <p className="font-bold text-primary">تمييز العقار والتجديد</p>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="تمييز عقار أسبوع (ج.م)"><input className={inputCls} inputMode="numeric" value={v.week} onChange={(e) => setF({ ...v, week: num(e.target.value) })} /></Field>
-        <Field label="تمييز عقار شهر (ج.م)"><input className={inputCls} inputMode="numeric" value={v.month} onChange={(e) => setF({ ...v, month: num(e.target.value) })} /></Field>
-        <Field label="أيام السماح بعد انتهاء الباقة"><input className={inputCls} inputMode="numeric" value={v.grace} onChange={(e) => setF({ ...v, grace: num(e.target.value).slice(0, 2) })} /></Field>
-      </div>
-      <p className="text-xs text-muted-foreground">بعد أيام السماح الحساب بيرجع للباقة المجانية، والعقارات الزيادة عن حدها بتستخبى (مش بتتمسح) لحد ما يجدد. وفيه تنبيه قبل الانتهاء بأسبوع وبيوم.</p>
-      <button className={btnPrimary} onClick={async () => {
-        const { error } = await supabase.from("app_settings").update({ featured_week_price: Number(v.week || 0), featured_month_price: Number(v.month || 0), subscription_grace_days: Math.min(Number(v.grace || 0), 30) }).eq("id", 1);
-        if (error) toast.error(error.message); else { toast.success("تم الحفظ"); setF(null); q.refetch(); }
-      }}>حفظ</button>
     </div>
   );
 }

@@ -169,7 +169,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   isDemo: r.is_demo,
   availability: availabilityOf(r),
   finishing: r.finishing ?? undefined,
-  featured: r.is_featured,
+  featured: r.is_featured && (!r.featured_until || Date.parse(r.featured_until) > Date.now()),
   brokerId: r.broker_id,
   code: r.listing_no != null ? listingCode(r.listing_no) : undefined,
   installments: r.status === "بيع" && (r.payment_method === "installment" || r.payment_method === "both") ? {
@@ -251,14 +251,51 @@ export function listingTerm(listedUntil: string | null | undefined): { label: st
   return { label: `ظاهر لحد ${formatDate(listedUntil)}`, cls: "bg-secondary text-muted-foreground", renewable: false, ended: false };
 }
 
+/** A listing plan as the plan pages show it (the perk columns come with the tiered plans). */
+export type ListingPlanInfo = {
+  max_properties: number; listing_days: number | null; featured_slots: number; features: string[]; audience?: string;
+  support_level?: string; verified_badge?: boolean; pin_days?: number; spotlights_per_month?: number; whatsapp_broadcast?: boolean;
+  posts_per_month?: number; videos_per_month?: number; excel_import?: boolean; home_banner?: boolean; stats_level?: string;
+  max_staff?: number | null; max_projects?: number | null;
+};
+export const PLAN_AUDIENCES = [
+  { id: "owner", label: "مالك — بيع" },
+  { id: "owner_rent", label: "مالك — إيجار" },
+  { id: "owner_summer", label: "مالك — مصيف" },
+  { id: "individual", label: "مسوّق / وسيط فرد" },
+  { id: "company", label: "شركة بروكر أو تسويق" },
+  { id: "developer", label: "مطوّر" },
+] as const;
+export const PLAN_MONTHS = [1, 3, 6, 12] as const;
+export const PLAN_MONTHS_LABEL: Record<number, string> = { 1: "شهر", 3: "3 شهور", 6: "6 شهور", 12: "سنة" };
+const SUPPORT_LABEL: Record<string, string> = { normal: "دعم فني", priority: "دعم فني بأولوية", dedicated: "مسؤول حساب خاص بيك" };
+const STATS_LABEL: Record<string, string> = { basic: "إحصائيات أساسية (الظهور والمشاهدات والطلبات)", full: "إحصائيات كاملة لكل إعلان", report: "إحصائيات كاملة + تقرير شهري على واتساب" };
+const times = (n: number, one: string, two: string, many: string) => (n === 1 ? one : n === 2 ? two : `${n} ${many}`);
+/** The price of a plan for a term, after the term discount (same rule as the database's plan_price). */
+export const planTermPrice = (monthly: number, months: number, discounts: Record<number, number>) =>
+  Math.round(monthly * months * (100 - (discounts[months] ?? 0)) / 100);
+
 /** What a listing plan gives, in words (numbers come from the plan, extra perks from its features). */
-export function listingPlanLines(p: { max_properties: number; listing_days: number | null; featured_slots: number; features: string[] }) {
+export function listingPlanLines(p: ListingPlanInfo) {
+  const dev = p.audience === "developer";
   return [
-    p.max_properties === 1 ? "إعلان واحد ظاهر في نفس الوقت" : p.max_properties === 2 ? "إعلانين ظاهرين في نفس الوقت" : `${p.max_properties} إعلان ظاهرين في نفس الوقت`,
-    p.listing_days ? `كل إعلان ظاهر ${p.listing_days} يوم وتقدر تجدّده` : "الإعلانات ظاهرة من غير مدة",
-    ...(p.featured_slots > 0 ? [p.featured_slots === 1 ? "إعلان مميز واحد" : `${p.featured_slots} إعلانات مميزة`] : []),
+    dev ? (p.max_projects == null ? "مشروعات وكمبوندات من غير حد" : times(p.max_projects, "مشروع أو كمبوند واحد", "مشروعين أو كمبوندين", "مشروعات وكمبوندات")) + " بوحدات من غير حد"
+      : p.max_properties === 1 ? "إعلان واحد ظاهر" : p.max_properties === 2 ? "إعلانين ظاهرين في نفس الوقت" : `${p.max_properties} إعلان ظاهرين في نفس الوقت`,
+    ...(p.max_staff != null && p.max_staff > 0 ? [`فريق لحد ${p.max_staff} (مديرين ومبيعات)`] : []),
+    p.listing_days ? `كل إعلان ظاهر ${p.listing_days} يوم وتقدر تجدّده` : "الإعلانات ظاهرة طول مدة الباقة",
+    ...(p.support_level ? [SUPPORT_LABEL[p.support_level] ?? "دعم فني"] : []),
+    ...(p.verified_badge ? ["علامة «متحقق ✓» على حسابك وإعلاناتك"] : []),
+    ...(p.featured_slots > 0 && p.pin_days ? [`تثبيت ${times(p.featured_slots, "إعلان", "إعلانين", "إعلانات")} على الواجهة ${p.pin_days >= 28 ? "طول الشهر" : `${p.pin_days} يوم`}`]
+      : p.featured_slots > 0 ? [p.featured_slots === 1 ? "إعلان مميز واحد" : `${p.featured_slots} إعلانات مميزة`] : []),
+    ...(p.spotlights_per_month ? [`«عرض للكل» في شريط الموقع ${p.spotlights_per_month >= 4 ? "كل أسبوع" : times(p.spotlights_per_month, "مرة في الشهر", "مرتين في الشهر", "مرات في الشهر")}`] : []),
+    ...(p.whatsapp_broadcast ? ["رسايل واتساب للعملاء المهتمين بالمنطقة"] : []),
+    ...(p.videos_per_month ? [times(p.videos_per_month, "فيديو", "2 فيديو", "فيديوهات") + " على صفحات فاليو عقار كل شهر"] : []),
+    ...(p.posts_per_month ? [times(p.posts_per_month, "بوست", "2 بوست", "بوستات") + " على صفحات فاليو عقار كل شهر"] : []),
+    ...(p.excel_import ? ["رفع العقارات والوحدات من Excel"] : []),
+    ...(p.home_banner ? ["بانر في الصفحة الرئيسية"] : []),
+    ...(p.stats_level ? [STATS_LABEL[p.stats_level] ?? ""] : []),
     ...(p.features ?? []),
-  ];
+  ].filter(Boolean);
 }
 
 /** What a service plan gives, in words. */

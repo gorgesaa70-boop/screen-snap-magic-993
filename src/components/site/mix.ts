@@ -30,3 +30,15 @@ export function mixByKind(list: Property[]): Property[] {
   for (let i = 0; out.length < list.length; i++) for (const q of queues) if (i < q.length) out.push(q[i]!);
   return out;
 }
+
+/**
+ * Pinned listings (the plans' homepage pin) on top of the unfiltered home list: at most `slots` of them, picked
+ * at random on each visit so every pinned listing gets its turn; the rest follow in the usual kind-by-kind order.
+ */
+export function withPins(list: Property[], slots: number, rand: () => number = Math.random): Property[] {
+  const pinned = list.filter((p) => p.featured && !p.isDemo);
+  for (let i = pinned.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [pinned[i], pinned[j]] = [pinned[j]!, pinned[i]!]; }
+  const top = pinned.slice(0, Math.max(0, slots));
+  const topIds = new Set(top.map((p) => p.id));
+  return [...top, ...mixByKind(list.filter((p) => !topIds.has(p.id)))];
+}

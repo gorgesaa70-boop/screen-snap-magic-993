@@ -17,6 +17,7 @@ import { Route as AuthFacebookRouteImport } from './routes/auth-facebook'
 import { Route as BrokerNetworkRouteImport } from './routes/broker-network'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SellRouteImport } from './routes/sell'
@@ -107,6 +108,11 @@ const DeleteAccountRoute = DeleteAccountRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlansRoute = PlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
@@ -447,6 +454,7 @@ export interface FileRoutesByTo {
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
@@ -510,6 +518,7 @@ export interface FileRoutesById {
   '/broker-network': typeof BrokerNetworkRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
+  '/plans': typeof PlansRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sell': typeof SellRoute
@@ -573,6 +582,7 @@ export interface FileRouteTypes {
     | '/broker-network'
     | '/delete-account'
     | '/map'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/sell'
@@ -634,6 +644,7 @@ export interface FileRouteTypes {
     | '/broker-network'
     | '/delete-account'
     | '/map'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/sell'
@@ -696,6 +707,7 @@ export interface FileRouteTypes {
     | '/broker-network'
     | '/delete-account'
     | '/map'
+    | '/plans'
     | '/privacy'
     | '/reset-password'
     | '/sell'
@@ -759,6 +771,7 @@ export interface RootRouteChildren {
   BrokerNetworkRoute: typeof BrokerNetworkRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   MapRoute: typeof MapRoute
+  PlansRoute: typeof PlansRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SellRoute: typeof SellRoute
@@ -850,6 +863,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plans': {
+      id: '/plans'
+      path: '/plans'
+      fullPath: '/plans'
+      preLoaderRoute: typeof PlansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1275,6 +1295,7 @@ const rootRouteChildren: RootRouteChildren = {
   BrokerNetworkRoute: BrokerNetworkRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   MapRoute: MapRoute,
+  PlansRoute: PlansRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SellRoute: SellRoute,

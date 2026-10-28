@@ -1,7 +1,7 @@
 import { cleanPhone } from "@/lib/phone";
 import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -15,7 +15,8 @@ import { AlertButton, FavoriteButton } from "./CustomerTools";
 import { fetchOpportunities } from "@/lib/investments";
 import { fetchMallSummary } from "./malls";
 import { fetchSearchEverything } from "./search-everything";
-import { mixByKind } from "./mix";
+import { withPins } from "./mix";
+import { useBadgeAccounts, useHomePins } from "@/lib/plan-perks";
 import { AvailabilityBadge } from "./availability";
 import { Avatar, inputCls } from "./ui";
 import { Logo } from "./Navbar";
@@ -24,6 +25,7 @@ import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { downPct } from "@/lib/installments";
 import { WhatsAppMark } from "./FloatingWhatsApp";
 import { thumb } from "@/lib/images";
+import { trackContact, useImpression } from "@/lib/track";
 
 function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) {
   return (
@@ -91,8 +93,14 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
   const owner = p.brokerId ? brokers?.find((b) => b.id === p.brokerId) : undefined;
   const num = contactNumber(owner);
   const wa = whatsapp ?? (owner?.whatsapp || owner?.phone);
+  // Statistics: a showing once the card is on screen, a contact on WhatsApp / call (listings only, not demos or units).
+  const stat = !p.kind && !p.isDemo ? p.id : null;
+  const seen = useImpression<HTMLElement>(stat);
+  const contacted = () => { if (stat) trackContact(stat); };
+  const badges = useBadgeAccounts();
+  const accountVerified = !!p.brokerId && badges.has(p.brokerId);
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
+    <article ref={seen} className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
         <img src={thumb(p.image)} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
           className="size-full object-cover transition duration-500 group-hover:scale-105" />
@@ -124,18 +132,19 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground">
           {p.verified ? <span className="flex items-center gap-1 font-bold text-teal"><BadgeCheck className="size-3.5 shrink-0" />{tr("متحقق منه")}</span>
+            : accountVerified ? <span className="flex items-center gap-1 font-bold text-teal"><BadgeCheck className="size-3.5 shrink-0" />{tr("حساب متحقق")}</span>
             : <span className="flex items-center gap-1"><ShieldQuestion className="size-3.5 shrink-0" />{p.isDemo ? tr("لسه ماتراجعش") : tr("تمت مراجعته")}</span>}
           {p.code && <span className="font-bold text-primary" dir="ltr">{p.code}</span>}
           <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />{tr("تحديث:")} {formatDate(p.updated)}</span>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-2 pt-4">
           <DetailsLink p={p} className="flex h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98]" />
-          <a href={waLink(wa, listingMessage(p))} target="_blank" rel="noreferrer"
+          <a href={waLink(wa, listingMessage(p))} target="_blank" rel="noreferrer" onClick={contacted}
             className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
             <MessageCircle className="size-4 shrink-0" /> {tr("واتساب")}
           </a>
           {num && (
-            <a href={`tel:${num}`} className="col-span-2 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal text-sm font-bold text-accent-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
+            <a href={`tel:${num}`} onClick={contacted} className="col-span-2 flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal text-sm font-bold text-accent-foreground transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98]">
               <Phone className="size-4 shrink-0" />{tr("اتصال")} <span dir="ltr">{num}</span>
             </a>
           )}
@@ -153,7 +162,9 @@ export function FeaturedProperties({ filters, onClear }: { filters: Filters; onC
   // listings until it arrives, then all of them taking turns by kind (so a batch of lands doesn't fill the screen).
   const everything = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything });
   const { data: properties = [], isLoading, isError } = filtered || everything.data ? everything : base;
-  const results = filtered ? applyFilters(properties, filters) : mixByKind(properties);
+  // Pins rotate per visit: picked once per list so the order doesn't jump while the visitor scrolls.
+  const pins = useHomePins();
+  const results = useMemo(() => (filtered ? applyFilters(properties, filters) : withPins(properties, pins)), [filtered, properties, filters, pins]);
   // Show a few first (the home page was very long on phones); more on request. Reset when the search changes.
   const step = filtered ? 12 : 6;
   const [shown, setShown] = useState(step);
@@ -465,7 +476,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   useLang();
-  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["تسجيل الدخول", "/auth"]];
+  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 md:grid-cols-4 md:gap-10 md:px-6 md:py-14">
