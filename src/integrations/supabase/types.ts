@@ -71,8 +71,8 @@ export type Database = {
           announce_url: string | null
           featured_month_price: number
           featured_week_price: number
-          floating_whatsapp: string | null
           finishing_ratios: Json
+          floating_whatsapp: string | null
           id: number
           indexnow_sent_at: string | null
           ios_url: string | null
@@ -87,6 +87,8 @@ export type Database = {
           transfer_max_companies: number
           updated_at: string
           updated_by: string | null
+          wa_bot_ai: boolean
+          wa_bot_enabled: boolean
           work_end_hour: number
           work_start_hour: number
         }
@@ -101,8 +103,8 @@ export type Database = {
           announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
-          floating_whatsapp?: string | null
           finishing_ratios?: Json
+          floating_whatsapp?: string | null
           id?: number
           indexnow_sent_at?: string | null
           ios_url?: string | null
@@ -117,6 +119,8 @@ export type Database = {
           transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
+          wa_bot_ai?: boolean
+          wa_bot_enabled?: boolean
           work_end_hour?: number
           work_start_hour?: number
         }
@@ -131,8 +135,8 @@ export type Database = {
           announce_url?: string | null
           featured_month_price?: number
           featured_week_price?: number
-          floating_whatsapp?: string | null
           finishing_ratios?: Json
+          floating_whatsapp?: string | null
           id?: number
           indexnow_sent_at?: string | null
           ios_url?: string | null
@@ -147,8 +151,37 @@ export type Database = {
           transfer_max_companies?: number
           updated_at?: string
           updated_by?: string | null
+          wa_bot_ai?: boolean
+          wa_bot_enabled?: boolean
           work_end_hour?: number
           work_start_hour?: number
+        }
+        Relationships: []
+      }
+      assistant_settings: {
+        Row: {
+          floating: string
+          id: number
+          instructions: string
+          updated_at: string
+          updated_by: string | null
+          welcome: string
+        }
+        Insert: {
+          floating?: string
+          id?: number
+          instructions?: string
+          updated_at?: string
+          updated_by?: string | null
+          welcome?: string
+        }
+        Update: {
+          floating?: string
+          id?: number
+          instructions?: string
+          updated_at?: string
+          updated_by?: string | null
+          welcome?: string
         }
         Relationships: []
       }
@@ -3313,6 +3346,27 @@ export type Database = {
           },
         ]
       }
+      staff_permissions: {
+        Row: {
+          perms: Json
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          perms?: Json
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          perms?: Json
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           broker_id: string
@@ -3441,6 +3495,97 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_conversations: {
+        Row: {
+          bot_paused_until: string | null
+          handoff_at: string | null
+          last_inbound_at: string | null
+          last_message: string | null
+          last_outbound_at: string | null
+          lead_id: string | null
+          name: string | null
+          phone: string
+          unread: number
+          updated_at: string
+        }
+        Insert: {
+          bot_paused_until?: string | null
+          handoff_at?: string | null
+          last_inbound_at?: string | null
+          last_message?: string | null
+          last_outbound_at?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone: string
+          unread?: number
+          updated_at?: string
+        }
+        Update: {
+          bot_paused_until?: string | null
+          handoff_at?: string | null
+          last_inbound_at?: string | null
+          last_message?: string | null
+          last_outbound_at?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone?: string
+          unread?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          body: string
+          created_at: string
+          direction: string
+          id: string
+          phone: string
+          sender: string
+          staff_id: string | null
+          status: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          direction: string
+          id?: string
+          phone: string
+          sender: string
+          staff_id?: string | null
+          status?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          phone?: string
+          sender?: string
+          staff_id?: string | null
+          status?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_phone_fkey"
+            columns: ["phone"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["phone"]
+          },
+        ]
+      }
       whatsapp_otps: {
         Row: {
           attempts: number
@@ -3535,11 +3680,6 @@ export type Database = {
         Args: { _from: string; _mins: number }
         Returns: string
       }
-      admin_delete_broker: { Args: { _id: string }; Returns: string }
-      admin_delete: {
-        Args: { _id: string; _kind: string; _target?: string }
-        Returns: string
-      }
       admin_accounts: {
         Args: never
         Returns: {
@@ -3602,6 +3742,12 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      admin_delete: {
+        Args: { _id: string; _kind: string; _target?: string }
+        Returns: string
+      }
+      admin_delete_broker: { Args: { _id: string }; Returns: string }
+      admin_drop_property: { Args: { _id: string }; Returns: string }
       admin_exists: { Args: never; Returns: boolean }
       admin_opportunities: {
         Args: never
@@ -4046,6 +4192,7 @@ export type Database = {
           type: string
         }[]
       }
+      my_permissions: { Args: never; Returns: Json }
       my_phone: { Args: never; Returns: string }
       my_referral_payouts: {
         Args: never
@@ -4414,19 +4561,29 @@ export type Database = {
         Args: { _closed: boolean; _thread: string }
         Returns: undefined
       }
-      set_mall_images: {
-        Args: { _images: string[]; _mall: string }
-        Returns: undefined
-      }
       set_lead_chat_closed: {
         Args: { _closed: boolean; _lead: string }
         Returns: undefined
       }
+      set_mall_images: {
+        Args: { _images: string[]; _mall: string }
+        Returns: undefined
+      }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      staff_can: {
+        Args: { _need?: string; _section: string }
+        Returns: boolean
+      }
+      staff_leads_all: { Args: never; Returns: boolean }
       start_direct_thread: { Args: { _broker?: string }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
         Returns: string
+      }
+      wa_mark_read: { Args: { _phone: string }; Returns: undefined }
+      wa_notify_team: {
+        Args: { _msg: string; _phone: string; _title: string }
+        Returns: undefined
       }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
