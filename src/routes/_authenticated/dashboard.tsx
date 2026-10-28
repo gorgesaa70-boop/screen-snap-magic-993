@@ -25,6 +25,7 @@ import { CompoundsHub } from "@/components/dash/CompoundsHub";
 import { CompanyTeam, MEMBER_ROLES } from "@/components/dash/CompanyTeam";
 import { ListingPlan, useMyListingPlan } from "@/components/dash/ListingPlan";
 import { Referrals, CoBrokeShare } from "@/components/dash/Referrals";
+import { OwnerChats, useOwnerThreads } from "@/components/dash/OwnerChats";
 import { Factory, FileSpreadsheet, Store } from "lucide-react";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, listingTerm, leadNo, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, uploadImage, waLink, type BrokerRow, type PropertyRow, leadKindLabel } from "@/components/site/data";
@@ -104,7 +105,7 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "team" | "profile";
+type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile";
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -113,7 +114,10 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const { me } = useMe();
   const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
-  const [tab, setTab] = useState<Tab>("overview");
+  // A WhatsApp-chat bell links to /dashboard?tab=wa.
+  const [tab, setTab] = useState<Tab>(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "wa" ? "wa" : "overview");
+  const chats = useOwnerThreads();
+  const chatsUnread = (chats.data ?? []).reduce((n, t) => n + t.unread, 0);
   const props = useQuery({
     queryKey: ["my-properties", broker.id],
     queryFn: async () => {
@@ -151,6 +155,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         ...(canList ? [{ id: "properties" as const, label: isOwner ? "عقاراتي" : "العقارات" }] : []),
         ...(canList ? [{ id: "plan" as const, label: "باقتي" }] : []),
         { id: "leads", label: "أحدث العملاء" },
+        { id: "wa", label: chatsUnread ? `محادثات الواتساب (${chatsUnread})` : "محادثات الواتساب" },
         { id: "referrals", label: "الإحالات" },
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
         ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
@@ -189,6 +194,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "properties" && canList && <MyProperties brokerId={broker.id} list={P} remaining={plan.data ? Math.max(0, plan.data.max - plan.data.used) : null} reload={() => { props.refetch(); plan.refetch(); }} />}
       {tab === "plan" && canList && <ListingPlan canRequest={isOwner} />}
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
+      {tab === "wa" && <OwnerChats />}
       {tab === "referrals" && <Referrals canManage={isOwner || role === "manager"} />}
       {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
