@@ -100,12 +100,7 @@ export async function searchListings(db: Db, args: Record<string, unknown>): Pro
 type Part = { text?: string; functionCall?: { name: string; args?: Record<string, unknown> }; functionResponse?: unknown };
 type Content = { role: "user" | "model"; parts: Part[] };
 
-async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
-  // GEMINI_APT_KEY: the name the secret was first saved under (typo) — accepted so it works without re-entering the key.
-  const key = process.env["GEMINI_API_KEY"] || process.env["GEMINI_APT_KEY"];
-  if (!key) return null;
-  // gemini-2.5-flash is closed to new API keys (404), so default to the current flash model.
-  const model = process.env["GEMINI_MODEL"] || "gemini-3.8-flash";
+async function callModel(model: string, key: string, contents: Content[], channel: Channel, extra: string): Promise<Content | null | "retry"> {
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -116,10 +111,29 @@ async function generate(contents: Content[], channel: Channel, extra: string): P
     }),
     signal: AbortSignal.timeout(12_000),
   }).catch(() => null);
-  if (!res) return null;
-  if (!res.ok) { console.error("wa bot ai failed", res.status, (await res.text().catch(() => "")).slice(0, 200)); return null; }
+  if (!res) return "retry";
+  if (!res.ok) {
+    console.error("wa bot ai failed", model, res.status, (await res.text().catch(() => "")).slice(0, 200));
+    // 429/503 = overloaded, 404 = model gone: try the next model instead of giving up.
+    return res.status === 429 || res.status === 503 || res.status === 404 ? "retry" : null;
+  }
   const json = (await res.json().catch(() => null)) as { candidates?: { content?: Content }[] } | null;
   return json?.candidates?.[0]?.content ?? null;
+}
+
+async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
+  // GEMINI_APT_KEY: the name the secret was first saved under (typo) — accepted so it works without re-entering the key.
+  const key = process.env["GEMINI_API_KEY"] || process.env["GEMINI_APT_KEY"];
+  if (!key) return null;
+  // gemini-2.5-flash is closed to new API keys (404), so default to the current flash model.
+  // Fallbacks keep the assistant alive when the main model is overloaded or retired.
+  const preferred = process.env["GEMINI_MODEL"] || "gemini-3.8-flash";
+  const models = [preferred, "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"].filter((m, i, a) => a.indexOf(m) === i);
+  for (const model of models) {
+    const out = await callModel(model, key, contents, channel, extra);
+    if (out !== "retry") return out;
+  }
+  return null;
 }
 
 /** One AI turn: reads the recent chat, may search / save / hand off, and returns the reply text (null = AI unavailable). */
