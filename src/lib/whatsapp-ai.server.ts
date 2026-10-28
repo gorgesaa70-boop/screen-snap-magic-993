@@ -101,24 +101,29 @@ type Part = { text?: string; functionCall?: { name: string; args?: Record<string
 type Content = { role: "user" | "model"; parts: Part[] };
 
 async function callModel(model: string, key: string, contents: Content[], channel: Channel, extra: string): Promise<Content | null | "retry"> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: `${SYSTEM}\n- ${CHANNEL[channel]}${extra}` }] },
-      contents, tools: TOOLS,
-      generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
-    }),
-    signal: AbortSignal.timeout(12_000),
-  }).catch(() => null);
-  if (!res) return "retry";
-  if (!res.ok) {
-    console.error("wa bot ai failed", model, res.status, (await res.text().catch(() => "")).slice(0, 200));
-    // 429/503 = overloaded, 404 = model gone: try the next model instead of giving up.
-    return res.status === 429 || res.status === 503 || res.status === 404 ? "retry" : null;
+  // Two attempts per model: Google's free tier answers 503 "high demand" in bursts that clear within seconds.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: `${SYSTEM}\n- ${CHANNEL[channel]}${extra}` }] },
+        contents, tools: TOOLS,
+        generationConfig: { temperature: 0.3, maxOutputTokens: 500 },
+      }),
+      signal: AbortSignal.timeout(12_000),
+    }).catch(() => null);
+    if (!res) { await new Promise((r) => setTimeout(r, 800)); continue; }
+    if (!res.ok) {
+      console.error("wa bot ai failed", model, res.status, (await res.text().catch(() => "")).slice(0, 200));
+      // 429/503 = overloaded (retry after a pause), 404 = model gone: move to the next model instead of giving up.
+      if (res.status === 429 || res.status === 503) { await new Promise((r) => setTimeout(r, 800)); continue; }
+      return res.status === 404 ? "retry" : null;
+    }
+    const json = (await res.json().catch(() => null)) as { candidates?: { content?: Content }[] } | null;
+    return json?.candidates?.[0]?.content ?? null;
   }
-  const json = (await res.json().catch(() => null)) as { candidates?: { content?: Content }[] } | null;
-  return json?.candidates?.[0]?.content ?? null;
+  return "retry";
 }
 
 async function generate(contents: Content[], channel: Channel, extra: string): Promise<Content | null> {
