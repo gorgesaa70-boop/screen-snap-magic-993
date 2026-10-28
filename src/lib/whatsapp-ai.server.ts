@@ -128,7 +128,7 @@ async function generate(contents: Content[], channel: Channel, extra: string): P
   // gemini-2.5-flash is closed to new API keys (404), so default to the current flash model.
   // Fallbacks keep the assistant alive when the main model is overloaded or retired.
   const preferred = process.env["GEMINI_MODEL"] || "gemini-3.8-flash";
-  const models = [preferred, "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"].filter((m, i, a) => a.indexOf(m) === i);
+  const models = [preferred, "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"].filter((m, i, a) => a.indexOf(m) === i);
   for (const model of models) {
     const out = await callModel(model, key, contents, channel, extra);
     if (out !== "retry") return out;
