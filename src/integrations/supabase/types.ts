@@ -61,6 +61,10 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          plan_trial_days: number
+          plan_discount_3m: number
+          plan_discount_6m: number
+          plan_discount_12m: number
           android_url: string | null
           announce_ar: string | null
           announce_en: string | null
@@ -93,6 +97,10 @@ export type Database = {
           work_start_hour: number
         }
         Insert: {
+          plan_trial_days?: number
+          plan_discount_3m?: number
+          plan_discount_6m?: number
+          plan_discount_12m?: number
           android_url?: string | null
           announce_ar?: string | null
           announce_en?: string | null
@@ -125,6 +133,10 @@ export type Database = {
           work_start_hour?: number
         }
         Update: {
+          plan_trial_days?: number
+          plan_discount_3m?: number
+          plan_discount_6m?: number
+          plan_discount_12m?: number
           android_url?: string | null
           announce_ar?: string | null
           announce_en?: string | null
@@ -247,6 +259,8 @@ export type Database = {
       }
       brokers: {
         Row: {
+          access_until: string | null
+          plan_exempt: boolean
           account_type: string
           address: string | null
           areas: string[]
@@ -275,6 +289,8 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_until?: string | null
+          plan_exempt?: boolean
           account_type?: string
           address?: string | null
           areas?: string[]
@@ -303,6 +319,8 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_until?: string | null
+          plan_exempt?: boolean
           account_type?: string
           address?: string | null
           areas?: string[]
@@ -2054,6 +2072,8 @@ export type Database = {
       }
       owner_plan_grants: {
         Row: {
+          months: number | null
+          is_trial: boolean
           created_at: string
           created_by: string | null
           ends_at: string
@@ -2065,6 +2085,8 @@ export type Database = {
           status: string
         }
         Insert: {
+          months?: number | null
+          is_trial?: boolean
           created_at?: string
           created_by?: string | null
           ends_at: string
@@ -2076,6 +2098,8 @@ export type Database = {
           status?: string
         }
         Update: {
+          months?: number | null
+          is_trial?: boolean
           created_at?: string
           created_by?: string | null
           ends_at?: string
@@ -2190,8 +2214,84 @@ export type Database = {
           },
         ]
       }
+      plan_requests: {
+        Row: {
+          amount: number
+          broker_id: string | null
+          created_at: string
+          created_by: string | null
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          months: number
+          note: string | null
+          phone: string | null
+          plan_id: string
+          request_no: number
+          status: string
+        }
+        Insert: {
+          amount?: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          months: number
+          note?: string | null
+          phone?: string | null
+          plan_id: string
+          request_no?: never
+          status?: string
+        }
+        Update: {
+          amount?: number
+          broker_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          months?: number
+          note?: string | null
+          phone?: string | null
+          plan_id?: string
+          request_no?: never
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_requests_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_requests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
+          tier: number | null
+          support_level: string
+          verified_badge: boolean
+          pin_days: number
+          spotlights_per_month: number
+          whatsapp_broadcast: boolean
+          posts_per_month: number
+          videos_per_month: number
+          excel_import: boolean
+          home_banner: boolean
+          stats_level: string
+          max_staff: number | null
+          max_projects: number | null
           audience: string
           code: string
           created_at: string
@@ -2208,6 +2308,19 @@ export type Database = {
           yearly_price: number
         }
         Insert: {
+          tier?: number | null
+          support_level?: string
+          verified_badge?: boolean
+          pin_days?: number
+          spotlights_per_month?: number
+          whatsapp_broadcast?: boolean
+          posts_per_month?: number
+          videos_per_month?: number
+          excel_import?: boolean
+          home_banner?: boolean
+          stats_level?: string
+          max_staff?: number | null
+          max_projects?: number | null
           audience?: string
           code: string
           created_at?: string
@@ -2224,6 +2337,19 @@ export type Database = {
           yearly_price?: number
         }
         Update: {
+          tier?: number | null
+          support_level?: string
+          verified_badge?: boolean
+          pin_days?: number
+          spotlights_per_month?: number
+          whatsapp_broadcast?: boolean
+          posts_per_month?: number
+          videos_per_month?: number
+          excel_import?: boolean
+          home_banner?: boolean
+          stats_level?: string
+          max_staff?: number | null
+          max_projects?: number | null
           audience?: string
           code?: string
           created_at?: string
@@ -3369,6 +3495,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          months: number | null
           broker_id: string
           created_at: string
           ends_at: string | null
@@ -3383,6 +3510,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          months?: number | null
           broker_id: string
           created_at?: string
           ends_at?: string | null
@@ -3397,6 +3525,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          months?: number | null
           broker_id?: string
           created_at?: string
           ends_at?: string | null
@@ -3708,6 +3837,7 @@ export type Database = {
       admin_brokers: {
         Args: never
         Returns: {
+          access_until: string | null
           account_type: string
           address: string | null
           areas: string[]
@@ -3725,6 +3855,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           plan_id: string | null
+          plan_exempt: boolean
           rejected_at: string | null
           review_note: string | null
           show_contact: boolean
@@ -4054,6 +4185,7 @@ export type Database = {
       my_account: {
         Args: never
         Returns: {
+          access_until: string | null
           account_type: string
           address: string | null
           areas: string[]
@@ -4071,6 +4203,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           plan_id: string | null
+          plan_exempt: boolean
           rejected_at: string | null
           review_note: string | null
           show_contact: boolean
@@ -4127,6 +4260,7 @@ export type Database = {
         }[]
       }
       my_listing_plan: { Args: never; Returns: Json }
+      plan_price: { Args: { _months: number; _plan: string }; Returns: number }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
@@ -4356,6 +4490,7 @@ export type Database = {
       }
       owned_company_id: { Args: never; Returns: string }
       owner_listing_quota: { Args: { _phone: string }; Returns: Json }
+      owner_kind_quota: { Args: { _kind: string; _phone: string }; Returns: Json }
       owner_plan: {
         Args: { _phone: string }
         Returns: {
@@ -4433,6 +4568,8 @@ export type Database = {
       }
       refresh_service_plan: { Args: { _provider: string }; Returns: undefined }
       renew_listing: { Args: { _property: string }; Returns: string }
+      admin_grant_plan: { Args: { _broker: string | null; _months: number; _note?: string; _phone: string | null; _plan: string }; Returns: string }
+      admin_handle_plan_request: { Args: { _activate: boolean; _id: string; _note?: string }; Returns: string }
       reply_service_review: {
         Args: { _reply: string; _review: string }
         Returns: boolean
@@ -4445,7 +4582,7 @@ export type Database = {
         Args: { _message: string; _reason: string }
         Returns: undefined
       }
-      request_listing_plan: { Args: { _plan: string }; Returns: boolean }
+      request_listing_plan: { Args: { _months?: number; _plan: string }; Returns: string }
       request_service_plan: { Args: { _plan: string }; Returns: boolean }
       reroute_service_request: { Args: { _req: string }; Returns: string }
       run_lead_transfers: { Args: never; Returns: Json }

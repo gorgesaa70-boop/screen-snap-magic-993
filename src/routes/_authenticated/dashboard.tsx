@@ -114,8 +114,11 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const { me } = useMe();
   const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
-  // A WhatsApp-chat bell links to /dashboard?tab=wa.
-  const [tab, setTab] = useState<Tab>(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "wa" ? "wa" : "overview");
+  // A WhatsApp-chat bell links to /dashboard?tab=wa, a plan notice to /dashboard?tab=plan.
+  const [tab, setTab] = useState<Tab>(() => {
+    const q = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+    return q === "wa" || q === "plan" ? q : "overview";
+  });
   const chats = useOwnerThreads();
   const chatsUnread = (chats.data ?? []).reduce((n, t) => n + t.unread, 0);
   const props = useQuery({
@@ -162,6 +165,13 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       ]} />
       {tab === "overview" && (
         <div className="space-y-4">
+          {canList && plan.data && !plan.data.exempt && (plan.data.expired || plan.data.trial) && (
+            <div className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3 text-sm font-bold ${plan.data.expired ? "border-destructive bg-destructive/10 text-destructive" : "border-teal bg-teal-soft/40 text-primary"}`}>
+              <span>{plan.data.expired ? "باقتك خلصت وعقاراتك مستخبية عن الزوار (مفيش حاجة اتمسحت). اختار باقة وهترجع على طول."
+                : `أول شهر مجانًا على باقة «${plan.data.name}»${plan.data.ends_at ? ` لحد ${formatDate(plan.data.ends_at)}` : ""}. اختار باقتك قبل ما يخلص.`}</span>
+              <button className={btnPrimary} onClick={() => setTab("plan")}>{plan.data.expired ? "اختار باقة" : "شوف الباقات"}</button>
+            </div>
+          )}
           {isOwner && (
             <BrokerGuide brokerId={broker.id} steps={[
               { done: !!(broker.photo_url && broker.bio), title: "كمّل ملفك", hint: "صورة أو لوجو ونبذة قصيرة — ده اللي العملاء بيشوفوه.", action: "الملف الشخصي", onClick: () => setTab("profile") },

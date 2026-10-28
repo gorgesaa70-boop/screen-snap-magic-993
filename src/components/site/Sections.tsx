@@ -465,7 +465,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   useLang();
-  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["تسجيل الدخول", "/auth"]];
+  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 md:grid-cols-4 md:gap-10 md:px-6 md:py-14">

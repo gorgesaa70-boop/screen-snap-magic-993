@@ -26,7 +26,13 @@ function MyListingsPage() {
       <Tabs value={tab} onChange={setTab} tabs={[{ id: "listings", label: "إعلاناتي" }, { id: "plan", label: "باقتي" }]} />
       {tab === "plan" ? <ListingPlan /> : (
         <div className="max-w-3xl space-y-3">
-          {plan.data && <p className="text-sm text-muted-foreground">ظاهر دلوقتي {formatPrice(plan.data.used)} من {formatPrice(plan.data.max)} في باقتك ({plan.data.name}).</p>}
+          {plan.data && <p className="text-sm text-muted-foreground">ظاهر دلوقتي {formatPrice(plan.data.used)} من {formatPrice(plan.data.max)} في باقتك ({plan.data.name}{plan.data.trial ? " — أول شهر مجانًا" : ""}).</p>}
+          {plan.data?.expired && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive">
+              <span>باقتك خلصت وإعلاناتك مستخبية عن الزوار (مفيش حاجة اتمسحت).</span>
+              <button className={btnPrimary} onClick={() => setTab("plan")}>اختار باقة</button>
+            </div>
+          )}
           <Link to="/sell" className={btnPrimary}><HousePlus className="size-4" />اعرض عقار جديد</Link>
           {q.isLoading ? <div className="h-32 animate-pulse rounded-2xl bg-muted" />
             : !q.data?.length ? <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش إعلانات مبعوتة من رقم موبايلك. لو بعت عقار برقم تاني، سجّل دخول بالرقم ده.</p>
@@ -46,7 +52,10 @@ function MyListingsPage() {
                   </div>
                   <div className="flex gap-2">
                     {p.review_status === "approved" && !term?.ended && <Link to="/properties/$id" params={{ id: p.id }} className={btnOutline}>اعرض</Link>}
-                    {term?.renewable && (
+                    {term?.renewable && plan.data && plan.data.days == null && (
+                      <button className={btnPrimary} onClick={() => setTab("plan")}><RefreshCw className="size-4" />جدّد باقتك</button>
+                    )}
+                    {term?.renewable && plan.data?.days != null && (
                       <button className={btnOutline} onClick={async () => {
                         const { error } = await supabase.rpc("renew_listing", { _property: p.id });
                         if (error) toast.error(error.message); else { toast.success("الإعلان اتجدّد"); reload(); }

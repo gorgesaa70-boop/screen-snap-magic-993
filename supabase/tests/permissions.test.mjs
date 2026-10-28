@@ -787,8 +787,8 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
 
   console.log("\nPayments phase 1: ledger, applying payments once, subscription expiry");
   const svc = async (sql) => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); try { return await sys(sql); } finally { await sys(`select set_config('request.jwt.claim.role','',false)`); } };
-  const pro = (await sys(`select id from public.plans where code='pro'`))[0].id;
-  const free = (await sys(`select id from public.plans where code='free'`))[0].id;
+  const pro = (await sys(`select id from public.plans where code='co_3'`))[0].id;
+  await sys(`update public.plans set monthly_price=0, yearly_price=0 where id='${pro}'`);
   await expectErr("only admins set prices", () => as(U.owner, `update public.plans set monthly_price=500 where id='${pro}' returning id`).then((r) => { if (!r.length) throw new Error("blocked"); return r; }));
   await expectErr("a free plan can't be paid for (price not set)", () => as(U.owner, `select public.create_payment('subscription', '${pro}', 'monthly')`));
   await as(U.admin, `update public.plans set monthly_price=500, yearly_price=5000 where id='${pro}'`);
@@ -837,24 +837,24 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
     await svc(`select public.run_subscription_expiry()`);
     return sys(`select plan_id from public.brokers where id='${CO}'`).then((x) => x[0].plan_id);
   }, (r) => r === pro);
-  await expectOk("after the grace period → free plan, extra listings hidden (not deleted), owner notified", async () => {
+  const coPublic = async () => Number((await as(null, `select count(*) c from public.properties where broker_id='${CO}'`))[0].c);
+  await expectOk("after the grace period → the company's listings stop showing (not deleted), owner notified", async () => {
+    const before = await coPublic();
     await svc(`update public.subscriptions set ends_at = now() - interval '4 days' where payment_id='${pay1}'`);
     await svc(`select public.run_subscription_expiry()`);
     const total = Number((await sys(`select count(*) c from public.properties where broker_id='${CO}'`))[0].c);
-    const hidden = Number((await sys(`select count(*) c from public.properties where broker_id='${CO}' and hidden_by_plan`))[0].c);
-    return [(await sys(`select plan_id from public.brokers where id='${CO}'`))[0].plan_id, total, hidden, await notes(U.owner, "باقتك انتهت")];
-  }, (r) => r[0] === free && r[2] === Math.max(0, r[1] - 2) && r[3] === 1);
-  await expectOk("hidden listings are not public, and the company can't unhide them itself", async () => {
-    const h = (await sys(`select id from public.properties where broker_id='${CO}' and hidden_by_plan limit 1`))[0];
-    if (!h) return [0, false];
-    await as(U.owner, `update public.properties set hidden_by_plan=false where id='${h.id}'`);
-    return [(await as(null, `select id from public.properties where id='${h.id}'`)).length, (await sys(`select hidden_by_plan from public.properties where id='${h.id}'`))[0].hidden_by_plan];
-  }, (r) => r[0] === 0 && r[1] === true);
-  await expectOk("paying again brings every hidden listing back", async () => {
+    return [before, await coPublic(), total, await notes(U.owner, "باقتك انتهت")];
+  }, (r) => r[0] > 0 && r[1] === 0 && r[2] >= r[0] && r[3] === 1);
+  await expectOk("the company can't move its own end date", async () => {
+    await as(U.owner, `update public.brokers set access_until = now() + interval '1 year', plan_exempt = true where id='${CO}'`);
+    return sys(`select access_until < now() past, plan_exempt from public.brokers where id='${CO}'`).then((x) => x[0]);
+  }, (r) => r.past === true && r.plan_exempt === false);
+  await expectErr("…and can't put up a new listing until it subscribes", () => as(U.owner, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${CO}','إعلان بعد الانتهاء',1,'شقة','الحي الأول','بيع','pending')`));
+  await expectOk("paying again brings every listing back", async () => {
     const id = (await as(U.owner, `select public.create_payment('subscription', '${pro}', 'monthly') id`))[0].id;
     await svc(`select public.mark_payment_paid('${id}', 'T4', 500)`);
-    return Number((await sys(`select count(*) c from public.properties where broker_id='${CO}' and hidden_by_plan`))[0].c);
-  }, (r) => r === 0);
+    return coPublic();
+  }, (r) => r > 0);
   await expectOk("featured ends on time; abandoned checkouts expire after 2 hours", async () => {
     await svc(`update public.properties set featured_until = now() - interval '1 minute' where id='${myProp}'`);
     const id = (await as(U.owner, `select public.create_payment('featured', null, null, '${myProp}', 30) id`))[0].id;
@@ -912,6 +912,8 @@ export default async function ({ as, sys, expectOk, expectErr, exec }) {
   await as(U.dev, `insert into public.company_members (company_id, name, phone, role) values ('${DEV}','سيلز المطور','201000000061','sales'), ('${DEV}','مدير المطور','201000000062','sales')`);
   const memberOf = async (phone) => (await sys(`select id from public.company_members where phone='${phone}'`))[0].id;
   const dsMember = await memberOf("201000000061"), dmMember = await memberOf("201000000062");
+  await expectErr("a developer on a 2-project plan can't add a third", () => as(U.dev, `insert into public.compounds (developer_id, name, city, area) values ('${DEV}','كمبوند زيادة','برج العرب الجديدة','الحي الأول')`));
+  await sys(`update public.plans set max_projects = null where code = 'dev_2'`);
   await expectOk("developer creates a compound (published, can't self-feature)", () => as(U.dev, `insert into public.compounds (developer_id, name, city, area, review_status, is_featured) values ('${DEV}','كمبوند النخيل','برج العرب الجديدة','الحي الأول','rejected', true) returning review_status, is_featured`), (r) => r[0].review_status === "approved" && r[0].is_featured === false);
   const cmp = (await sys(`select id from public.compounds where name='كمبوند النخيل'`))[0].id;
   await expectOk("admins told about the new compound", () => sys(`select title from public.notifications where user_id='${U.admin}' and related_id='${cmp}'`), (r) => r.some((n) => n.title === "كمبوند جديد"));
@@ -1175,62 +1177,134 @@ commit;`);
     const id = (await as(LP.broker, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${NB}','${title}',1,'شقة','الحي الأول','بيع','pending') returning id`))[0].id;
     return as(U.admin, `update public.properties set review_status='approved' where id='${id}' returning id, review_status, listed_until`);
   };
-  await expectOk("owner plans exist; the free plan allows 2 listings for 30 days", () => sys(`select code, audience, max_properties, listing_days from public.plans where code in ('free','owner_free','owner_plus') order by code`),
-    (r) => r.length === 3 && r[0].max_properties === 2 && r[0].listing_days === 30 && r[1].audience === "owner" && r[2].max_properties === 5);
-  await expectErr("a broker can't be put on an owner plan", () => as(U.admin, `update public.brokers set plan_id=(select id from public.plans where code='owner_plus') where id='${NB}'`));
+  await expectOk("3 plans for each kind of account; the old plans are no longer offered", () => sys(`select audience, count(*) filter (where is_active)::int n from public.plans group by audience order by audience`),
+    (r) => JSON.stringify(r) === JSON.stringify([{ audience: "broker", n: 0 }, { audience: "company", n: 3 }, { audience: "developer", n: 3 }, { audience: "individual", n: 3 }, { audience: "owner", n: 3 }, { audience: "owner_rent", n: 3 }, { audience: "owner_summer", n: 3 }]));
+  await expectOk("a new account gets the free month on the middle tier", async () => [
+    (await sys(`select p.code from public.brokers b join public.plans p on p.id = b.plan_id where b.id='${NB}'`))[0].code,
+    (await sys(`select status, round(extract(epoch from (ends_at - now())) / 86400) d from public.subscriptions where broker_id='${NB}'`)),
+    await sys(`select title from public.notifications where user_id='${LP.broker}' and title like 'أول شهر مجان%'`)],
+    (r) => r[0] === "ind_2" && r[1].length === 1 && r[1][0].status === "trial" && Number(r[1][0].d) === 30 && r[2].length === 1);
+  await expectErr("a broker can't be put on an owner plan", () => as(U.admin, `update public.brokers set plan_id=(select id from public.plans where code='owner_2') where id='${NB}'`));
+  await expectErr("…or on another kind's plan", () => as(U.admin, `update public.brokers set plan_id=(select id from public.plans where code='co_1') where id='${NB}'`));
+  await expectOk("term discounts: 3 months −10%, a year −30%", () => sys(`select public.plan_price((select id from public.plans where code='ind_2'), 1) m1, public.plan_price((select id from public.plans where code='ind_3'), 3) m3, public.plan_price((select id from public.plans where code='ind_2'), 12) m12`),
+    (r) => Number(r[0].m1) === 599 && Number(r[0].m3) === 2697 && Number(r[0].m12) === 5032);
   const l1 = (await addListing("إعلان 1"))[0];
-  await expectOk("approved listing gets a 30-day term", async () => l1, (r) => r.review_status === "approved" && Math.round((new Date(r.listed_until) - Date.now()) / 864e5) === 30);
-  const l2 = (await addListing("إعلان 2"))[0].id;
-  await expectErr("third live listing on the free plan is refused", () => addListing("إعلان 3"));
+  await expectOk("an approved listing stays up while the plan runs (no per-listing end)", async () => l1, (r) => r.review_status === "approved" && r.listed_until === null);
+  for (let i = 2; i <= 6; i++) await addListing(`إعلان ${i}`);
+  await expectErr("the 7th live listing on a 6-listing plan is refused", () => addListing("إعلان 7"));
   await expectOk("a draft beyond the limit is fine, but can't be published", async () => {
     const d = (await as(LP.broker, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${NB}','مسودة',1,'شقة','الحي الأول','بيع','draft') returning id`))[0].id;
     try { await as(LP.broker, `update public.properties set review_status='pending' where id='${d}'`); return "published"; } catch { return "refused"; }
   }, (r) => r === "refused");
-  await expectOk("the broker can't move the end date", () => as(LP.broker, `update public.properties set listed_until = now() + interval '1 year' where id='${l1.id}' returning listed_until`), (r) => Math.round((new Date(r[0].listed_until) - Date.now()) / 864e5) === 30);
-  await expectErr("renewing with more than a week left is refused", () => as(LP.broker, `select public.renew_listing('${l1.id}')`));
-  await expectOk("in the last week the listing renews from its end date", async () => { await svcRole(`update public.properties set listed_until = now() + interval '3 days' where id='${l1.id}'`); return as(LP.broker, `select public.renew_listing('${l1.id}') d`); }, (r) => Math.round((new Date(r[0].d) - Date.now()) / 864e5) === 33);
-  await expectOk("an expired listing disappears for visitors but stays for its owner", async () => {
-    await svcRole(`update public.properties set listed_until = now() - interval '1 minute' where id='${l2}'`);
-    return [await as(null, `select id from public.properties where id='${l2}'`), await as(LP.broker, `select id from public.properties where id='${l2}'`)];
-  }, (r) => r[0].length === 0 && r[1].length === 1);
-  await expectOk("an expired listing frees its place for a new one", () => addListing("إعلان 3"), (r) => r.length === 1);
-  await expectErr("an expired listing can't come back while the plan is full", () => as(LP.broker, `select public.renew_listing('${l2}')`));
-  await expectErr("another company can't renew it", () => as(U.owner, `select public.renew_listing('${l1.id}')`));
-  await expectOk("«باقتي» shows the plan and what's used", () => as(LP.broker, `select public.my_listing_plan() p`), (r) => r[0].p.audience === "broker" && r[0].p.code === "free" && r[0].p.used === 2 && r[0].p.max === 2);
-  await expectOk("expiry reminders: one per account and stage, never twice", async () => {
-    await svcRole(`update public.properties set listed_until = now() + interval '3 days', listing_notice = 0 where broker_id='${NB}' and title in ('إعلان 1','إعلان 3')`);
-    await svcRole(`update public.properties set listing_notice = 0 where id='${l2}'`);
-    await svcRole(`select public.run_listing_expiry()`); await svcRole(`select public.run_listing_expiry()`);
-    return [await sys(`select title from public.notifications where user_id='${LP.broker}' and title like '%هتخلص خلال أسبوع'`), await sys(`select title from public.notifications where user_id='${LP.broker}' and title like 'إعلانك خلص%'`)];
-  }, (r) => r[0].length === 1 && r[0][0].title === "2 إعلانات هتخلص خلال أسبوع" && r[1].length === 1);
-  await expectErr("companies can't run the listing expiry job", () => as(LP.broker, `select public.run_listing_expiry()`));
-  await expectOk("the broker asks for a bigger plan; admins told", async () => { await as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='pro'))`); return sys(`select title from public.notifications where user_id='${U.admin}' and title like 'طلب باقة إعلانات%'`); }, (r) => r.length === 1);
-  await expectErr("a broker can't ask for an owner plan", () => as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='owner_plus'))`));
+  await expectErr("one listing isn't renewed on its own on the new plans", () => as(LP.broker, `select public.renew_listing('${l1.id}')`));
+  await expectOk("«باقتي» shows the free month, the plan and what's used", () => as(LP.broker, `select public.my_listing_plan() p`),
+    (r) => r[0].p.audience === "individual" && r[0].p.code === "ind_2" && r[0].p.trial === true && r[0].p.used === 6 && r[0].p.max === 6 && r[0].p.expired === false);
+  const nbPublic = async () => Number((await as(null, `select count(*) c from public.properties where broker_id='${NB}'`))[0].c);
+  await expectOk("the broker asks for a bigger plan for 3 months; the price has the discount; admins told", async () => {
+    await as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='ind_3'), 3)`);
+    return [await sys(`select amount, months, status from public.plan_requests where broker_id='${NB}'`), await sys(`select title from public.notifications where user_id='${U.admin}' and title like 'طلب باقة — بريميوم%'`)];
+  }, (r) => r[0].length === 1 && Number(r[0][0].amount) === 2697 && r[0][0].months === 3 && r[0][0].status === "new" && r[1].length === 1);
+  await expectOk("asking again replaces the open request", async () => { await as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='ind_3'), 6)`); return sys(`select status, months from public.plan_requests where broker_id='${NB}' order by request_no`); },
+    (r) => r.length === 2 && r[0].status === "cancelled" && r[1].status === "new" && r[1].months === 6);
+  await expectErr("a broker can't ask for an owner plan", () => as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='owner_2'))`));
+  await expectErr("…or for a term that isn't offered", () => as(LP.broker, `select public.request_listing_plan((select id from public.plans where code='ind_3'), 2)`));
+  await expectOk("the broker sees own requests; another account doesn't", async () => [(await as(LP.broker, `select id from public.plan_requests`)).length, (await as(U.owner, `select id from public.plan_requests`)).length], (r) => r[0] === 2 && r[1] === 0);
+  const req = (await sys(`select id from public.plan_requests where broker_id='${NB}' and status='new'`))[0].id;
+  await expectErr("only the team activates a request", () => as(LP.broker, `select public.admin_handle_plan_request('${req}', true)`));
+  await expectErr("…or grants a plan", () => as(LP.broker, `select public.admin_grant_plan('${NB}', null, (select id from public.plans where code='ind_3'), 12)`));
+  await expectOk("activating: 6 months on the new plan, the free month ends, the broker is told", async () => {
+    await as(U.admin, `select public.admin_handle_plan_request('${req}', true)`);
+    return [await sys(`select p.code, s.status, round(extract(epoch from (s.ends_at - s.starts_at)) / 86400) d from public.subscriptions s join public.plans p on p.id = s.plan_id where s.broker_id='${NB}' order by s.created_at, s.status desc`),
+      (await sys(`select status from public.plan_requests where id='${req}'`))[0].status, (await sys(`select p.code from public.brokers b join public.plans p on p.id = b.plan_id where b.id='${NB}'`))[0].code,
+      await sys(`select title from public.notifications where user_id='${LP.broker}' and title like 'اتفعّلت باقتك%'`)];
+  }, (r) => r[0].length === 2 && r[0].some((x) => x.status === "canceled" && x.code === "ind_2") && r[0].some((x) => x.code === "ind_3" && x.status === "active" && Number(x.d) >= 181 && Number(x.d) <= 184) && r[1] === "activated" && r[2] === "ind_3" && r[3].length === 1);
+  await expectErr("a request is handled once", () => as(U.admin, `select public.admin_handle_plan_request('${req}', true)`));
+  await expectOk("moving to a smaller plan hides the extra listings (nothing deleted)", async () => {
+    await as(U.admin, `select public.admin_grant_plan('${NB}', null, (select id from public.plans where code='ind_1'), 1)`);
+    return [await nbPublic(), Number((await sys(`select count(*) c from public.properties where broker_id='${NB}' and hidden_by_plan`))[0].c)];
+  }, (r) => r[0] === 3 && r[1] === 3);
+  await expectOk("…and a bigger plan brings them back", async () => {
+    await as(U.admin, `select public.admin_grant_plan('${NB}', null, (select id from public.plans where code='ind_3'), 1)`);
+    return [await nbPublic(), Number((await sys(`select count(*) c from public.properties where broker_id='${NB}' and hidden_by_plan`))[0].c)];
+  }, (r) => r[0] === 6 && r[1] === 0);
+  await expectOk("renewing the same plan early extends from its end", async () => {
+    const before = (await sys(`select max(ends_at) e from public.subscriptions where broker_id='${NB}' and status='active'`))[0].e;
+    const after = (await as(U.admin, `select public.admin_grant_plan('${NB}', null, (select id from public.plans where code='ind_3'), 3) e`))[0].e;
+    return Math.round((new Date(after) - new Date(before)) / 864e5);
+  }, (r) => r >= 89 && r <= 92);
+  await expectOk("when the plan ends (after the grace days) visitors stop seeing the listings, the broker still does", async () => {
+    await svcRole(`update public.subscriptions set ends_at = now() - interval '4 days' where broker_id='${NB}' and status='active'`);
+    await sys(`select public.sync_broker_access('${NB}')`);
+    return [await nbPublic(), (await as(LP.broker, `select id from public.properties where broker_id='${NB}'`)).length, (await as(LP.broker, `select public.my_listing_plan() p`))[0].p.expired];
+  }, (r) => r[0] === 0 && r[1] >= 6 && r[2] === true);
+  await expectOk("an exempt account (Value Aqar's own) shows without a plan", async () => {
+    await as(U.admin, `update public.brokers set plan_exempt = true where id='${NB}'`);
+    const n = await nbPublic();
+    await as(U.admin, `update public.brokers set plan_exempt = false where id='${NB}'`);
+    return [n, await nbPublic()];
+  }, (r) => r[0] === 6 && r[1] === 0);
+  await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_1'), 1)`);
+  await expectErr("a company on a 2-member plan can't add more active members", () => as(U.owner, `insert into public.company_members (company_id, name, phone, role) values ('${CO}','عضو زيادة','201055500099','sales'), ('${CO}','عضو زيادة 2','201055500098','sales'), ('${CO}','عضو زيادة 3','201055500097','sales')`));
+  await as(U.admin, `select public.admin_grant_plan('${CO}', null, (select id from public.plans where code='co_3'), 1)`);
 
   const ownerListing = async (title) => {
     const lead = (await svcRole(`insert into public.leads (name, phone, kind) values ('مالك الخطة','01055500082','listing') returning id`))[0].id;
     return svcRole(`insert into public.properties (title, price, type, area, status, review_status, owner_lead_id) values ('${title}',1,'شقة','الحي الأول','بيع','pending','${lead}') returning id`);
   };
+  await expectOk("before the first listing an owner phone has no plan yet", () => svcRole(`select public.owner_listing_quota('01055500082') q`), (r) => r[0].q.used === 0 && r[0].q.max === 1 && r[0].q.expired === false);
   const o1 = (await ownerListing("شقة مالك 1"))[0].id;
-  await ownerListing("شقة مالك 2");
-  await expectOk("owner quota by phone: 2 of 2 used", () => svcRole(`select public.owner_listing_quota('01055500082') q`), (r) => r[0].q.used === 2 && r[0].q.max === 2);
-  await expectErr("owner's third listing is refused on the free owner plan", () => ownerListing("شقة مالك 3"));
-  await expectOk("the owner sees their listings after signing in with that phone", () => as(LP.owner, `select title, review_status from public.my_owner_listings()`), (r) => r.length === 2);
-  await expectOk("admin approves: the owner's listing gets a term", async () => { await as(U.admin, `update public.properties set review_status='approved' where id='${o1}'`); return sys(`select listed_until from public.properties where id='${o1}'`); }, (r) => r[0].listed_until !== null);
-  await expectOk("the owner renews in the last week", async () => { await svcRole(`update public.properties set listed_until = now() + interval '2 days' where id='${o1}'`); return as(LP.owner, `select public.renew_listing('${o1}') d`); }, (r) => Math.round((new Date(r[0].d) - Date.now()) / 864e5) === 32);
-  await expectErr("someone else can't renew the owner's listing", () => as(U.outsider, `select public.renew_listing('${o1}')`));
-  await expectErr("an owner grant must be an owner plan", () => as(U.admin, `insert into public.owner_plan_grants (phone, plan_id, ends_at) values ('01055500082',(select id from public.plans where code='pro'), now() + interval '30 days')`));
-  await expectOk("admin gives the owner «بلس»: 5 listings, a third one goes through", async () => {
-    await as(U.admin, `insert into public.owner_plan_grants (phone, plan_id, ends_at) values ('01055500082',(select id from public.plans where code='owner_plus'), now() + interval '30 days')`);
-    await ownerListing("شقة مالك 3");
-    return as(LP.owner, `select public.my_listing_plan() p`);
-  }, (r) => r[0].p.audience === "owner" && r[0].p.code === "owner_plus" && r[0].p.used === 3 && r[0].p.max === 5);
-  await expectOk("the owner sees own grant only", async () => [await as(LP.owner, `select id from public.owner_plan_grants`), await as(U.outsider, `select id from public.owner_plan_grants`)], (r) => r[0].length === 1 && r[1].length === 0);
-  await expectOk("the owner asks for a plan; admins told", async () => { await as(LP.owner, `select public.request_listing_plan((select id from public.plans where code='owner_plus'))`); return sys(`select message from public.notifications where user_id='${U.admin}' and title='طلب باقة إعلانات — مالك — بلس'`); }, (r) => r.length === 1 && r[0].message.includes("201055500082"));
+  await expectOk("the first listing starts the owner's free month (middle tier)", () => sys(`select p.code, g.is_trial, round(extract(epoch from (g.ends_at - now())) / 86400) d from public.owner_plan_grants g join public.plans p on p.id = g.plan_id where g.phone='201055500082'`),
+    (r) => r.length === 1 && r[0].code === "owner_2" && r[0].is_trial === true && Number(r[0].d) === 30);
+  await expectErr("the owner's second listing is refused (1 listing per owner plan)", () => ownerListing("شقة مالك 2"));
+  await expectOk("the owner sees their listings after signing in with that phone", () => as(LP.owner, `select title, review_status from public.my_owner_listings()`), (r) => r.length === 1);
+  await expectOk("admin approves: the owner's listing shows until the free month ends", async () => { await as(U.admin, `update public.properties set review_status='approved' where id='${o1}'`); return sys(`select round(extract(epoch from (listed_until - now())) / 86400) d from public.properties where id='${o1}'`); }, (r) => Number(r[0].d) === 30);
+  await expectErr("the owner's listing isn't renewed on its own", () => as(LP.owner, `select public.renew_listing('${o1}')`));
+  await expectErr("an owner grant must be an owner plan", () => as(U.admin, `insert into public.owner_plan_grants (phone, plan_id, ends_at) values ('01055500082',(select id from public.plans where code='ind_1'), now() + interval '30 days')`));
+  await expectOk("the owner asks for «ذهبية» for a month; admins told with the phone and price", async () => { await as(LP.owner, `select public.request_listing_plan((select id from public.plans where code='owner_3'), 1)`); return sys(`select message from public.notifications where user_id='${U.admin}' and title='طلب باقة — ذهبية · 1 شهر'`); }, (r) => r.length === 1 && r[0].message.includes("201055500082") && r[0].message.includes("549"));
+  await expectOk("activating it: the free month ends, the listing follows the new end", async () => {
+    const rq = (await sys(`select id from public.plan_requests where phone='201055500082' and status='new'`))[0].id;
+    await as(U.admin, `select public.admin_handle_plan_request('${rq}', true)`);
+    return [(await as(LP.owner, `select public.my_listing_plan() p`))[0].p, (await sys(`select round(extract(epoch from (listed_until - now())) / 86400) d from public.properties where id='${o1}'`))[0].d];
+  }, (r) => r[0].code === "owner_3" && r[0].trial === false && r[0].used === 1 && Number(r[1]) >= 28 && Number(r[1]) <= 31);
+  await expectOk("the owner sees own grants only", async () => [await as(LP.owner, `select id from public.owner_plan_grants`), await as(U.outsider, `select id from public.owner_plan_grants`)], (r) => r[0].length === 2 && r[1].length === 0);
+  await expectOk("when the owner's plan ends the listing stops showing", async () => {
+    await svcRole(`update public.owner_plan_grants set starts_at = now() - interval '40 days', ends_at = now() - interval '1 minute' where phone='201055500082' and status='active'`);
+    await sys(`select public.sync_owner_access('201055500082')`);
+    return [(await as(null, `select id from public.properties where id='${o1}'`)).length, (await svcRole(`select public.owner_listing_quota('01055500082') q`))[0].q.expired];
+  }, (r) => r[0] === 0 && r[1] === true);
+  await expectErr("…and a new listing is refused until the owner subscribes", () => ownerListing("شقة مالك بعد الانتهاء"));
+  const kindListing = async (title, status) => {
+    const lead = (await svcRole(`insert into public.leads (name, phone, kind) values ('مالك الخطة','01055500082','listing') returning id`))[0].id;
+    return svcRole(`insert into public.properties (title, price, type, area, status, review_status, owner_lead_id, price_night) values ('${title}',1,'شقة','الحي الأول','${status}','pending','${lead}', ${status === "مصيف" ? 500 : "null"}) returning id`);
+  };
+  await expectOk("renting has its own cheaper plans and summer its own pricier ones", () => sys(`select public.plan_price((select id from public.plans where code='rent_2'), 1) r, public.plan_price((select id from public.plans where code='owner_2'), 1) s, public.plan_price((select id from public.plans where code='summer_2'), 3) season`),
+    (r) => Number(r[0].r) === 199 && Number(r[0].s) === 299 && Number(r[0].season) === 1482);
+  const rentId = (await kindListing("شقة للإيجار", "إيجار"))[0].id;
+  await expectOk("the same owner's first rent listing starts a separate free month on the renting plans, even with the selling plan ended", () => sys(`select p.code, g.is_trial from public.owner_plan_grants g join public.plans p on p.id = g.plan_id where g.phone='201055500082' and p.audience='owner_rent'`),
+    (r) => r.length === 1 && r[0].code === "rent_2" && r[0].is_trial === true);
+  await expectOk("…and a summer listing starts its own too", async () => { await kindListing("شاليه مصيف", "مصيف"); return sys(`select p.code from public.owner_plan_grants g join public.plans p on p.id = g.plan_id where g.phone='201055500082' and p.audience='owner_summer'`); },
+    (r) => r.length === 1 && r[0].code === "summer_2");
+  await expectOk("approved rent listing shows until the renting free month ends, while selling stays ended", async () => {
+    await as(U.admin, `update public.properties set review_status='approved' where id='${rentId}'`);
+    return [(await as(null, `select id from public.properties where id='${rentId}'`)).length, (await as(null, `select id from public.properties where id='${o1}'`)).length];
+  }, (r) => r[0] === 1 && r[1] === 0);
+  await expectOk("«باقتي» shows the owner each kind separately", () => as(LP.owner, `select public.my_listing_plan() p`),
+    (r) => r[0].p.audience === "owner" && r[0].p.kinds.length === 3 && r[0].p.kinds.find((k) => k.kind === "rent").code === "rent_2" && r[0].p.kinds.find((k) => k.kind === "rent").trial === true && r[0].p.kinds.find((k) => k.kind === "sale").expired === true);
+  await expectOk("activating a selling plan leaves the renting free month alone", async () => {
+    await as(U.admin, `select public.admin_grant_plan(null, '01055500082', (select id from public.plans where code='owner_1'), 1)`);
+    return [(await as(null, `select id from public.properties where id='${o1}'`)).length, (await sys(`select count(*)::int n from public.owner_plan_grants g join public.plans p on p.id = g.plan_id where g.phone='201055500082' and p.audience='owner_rent' and g.status='active'`))[0].n];
+  }, (r) => r[0] === 1 && r[1] === 1);
+  await expectOk("an owner asks for a rent plan without cancelling an open selling request", async () => {
+    await as(LP.owner, `select public.request_listing_plan((select id from public.plans where code='owner_3'), 1)`);
+    await as(LP.owner, `select public.request_listing_plan((select id from public.plans where code='rent_3'), 6)`);
+    return sys(`select p.audience from public.plan_requests r join public.plans p on p.id = r.plan_id where r.phone='201055500082' and r.status='new' order by p.audience`);
+  }, (r) => r.length === 2 && r[0].audience === "owner" && r[1].audience === "owner_rent");
 
   console.log("\nServices: automatic routing, accept / decline, ratings, photos, directory");
   // An earlier check re-runs the release-19 services file, which brings back the old functions; put the new ones back.
   await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261014100000_plans-and-providers.sql", import.meta.url), "utf8")}\ncommit;`);
+  // …and the tiered plans that replaced parts of it.
+  await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029100000_tiered-plans.sql", import.meta.url), "utf8")}\ncommit;`);
   const SV = { e1: "00000000-0000-0000-0000-0000000000a1", e2: "00000000-0000-0000-0000-0000000000a2", cust: "00000000-0000-0000-0000-0000000000a3" };
   await sys(`insert into auth.users (id, phone) values ('${SV.e1}','201055500091'), ('${SV.e2}','201055500092'), ('${SV.cust}','201055500093')`);
   const E1 = (await sys(`insert into public.service_providers (kind, category, name, phone, areas) values ('technician','engineering','مهندس أول','201055500091', array['الحي الأول']) returning id`))[0].id;
@@ -1305,6 +1379,9 @@ commit;`);
     const after = await sys(`select (select max_properties from public.plans where code='free') f, (select count(*)::int from public.plans) n, (select listed_until from public.properties where id='${o1}') u`);
     return [before[0], after[0]];
   }, (r) => r[0].f === r[1].f && r[0].n === r[1].n && String(r[0].u) === String(r[1].u));
+
+  // The check above re-ran the older plans file; put the tiered plans back.
+  await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261029100000_tiered-plans.sql", import.meta.url), "utf8")}\ncommit;`);
 
   console.log("\nReferrals between brokers («إحالة عميل»)");
   const RF = { seller: "00000000-0000-0000-0000-0000000000b1", ref: "00000000-0000-0000-0000-0000000000b2", other: "00000000-0000-0000-0000-0000000000b3" };
