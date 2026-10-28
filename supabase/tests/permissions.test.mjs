@@ -1870,4 +1870,35 @@ commit;`);
   await expectOk("the work panel shows their granted sections", () => as(U.owner, `select public.my_permissions() p`), (r) => r[0].p.review === "view");
   await sys(`delete from public.user_roles where user_id = '${U.owner}' and role = 'staff'`);
   await as(U.admin, `delete from public.staff_permissions where user_id = '${U.owner}'`);
+
+  // Release 39: WhatsApp chats about a listing go to its owner, who answers from the platform without seeing the number.
+  const WP = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values ('${CO}', 'شقة للمالك', 1, 'شقة', 'الحي الأول', 'بيع') returning id`))[0].id;
+  await sys(`update public.properties set review_status = 'approved' where id = '${WP}'`);
+  await sys(`insert into public.wa_conversations (phone, name, last_inbound_at) values ('201077777777', 'مشتري', now())`);
+  await sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201077777777', 'in', 'customer', 'رقم 5 لسه متاح؟')`);
+  await expectErr("only the service role hands a chat to an owner", () => as(U.admin, `select public.wa_assign_owner('201077777777', '${WP}')`));
+  await expectOk("the bot hands the chat to the listing's company", () => sys(`select public.wa_assign_owner('201077777777', '${WP}') b`), (r) => r[0].b === CO);
+  await expectOk("…the question the customer asked goes with it", () => sys(`select broker_id from public.wa_messages where phone = '201077777777'`), (r) => r[0].broker_id === CO);
+  await expectOk("…and the company owner gets a bell", () => sys(`select count(*)::int n from public.notifications where user_id = '${U.owner}' and type = 'new_message' and related_url = '/dashboard?tab=wa'`), (r) => r[0].n >= 1);
+  await sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201077777777', 'out', 'bot', 'ده العقار')`);
+  await expectOk("new messages in the chat belong to the owner's history", () => sys(`select count(*)::int n from public.wa_messages where phone = '201077777777' and broker_id = '${CO}'`), (r) => r[0].n === 2);
+  await expectOk("an owner reply is a valid sender", () => sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201077777777', 'out', 'owner', 'أيوه متاح') returning broker_id`), (r) => r[0].broker_id === CO);
+  await expectOk("the owner sees the chat without the customer's number", () => as(U.owner, `select * from public.wa_owner_threads()`),
+    (r) => r.length === 1 && r[0].phone_tail === "777" && r[0].unread === 1 && r[0].is_current && r[0].can_reply && !JSON.stringify(r).includes("201077777777"));
+  const WC = (await sys(`select id from public.wa_conversations where phone = '201077777777'`))[0].id;
+  await expectOk("the owner reads the messages", () => as(U.owner, `select * from public.wa_owner_messages('${WC}')`), (r) => r.length === 3);
+  await expectOk("…and opening the chat clears their unread", () => sys(`select owner_unread from public.wa_conversations where phone = '201077777777'`), (r) => r[0].owner_unread === 0);
+  await expectOk("the owner still can't read the raw WhatsApp tables", () => as(U.owner, `select count(*)::int n from public.wa_conversations`), (r) => r[0].n === 0);
+  await expectOk("another company sees no chats", () => as(U.dev, `select count(*)::int n from public.wa_owner_threads()`), (r) => r[0].n === 0);
+  await expectOk("…and gets no messages for that chat", () => as(U.dev, `select count(*)::int n from public.wa_owner_messages('${WC}')`), (r) => r[0].n === 0);
+  await expectErr("visitors can't list owner chats", () => as(null, `select * from public.wa_owner_threads()`));
+  await expectErr("only the service role rings an owner's bell", () => as(U.admin, `select public.wa_notify_owner('201077777777', 'x')`));
+  await expectErr("an owner can't take a chat back for the team", () => as(U.owner, `select public.wa_release_owner('201077777777')`));
+  await as(U.admin, `select public.wa_release_owner('201077777777')`);
+  await sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201077777777', 'in', 'customer', 'سؤال تاني للفريق')`);
+  await expectOk("after the team takes it back, new messages stay with the team", () => sys(`select count(*)::int n from public.wa_messages where phone = '201077777777' and broker_id is null`), (r) => r[0].n === 1);
+  await expectOk("…and the owner keeps their old history, read-only", () => as(U.owner, `select * from public.wa_owner_threads()`), (r) => r.length === 1 && !r[0].is_current && !r[0].can_reply && r[0].unread === 0);
+  const NOB = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values (null, 'إعلان مالك', 1, 'شقة', 'الحي الأول', 'بيع') returning id`))[0].id;
+  await sys(`update public.properties set review_status = 'approved' where id = '${NOB}'`);
+  await expectOk("a listing with no broker stays with the team", () => sys(`select public.wa_assign_owner('201077777777', '${NOB}') b`), (r) => r[0].b === null);
 }

@@ -38,6 +38,37 @@ export const replyOnWhatsapp = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * A listing's owner (broker / company / developer) answers a chat the bot handed to them (release 39). The message
+ * leaves from the Value Aqar number with the owner's name on top; the owner never sees the customer's number and
+ * can't send one of their own.
+ */
+export const replyAsOwner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), body: z.string().trim().min(1).max(2000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { contactLeak, ownerReplyText } = await import("@/lib/wa-owner");
+    if (contactLeak(data.body)) return { ok: false as const, error: "ممنوع أرقام التليفونات أو لينكات الواتساب أو الإيميل في الرد. التواصل مع العميل بيكون من خلال المنصة." };
+    const me = await (context as Ctx).supabase.rpc("current_broker_id");
+    if (me.error || !me.data) throw new Error("غير مصرح لك بهذا الإجراء");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const { data: conv } = await db.from("wa_conversations").select("phone, last_inbound_at, owner_broker_id, owner_replied_at").eq("id", data.id).maybeSingle();
+    if (!conv || conv.owner_broker_id !== me.data) return { ok: false as const, error: "المحادثة دي مش معاك دلوقتي." };
+    if (!conv.last_inbound_at || Date.now() - new Date(conv.last_inbound_at).getTime() > 24 * 3_600_000)
+      return { ok: false as const, error: "عدّى أكتر من 24 ساعة من آخر رسالة من العميل، فواتساب مش هيسمح برسالة. استنى لما يبعت تاني." };
+    const { data: broker } = await db.from("brokers").select("name").eq("id", me.data).maybeSingle();
+    const { sendAndRecord } = await import("@/lib/whatsapp-bot.server");
+    const r = await sendAndRecord(supabaseAdmin, conv.phone, ownerReplyText(broker?.name ?? "صاحب الإعلان", data.body), "owner", (context as Ctx).userId);
+    if (!r.ok) return { ok: false as const, error: `الرسالة ماتبعتتش (${r.error}).` };
+    // The owner is on it: the bot stays quiet, and the chat counts as read for them.
+    await db.from("wa_conversations").update({
+      bot_paused_until: new Date(Date.now() + STAFF_PAUSE_MS).toISOString(), owner_unread: 0,
+      ...(conv.owner_replied_at ? {} : { owner_replied_at: new Date().toISOString() }),
+    }).eq("phone", conv.phone);
+    return { ok: true as const };
+  });
+
 export const setWhatsappBot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ phone, paused: z.boolean() }).parse(d))

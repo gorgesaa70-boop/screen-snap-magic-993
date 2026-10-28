@@ -7,16 +7,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 import { replyOnWhatsapp, setWhatsappBot } from "@/lib/whatsapp-inbox.functions";
+import { OWNER_SILENCE_MS } from "@/lib/wa-owner";
 
 // The inbox tables come from release 36 (not in the generated types until the database is migrated).
 const db = supabase as unknown as SupabaseClient<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-type Conv = { phone: string; name: string | null; last_message: string | null; last_inbound_at: string | null; unread: number; bot_paused_until: string | null; handoff_at: string | null; updated_at: string; lead_id: string | null };
-type Msg = { id: string; direction: "in" | "out"; sender: "customer" | "bot" | "staff"; body: string; status: string | null; created_at: string };
+type Conv = {
+  phone: string; name: string | null; last_message: string | null; last_inbound_at: string | null; unread: number; bot_paused_until: string | null; handoff_at: string | null; updated_at: string; lead_id: string | null;
+  // Release 39: the listing owner the bot handed the chat to.
+  owner_broker_id?: string | null; owner_assigned_at?: string | null; owner_replied_at?: string | null; owner?: { name: string } | null;
+};
+type Msg = { id: string; direction: "in" | "out"; sender: "customer" | "bot" | "staff" | "owner"; body: string; status: string | null; created_at: string };
 
 const time = (d: string) => new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(d));
 const paused = (c: Conv) => !!c.bot_paused_until && new Date(c.bot_paused_until) > new Date();
 const windowOpen = (c: Conv) => !!c.last_inbound_at && Date.now() - new Date(c.last_inbound_at).getTime() < 24 * 3_600_000;
+/** With an owner who hasn't answered for half an hour since the hand-over. */
+const ownerSilent = (c: Conv) => !!c.owner_broker_id && !c.owner_replied_at && !!c.owner_assigned_at && Date.now() - new Date(c.owner_assigned_at).getTime() > OWNER_SILENCE_MS;
 
 /** Bot on/off and AI on/off (app_settings, admin only). */
 function BotSwitches() {
@@ -68,8 +75,14 @@ function Thread({ conv, onBack }: { conv: Conv; onBack: () => void }) {
     await toggle({ data: { phone: conv.phone, paused: !paused(conv) } });
     qc.invalidateQueries({ queryKey: ["wa-convs"] });
   }
+  async function takeBack() {
+    const { error } = await db.rpc("wa_release_owner", { _phone: conv.phone });
+    if (error) { toast.error("ماقدرناش نرجّع المحادثة."); return; }
+    toast.success("المحادثة رجعت للفريق.");
+    qc.invalidateQueries({ queryKey: ["wa-convs"] });
+  }
 
-  const label = { customer: "العميل", bot: "البوت", staff: "الفريق" } as const;
+  const label = { customer: "العميل", bot: "البوت", staff: "الفريق", owner: conv.owner?.name ? `صاحب الإعلان (${conv.owner.name})` : "صاحب الإعلان" } as const;
   return (
     <div className="flex min-h-[28rem] flex-col rounded-2xl border bg-card">
       <div className="flex flex-wrap items-center gap-2 border-b p-3">
@@ -78,6 +91,11 @@ function Thread({ conv, onBack }: { conv: Conv; onBack: () => void }) {
           <p className="truncate font-extrabold text-primary">{conv.name || "عميل واتساب"}</p>
           <p className="text-xs text-muted-foreground" dir="ltr">+{conv.phone}</p>
         </div>
+        {conv.owner_broker_id && (
+          <button type="button" onClick={takeBack} className="inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold text-primary" title={`المحادثة مع ${conv.owner?.name ?? "صاحب الإعلان"}`}>
+            رجّعها للفريق
+          </button>
+        )}
         <button type="button" onClick={flipBot} className="inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold text-primary">
           {paused(conv) ? <><Bot className="size-4" /> شغّل البوت هنا</> : <><BotOff className="size-4" /> وقّف البوت هنا</>}
         </button>
@@ -118,6 +136,9 @@ export function WhatsappInbox() {
   const q = useQuery({
     queryKey: ["wa-convs"], refetchInterval: 10000,
     queryFn: async () => {
+      const withOwner = await db.from("wa_conversations").select("*, owner:brokers!wa_conversations_owner_broker_id_fkey(name)").order("updated_at", { ascending: false }).limit(150);
+      if (!withOwner.error) return withOwner.data as Conv[];
+      // Before release 39 there's no owner column to join.
       const { data, error } = await db.from("wa_conversations").select("*").order("updated_at", { ascending: false }).limit(150);
       if (error) throw error;
       return data as Conv[];
@@ -146,7 +167,9 @@ export function WhatsappInbox() {
                 <span className="mt-1 flex flex-wrap gap-1 text-[10px]">
                   <span className="text-muted-foreground">{time(c.updated_at)}</span>
                   {paused(c) && c.handoff_at && c.unread > 0 && <span className="rounded bg-destructive/10 px-1.5 font-bold text-destructive">طلب موظف</span>}
-                  {paused(c) && !(c.handoff_at && c.unread > 0) && <span className="rounded bg-secondary px-1.5 font-bold text-primary">البوت متوقف</span>}
+                  {paused(c) && !(c.handoff_at && c.unread > 0) && !c.owner_broker_id && <span className="rounded bg-secondary px-1.5 font-bold text-primary">البوت متوقف</span>}
+                  {c.owner_broker_id && <span className="rounded bg-teal-soft px-1.5 font-bold text-primary">مع {c.owner?.name ?? "صاحب الإعلان"}</span>}
+                  {ownerSilent(c) && <span className="rounded bg-destructive/10 px-1.5 font-bold text-destructive">مارّدش</span>}
                 </span>
               </span>
             </button>

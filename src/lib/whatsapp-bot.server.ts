@@ -3,6 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { sendWhatsappText } from "./whatsapp-send.server";
 import { DEFAULT_HOURS } from "./response-time";
 import type { AiResult } from "./whatsapp-ai.server";
+import { OWNER_HANDOVER_PAUSE_MS, OWNER_SILENCE_MS, handoverText } from "./wa-owner";
 import { REPLY, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, welcome, type ListingCard } from "./whatsapp-bot";
 
 /**
@@ -23,7 +24,7 @@ const MAX_BOT_REPLIES_PER_HOUR = 15;
 export type Inbound = { wa_message_id: string; phone: string; name: string | null; text: string | null };
 
 /** Sends a message from the bot or a staff member and records it in the inbox. */
-export async function sendAndRecord(db: Db, phone: string, body: string, sender: "bot" | "staff", staffId: string | null = null) {
+export async function sendAndRecord(db: Db, phone: string, body: string, sender: "bot" | "staff" | "owner", staffId: string | null = null) {
   const r = await sendWhatsappText(phone, body);
   const now = new Date().toISOString();
   await raw(db).from("wa_messages").insert({
@@ -53,6 +54,14 @@ async function openLeadId(db: Db, phone: string) {
   return data?.id ?? null;
 }
 
+/** Hands the chat to the listing's owner: their display name, or null when the listing stays with the team. */
+async function assignOwner(db: Db, phone: string, propertyId: string): Promise<string | null> {
+  const { data: brokerId, error } = await raw(db).rpc("wa_assign_owner", { _phone: phone, _property: propertyId });
+  if (error || !brokerId) return null; // before release 39, or no owner on the platform
+  const { data: b } = await db.from("brokers").select("name").eq("id", brokerId as string).maybeSingle();
+  return b?.name ?? "صاحب الإعلان";
+}
+
 async function handoff(db: Db, m: Inbound, leadId: string | null, workTime: boolean, text?: string) {
   const until = new Date(Date.now() + BOT_PAUSE_AFTER_HANDOFF).toISOString();
   await raw(db).from("wa_conversations").update({ bot_paused_until: until, handoff_at: new Date().toISOString() }).eq("phone", m.phone);
@@ -79,14 +88,29 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
   const { error: msgErr } = await raw(db).from("wa_messages").insert({ phone: m.phone, direction: "in", sender: "customer", body: text.slice(0, 4000), wa_message_id: m.wa_message_id });
   if (msgErr) { if (msgErr.code !== "23505") console.error("wa inbox insert failed", msgErr.code); return; }
 
+  // 1b) The chat is with a listing's owner (release 39): ring their bell when unread starts piling up, and tell the
+  //     team if the owner still hasn't answered half an hour after the hand-over.
+  if (conv?.owner_broker_id) {
+    const ownerUnread = (conv.owner_unread as number) ?? 0;
+    await raw(db).from("wa_conversations").update({ owner_unread: ownerUnread + 1 }).eq("phone", m.phone);
+    if (!ownerUnread) await raw(db).rpc("wa_notify_owner", { _phone: m.phone, _msg: text });
+    const silent = !conv.owner_replied_at && !conv.owner_alerted_at && !!conv.owner_assigned_at
+      && now.getTime() - new Date(conv.owner_assigned_at as string).getTime() > OWNER_SILENCE_MS;
+    if (silent) {
+      await raw(db).from("wa_conversations").update({ owner_alerted_at: now.toISOString() }).eq("phone", m.phone);
+      await raw(db).rpc("wa_notify_team", { _title: "صاحب الإعلان مارّدش على عميل واتساب", _msg: `${m.name ?? "+" + m.phone}: ${text.slice(0, 120)}`, _phone: m.phone });
+    }
+  }
+
   // 2) Should the bot answer at all?
   if (leadResult === "team" || leadResult === "ignored") return;
   const { data: settings } = await raw(db).from("app_settings").select("wa_bot_enabled, wa_bot_ai, work_start_hour, work_end_hour").eq("id", 1).maybeSingle();
   if (settings && settings.wa_bot_enabled === false) return;
   const paused = conv?.bot_paused_until && new Date(conv.bot_paused_until as string) > now;
   if (paused) {
-    // A staff member is handling this chat: only ping the team when a new unread message starts piling up.
-    if (!conv?.unread) await raw(db).rpc("wa_notify_team", { _title: "رسالة واتساب جديدة", _msg: `${m.name ?? "+" + m.phone}: ${text.slice(0, 140)}`, _phone: m.phone });
+    // A staff member (or the listing's owner, who got their own bell above) is handling this chat:
+    // only ping the team when a new unread message starts piling up.
+    if (!conv?.unread && !conv?.owner_broker_id) await raw(db).rpc("wa_notify_team", { _title: "رسالة واتساب جديدة", _msg: `${m.name ?? "+" + m.phone}: ${text.slice(0, 140)}`, _phone: m.phone });
     return;
   }
   const { count: recentBot } = await raw(db).from("wa_messages").select("id", { count: "exact", head: true })
@@ -105,9 +129,13 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
   if (numbers.length || ids.length) {
     const found = await findListings(db, numbers, ids);
     const intro = firstToday ? `أهلاً${m.name ? ` ${m.name.split(/\s+/)[0]}` : ""} 👋 ده العقار اللي بتسأل عليه:\n\n` : "";
-    const body = found.length ? `${intro}${found.map(listingText).join("\n\n")}\n\nلو حابب تعاين أو تعرف تفاصيل أكتر، اكتب 3 وحد من الفريق هيكلّمك.` : REPLY.notFound;
+    // The listing has an owner on the platform (broker / company / developer): the chat goes to them (release 39).
+    const owner = found.length ? await assignOwner(db, m.phone, found[0]!.id) : null;
+    const next = owner ? handoverText(owner) : "لو حابب تعاين أو تعرف تفاصيل أكتر، اكتب 3 وحد من الفريق هيكلّمك.";
+    const body = found.length ? `${intro}${found.map(listingText).join("\n\n")}\n\n${next}` : REPLY.notFound;
     await sendAndRecord(db, m.phone, body, "bot");
-    if (leadId && found.length) await db.from("lead_activities").insert({ lead_id: leadId, actor_id: null, kind: "whatsapp", summary: `سأل على ${found.map((f) => f.code ?? f.id).join("، ")} (بوت الواتساب بعتله التفاصيل).` });
+    if (owner) await raw(db).from("wa_conversations").update({ bot_paused_until: new Date(now.getTime() + OWNER_HANDOVER_PAUSE_MS).toISOString() }).eq("phone", m.phone);
+    if (leadId && found.length) await db.from("lead_activities").insert({ lead_id: leadId, actor_id: null, kind: "whatsapp", summary: `سأل على ${found.map((f) => f.code ?? f.id).join("، ")} (بوت الواتساب بعتله التفاصيل${owner ? `، واتحوّل لـ ${owner}` : ""}).` });
     return;
   }
 
