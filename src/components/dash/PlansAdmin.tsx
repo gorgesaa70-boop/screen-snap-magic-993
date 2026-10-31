@@ -205,7 +205,7 @@ function OwnerGrants({ plans, canEdit }: { plans: PlanRow[]; canEdit: boolean })
           <Field label="الباقة"><select className={`${inputCls} w-auto`} value={f.plan} onChange={(e) => setF({ ...f, plan: e.target.value })}><option value="">اختار</option>{plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
           <Field label="المدة"><select className={`${inputCls} w-auto`} value={f.months} onChange={(e) => setF({ ...f, months: e.target.value })}>{Object.entries(PLAN_MONTHS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>
           <button className={btnPrimary} disabled={!f.plan || !cleanPhone(f.phone)} onClick={async () => {
-            const { error } = await supabase.rpc("admin_grant_plan", { _broker: null, _phone: cleanPhone(f.phone)!, _plan: f.plan, _months: Number(f.months) });
+            const { error } = await supabase.rpc("admin_grant_plan", { _broker: null as unknown as string, _phone: cleanPhone(f.phone)!, _plan: f.plan, _months: Number(f.months) });
             if (error) toast.error(error.message); else { toast.success("الباقة اتفعّلت للرقم ده"); setF({ phone: "", plan: "", months: "1" }); q.refetch(); }
           }}>تفعيل</button>
         </div>
@@ -243,7 +243,7 @@ export function AccountPlan({ b, plans, reload }: { b: BrokerRow; plans: PlanRow
         <select aria-label="الباقة" className={`${inputCls} h-9 flex-1 text-xs`} value={plan} onChange={(e) => setPlan(e.target.value)}><option value="">فعّل باقة…</option>{mine.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
         <select aria-label="المدة" className={`${inputCls} h-9 w-24 text-xs`} value={months} onChange={(e) => setMonths(e.target.value)}>{Object.entries(PLAN_MONTHS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         <button className={`${btnPrimary} h-9 px-3 text-xs`} disabled={!plan} onClick={async () => {
-          const { error } = await supabase.rpc("admin_grant_plan", { _broker: b.id, _phone: null, _plan: plan, _months: Number(months) });
+          const { error } = await supabase.rpc("admin_grant_plan", { _broker: b.id, _phone: null as unknown as string, _plan: plan, _months: Number(months) });
           if (error) toast.error(error.message); else { toast.success("الباقة اتفعّلت"); setPlan(""); reload(); }
         }}>تفعيل</button>
       </div>
