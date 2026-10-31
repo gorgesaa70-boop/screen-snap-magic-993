@@ -486,9 +486,9 @@ export function Footer() {
           <p className="mt-4 max-w-sm text-sm leading-relaxed">{tr("منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.")}</p>
           <div className="mt-5 flex gap-2">
             {[
-              { icon: <FacebookMark className="size-10" />, bg: "", href: "https://www.facebook.com/share/19VhkpxBhr/?mibextid=wwXIfr", label: "صفحتنا على فيسبوك" },
-              { icon: <Instagram className="size-5" />, bg: "bg-[radial-gradient(circle_at_30%_107%,#fdf497_0%,#fdf497_5%,#fd5949_45%,#d6249f_60%,#285AEB_90%)] text-white", href: "https://www.instagram.com/value._.square", label: "حسابنا على إنستاجرام" },
-              { icon: <TikTokIcon className="size-5 [filter:drop-shadow(-1.5px_-1.5px_0_#25F4EE)_drop-shadow(1.5px_1.5px_0_#FE2C55)]" />, bg: "bg-black text-white", href: "https://www.tiktok.com/@value.square8", label: "حسابنا على تيك توك" },
+              { icon: <FacebookMark className="size-10" />, bg: "", href: "https://www.facebook.com/profile.php?id=61595136777685", label: "صفحتنا على فيسبوك" },
+              { icon: <Instagram className="size-5" />, bg: "bg-[radial-gradient(circle_at_30%_107%,#fdf497_0%,#fdf497_5%,#fd5949_45%,#d6249f_60%,#285AEB_90%)] text-white", href: "https://www.instagram.com/valueaqar", label: "حسابنا على إنستاجرام" },
+              { icon: <TikTokIcon className="size-5 [filter:drop-shadow(-1.5px_-1.5px_0_#25F4EE)_drop-shadow(1.5px_1.5px_0_#FE2C55)]" />, bg: "bg-black text-white", href: "https://www.tiktok.com/@value.aqar", label: "حسابنا على تيك توك" },
               { icon: <WhatsAppMark className="size-5" />, bg: "bg-[#25D366] text-white", href: waLink(WHATSAPP_NUMBER, tr("مرحبًا، أريد الاستفسار عن أحد العقارات على منصة فاليو عقار.")), label: "تواصل معنا على واتساب" },
             ].map(({ icon, bg, href, label }, i) => (
               <a key={i} href={href} aria-label={tr(label)} title={tr(label)} target="_blank" rel="noreferrer" className={`grid size-10 place-items-center overflow-hidden rounded-full transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy-deep ${bg}`}>{icon}<span className="sr-only">{tr(label)}</span></a>
