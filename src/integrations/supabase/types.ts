@@ -61,17 +61,6 @@ export type Database = {
       }
       app_settings: {
         Row: {
-          plan_home_pins: number
-          plan_top_tier_cap: number | null
-          plan_addon_photos: number
-          plan_addon_video: number
-          plan_addon_photos_video: number
-          plan_addon_pin: number
-          plan_addon_whatsapp: number
-          plan_trial_days: number
-          plan_discount_3m: number
-          plan_discount_6m: number
-          plan_discount_12m: number
           android_url: string | null
           announce_ar: string | null
           announce_en: string | null
@@ -89,6 +78,17 @@ export type Database = {
           ios_url: string | null
           last_backup_at: string | null
           owner_listing_co_broke_share: number | null
+          plan_addon_photos: number
+          plan_addon_photos_video: number
+          plan_addon_pin: number
+          plan_addon_video: number
+          plan_addon_whatsapp: number
+          plan_discount_12m: number
+          plan_discount_3m: number
+          plan_discount_6m: number
+          plan_home_pins: number
+          plan_top_tier_cap: number | null
+          plan_trial_days: number
           response_sla_minutes: number
           show_demo: boolean
           site_closed: boolean
@@ -104,17 +104,6 @@ export type Database = {
           work_start_hour: number
         }
         Insert: {
-          plan_home_pins?: number
-          plan_top_tier_cap?: number | null
-          plan_addon_photos?: number
-          plan_addon_video?: number
-          plan_addon_photos_video?: number
-          plan_addon_pin?: number
-          plan_addon_whatsapp?: number
-          plan_trial_days?: number
-          plan_discount_3m?: number
-          plan_discount_6m?: number
-          plan_discount_12m?: number
           android_url?: string | null
           announce_ar?: string | null
           announce_en?: string | null
@@ -132,6 +121,17 @@ export type Database = {
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
+          plan_addon_photos?: number
+          plan_addon_photos_video?: number
+          plan_addon_pin?: number
+          plan_addon_video?: number
+          plan_addon_whatsapp?: number
+          plan_discount_12m?: number
+          plan_discount_3m?: number
+          plan_discount_6m?: number
+          plan_home_pins?: number
+          plan_top_tier_cap?: number | null
+          plan_trial_days?: number
           response_sla_minutes?: number
           show_demo?: boolean
           site_closed?: boolean
@@ -147,17 +147,6 @@ export type Database = {
           work_start_hour?: number
         }
         Update: {
-          plan_home_pins?: number
-          plan_top_tier_cap?: number | null
-          plan_addon_photos?: number
-          plan_addon_video?: number
-          plan_addon_photos_video?: number
-          plan_addon_pin?: number
-          plan_addon_whatsapp?: number
-          plan_trial_days?: number
-          plan_discount_3m?: number
-          plan_discount_6m?: number
-          plan_discount_12m?: number
           android_url?: string | null
           announce_ar?: string | null
           announce_en?: string | null
@@ -175,6 +164,17 @@ export type Database = {
           ios_url?: string | null
           last_backup_at?: string | null
           owner_listing_co_broke_share?: number | null
+          plan_addon_photos?: number
+          plan_addon_photos_video?: number
+          plan_addon_pin?: number
+          plan_addon_video?: number
+          plan_addon_whatsapp?: number
+          plan_discount_12m?: number
+          plan_discount_3m?: number
+          plan_discount_6m?: number
+          plan_home_pins?: number
+          plan_top_tier_cap?: number | null
+          plan_trial_days?: number
           response_sla_minutes?: number
           show_demo?: boolean
           site_closed?: boolean
@@ -280,9 +280,7 @@ export type Database = {
       }
       brokers: {
         Row: {
-          plan_badge: boolean
           access_until: string | null
-          plan_exempt: boolean
           account_type: string
           address: string | null
           areas: string[]
@@ -299,6 +297,8 @@ export type Database = {
           name: string
           phone: string | null
           photo_url: string | null
+          plan_badge: boolean
+          plan_exempt: boolean
           plan_id: string | null
           rejected_at: string | null
           review_note: string | null
@@ -311,9 +311,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
-          plan_badge?: boolean
           access_until?: string | null
-          plan_exempt?: boolean
           account_type?: string
           address?: string | null
           areas?: string[]
@@ -330,6 +328,8 @@ export type Database = {
           name: string
           phone?: string | null
           photo_url?: string | null
+          plan_badge?: boolean
+          plan_exempt?: boolean
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
@@ -342,9 +342,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
-          plan_badge?: boolean
           access_until?: string | null
-          plan_exempt?: boolean
           account_type?: string
           address?: string | null
           areas?: string[]
@@ -361,6 +359,8 @@ export type Database = {
           name?: string
           phone?: string | null
           photo_url?: string | null
+          plan_badge?: boolean
+          plan_exempt?: boolean
           plan_id?: string | null
           rejected_at?: string | null
           review_note?: string | null
@@ -1909,6 +1909,110 @@ export type Database = {
           },
         ]
       }
+      listing_pins: {
+        Row: {
+          broker_id: string | null
+          created_by: string | null
+          ends_at: string
+          extra: boolean
+          id: string
+          phone: string | null
+          property_id: string
+          starts_at: string
+        }
+        Insert: {
+          broker_id?: string | null
+          created_by?: string | null
+          ends_at: string
+          extra?: boolean
+          id?: string
+          phone?: string | null
+          property_id: string
+          starts_at?: string
+        }
+        Update: {
+          broker_id?: string | null
+          created_by?: string | null
+          ends_at?: string
+          extra?: boolean
+          id?: string
+          phone?: string | null
+          property_id?: string
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_pins_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_pins_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_stat_seen: {
+        Row: {
+          day: string
+          device: string
+          kind: string
+          property_id: string
+        }
+        Insert: {
+          day: string
+          device: string
+          kind: string
+          property_id: string
+        }
+        Update: {
+          day?: string
+          device?: string
+          kind?: string
+          property_id?: string
+        }
+        Relationships: []
+      }
+      listing_stats_daily: {
+        Row: {
+          contacts: number
+          day: string
+          impressions: number
+          property_id: string
+          sources: Json
+          views: number
+        }
+        Insert: {
+          contacts?: number
+          day: string
+          impressions?: number
+          property_id: string
+          sources?: Json
+          views?: number
+        }
+        Update: {
+          contacts?: number
+          day?: string
+          impressions?: number
+          property_id?: string
+          sources?: Json
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_stats_daily_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           area: string | null
@@ -2096,12 +2200,12 @@ export type Database = {
       }
       owner_plan_grants: {
         Row: {
-          months: number | null
-          is_trial: boolean
           created_at: string
           created_by: string | null
           ends_at: string
           id: string
+          is_trial: boolean
+          months: number | null
           note: string | null
           phone: string
           plan_id: string
@@ -2109,12 +2213,12 @@ export type Database = {
           status: string
         }
         Insert: {
-          months?: number | null
-          is_trial?: boolean
           created_at?: string
           created_by?: string | null
           ends_at: string
           id?: string
+          is_trial?: boolean
+          months?: number | null
           note?: string | null
           phone: string
           plan_id: string
@@ -2122,12 +2226,12 @@ export type Database = {
           status?: string
         }
         Update: {
-          months?: number | null
-          is_trial?: boolean
           created_at?: string
           created_by?: string | null
           ends_at?: string
           id?: string
+          is_trial?: boolean
+          months?: number | null
           note?: string | null
           phone?: string
           plan_id?: string
@@ -2238,38 +2342,68 @@ export type Database = {
           },
         ]
       }
-      listing_pins: {
+      plan_requests: {
         Row: {
+          amount: number
           broker_id: string | null
+          created_at: string
           created_by: string | null
-          ends_at: string
-          extra: boolean
+          handled_at: string | null
+          handled_by: string | null
           id: string
+          months: number
+          note: string | null
           phone: string | null
-          property_id: string
-          starts_at: string
+          plan_id: string
+          request_no: number
+          status: string
         }
         Insert: {
+          amount?: number
           broker_id?: string | null
+          created_at?: string
           created_by?: string | null
-          ends_at: string
-          extra?: boolean
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
+          months: number
+          note?: string | null
           phone?: string | null
-          property_id: string
-          starts_at?: string
+          plan_id: string
+          request_no?: never
+          status?: string
         }
         Update: {
+          amount?: number
           broker_id?: string | null
+          created_at?: string
           created_by?: string | null
-          ends_at?: string
-          extra?: boolean
+          handled_at?: string | null
+          handled_by?: string | null
           id?: string
+          months?: number
+          note?: string | null
           phone?: string | null
-          property_id?: string
-          starts_at?: string
+          plan_id?: string
+          request_no?: never
+          status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plan_requests_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_requests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_spotlights: {
         Row: {
@@ -2348,7 +2482,7 @@ export type Database = {
           property_id?: string | null
           scheduled_for?: string | null
           status?: string
-          task_no?: number
+          task_no?: never
           team_note?: string | null
         }
         Update: {
@@ -2365,7 +2499,7 @@ export type Database = {
           property_id?: string | null
           scheduled_for?: string | null
           status?: string
-          task_no?: number
+          task_no?: never
           team_note?: string | null
         }
         Relationships: [
@@ -2385,155 +2519,92 @@ export type Database = {
           },
         ]
       }
-      plan_requests: {
-        Row: {
-          amount: number
-          broker_id: string | null
-          created_at: string
-          created_by: string | null
-          handled_at: string | null
-          handled_by: string | null
-          id: string
-          months: number
-          note: string | null
-          phone: string | null
-          plan_id: string
-          request_no: number
-          status: string
-        }
-        Insert: {
-          amount?: number
-          broker_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          months: number
-          note?: string | null
-          phone?: string | null
-          plan_id: string
-          request_no?: never
-          status?: string
-        }
-        Update: {
-          amount?: number
-          broker_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          months?: number
-          note?: string | null
-          phone?: string | null
-          plan_id?: string
-          request_no?: never
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "plan_requests_broker_id_fkey"
-            columns: ["broker_id"]
-            isOneToOne: false
-            referencedRelation: "brokers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "plan_requests_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       plans: {
         Row: {
-          tier: number | null
-          support_level: string
-          verified_badge: boolean
-          pin_days: number
-          spotlights_per_month: number
-          whatsapp_broadcast: boolean
-          posts_per_month: number
-          videos_per_month: number
-          excel_import: boolean
-          home_banner: boolean
-          stats_level: string
-          max_staff: number | null
-          max_projects: number | null
           audience: string
           code: string
           created_at: string
+          excel_import: boolean
           featured_slots: number
           features: string[]
+          home_banner: boolean
           id: string
           is_active: boolean
           listing_days: number | null
+          max_projects: number | null
           max_properties: number
+          max_staff: number | null
           monthly_price: number
           name: string
+          pin_days: number
+          posts_per_month: number
           sort_order: number
+          spotlights_per_month: number
+          stats_level: string
+          support_level: string
+          tier: number | null
           trial_days: number
+          verified_badge: boolean
+          videos_per_month: number
+          whatsapp_broadcast: boolean
           yearly_price: number
         }
         Insert: {
-          tier?: number | null
-          support_level?: string
-          verified_badge?: boolean
-          pin_days?: number
-          spotlights_per_month?: number
-          whatsapp_broadcast?: boolean
-          posts_per_month?: number
-          videos_per_month?: number
-          excel_import?: boolean
-          home_banner?: boolean
-          stats_level?: string
-          max_staff?: number | null
-          max_projects?: number | null
           audience?: string
           code: string
           created_at?: string
+          excel_import?: boolean
           featured_slots?: number
           features?: string[]
+          home_banner?: boolean
           id?: string
           is_active?: boolean
           listing_days?: number | null
+          max_projects?: number | null
           max_properties?: number
+          max_staff?: number | null
           monthly_price?: number
           name: string
+          pin_days?: number
+          posts_per_month?: number
           sort_order?: number
+          spotlights_per_month?: number
+          stats_level?: string
+          support_level?: string
+          tier?: number | null
           trial_days?: number
+          verified_badge?: boolean
+          videos_per_month?: number
+          whatsapp_broadcast?: boolean
           yearly_price?: number
         }
         Update: {
-          tier?: number | null
-          support_level?: string
-          verified_badge?: boolean
-          pin_days?: number
-          spotlights_per_month?: number
-          whatsapp_broadcast?: boolean
-          posts_per_month?: number
-          videos_per_month?: number
-          excel_import?: boolean
-          home_banner?: boolean
-          stats_level?: string
-          max_staff?: number | null
-          max_projects?: number | null
           audience?: string
           code?: string
           created_at?: string
+          excel_import?: boolean
           featured_slots?: number
           features?: string[]
+          home_banner?: boolean
           id?: string
           is_active?: boolean
           listing_days?: number | null
+          max_projects?: number | null
           max_properties?: number
+          max_staff?: number | null
           monthly_price?: number
           name?: string
+          pin_days?: number
+          posts_per_month?: number
           sort_order?: number
+          spotlights_per_month?: number
+          stats_level?: string
+          support_level?: string
+          tier?: number | null
           trial_days?: number
+          verified_badge?: boolean
+          videos_per_month?: number
+          whatsapp_broadcast?: boolean
           yearly_price?: number
         }
         Relationships: []
@@ -3666,11 +3737,11 @@ export type Database = {
       }
       subscriptions: {
         Row: {
-          months: number | null
           broker_id: string
           created_at: string
           ends_at: string | null
           id: string
+          months: number | null
           payment_id: string | null
           plan_id: string
           provider: string | null
@@ -3681,11 +3752,11 @@ export type Database = {
           status: string
         }
         Insert: {
-          months?: number | null
           broker_id: string
           created_at?: string
           ends_at?: string | null
           id?: string
+          months?: number | null
           payment_id?: string | null
           plan_id: string
           provider?: string | null
@@ -3696,11 +3767,11 @@ export type Database = {
           status?: string
         }
         Update: {
-          months?: number | null
           broker_id?: string
           created_at?: string
           ends_at?: string | null
           id?: string
+          months?: number | null
           payment_id?: string | null
           plan_id?: string
           provider?: string | null
@@ -3799,11 +3870,18 @@ export type Database = {
         Row: {
           bot_paused_until: string | null
           handoff_at: string | null
+          id: string
           last_inbound_at: string | null
           last_message: string | null
           last_outbound_at: string | null
           lead_id: string | null
           name: string | null
+          owner_alerted_at: string | null
+          owner_assigned_at: string | null
+          owner_broker_id: string | null
+          owner_property_id: string | null
+          owner_replied_at: string | null
+          owner_unread: number
           phone: string
           unread: number
           updated_at: string
@@ -3811,11 +3889,18 @@ export type Database = {
         Insert: {
           bot_paused_until?: string | null
           handoff_at?: string | null
+          id?: string
           last_inbound_at?: string | null
           last_message?: string | null
           last_outbound_at?: string | null
           lead_id?: string | null
           name?: string | null
+          owner_alerted_at?: string | null
+          owner_assigned_at?: string | null
+          owner_broker_id?: string | null
+          owner_property_id?: string | null
+          owner_replied_at?: string | null
+          owner_unread?: number
           phone: string
           unread?: number
           updated_at?: string
@@ -3823,11 +3908,18 @@ export type Database = {
         Update: {
           bot_paused_until?: string | null
           handoff_at?: string | null
+          id?: string
           last_inbound_at?: string | null
           last_message?: string | null
           last_outbound_at?: string | null
           lead_id?: string | null
           name?: string | null
+          owner_alerted_at?: string | null
+          owner_assigned_at?: string | null
+          owner_broker_id?: string | null
+          owner_property_id?: string | null
+          owner_replied_at?: string | null
+          owner_unread?: number
           phone?: string
           unread?: number
           updated_at?: string
@@ -3840,11 +3932,26 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "wa_conversations_owner_broker_id_fkey"
+            columns: ["owner_broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_owner_property_id_fkey"
+            columns: ["owner_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
         ]
       }
       wa_messages: {
         Row: {
           body: string
+          broker_id: string | null
           created_at: string
           direction: string
           id: string
@@ -3856,6 +3963,7 @@ export type Database = {
         }
         Insert: {
           body?: string
+          broker_id?: string | null
           created_at?: string
           direction: string
           id?: string
@@ -3867,6 +3975,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          broker_id?: string | null
           created_at?: string
           direction?: string
           id?: string
@@ -3877,6 +3986,13 @@ export type Database = {
           wa_message_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "wa_messages_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "wa_messages_phone_fkey"
             columns: ["phone"]
@@ -3974,6 +4090,7 @@ export type Database = {
     Functions: {
       accept_referral: { Args: { _id: string }; Returns: string }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
+      account_audience: { Args: { _type: string }; Returns: string }
       account_people: { Args: { _broker: string }; Returns: string[] }
       actor_label: { Args: never; Returns: string }
       add_work_minutes: {
@@ -4025,9 +4142,9 @@ export type Database = {
           name: string
           phone: string | null
           photo_url: string | null
-          plan_id: string | null
           plan_badge: boolean
           plan_exempt: boolean
+          plan_id: string | null
           rejected_at: string | null
           review_note: string | null
           show_contact: boolean
@@ -4052,6 +4169,32 @@ export type Database = {
       admin_delete_broker: { Args: { _id: string }; Returns: string }
       admin_drop_property: { Args: { _id: string }; Returns: string }
       admin_exists: { Args: never; Returns: boolean }
+      admin_grant_plan: {
+        Args: {
+          _broker: string
+          _months: number
+          _note?: string
+          _phone: string
+          _plan: string
+        }
+        Returns: string
+      }
+      admin_handle_plan_request: {
+        Args: { _activate: boolean; _id: string; _note?: string }
+        Returns: string
+      }
+      admin_listing_stats: {
+        Args: { _days?: number }
+        Returns: {
+          account: string
+          broker_id: string
+          contacts: number
+          impressions: number
+          leads: number
+          listings: number
+          views: number
+        }[]
+      }
       admin_opportunities: {
         Args: never
         Returns: {
@@ -4090,6 +4233,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_update_plan_task: {
+        Args: { _day?: string; _id: string; _note?: string; _status: string }
+        Returns: undefined
       }
       agreement_for:
         | {
@@ -4145,6 +4292,10 @@ export type Database = {
       }
       auth_user_id_by_phone: { Args: { _phone: string }; Returns: string }
       auth_user_ids_by_phone: { Args: { _phone: string }; Returns: string[] }
+      book_spotlight: {
+        Args: { _day: string; _property: string }
+        Returns: string
+      }
       broker_contacts: {
         Args: { _ids: string[] }
         Returns: {
@@ -4160,16 +4311,29 @@ export type Database = {
           audience: string
           code: string
           created_at: string
+          excel_import: boolean
           featured_slots: number
           features: string[]
+          home_banner: boolean
           id: string
           is_active: boolean
           listing_days: number | null
+          max_projects: number | null
           max_properties: number
+          max_staff: number | null
           monthly_price: number
           name: string
+          pin_days: number
+          posts_per_month: number
           sort_order: number
+          spotlights_per_month: number
+          stats_level: string
+          support_level: string
+          tier: number | null
           trial_days: number
+          verified_badge: boolean
+          videos_per_month: number
+          whatsapp_broadcast: boolean
           yearly_price: number
         }
         SetofOptions: {
@@ -4304,8 +4468,13 @@ export type Database = {
         Args: { _broker: string; _owner_lead: string }
         Returns: number
       }
+      listing_kind: { Args: { _status: string }; Returns: string }
       live_listings_of_broker: { Args: { _broker: string }; Returns: number }
       live_listings_of_phone: { Args: { _phone: string }; Returns: number }
+      live_listings_of_phone_kind: {
+        Args: { _kind: string; _phone: string }
+        Returns: number
+      }
       log_app_error: {
         Args: {
           _kind: string
@@ -4374,9 +4543,9 @@ export type Database = {
           name: string
           phone: string | null
           photo_url: string | null
-          plan_id: string | null
           plan_badge: boolean
           plan_exempt: boolean
+          plan_id: string | null
           rejected_at: string | null
           review_note: string | null
           show_contact: boolean
@@ -4433,17 +4602,7 @@ export type Database = {
         }[]
       }
       my_listing_plan: { Args: never; Returns: Json }
-      pin_listing: { Args: { _property: string }; Returns: string }
-      my_plan_usage: { Args: never; Returns: Json }
-      spotlight_taken_days: { Args: { _from: string; _to: string }; Returns: string[] }
-      book_spotlight: { Args: { _day: string; _property: string }; Returns: string }
-      today_spotlight: { Args: never; Returns: { id: string; title: string; price: number; status: string; area: string; city: string; image_url: string | null }[] }
-      request_plan_task: { Args: { _kind: string; _note?: string; _property: string }; Returns: string }
-      admin_update_plan_task: { Args: { _day?: string; _id: string; _note?: string; _status: string }; Returns: undefined }
-      plan_price: { Args: { _months: number; _plan: string }; Returns: number }
-      track_listing: { Args: { _device: string; _ids: string[]; _kind: string; _source?: string }; Returns: number }
       my_listing_stats: { Args: { _days?: number }; Returns: Json }
-      admin_listing_stats: { Args: { _days?: number }; Returns: { account: string; broker_id: string | null; listings: number; impressions: number; views: number; contacts: number; leads: number }[] }
       my_member_id: { Args: never; Returns: string }
       my_membership: {
         Args: never
@@ -4509,8 +4668,13 @@ export type Database = {
           type: string
         }[]
       }
+      my_perk_context: {
+        Args: { _property: string }
+        Returns: Record<string, unknown>
+      }
       my_permissions: { Args: never; Returns: Json }
       my_phone: { Args: never; Returns: string }
+      my_plan_usage: { Args: never; Returns: Json }
       my_referral_payouts: {
         Args: never
         Returns: {
@@ -4672,24 +4836,84 @@ export type Database = {
         }[]
       }
       owned_company_id: { Args: never; Returns: string }
+      owner_access_until: { Args: { _phone: string }; Returns: string }
+      owner_audience: { Args: { _kind: string }; Returns: string }
+      owner_kind_access_until: {
+        Args: { _kind: string; _phone: string }
+        Returns: string
+      }
+      owner_kind_plan: {
+        Args: { _kind: string; _phone: string }
+        Returns: {
+          audience: string
+          code: string
+          created_at: string
+          excel_import: boolean
+          featured_slots: number
+          features: string[]
+          home_banner: boolean
+          id: string
+          is_active: boolean
+          listing_days: number | null
+          max_projects: number | null
+          max_properties: number
+          max_staff: number | null
+          monthly_price: number
+          name: string
+          pin_days: number
+          posts_per_month: number
+          sort_order: number
+          spotlights_per_month: number
+          stats_level: string
+          support_level: string
+          tier: number | null
+          trial_days: number
+          verified_badge: boolean
+          videos_per_month: number
+          whatsapp_broadcast: boolean
+          yearly_price: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "plans"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      owner_kind_quota: {
+        Args: { _kind: string; _phone: string }
+        Returns: Json
+      }
       owner_listing_quota: { Args: { _phone: string }; Returns: Json }
-      owner_kind_quota: { Args: { _kind: string; _phone: string }; Returns: Json }
       owner_plan: {
         Args: { _phone: string }
         Returns: {
           audience: string
           code: string
           created_at: string
+          excel_import: boolean
           featured_slots: number
           features: string[]
+          home_banner: boolean
           id: string
           is_active: boolean
           listing_days: number | null
+          max_projects: number | null
           max_properties: number
+          max_staff: number | null
           monthly_price: number
           name: string
+          pin_days: number
+          posts_per_month: number
           sort_order: number
+          spotlights_per_month: number
+          stats_level: string
+          support_level: string
+          tier: number | null
           trial_days: number
+          verified_badge: boolean
+          videos_per_month: number
+          whatsapp_broadcast: boolean
           yearly_price: number
         }
         SetofOptions: {
@@ -4700,6 +4924,8 @@ export type Database = {
         }
       }
       phone_user_id: { Args: { _phone: string }; Returns: string }
+      pin_listing: { Args: { _property: string }; Returns: string }
+      plan_price: { Args: { _months: number; _plan: string }; Returns: number }
       prepare_account_deletion: {
         Args: { _by?: string; _uid: string }
         Returns: string
@@ -4751,8 +4977,6 @@ export type Database = {
       }
       refresh_service_plan: { Args: { _provider: string }; Returns: undefined }
       renew_listing: { Args: { _property: string }; Returns: string }
-      admin_grant_plan: { Args: { _broker: string | null; _months: number; _note?: string; _phone: string | null; _plan: string }; Returns: string }
-      admin_handle_plan_request: { Args: { _activate: boolean; _id: string; _note?: string }; Returns: string }
       reply_service_review: {
         Args: { _reply: string; _review: string }
         Returns: boolean
@@ -4765,7 +4989,14 @@ export type Database = {
         Args: { _message: string; _reason: string }
         Returns: undefined
       }
-      request_listing_plan: { Args: { _months?: number; _plan: string }; Returns: string }
+      request_listing_plan: {
+        Args: { _months?: number; _plan: string }
+        Returns: string
+      }
+      request_plan_task: {
+        Args: { _kind: string; _note?: string; _property: string }
+        Returns: string
+      }
       request_service_plan: { Args: { _plan: string }; Returns: boolean }
       reroute_service_request: { Args: { _req: string }; Returns: string }
       run_lead_transfers: { Args: never; Returns: Json }
@@ -4890,21 +5121,96 @@ export type Database = {
         Returns: undefined
       }
       source_from_utm: { Args: { _u: Json }; Returns: string }
+      spotlight_taken_days: {
+        Args: { _from: string; _to: string }
+        Returns: string[]
+      }
       staff_can: {
         Args: { _need?: string; _section: string }
         Returns: boolean
       }
       staff_leads_all: { Args: never; Returns: boolean }
+      start_broker_trial: { Args: { _broker: string }; Returns: undefined }
       start_direct_thread: { Args: { _broker?: string }; Returns: string }
+      start_owner_trial: {
+        Args: { _kind: string; _phone: string }
+        Returns: undefined
+      }
+      sync_broker_access: {
+        Args: { _broker: string; _limit?: boolean }
+        Returns: string
+      }
+      sync_owner_access: {
+        Args: { _limit?: boolean; _phone: string }
+        Returns: string
+      }
+      today_spotlight: {
+        Args: never
+        Returns: {
+          area: string
+          city: string
+          id: string
+          image_url: string
+          price: number
+          status: string
+          title: string
+        }[]
+      }
+      track_listing: {
+        Args: {
+          _device: string
+          _ids: string[]
+          _kind: string
+          _source?: string
+        }
+        Returns: number
+      }
+      trial_plan_id: { Args: { _audience: string }; Returns: string }
       unit_label: {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
         Returns: string
       }
+      wa_assign_owner: {
+        Args: { _phone: string; _property: string }
+        Returns: string
+      }
       wa_mark_read: { Args: { _phone: string }; Returns: undefined }
+      wa_notify_owner: {
+        Args: { _msg: string; _phone: string }
+        Returns: undefined
+      }
       wa_notify_team: {
         Args: { _msg: string; _phone: string; _title: string }
         Returns: undefined
       }
+      wa_owner_messages: {
+        Args: { _id: string }
+        Returns: {
+          body: string
+          created_at: string
+          direction: string
+          id: string
+          sender: string
+          status: string
+        }[]
+      }
+      wa_owner_threads: {
+        Args: never
+        Returns: {
+          can_reply: boolean
+          id: string
+          is_current: boolean
+          last_at: string
+          last_message: string
+          name: string
+          phone_tail: string
+          property_code: number
+          property_id: string
+          property_title: string
+          unread: number
+        }[]
+      }
+      wa_release_owner: { Args: { _phone: string }; Returns: undefined }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
         Returns: string
