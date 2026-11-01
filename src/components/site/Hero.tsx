@@ -8,6 +8,8 @@ import hero1920 from "@/assets/hero-1920.webp";
 import { CITY_NAMES, CITIES, FINISHING_LABEL, formatPrice, useLocations } from "./data";
 import { applyFilters, emptyFilters, extraCount, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
 import { fetchSearchEverything } from "./search-everything";
+import { fetchOpportunities } from "@/lib/investments";
+import { LiveStrip } from "./LiveStrip";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t, useLang } from "@/lib/i18n";
 
@@ -23,6 +25,8 @@ const lblDesktop = "sr-only md:not-sr-only md:mb-1 md:block md:text-xs md:font-b
 const phoneMore = (open: boolean) => (open ? "animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none" : "hidden md:block");
 
 const TABS: [string, string][] = [["", "الكل"], ["بيع", "شراء"], ["إيجار", "إيجار"], ["مصيف", "مصيف"]];
+/** The count line under the box splits the units by purpose. */
+const PURPOSES: [string, string][] = [["بيع", "للبيع"], ["إيجار", "للإيجار"], ["مصيف", "مصيف"]];
 /** Price range label per purpose: rent is monthly; summer compares the lowest price (usually per night). */
 const PRICE_LABEL: Record<string, string> = { "إيجار": "الإيجار الشهري من (ج.م)", "مصيف": "السعر من (ج.م، لليلة غالبًا)" };
 
@@ -37,7 +41,14 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
   const [more, setMore] = useState(extras > 0);
   // How many units the current choices match (the same cached list the results use), shown under the box.
   const all = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything });
-  const matching = all.data ? applyFilters(all.data, draft).length : null;
+  const opps = useQuery({ queryKey: ["opportunities"], queryFn: fetchOpportunities });
+  const found = all.data ? applyFilters(all.data, draft) : null;
+  const matching = found?.length ?? null;
+  // …split by purpose (sale / rent / summer), plus the investment opportunities when nothing is picked yet.
+  const parts = found ? [
+    ...PURPOSES.map(([s, label]) => [found.filter((p) => p.status === s).length, label] as const),
+    ...(isEmpty(draft) ? [[opps.data?.length ?? 0, "فرص استثمارية"] as const] : []),
+  ].filter(([n]) => n > 0) : [];
   const [typed, setTyped] = useState(!!draft.place);
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [k]: e.target.value });
@@ -168,18 +179,22 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
           )}
         </form>
         {/* Live count: what's on the site now, or how many match the choices so far (before pressing «ابحث»). */}
-        <p className="mt-2.5 flex min-h-5 items-center gap-1.5 px-1 text-sm font-bold text-primary" aria-live="polite">
+        <div className="mt-2.5 min-h-5 px-1" aria-live="polite">
           {matching != null && (
-            <span key={`${isEmpty(draft)}-${matching}`} className="inline-flex items-center gap-1.5 animate-in fade-in duration-300 motion-reduce:animate-none">
+            <div key={`${isEmpty(draft)}-${matching}-${parts.length}`} className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-primary animate-in fade-in duration-300 motion-reduce:animate-none">
               <Building2 className="size-4 text-teal" />
-              {isEmpty(draft)
-                ? <>{formatPrice(matching)} {t("وحدة معروضة دلوقتي على فاليو عقار")}</>
-                : matching
-                  ? <>{formatPrice(matching)} {t("وحدة مطابقة لاختيارك")}</>
-                  : t("مفيش وحدات مطابقة، جرّب توسّع البحث")}
-            </span>
+              {matching
+                ? <span>{formatPrice(matching)} {t(isEmpty(draft) ? "وحدة معروضة" : "وحدة مطابقة")}</span>
+                : <span>{t("مفيش وحدات مطابقة، جرّب توسّع البحث")}</span>}
+              {parts.map(([n, label]) => (
+                <span key={label} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-primary">
+                  {formatPrice(n)} {t(label)}
+                </span>
+              ))}
+            </div>
           )}
-        </p>
+        </div>
+        {found && <LiveStrip list={found} />}
       </div>
     </section>
   );

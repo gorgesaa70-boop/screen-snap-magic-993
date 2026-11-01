@@ -77,13 +77,17 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
   );
 }
 
-/** «تفاصيل العقار»: industrial listings have their own page; compound / project price-list units open their compound / project. */
+/** A link to a unit's page: industrial listings have their own page; compound / project price-list units open their compound / project. */
+export function PropertyLink({ p, className, children }: { p: Property; className: string; children: React.ReactNode }) {
+  if (p.kind === "industrial") return <Link to="/industrial/$id" params={{ id: p.id }} className={className}>{children}</Link>;
+  if (p.kind === "compound" && p.parentId) return <Link to="/compounds/$id" params={{ id: p.parentId }} className={className}>{children}</Link>;
+  if (p.kind === "project" && p.parentId) return <Link to="/projects/$id" params={{ id: p.parentId }} className={className}>{children}</Link>;
+  return <Link to="/properties/$id" params={{ id: p.id }} className={className}>{children}</Link>;
+}
+
+/** «تفاصيل العقار». */
 function DetailsLink({ p, className }: { p: Property; className: string }) {
-  const label = tr("تفاصيل العقار");
-  if (p.kind === "industrial") return <Link to="/industrial/$id" params={{ id: p.id }} className={className}>{label}</Link>;
-  if (p.kind === "compound" && p.parentId) return <Link to="/compounds/$id" params={{ id: p.parentId }} className={className}>{label}</Link>;
-  if (p.kind === "project" && p.parentId) return <Link to="/projects/$id" params={{ id: p.parentId }} className={className}>{label}</Link>;
-  return <Link to="/properties/$id" params={{ id: p.id }} className={className}>{label}</Link>;
+  return <PropertyLink p={p} className={className}>{tr("تفاصيل العقار")}</PropertyLink>;
 }
 
 export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string | null }) {
