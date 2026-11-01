@@ -100,7 +100,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
   const badges = useBadgeAccounts();
   const accountVerified = !!p.brokerId && badges.has(p.brokerId);
   return (
-    <article ref={seen} className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition hover:shadow-card">
+    <article ref={seen} className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition duration-300 animate-in fade-in slide-in-from-bottom-2 hover:-translate-y-0.5 hover:shadow-card motion-reduce:animate-none motion-reduce:hover:translate-y-0">
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
         <img src={thumb(p.image)} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
           className="size-full object-cover transition duration-500 group-hover:scale-105" />

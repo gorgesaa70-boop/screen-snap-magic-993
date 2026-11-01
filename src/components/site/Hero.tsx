@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Search, RotateCcw, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, RotateCcw, SlidersHorizontal, ChevronDown, Building2 } from "lucide-react";
 import hero640 from "@/assets/hero-640.webp";
 import hero960 from "@/assets/hero-960.webp";
 import hero1440 from "@/assets/hero-1440.webp";
 import hero1920 from "@/assets/hero-1920.webp";
-import { CITY_NAMES, CITIES, FINISHING_LABEL, useLocations } from "./data";
-import { emptyFilters, extraCount, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
+import { CITY_NAMES, CITIES, FINISHING_LABEL, formatPrice, useLocations } from "./data";
+import { applyFilters, emptyFilters, extraCount, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
+import { fetchSearchEverything } from "./search-everything";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t, useLang } from "@/lib/i18n";
 
@@ -13,8 +15,12 @@ import { t, useLang } from "@/lib/i18n";
 const HERO_SRCSET = `${hero640} 640w, ${hero960} 960w, ${hero1440} 1440w, ${hero1920} 1920w`;
 
 const field =
-  "h-12 w-full rounded-xl border bg-background px-3.5 text-base font-medium text-foreground outline-none transition hover:border-primary/40 focus:border-teal focus:ring-2 focus:ring-teal/30 md:h-11 md:text-sm";
+  "h-11 w-full rounded-xl border bg-background px-3 text-base font-medium text-foreground outline-none transition hover:border-primary/40 focus:border-teal focus:ring-2 focus:ring-teal/30 md:px-3.5 md:text-sm";
 const lbl = "mb-1 block text-xs font-bold text-muted-foreground";
+/** Type and city stay on phones without their labels (the first option says what the box is), to keep the box short. */
+const lblDesktop = "sr-only md:not-sr-only md:mb-1 md:block md:text-xs md:font-bold md:text-muted-foreground";
+/** Shown on phones only after «فلاتر أكتر» (area and price), always on larger screens; fades in when opened. */
+const phoneMore = (open: boolean) => (open ? "animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none" : "hidden md:block");
 
 const TABS: [string, string][] = [["", "الكل"], ["بيع", "شراء"], ["إيجار", "إيجار"], ["مصيف", "مصيف"]];
 /** Price range label per purpose: rent is monthly; summer compares the lowest price (usually per night). */
@@ -26,7 +32,12 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
   useLang();
   useLocations();
   const extras = extraCount(draft);
+  // On phones «فلاتر أكتر» also holds the area and the price range.
+  const phoneExtras = extras + [draft.area || draft.place, draft.min, draft.max].filter(Boolean).length;
   const [more, setMore] = useState(extras > 0);
+  // How many units the current choices match (the same cached list the results use), shown under the box.
+  const all = useQuery({ queryKey: ["search-everything"], queryFn: fetchSearchEverything });
+  const matching = all.data ? applyFilters(all.data, draft).length : null;
   const [typed, setTyped] = useState(!!draft.place);
   const set = (k: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [k]: e.target.value });
@@ -61,16 +72,16 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
           ))}
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onSearch(); }}
-          className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-2xl bg-card p-4 shadow-float md:grid-cols-6 md:p-5 rtl:rounded-tr-none ltr:rounded-tl-none">
+          className="grid grid-cols-2 gap-x-2.5 gap-y-2.5 rounded-2xl bg-card p-3 shadow-float md:grid-cols-6 md:gap-x-3 md:gap-y-3 md:p-5 rtl:rounded-tr-none ltr:rounded-tl-none">
           <label>
-            <span className={lbl}>{t("نوع العقار")}</span>
+            <span className={lblDesktop}>{t("نوع العقار")}</span>
             <select value={draft.type} onChange={set("type")} className={field}>
-              <option value="">{t("الكل")}</option>
+              <option value="">{t("كل الأنواع")}</option>
               {SEARCH_TYPES_FOR[draft.status]!.map((v) => <option key={v} value={v}>{t(v)}</option>)}
             </select>
           </label>
           <label>
-            <span className={lbl}>{t("المدينة")}</span>
+            <span className={lblDesktop}>{t("المدينة")}</span>
             <select value={typed ? "__other__" : draft.city ?? ""} className={field} onChange={(e) => {
               const other = e.target.value === "__other__";
               setTyped(other);
@@ -81,7 +92,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
               <option value="__other__">{t("مدينة تانية…")}</option>
             </select>
           </label>
-          <label>
+          <label className={`order-2 col-span-2 md:order-none md:col-span-1 ${phoneMore(more)}`}>
             <span className={lbl}>{t("المنطقة / الحي")}</span>
             {typed ? (
               <input value={draft.place ?? ""} onChange={set("place")} maxLength={60} className={field} placeholder={t("اكتب المدينة أو المنطقة")} />
@@ -92,35 +103,37 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
               </select>
             )}
           </label>
-          <label>
+          <label className={`order-2 md:order-none ${phoneMore(more)}`}>
             <span className={lbl}>{t(PRICE_LABEL[draft.status] ?? "السعر من (ج.م)")}</span>
             <input type="number" min={0} inputMode="numeric" placeholder="0" value={draft.min} onChange={set("min")} className={field} />
           </label>
-          <label>
+          <label className={`order-2 md:order-none ${phoneMore(more)}`}>
             <span className={lbl}>{t("إلى (ج.م)")}</span>
             <input type="number" min={0} inputMode="numeric" placeholder={t("بلا حد")} value={draft.max} onChange={set("max")} className={field} />
           </label>
-          <div className="col-span-2 flex gap-2 self-end md:col-span-1 md:flex-col">
+          <div className="order-4 col-span-2 flex gap-2 self-end md:order-none md:col-span-1 md:flex-col">
             <button type="submit"
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-teal text-base font-extrabold text-accent-foreground shadow-card transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98] md:h-11 md:text-sm">
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-teal text-base font-extrabold text-accent-foreground shadow-card transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98] md:text-sm">
               <Search className="size-5 shrink-0" /> {t("ابحث عن عقار")}
             </button>
             {!isEmpty(draft) && (
               <button type="button" onClick={() => { setDraft(emptyFilters); setTyped(false); onClear(); }}
-                className="flex h-12 items-center justify-center gap-1.5 rounded-xl border px-4 text-sm font-bold text-primary transition hover:bg-secondary focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98] md:h-9">
+                className="flex h-11 items-center justify-center gap-1.5 rounded-xl border px-4 text-sm font-bold text-primary transition hover:bg-secondary focus-visible:ring-2 focus-visible:ring-teal focus-visible:outline-none active:scale-[0.98] md:h-9">
                 <RotateCcw className="size-4 shrink-0" /> {t("مسح")}
               </button>
             )}
           </div>
-          <div className="col-span-2 md:col-span-6">
+          <div className="order-1 col-span-2 md:order-none md:col-span-6">
             <button type="button" aria-expanded={more} onClick={() => setMore(!more)}
               className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-teal">
-              <SlidersHorizontal className="size-4" />{t("فلاتر أكتر")}{extras > 0 && <span className="rounded-full bg-teal px-1.5 text-[11px] text-accent-foreground">{extras}</span>}
-              <ChevronDown className={`size-4 transition ${more ? "rotate-180" : ""}`} />
+              <SlidersHorizontal className="size-4" />{t("فلاتر أكتر")}
+              {phoneExtras > 0 && <span className="rounded-full bg-teal px-1.5 text-[11px] text-accent-foreground md:hidden">{phoneExtras}</span>}
+              {extras > 0 && <span className="hidden rounded-full bg-teal px-1.5 text-[11px] text-accent-foreground md:inline">{extras}</span>}
+              <ChevronDown className={`size-4 transition duration-200 ${more ? "rotate-180" : ""}`} />
             </button>
           </div>
           {more && (
-            <div className="col-span-2 grid grid-cols-2 gap-3 border-t pt-3 md:col-span-6 md:grid-cols-4">
+            <div className="order-3 col-span-2 grid grid-cols-2 gap-3 border-t pt-3 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none md:order-none md:col-span-6 md:grid-cols-4">
               {(draft.status === "" || draft.status === "بيع") && (
                 <>
                   <label>
@@ -154,6 +167,19 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
             </div>
           )}
         </form>
+        {/* Live count: what's on the site now, or how many match the choices so far (before pressing «ابحث»). */}
+        <p className="mt-2.5 flex min-h-5 items-center gap-1.5 px-1 text-sm font-bold text-primary" aria-live="polite">
+          {matching != null && (
+            <span key={`${isEmpty(draft)}-${matching}`} className="inline-flex items-center gap-1.5 animate-in fade-in duration-300 motion-reduce:animate-none">
+              <Building2 className="size-4 text-teal" />
+              {isEmpty(draft)
+                ? <>{formatPrice(matching)} {t("وحدة معروضة دلوقتي على فاليو عقار")}</>
+                : matching
+                  ? <>{formatPrice(matching)} {t("وحدة مطابقة لاختيارك")}</>
+                  : t("مفيش وحدات مطابقة، جرّب توسّع البحث")}
+            </span>
+          )}
+        </p>
       </div>
     </section>
   );
