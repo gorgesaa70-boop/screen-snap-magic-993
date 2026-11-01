@@ -2104,4 +2104,8 @@ commit;`); }
   await expectOk("all the scheduled jobs run together, none failing", () => sys(`select public.run_scheduled_jobs() r`), (r) => Array.isArray(r[0].r.failed) && r[0].r.failed.length === 0);
   await expectOk("…and again safely", () => sys(`select public.run_scheduled_jobs() r`), (r) => r[0].r.failed.length === 0);
   await expectErr("nobody else can trigger them", () => as(U.admin, `select public.run_scheduled_jobs()`));
+
+  // Release 44: the database calls the WhatsApp dispatch every minute (no pg_net here: it does nothing, quietly).
+  await expectOk("the WhatsApp dispatch call is safe without pg_net", () => sys(`select public.call_wa_dispatch()`));
+  await expectErr("nobody else can trigger it", () => as(U.admin, `select public.call_wa_dispatch()`));
 }

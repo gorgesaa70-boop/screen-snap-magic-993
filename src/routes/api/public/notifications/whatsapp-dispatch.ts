@@ -11,15 +11,21 @@ function toDigits(v: string | null | undefined) {
 
 /**
  * Sends pending WhatsApp copies of notifications (new inquiry, broker reply) to users who opted in.
- * Called by a scheduler with the cron secret. Uses the Meta Cloud API creds already used for WhatsApp OTP
+ * Called every minute by the database (secret from push_config), or by a scheduler with the cron secret. Uses the Meta Cloud API creds already used for WhatsApp OTP
  * plus an approved UTILITY template in WHATSAPP_NOTIFY_TEMPLATE with 2 body variables ({{1}} title, {{2}} message).
  */
 export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatch")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const denied = await authenticateCronRequest(request);
-        if (denied) return denied;
+        // The database calls this every minute (pg_cron + pg_net) with the secret kept in push_config; a scheduler
+        // can still call it with the cron secret.
+        const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+        const { pushSecretOk } = await import("@/lib/push.server");
+        if (!(await pushSecretOk(admin, request.headers.get("x-push-secret")))) {
+          const denied = await authenticateCronRequest(request);
+          if (denied) return denied;
+        }
 
         const token = process.env["WHATSAPP_ACCESS_TOKEN"];
         const phoneId = process.env["WHATSAPP_PHONE_NUMBER_ID"];
