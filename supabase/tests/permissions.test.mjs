@@ -2076,4 +2076,27 @@ commit;`); }
   await expectOk("ending the exemption applies the plan's limit again", shown, (n) => n === 2);
   await as(U.admin, `update public.plans set max_properties = ${ind1} where code = 'ind_1'`);
   await expectErr("only the admin changes plans", () => as(U.owner, `update public.plans set max_properties = 99 where code = 'ind_1' returning id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; }));
+
+  // Release 42: an account exempt from plans has no listing limit (new listings and renewals).
+  { const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261101200000_exempt-no-limit.sql", import.meta.url), "utf8"); await exec(`begin;
+${sql}
+commit;`); }
+  const EXU = "00000000-0000-0000-0000-000000000042", EXB = "b0000000-0000-0000-0000-000000000042";
+  await sys(`insert into auth.users (id, phone) values ('${EXU}', '201055500042')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values ('${EXB}', '${EXU}', 'exempt-b', 'وسيط معفي', '201055500042', 'individual', true)`);
+  await sys(`select set_config('va.plan_sync', '1', false)`);
+  await sys(`update public.brokers set plan_id = (select id from public.plans where code = 'ind_1') where id = '${EXB}'`);
+  await sys(`select set_config('va.plan_sync', '', false)`);
+  for (let i = 1; i <= 3; i++) {
+    const id = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values ('${EXB}', 'إعلان ${i}', 1, 'أرض', 'الحي الأول', 'بيع') returning id`))[0].id;
+    await sys(`update public.properties set review_status = 'approved' where id = '${id}'`);
+  }
+  const addAs = (name) => as(EXU, `insert into public.properties (broker_id, title, price, type, area, status, review_status) values ('${EXB}', '${name}', 1, 'أرض', 'الحي الأول', 'بيع', 'pending') returning review_status`);
+  await expectErr("at the plan's limit (3), a 4th listing is refused", () => addAs("رابع"));
+  await as(U.admin, `update public.brokers set plan_exempt = true where id = '${EXB}'`);
+  await expectOk("an exempt account puts up listings beyond the old limit", () => addAs("رابع"), (r) => r.length === 1);
+  await expectOk("…and more", () => addAs("خامس"), (r) => r.length === 1);
+  await expectOk("the helper says exempt accounts are unlimited", () => sys(`select public.broker_unlimited('${EXB}') u, public.broker_unlimited('${CO}') c`), (r) => r[0].u === true && r[0].c === false);
+  await as(U.admin, `update public.brokers set plan_exempt = false where id = '${EXB}'`);
+  await expectErr("ending the exemption brings the limit back for new listings", () => addAs("سادس"));
 }
