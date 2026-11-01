@@ -123,6 +123,26 @@
   .ticker-line { animation: none; transform: none; }
 }
 
+/* Home «عقارات متاحة» strip: slides slowly in the reading direction and loops; stops while touched or hovered.
+   Reduced-motion users get a still row they can swipe. */
+@keyframes live-strip-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+@keyframes live-strip-ltr {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.live-strip-track { animation: live-strip-rtl 56s linear infinite; }
+[dir="ltr"] .live-strip-track { animation-name: live-strip-ltr; }
+.live-strip:hover .live-strip-track,
+.live-strip:active .live-strip-track,
+.live-strip:focus-within .live-strip-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .live-strip { overflow-x: auto; }
+  .live-strip-track { animation: none; }
+}
+
 /* Keeps the header (and the news line) below the phone's status bar in the installed app. */
 .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), var(--native-top, 0px)); }
 
