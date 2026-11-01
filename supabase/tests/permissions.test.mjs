@@ -2099,4 +2099,9 @@ commit;`); }
   await expectOk("the helper says exempt accounts are unlimited", () => sys(`select public.broker_unlimited('${EXB}') u, public.broker_unlimited('${CO}') c`), (r) => r[0].u === true && r[0].c === false);
   await as(U.admin, `update public.brokers set plan_exempt = false where id = '${EXB}'`);
   await expectErr("ending the exemption brings the limit back for new listings", () => addAs("سادس"));
+
+  // Release 43: the scheduled jobs run from inside the database (pg_cron every minute where available).
+  await expectOk("all the scheduled jobs run together, none failing", () => sys(`select public.run_scheduled_jobs() r`), (r) => Array.isArray(r[0].r.failed) && r[0].r.failed.length === 0);
+  await expectOk("…and again safely", () => sys(`select public.run_scheduled_jobs() r`), (r) => r[0].r.failed.length === 0);
+  await expectErr("nobody else can trigger them", () => as(U.admin, `select public.run_scheduled_jobs()`));
 }
