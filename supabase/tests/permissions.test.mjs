@@ -2045,4 +2045,35 @@ commit;`);
     return res;
   }, (r) => r !== "allowed");
 
+  // Release 41: plan limits apply right away. (Earlier checks re-run older releases, so apply this one again — it must be re-runnable.)
+  { const sql = (await import("node:fs")).readFileSync(new URL("../migrations/20261101100000_plan-limit-resync.sql", import.meta.url), "utf8"); await exec(`begin;
+${sql}
+commit;`); }
+  const LB = "b0000000-0000-0000-0000-000000000041";
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values ('${LB}', null, 'limit-b', 'وسيط الحد', '201055500041', 'individual', true)`);
+  await sys(`select set_config('va.plan_sync', '1', false)`);
+  await sys(`update public.brokers set plan_id = (select id from public.plans where code = 'ind_1') where id = '${LB}'`);
+  await sys(`select set_config('va.plan_sync', '', false)`);
+  for (let i = 1; i <= 5; i++) {
+    const id = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values ('${LB}', 'إعلان ${i}', 1, 'أرض', 'الحي الأول', 'بيع') returning id`))[0].id;
+    await sys(`update public.properties set review_status = 'approved' where id = '${id}'`);
+  }
+  const shown = async () => (await sys(`select count(*)::int n from public.properties where broker_id = '${LB}' and not hidden_by_plan`))[0].n;
+  await sys(`select public.sync_broker_access('${LB}', true)`);
+  await expectOk("a plan with 3 listings keeps 3 of 5 up", shown, (n) => n === 3);
+  const ind1 = (await sys(`select max_properties m from public.plans where code = 'ind_1'`))[0].m;
+  await as(U.admin, `update public.plans set max_properties = 5 where code = 'ind_1'`);
+  await expectOk("raising the plan's limit brings the hidden ones back right away", shown, (n) => n === 5);
+  await as(U.admin, `update public.plans set max_properties = 2 where code = 'ind_1'`);
+  await expectOk("lowering it hides the extra ones right away", shown, (n) => n === 2);
+  await as(U.admin, `update public.plans set name = name where code = 'ind_1'`);
+  await expectOk("other plan edits don't touch the listings", shown, (n) => n === 2);
+  await as(U.admin, `update public.brokers set plan_exempt = true where id = '${LB}'`);
+  await expectOk("exempting the account brings all its listings back", shown, (n) => n === 5);
+  await sys(`select public.sync_broker_access('${LB}', true)`);
+  await expectOk("…and the plan's limit no longer applies to it", shown, (n) => n === 5);
+  await as(U.admin, `update public.brokers set plan_exempt = false where id = '${LB}'`);
+  await expectOk("ending the exemption applies the plan's limit again", shown, (n) => n === 2);
+  await as(U.admin, `update public.plans set max_properties = ${ind1} where code = 'ind_1'`);
+  await expectErr("only the admin changes plans", () => as(U.owner, `update public.plans set max_properties = 99 where code = 'ind_1' returning id`).then((r) => { if (!r.length) throw new Error("no rows"); return r; }));
 }
