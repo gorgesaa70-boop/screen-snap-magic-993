@@ -96,7 +96,9 @@ export type Database = {
           social_autopost: boolean
           social_categories: string[]
           social_channels: string[]
+          social_lookahead: number
           social_since: string | null
+          social_slots: number[]
           subscription_grace_days: number
           transfer_enabled: boolean
           transfer_max_companies: number
@@ -143,7 +145,9 @@ export type Database = {
           social_autopost?: boolean
           social_categories?: string[]
           social_channels?: string[]
+          social_lookahead?: number
           social_since?: string | null
+          social_slots?: number[]
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
@@ -190,7 +194,9 @@ export type Database = {
           social_autopost?: boolean
           social_categories?: string[]
           social_channels?: string[]
+          social_lookahead?: number
           social_since?: string | null
+          social_slots?: number[]
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
@@ -3738,6 +3744,7 @@ export type Database = {
           posted_at: string | null
           property_id: string
           results: Json
+          scheduled_for: string | null
           status: string
           updated_at: string
         }
@@ -3752,6 +3759,7 @@ export type Database = {
           posted_at?: string | null
           property_id: string
           results?: Json
+          scheduled_for?: string | null
           status?: string
           updated_at?: string
         }
@@ -3766,6 +3774,7 @@ export type Database = {
           posted_at?: string | null
           property_id?: string
           results?: Json
+          scheduled_for?: string | null
           status?: string
           updated_at?: string
         }
@@ -5189,6 +5198,7 @@ export type Database = {
         Args: { _images: string[]; _mall: string }
         Returns: undefined
       }
+      social_backfill: { Args: never; Returns: number }
       social_claim: {
         Args: { _n?: number }
         Returns: {
@@ -5202,6 +5212,7 @@ export type Database = {
           posted_at: string | null
           property_id: string
           results: Json
+          scheduled_for: string | null
           status: string
           updated_at: string
         }[]
@@ -5224,6 +5235,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      social_free_slots: { Args: never; Returns: string[] }
       source_from_utm: { Args: { _u: Json }; Returns: string }
       spotlight_taken_days: {
         Args: { _from: string; _to: string }

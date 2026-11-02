@@ -38,10 +38,11 @@ function metadata(service: string, title: string) {
 }
 
 /**
- * Adds one image post to the channel's queue, «share next» (to the front), so the newest listing goes out first.
- * Returns the post id and when Buffer will publish it, or throws with Buffer's message (e.g. the queue is full).
+ * Schedules one image post on the channel at an exact time (dueAt, ISO), the same time for every channel; without
+ * one it goes to the front of the channel's queue («share next»). Returns the post id and when Buffer will publish
+ * it, or throws with Buffer's message (e.g. the queue is full).
  */
-export async function bufferPost(key: string, ch: BufferChannel, p: { text: string; imageUrl: string; title: string }) {
+export async function bufferPost(key: string, ch: BufferChannel, p: { text: string; imageUrl: string; title: string; dueAt?: string | null }) {
   const res = await gql<{ createPost: { post?: { id: string; dueAt: string | null }; message?: string } }>(key,
     `mutation($input: CreatePostInput!) {
       createPost(input: $input) {
@@ -50,7 +51,8 @@ export async function bufferPost(key: string, ch: BufferChannel, p: { text: stri
       }
     }`,
     { input: {
-      channelId: ch.id, text: p.text, schedulingType: "automatic", mode: "shareNext",
+      channelId: ch.id, text: p.text, schedulingType: "automatic",
+      ...(p.dueAt ? { mode: "customScheduled", dueAt: p.dueAt } : { mode: "shareNext" }),
       assets: [{ image: { url: p.imageUrl } }],
       metadata: metadata(ch.service, p.title),
     } });

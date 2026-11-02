@@ -11,7 +11,8 @@ type Results = Record<string, { id?: string; dueAt?: string | null; error?: stri
 /**
  * Social auto-post (release 45). The database calls this every 2 minutes when a newly approved listing is due
  * (secret from push_config). For each one: draw the card, store it in the media bucket, write the caption and add
- * the post to the Facebook / Instagram / TikTok queues in Buffer. Newest listings first.
+ * the post to Facebook / Instagram / TikTok in Buffer at the time booked for it (the same minute on every channel).
+ * Newest listings take the first free time.
  */
 export const Route = createFileRoute("/api/public/social/dispatch")({
   server: {
@@ -50,8 +51,8 @@ export const Route = createFileRoute("/api/public/social/dispatch")({
         }
 
         const summary: Record<string, string> = {};
-        // Claimed newest first; posting the oldest of the batch first with «share next» leaves the newest at the front.
-        for (const row of [...claimed].reverse()) {
+        // Each claimed post carries its booked time (release 46): every channel gets that same minute.
+        for (const row of claimed) {
           const results: Results = { ...((row.results as Results | null) ?? {}) };
           try {
             const { data: l } = await db.from("properties")
@@ -74,12 +75,13 @@ export const Route = createFileRoute("/api/public/social/dispatch")({
               cardUrl = signed.data.signedUrl;
             }
             const text = row.caption || caption(l, { appUrl });
+            const dueAt = row.scheduled_for && Date.parse(row.scheduled_for) > Date.now() + 60_000 ? new Date(row.scheduled_for).toISOString() : null;
 
             let queueFull = false, failed = false;
             for (const ch of channels) {
               if (results[ch.service]?.id) continue;
               try {
-                const post = await bufferPost(key, ch, { text, imageUrl: cardUrl, title: shortTitle(l) });
+                const post = await bufferPost(key, ch, { text, imageUrl: cardUrl, title: shortTitle(l), dueAt });
                 results[ch.service] = { id: post.id, dueAt: post.dueAt };
               } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e);

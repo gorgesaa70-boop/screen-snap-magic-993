@@ -2152,4 +2152,38 @@ commit;`); }
   await expectOk("the dispatch call is safe without pg_net", () => sys(`select public.call_social_dispatch()`));
   await as(U.admin, `update public.app_settings set social_autopost = false where id = 1`);
   }
+  {
+    // Release 46: fixed posting times — all channels at the same minute; only the next few times are booked.
+    const B = "b0000000-0000-0000-0000-000000000046", BU = "00000000-0000-0000-0000-000000000046";
+    await sys(`insert into auth.users (id, phone) values ('${BU}', '201055500046')`);
+    await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active, plan_exempt) values ('${B}', '${BU}', 'slots-b', 'وسيط مواعيد', '201055500046', 'individual', true, true)`);
+    const old = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, review_status, created_at) values ('${B}', 'قديم', 1, 'شقة', 'الحي الأول', 'بيع', 'approved', now() - interval '30 days') returning id`))[0].id;
+    await as(U.admin, `update public.app_settings set social_autopost = true, social_slots = array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]::smallint[], social_lookahead = 2 where id = 1`);
+    await expectErr("posting hours must be 0–23", () => as(U.admin, `update public.app_settings set social_slots = array[24]::smallint[] where id = 1`));
+    await expectOk("the next 2 hourly times are free, in order", () => sys(`select t from public.social_free_slots() t`), (r) => r.length === 2 && new Date(r[0].t) < new Date(r[1].t) && new Date(r[0].t) > new Date());
+    const mk = async (t) => { const id = (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values ('${B}', '${t}', 1, 'شقة', 'الحي الأول', 'بيع') returning id`))[0].id; await sys(`update public.properties set review_status = 'approved' where id = '${id}'`); await sys(`update public.social_posts set next_attempt_at = now() where property_id = '${id}'`); return id; };
+    const a = await mk("أ"); await sys("select pg_sleep(0.01)"); const b2 = await mk("ب"); await sys("select pg_sleep(0.01)"); const c = await mk("ج");
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    const first = await sys(`select property_id, scheduled_for from public.social_claim(5)`);
+    await expectOk("only as many posts as free times are claimed, newest gets the first time", async () => first,
+      (r) => r.length === 2 && r[0].property_id === c && r[1].property_id === b2 && new Date(r[0].scheduled_for) < new Date(r[1].scheduled_for));
+    await expectOk("no free time: nothing more is claimed", () => sys(`select * from public.social_claim(5)`), (r) => r.length === 0);
+    const cRow = (await sys(`select id, scheduled_for from public.social_posts where property_id = '${c}'`))[0];
+    await sys(`select public.social_finish('${cRow.id}', 'partial', '{"facebook":{"id":"f1"}}'::jsonb, 'tiktok: busy', null, null, 1)`);
+    await sys(`update public.social_posts set next_attempt_at = now() where id = '${cRow.id}'`);
+    await expectOk("a retry keeps its booked time", () => sys(`select property_id, scheduled_for from public.social_claim(5)`), (r) => r.length === 1 && r[0].property_id === c && +new Date(r[0].scheduled_for) === +new Date(cRow.scheduled_for));
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    await sys(`update public.social_posts set status = 'failed' where property_id = '${b2}'`);
+    await as(U.admin, `update public.social_posts set status = 'skipped' where property_id = '${b2}'`);
+    await expectOk("skipping a post frees its time", () => sys(`select count(*)::int n from public.social_free_slots()`), (r) => r[0].n === 1);
+    await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+    await expectOk("…and the next listing takes it", () => sys(`select property_id from public.social_claim(5)`), (r) => r.length === 1 && r[0].property_id === a);
+    await sys(`select set_config('request.jwt.claim.role','',false)`);
+    await expectErr("only admins queue the existing listings", () => as(BU, `select public.social_backfill()`));
+    await expectOk("admin queues the existing listings once", () => as(U.admin, `select public.social_backfill() n`), (r) => r[0].n >= 1);
+    await expectOk("…keeping each listing's own date (older ones wait)", () => sys(`select created_at < now() - interval '29 days' as older from public.social_posts where property_id = '${old}'`), (r) => r[0]?.older === true);
+    await expectOk("…and not twice", () => as(U.admin, `select public.social_backfill() n`), (r) => r[0].n === 0);
+    await expectOk("the scheduler call stays safe without pg_net", () => sys(`select public.call_social_dispatch()`));
+    await as(U.admin, `update public.app_settings set social_autopost = false where id = 1`);
+  }
 }
