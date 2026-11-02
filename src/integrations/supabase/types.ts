@@ -4343,6 +4343,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      broker_unlimited: { Args: { _broker: string }; Returns: boolean }
       brokers_by_phone: {
         Args: { _phone: string }
         Returns: {
@@ -4353,6 +4354,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      call_wa_dispatch: { Args: never; Returns: undefined }
       can_answer_referral: { Args: { _owner: string }; Returns: boolean }
       can_edit_compound: { Args: { _compound: string }; Returns: boolean }
       can_read_investment_doc: { Args: { _folder: string }; Returns: boolean }
@@ -5004,6 +5006,7 @@ export type Database = {
       run_referrals: { Args: never; Returns: number }
       run_reminders: { Args: never; Returns: Json }
       run_response_alerts: { Args: never; Returns: Json }
+      run_scheduled_jobs: { Args: never; Returns: Json }
       run_service_offers: { Args: never; Returns: number }
       run_service_subscriptions: { Args: never; Returns: number }
       run_subscription_expiry: { Args: never; Returns: Json }
