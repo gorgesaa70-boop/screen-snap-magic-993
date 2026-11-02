@@ -38,6 +38,7 @@ import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
 import { SiteClosedAdmin } from "@/components/dash/SiteClosedAdmin";
 import { WhatsappSettingsAdmin } from "@/components/dash/WhatsappSettingsAdmin";
 import { WhatsappInbox } from "@/components/dash/WhatsappInbox";
+import { SocialAutopostAdmin } from "@/components/dash/SocialAutopostAdmin";
 import { AssistantSettingsAdmin } from "@/components/dash/AssistantSettingsAdmin";
 import { LeadAlerts } from "@/components/dash/LeadAlerts";
 import { AuditLog } from "@/components/dash/AuditLog";
@@ -59,8 +60,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant";
-const ALL_TABS: Tab[] = ["reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "app", "health", "alerts", "audit"];
+type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social";
+const ALL_TABS: Tab[] = ["reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
 
 function useAdminData(enabled: boolean, isAdmin: boolean) {
   return useQuery({
@@ -100,7 +101,8 @@ function AdminPage() {
   const q = useAdminData(allowed, !!me?.isAdmin || can(perms, "brokers"));
   if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
   if (!allowed) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">{me?.isStaff ? "لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك." : "ليست لديك صلاحية الوصول."} <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
-  const visible = (id: Tab) => (id === "staff" ? !!me?.isAdmin : can(perms, id));
+  // «فريق فاليو عقار» and the social auto-post switch are the admin's alone.
+  const visible = (id: Tab) => (id === "staff" || id === "social" ? !!me?.isAdmin : can(perms, id));
   // A section that isn't granted opens the first one that is.
   const tab: Tab = visible(rawTab) ? rawTab : (ALL_TABS.find(visible) ?? rawTab);
   const viewOnly = !me?.isAdmin && !can(perms, tab, "edit");
@@ -115,7 +117,7 @@ function AdminPage() {
         const labels: Record<Tab, string> = {
           reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
           wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
-          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
+          industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", social: "النشر على السوشيال", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = ([
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
@@ -123,7 +125,7 @@ function AdminPage() {
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
           { id: "accounts", label: `الحسابات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, tabs: ["brokers", "accounts", "staff", "plans"] },
-          { id: "settings", label: "الإعدادات", tabs: ["assistant", "announce", "closed", "wa", "app", "health"] },
+          { id: "settings", label: "الإعدادات", tabs: ["assistant", "announce", "closed", "wa", "social", "app", "health"] },
         ] as { id: string; label: string; tabs: Tab[] }[]).map((g) => ({ ...g, tabs: g.tabs.filter(visible) })).filter((g) => g.tabs.length);
         const group = groups.find((g) => g.tabs.includes(tab)) ?? groups[0]!;
         return (
@@ -155,6 +157,7 @@ function AdminPage() {
           {tab === "closed" && <SiteClosedAdmin />}
           {tab === "wa" && <WhatsappSettingsAdmin />}
           {tab === "wa_inbox" && <WhatsappInbox />}
+          {tab === "social" && <SocialAutopostAdmin />}
           {tab === "assistant" && <AssistantSettingsAdmin />}
           {tab === "investments" && <InvestmentsAdmin isAdmin={can(perms, "investments", "edit")} />}
           {tab === "audit" && <AuditLog />}
