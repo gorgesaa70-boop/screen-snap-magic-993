@@ -2108,4 +2108,48 @@ commit;`); }
   // Release 44: the database calls the WhatsApp dispatch every minute (no pg_net here: it does nothing, quietly).
   await expectOk("the WhatsApp dispatch call is safe without pg_net", () => sys(`select public.call_wa_dispatch()`));
   await expectErr("nobody else can trigger it", () => as(U.admin, `select public.call_wa_dispatch()`));
+  {
+  // Release 45: newly approved listings queue themselves for Facebook / Instagram / TikTok (Buffer) when the admin switch is on.
+  const SOB = "b0000000-0000-0000-0000-000000000045", SOU = "00000000-0000-0000-0000-000000000045";
+  await sys(`insert into auth.users (id, phone) values ('${SOU}', '201055500045')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active, plan_exempt) values ('${SOB}', '${SOU}', 'social-b', 'وسيط سوشيال', '201055500045', 'individual', true, true)`);
+  const newListing = async (title) => (await sys(`insert into public.properties (broker_id, title, price, type, area, status) values ('${SOB}', '${title}', 1, 'شقة', 'الحي الأول', 'بيع') returning id`))[0].id;
+  const approve = (id) => sys(`update public.properties set review_status = 'approved' where id = '${id}'`);
+  const queued = (id) => sys(`select * from public.social_posts where property_id = '${id}'`);
+  const before = await newListing("قبل التشغيل");
+  await approve(before);
+  await expectOk("switch off: an approved listing is not queued", () => queued(before), (r) => r.length === 0);
+  await expectErr("only admins turn the auto-post on", () => as(SOU, `update public.app_settings set social_autopost = true where id = 1 returning id`).then((r) => { if (!r.length) throw new Error("refused"); return r; }));
+  await expectOk("admin turns it on (clock starts)", () => as(U.admin, `update public.app_settings set social_autopost = true where id = 1 returning social_since`), (r) => r[0].social_since !== null);
+  const older = await sys(`select id from public.properties where id = '${before}'`);
+  await sys(`update public.properties set review_status = 'pending' where id = '${before}'`); await approve(before);
+  await expectOk("a listing created before the switch is never posted", () => queued(older[0].id), (r) => r.length === 0);
+  const fresh = await newListing("شقة جديدة");
+  await expectOk("pending listing waits", () => queued(fresh), (r) => r.length === 0);
+  await approve(fresh);
+  await expectOk("approved new listing joins the queue (10 minutes to cancel)", () => queued(fresh), (r) => r.length === 1 && r[0].status === "pending" && new Date(r[0].next_attempt_at) > new Date());
+  await sys(`update public.properties set review_status = 'pending' where id = '${fresh}'`); await approve(fresh);
+  await expectOk("approved again after an edit: still one post", () => queued(fresh), (r) => r.length === 1);
+  const demo = await newListing("تجريبي"); await sys(`update public.properties set is_demo = true where id = '${demo}'`); await approve(demo);
+  await expectOk("demo listings are not posted", () => queued(demo), (r) => r.length === 0);
+  await expectOk("admin reads the queue", () => as(U.admin, `select id from public.social_posts`), (r) => r.length === 1);
+  await expectOk("others don't", () => as(SOU, `select id from public.social_posts`), (r) => r.length === 0);
+  await expectErr("admin can't fake a posted result", () => as(U.admin, `update public.social_posts set status = 'posted' where property_id = '${fresh}'`));
+  await expectOk("admin presses «ماتنشرش»", () => as(U.admin, `update public.social_posts set status = 'skipped' where property_id = '${fresh}' returning status`), (r) => r[0].status === "skipped");
+  await expectOk("…and «انشر» again (due now)", () => as(U.admin, `update public.social_posts set status = 'pending' where property_id = '${fresh}' returning status, next_attempt_at <= now() due`), (r) => r[0].status === "pending" && r[0].due === true);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await expectOk("the dispatcher claims the due post once", () => sys(`select * from public.social_claim(5)`), (r) => r.length === 1 && r[0].status === "processing" && r[0].attempts === 1);
+  await expectOk("…not twice", () => sys(`select * from public.social_claim(5)`), (r) => r.length === 0);
+  const sp = (await queued(fresh))[0].id;
+  const notes = async () => Number((await sys(`select count(*) n from public.notifications where user_id = '${U.admin}' and title like '%السوشيال%'`))[0].n);
+  const n0 = await notes();
+  await sys(`select public.social_finish('${sp}', 'posted', '{"facebook":{"id":"1"}}'::jsonb, null, 'https://x/card.jpg', 'نص')`);
+  await expectOk("posted: results saved and admins notified", async () => [(await queued(fresh))[0], await notes()], (r) => r[0].status === "posted" && r[0].results.facebook.id === "1" && r[0].card_url && r[1] === n0 + 1);
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectErr("nobody else can claim or finish posts", () => as(U.admin, `select * from public.social_claim(1)`));
+  await sys(`update public.social_posts set status = 'processing', updated_at = now() - interval '20 minutes' where property_id = '${fresh}'`);
+  await expectOk("the scheduler gives back a post stuck mid-run", async () => { await sys(`select public.call_social_dispatch()`); return queued(fresh); }, (r) => r[0].status === "pending");
+  await expectOk("the dispatch call is safe without pg_net", () => sys(`select public.call_social_dispatch()`));
+  await as(U.admin, `update public.app_settings set social_autopost = false where id = 1`);
+  }
 }

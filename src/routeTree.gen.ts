@@ -67,6 +67,7 @@ import { Route as ApiPublicMetaLeadsRouteImport } from './routes/api/public/meta
 import { Route as ApiPublicNotificationsWhatsappDispatchRouteImport } from './routes/api/public/notifications/whatsapp-dispatch'
 import { Route as ApiPublicPushDispatchRouteImport } from './routes/api/public/push/dispatch'
 import { Route as ApiPublicPushKeyRouteImport } from './routes/api/public/push/key'
+import { Route as ApiPublicSocialDispatchRouteImport } from './routes/api/public/social/dispatch'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp/webhook'
 import { Route as ApiPublicAuthFacebookCallbackRouteImport } from './routes/api/public/auth/facebook/callback'
 import { Route as ApiPublicAuthFacebookStartRouteImport } from './routes/api/public/auth/facebook/start'
@@ -365,6 +366,11 @@ const ApiPublicPushKeyRoute = ApiPublicPushKeyRouteImport.update({
   path: '/api/public/push/key',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSocialDispatchRoute = ApiPublicSocialDispatchRouteImport.update({
+  id: '/api/public/social/dispatch',
+  path: '/api/public/social/dispatch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -442,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
+  '/api/public/social/dispatch': typeof ApiPublicSocialDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
   '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
@@ -504,6 +511,7 @@ export interface FileRoutesByTo {
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
+  '/api/public/social/dispatch': typeof ApiPublicSocialDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
   '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
@@ -568,6 +576,7 @@ export interface FileRoutesById {
   '/api/public/notifications/whatsapp-dispatch': typeof ApiPublicNotificationsWhatsappDispatchRoute
   '/api/public/push/dispatch': typeof ApiPublicPushDispatchRoute
   '/api/public/push/key': typeof ApiPublicPushKeyRoute
+  '/api/public/social/dispatch': typeof ApiPublicSocialDispatchRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/api/public/auth/facebook/callback': typeof ApiPublicAuthFacebookCallbackRoute
   '/api/public/auth/facebook/start': typeof ApiPublicAuthFacebookStartRoute
@@ -632,6 +641,7 @@ export interface FileRouteTypes {
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
+    | '/api/public/social/dispatch'
     | '/api/public/whatsapp/webhook'
     | '/api/public/auth/facebook/callback'
     | '/api/public/auth/facebook/start'
@@ -694,6 +704,7 @@ export interface FileRouteTypes {
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
+    | '/api/public/social/dispatch'
     | '/api/public/whatsapp/webhook'
     | '/api/public/auth/facebook/callback'
     | '/api/public/auth/facebook/start'
@@ -757,6 +768,7 @@ export interface FileRouteTypes {
     | '/api/public/notifications/whatsapp-dispatch'
     | '/api/public/push/dispatch'
     | '/api/public/push/key'
+    | '/api/public/social/dispatch'
     | '/api/public/whatsapp/webhook'
     | '/api/public/auth/facebook/callback'
     | '/api/public/auth/facebook/start'
@@ -802,6 +814,7 @@ export interface RootRouteChildren {
   ApiPublicNotificationsWhatsappDispatchRoute: typeof ApiPublicNotificationsWhatsappDispatchRoute
   ApiPublicPushDispatchRoute: typeof ApiPublicPushDispatchRoute
   ApiPublicPushKeyRoute: typeof ApiPublicPushKeyRoute
+  ApiPublicSocialDispatchRoute: typeof ApiPublicSocialDispatchRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   ApiPublicAuthFacebookCallbackRoute: typeof ApiPublicAuthFacebookCallbackRoute
   ApiPublicAuthFacebookStartRoute: typeof ApiPublicAuthFacebookStartRoute
@@ -1215,6 +1228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPushKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/social/dispatch': {
+      id: '/api/public/social/dispatch'
+      path: '/api/public/social/dispatch'
+      fullPath: '/api/public/social/dispatch'
+      preLoaderRoute: typeof ApiPublicSocialDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
       path: '/api/public/whatsapp/webhook'
@@ -1327,6 +1347,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicNotificationsWhatsappDispatchRoute,
   ApiPublicPushDispatchRoute: ApiPublicPushDispatchRoute,
   ApiPublicPushKeyRoute: ApiPublicPushKeyRoute,
+  ApiPublicSocialDispatchRoute: ApiPublicSocialDispatchRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   ApiPublicAuthFacebookCallbackRoute: ApiPublicAuthFacebookCallbackRoute,
   ApiPublicAuthFacebookStartRoute: ApiPublicAuthFacebookStartRoute,

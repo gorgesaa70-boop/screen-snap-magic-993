@@ -93,6 +93,10 @@ export type Database = {
           show_demo: boolean
           site_closed: boolean
           site_closed_message: string | null
+          social_autopost: boolean
+          social_categories: string[]
+          social_channels: string[]
+          social_since: string | null
           subscription_grace_days: number
           transfer_enabled: boolean
           transfer_max_companies: number
@@ -136,6 +140,10 @@ export type Database = {
           show_demo?: boolean
           site_closed?: boolean
           site_closed_message?: string | null
+          social_autopost?: boolean
+          social_categories?: string[]
+          social_channels?: string[]
+          social_since?: string | null
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
@@ -179,6 +187,10 @@ export type Database = {
           show_demo?: boolean
           site_closed?: boolean
           site_closed_message?: string | null
+          social_autopost?: boolean
+          social_categories?: string[]
+          social_channels?: string[]
+          social_since?: string | null
           subscription_grace_days?: number
           transfer_enabled?: boolean
           transfer_max_companies?: number
@@ -3714,6 +3726,59 @@ export type Database = {
           },
         ]
       }
+      social_posts: {
+        Row: {
+          attempts: number
+          caption: string | null
+          card_url: string | null
+          created_at: string
+          error: string | null
+          id: string
+          next_attempt_at: string
+          posted_at: string | null
+          property_id: string
+          results: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          caption?: string | null
+          card_url?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          next_attempt_at?: string
+          posted_at?: string | null
+          property_id: string
+          results?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          caption?: string | null
+          card_url?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          next_attempt_at?: string
+          posted_at?: string | null
+          property_id?: string
+          results?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: true
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_permissions: {
         Row: {
           perms: Json
@@ -4354,6 +4419,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      call_social_dispatch: { Args: never; Returns: undefined }
       call_wa_dispatch: { Args: never; Returns: undefined }
       can_answer_referral: { Args: { _owner: string }; Returns: boolean }
       can_edit_compound: { Args: { _compound: string }; Returns: boolean }
@@ -5121,6 +5187,41 @@ export type Database = {
       }
       set_mall_images: {
         Args: { _images: string[]; _mall: string }
+        Returns: undefined
+      }
+      social_claim: {
+        Args: { _n?: number }
+        Returns: {
+          attempts: number
+          caption: string | null
+          card_url: string | null
+          created_at: string
+          error: string | null
+          id: string
+          next_attempt_at: string
+          posted_at: string | null
+          property_id: string
+          results: Json
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "social_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      social_finish: {
+        Args: {
+          _caption?: string
+          _card_url?: string
+          _error: string
+          _id: string
+          _results: Json
+          _retry_minutes?: number
+          _status: string
+        }
         Returns: undefined
       }
       source_from_utm: { Args: { _u: Json }; Returns: string }
