@@ -3,7 +3,7 @@
  * App Store (5.1.1) and Google Play (User Data, Data safety, account deletion) ask a public policy to state.
  * Keep it in step with what the platform actually collects; update UPDATED when the text changes.
  */
-export const LEGAL_UPDATED = "2026-10-11";
+export const LEGAL_UPDATED = "2026-11-04";
 export const CONTACT_EMAIL = "info@valueaqar.com";
 export type LegalSection = { h: string; p: string[] };
 export type LegalDoc = { title: string; intro: string; sections: LegalSection[] };
@@ -18,6 +18,8 @@ export const PRIVACY: Record<"ar" | "en", LegalDoc> = {
         "البيانات اللي إنت بتبعتها: اسمك ورقمك وتفاصيل طلبك أو استفسارك (نوع العقار، المنطقة، الميزانية)، وبيانات العقار اللي بتعرضه وصوره، ومكانه على الخريطة لو اخترت تحدده.",
         "بيانات الوسطاء والشركات: اسم الشركة أو الوسيط، والتخصص والمناطق، وبيانات التواصل، والسجل التجاري، وأرقام أعضاء الفريق اللي بتضيفهم.",
         "نشاطك على المنصة: العقارات اللي حفظتها في المفضلة، وتنبيهات «نبّهني»، وإعدادات الإشعارات، وحالة طلباتك.",
+        "الرسايل جوه المنصة: نص الرسايل والصور والملفات اللي بتبعتها في محادثات الطلبات أو الرسايل بين الحسابات. بتتحفظ عشان الطرفين وفريق فاليو عقار يشوفوها، وأرقام التليفون واللينكات بتتخفي فيها تلقائيًا في الحالات اللي محتاجة كده.",
+        "البلاغات والحظر: لما تبلّغ عن إعلان أو صفحة أو رسالة، بنحفظ سبب البلاغ والصفحة عشان فريقنا يراجعها. ولما تحظر حساب في الرسايل، بنحفظ إن الحسابين محظورين عن بعض.",
         "بيانات تقنية: نوع المتصفح أو الجهاز، وتقارير الأعطال (رسالة الخطأ والصفحة اللي حصل فيها)، وعنوان الـ IP اللي بيسجله مزود الاستضافة لأغراض الأمان.",
         "مصدر الزيارة: لو دخلت من رابط إعلان، بنحفظ على جهازك لمدة 30 يوم اسم المصدر والحملة (زي utm_source وutm_campaign) عشان نعرف أنهي إعلان بيفيد. ده مش بيتشارك مع أي حد.",
         "التواصل معانا: لو بعتلنا على واتساب، بنستلم رقمك واسمك على واتساب ونص الرسالة. ولو مليت فورم إعلان على فيسبوك أو إنستجرام، بنستلم الإجابات اللي كتبتها فيه.",
@@ -66,6 +68,8 @@ export const PRIVACY: Record<"ar" | "en", LegalDoc> = {
         "Data you send: your name, phone and request or inquiry details (property type, area, budget), the property you list and its photos, and its map location if you choose to set it.",
         "Broker and company data: company or broker name, specialty and areas, contact details, commercial register, and the phone numbers of team members you add.",
         "Activity: saved favourites, “notify me” alerts, notification settings and the status of your requests.",
+        "In-platform messages: the text, photos and files you send in request conversations or account-to-account messages. They are stored so both sides and the Value Aqar team can read them; phone numbers and links are hidden automatically where needed.",
+        "Reports and blocks: when you report a listing, page or message we store the reason and the page so our team can review it. When you block an account in messages we store that the two accounts are blocked.",
         "Technical data: browser or device type, error reports (the error message and page), and the IP address logged by our hosting provider for security.",
         "Visit source: if you arrive from an ad link, we store on your device for 30 days the source and campaign name (e.g. utm_source, utm_campaign) to learn which ads work. It is not shared with anyone.",
         "Contacting us: if you message us on WhatsApp we receive your number, WhatsApp name and message text. If you fill an ad form on Facebook or Instagram we receive the answers you entered.",
