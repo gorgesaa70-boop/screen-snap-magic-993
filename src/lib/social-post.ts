@@ -31,41 +31,29 @@ const PLURAL: Record<string, string> = {
   "شاليه": "شاليهات", "أرض": "أراضي", "محل": "محلات", "مكتب": "مكاتب", "عيادة": "عيادات",
 };
 const TYPE_ICON: Record<string, string> = { "أرض": "🧭", "محل": "🏬", "مكتب": "🏢", "عيادة": "🩺", "شاليه": "🏖️" };
-/** Extra tags per type: what people search for on Facebook / Instagram / TikTok. */
-const TYPE_TAGS: Record<string, string[]> = {
-  "شقة": ["شقق", "شقة_تمليك", "سكن", "بيتك_الجديد"],
-  "دوبلكس": ["دوبلكس", "سكن", "بيتك_الجديد"],
-  "فيلا": ["فيلا", "فلل", "سكن_راقي"],
-  "بيت": ["بيت", "منزل_للبيع", "بيتك_الجديد"],
-  "عمارة": ["عمارة", "استثمار"],
-  "استوديو": ["استوديو", "سكن"],
-  "شاليه": ["شاليه", "مصيف", "الساحل_الشمالي"],
-  "أرض": ["أراضي", "قطعة_أرض", "ابني_بيتك", "استثمار_في_الأراضي"],
-  "محل": ["محل_تجاري", "محلات_تجارية", "مشروع_تجاري", "وحدة_تجارية", "بيزنس"],
-  "مكتب": ["مكتب_إداري", "مقر_شركة", "بيزنس"],
-  "عيادة": ["عيادات_طبية", "وحدات_طبية", "مجمع_طبي", "أطباء"],
+/** One extra tag per type, used when the listing has no area of its own. */
+const TYPE_TAG: Record<string, string> = {
+  "شقة": "شقة_تمليك", "دوبلكس": "دوبلكس", "فيلا": "فلل", "بيت": "منزل_للبيع", "عمارة": "استثمار", "استوديو": "استوديو",
+  "شاليه": "الساحل_الشمالي", "أرض": "قطعة_أرض", "محل": "محلات_تجارية", "مكتب": "مكتب_إداري", "عيادة": "عيادات_طبية",
 };
-const BASE_TAGS = ["فاليو_عقار", "ValueAqar"];
-const TAIL_TAGS = ["عقارات", "عقار", "عقارات_مصر", "استثمار_عقاري", "فرصة_عقارية", "الإسكندرية", "عقارات_الإسكندرية", "اسكندرية", "RealEstateEgypt"];
+/** Instagram takes at most 5 hashtags a post; the same 5 go to every channel. */
+export const MAX_HASHTAGS = 5;
 
 const tag = (s: string) => s.trim().replace(/[\s\-–—]+/g, "_").replace(/[^\p{L}\p{N}_]/gu, "").replace(/_+/g, "_").replace(/^_|_$/g, "");
 
-/** Up to 30 hashtags (Instagram's limit), most specific first. */
+/** 5 hashtags: brand, type + purpose, city, area (or the type), then installments (or the region). */
 export function hashtags(l: SocialListing): string[] {
   const purpose = PURPOSE_LABEL[l.status] ?? "";
   const plural = PLURAL[l.type] ?? l.type;
   const area = l.area && l.area !== l.city ? l.area : "";
   const raw = [
-    ...BASE_TAGS,
-    `${plural}_${purpose}`, `${l.type}_${purpose}`, `عقارات_${purpose}`,
-    area, area && `${area}_${l.city}`,
-    l.city, `عقارات_${l.city}`,
-    /برج العرب/.test(l.city) ? "برج_العرب" : "",
-    ...(TYPE_TAGS[l.type] ?? []),
-    l.finishing && FINISHING_LABEL[l.finishing] ? FINISHING_LABEL[l.finishing]! : "",
-    isInstallment(l) ? "تقسيط" : "", isInstallment(l) ? "عقارات_بالتقسيط" : "",
-    l.status === "إيجار" ? "إيجار" : "", l.status === "مصيف" ? "مصيف" : "",
-    ...TAIL_TAGS,
+    "فاليو_عقار",
+    `${plural}_${purpose}`,
+    l.city,
+    area || TYPE_TAG[l.type] || "",
+    isInstallment(l) ? "تقسيط" : "عقارات_الإسكندرية",
+    // fallbacks when one of the above is empty or repeated
+    `عقارات_${l.city}`, "عقارات", "عقارات_مصر",
   ];
   const seen = new Set<string>();
   const out: string[] = [];
@@ -74,7 +62,7 @@ export function hashtags(l: SocialListing): string[] {
     if (!t || seen.has(t)) continue;
     seen.add(t);
     out.push("#" + t);
-    if (out.length === 30) break;
+    if (out.length === MAX_HASHTAGS) break;
   }
   return out;
 }
