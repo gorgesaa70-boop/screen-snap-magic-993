@@ -118,7 +118,7 @@ export function ListingStats() {
           </tbody>
         </table>
       </div>
-      {!full && <p className="rounded-2xl border border-dashed bg-card p-3 text-xs text-muted-foreground">باقتك فيها الإحصائيات الأساسية لآخر 7 أيام. الباقات الأعلى بتوريك لحد 90 يوم، وضغطات التواصل، والزوار جايين منين.</p>}
+      {!full && <p className="rounded-2xl border border-dashed bg-card p-3 text-xs text-muted-foreground">باقتك فيها الإحصائيات الأساسية لآخر 7 أيام.<span className="web-only"> الباقات الأعلى بتوريك لحد 90 يوم، وضغطات التواصل، والزوار جايين منين.</span></p>}
       {s.level === "report" && <p className="text-xs text-muted-foreground">باقتك فيها تقرير شهري بالأرقام دي بيوصلك على واتساب من فريق فاليو عقار.</p>}
       <p className="text-[11px] text-muted-foreground">كل جهاز بيتحسب مرة واحدة في اليوم لكل إعلان، ومشاهداتك إنت لإعلاناتك مش بتتحسب. مش بنسجّل أي بيانات شخصية عن الزوار.</p>
     </div>

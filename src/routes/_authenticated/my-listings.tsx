@@ -31,7 +31,7 @@ function MyListingsPage() {
           {plan.data?.expired && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-destructive bg-destructive/10 p-3 text-sm font-bold text-destructive">
               <span>باقتك خلصت وإعلاناتك مستخبية عن الزوار (مفيش حاجة اتمسحت).</span>
-              <button className={btnPrimary} onClick={() => setTab("plan")}>اختار باقة</button>
+              <button className={`web-only ${btnPrimary}`} onClick={() => setTab("plan")}>اختار باقة</button>
             </div>
           )}
           <Link to="/sell" className={btnPrimary}><HousePlus className="size-4" />اعرض عقار جديد</Link>
@@ -54,7 +54,7 @@ function MyListingsPage() {
                   <div className="flex gap-2">
                     {p.review_status === "approved" && !term?.ended && <Link to="/properties/$id" params={{ id: p.id }} className={btnOutline}>اعرض</Link>}
                     {term?.renewable && plan.data && plan.data.days == null && (
-                      <button className={btnPrimary} onClick={() => setTab("plan")}><RefreshCw className="size-4" />جدّد باقتك</button>
+                      <button className={`web-only ${btnPrimary}`} onClick={() => setTab("plan")}><RefreshCw className="size-4" />جدّد باقتك</button>
                     )}
                     {term?.renewable && plan.data?.days != null && (
                       <button className={btnOutline} onClick={async () => {

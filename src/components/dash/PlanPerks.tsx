@@ -80,7 +80,7 @@ export function PlanPerks({ plan, owner }: { plan: PlanRow; owner: boolean }) {
             </span>
           ))}
         </div>
-      ) : <p className="text-sm text-muted-foreground">باقتك مافيهاش تثبيت ولا ترويج. تقدر تطلب الخدمات الإضافية تحت، أو باقة أعلى.</p>}
+      ) : <p className="text-sm text-muted-foreground">باقتك مافيهاش تثبيت ولا ترويج.<span className="web-only"> تقدر تطلب الخدمات الإضافية تحت، أو باقة أعلى.</span></p>}
 
       <Field label="الإعلان">
         <select className={inputCls} value={pid} onChange={(e) => setPid(e.target.value)}>
@@ -111,7 +111,7 @@ export function PlanPerks({ plan, owner }: { plan: PlanRow; owner: boolean }) {
         </div>
       )}
 
-      <div>
+      <div className="web-only">
         <p className="text-sm font-bold text-primary">خدمات إضافية بسعر منفصل</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {addons.map(([kind, label, price, Icon]) => (

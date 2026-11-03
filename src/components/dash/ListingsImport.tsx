@@ -83,7 +83,7 @@ export function ListingsImport({ brokerId, remaining, onDone, onCancel }: { brok
             </ul>
           )}
           {result.newPlaces.length > 0 && <p className="rounded-xl bg-secondary p-3 text-xs font-semibold text-primary">مناطق جديدة مش على الموقع لسه: {result.newPlaces.join("، ")}. العقارات هتتحفظ بيها، والمناطق هتظهر في البحث بعد مراجعة فريق فاليو عقار. لو فيه غلطة في الكتابة صلّحها في الملف الأول.</p>}
-          {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.listings.length} عقار وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف أو اطلب ترقية الباقة.</p>}
+          {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.listings.length} عقار وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف<span className="web-only"> أو اطلب ترقية الباقة</span>.</p>}
           {result.listings.length > 0 && (
             <div className="max-h-64 overflow-auto rounded-xl border">
               <table className="w-full min-w-[620px] text-xs">

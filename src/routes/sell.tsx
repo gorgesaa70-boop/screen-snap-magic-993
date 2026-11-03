@@ -42,8 +42,16 @@ const ERRORS: Record<string, string> = {
   server: "الطلب ماتبعتش، جرّب تاني",
   bad_photo: "فيه صورة مش مدعومة، جرّب صورة تانية",
   plan_limit: "وصلت لحد باقتك (عدد الإعلانات الظاهرة في نفس الوقت). سجّل دخول برقمك وادخل «إعلاناتي» ← «باقتي» عشان تطلب باقة أكبر.",
+  plan_limit_app: "وصلت لحد باقتك (عدد الإعلانات الظاهرة في نفس الوقت). احذف إعلان قديم من «إعلاناتي» عشان تنزّل الجديد.",
   plan_expired: "باقتك خلصت. سجّل دخول برقمك وادخل «إعلاناتي» ← «باقتي» واختار باقة، وإعلاناتك هترجع تظهر.",
+  plan_expired_app: "باقتك خلصت، وإعلاناتك مستخبية عن الزوار لحد ما تتجدد (مفيش حاجة اتمسحت).",
 };
+
+/** Error text for a code; inside the store apps, plan errors don't send people to buy a plan. */
+function errorText(code: string) {
+  const app = typeof document !== "undefined" && document.documentElement.classList.contains("native-app") ? ERRORS[`${code}_app`] : undefined;
+  return app ?? ERRORS[code] ?? ERRORS["server"]!;
+}
 
 const MAX_PHOTOS = 6;
 
@@ -149,7 +157,7 @@ function SellForm() {
     if (r.ok) { setStep("done"); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
     setCode("");
     if ("remaining" in r && typeof r.remaining === "number") toast.error(`${t("رمز غير صحيح")} (${t("متبقٍ")} ${r.remaining})`);
-    else toast.error(t(ERRORS[r.error] ?? ERRORS["server"]!));
+    else toast.error(t(errorText(r.error)));
   }
 
   async function requestCode(e?: React.FormEvent) {
@@ -173,7 +181,7 @@ function SellForm() {
     if (r.ok) { setStep("code"); setCode(""); setResendIn(60); setTimeout(() => codeRef.current?.focus(), 50); return; }
     // WhatsApp not set up yet: accept the listing without phone verification.
     if (r.error === "not_configured") { await save(p); return; }
-    toast.error(t(ERRORS[r.error] ?? ERRORS["server"]!));
+    toast.error(t(errorText(r.error)));
   }
 
   useEffect(() => { if (step === "code" && code.length === 6 && !busy) save(phone, code); }, [code]); // eslint-disable-line react-hooks/exhaustive-deps

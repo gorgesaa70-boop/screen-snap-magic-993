@@ -97,7 +97,7 @@ export function MallUnitsImport({ brokerId, brokers, remaining, onCancel, onDone
               {result.errors.map((er) => <li key={er.row}><b>صف {er.row}:</b> {er.message}</li>)}
             </ul>
           )}
-          {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.units.length} وحدة وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف أو اطلب ترقية الباقة.</p>}
+          {over && <p className="rounded-xl bg-destructive/5 p-3 text-sm font-bold text-destructive">الملف فيه {result.units.length} وحدة وباقتك تسمح بـ {Math.max(remaining ?? 0, 0)} بس. قلّل الملف<span className="web-only"> أو اطلب ترقية الباقة</span>.</p>}
           {result.units.length > 0 && (
             <div className="max-h-64 overflow-auto rounded-xl border">
               <table className="w-full min-w-[760px] text-xs">

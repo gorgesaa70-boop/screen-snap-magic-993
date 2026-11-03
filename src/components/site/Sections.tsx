@@ -501,7 +501,7 @@ export function Footer() {
         </div>
         <div>
           <h2 className="font-bold text-primary-foreground">{tr("روابط")}</h2>
-          <ul className="mt-3 text-sm">{pages.map(([l, h]) => <li key={h}><a href={h} className="inline-block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
+          <ul className="mt-3 text-sm">{pages.map(([l, h]) => <li key={h} className={h === "/plans" ? "web-only" : undefined}><a href={h} className="inline-block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
         </div>
         <div>
           <h2 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h2>

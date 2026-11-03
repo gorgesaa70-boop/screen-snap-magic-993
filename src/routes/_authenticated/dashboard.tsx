@@ -168,9 +168,10 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         <div className="space-y-4">
           {canList && plan.data && !plan.data.exempt && (plan.data.expired || plan.data.trial) && (
             <div className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl border p-3 text-sm font-bold ${plan.data.expired ? "border-destructive bg-destructive/10 text-destructive" : "border-teal bg-teal-soft/40 text-primary"}`}>
-              <span>{plan.data.expired ? "باقتك خلصت وعقاراتك مستخبية عن الزوار (مفيش حاجة اتمسحت). اختار باقة وهترجع على طول."
-                : `أول شهر مجانًا على باقة «${plan.data.name}»${plan.data.ends_at ? ` لحد ${formatDate(plan.data.ends_at)}` : ""}. اختار باقتك قبل ما يخلص.`}</span>
-              <button className={btnPrimary} onClick={() => setTab("plan")}>{plan.data.expired ? "اختار باقة" : "شوف الباقات"}</button>
+              <span>{plan.data.expired ? "باقتك خلصت وعقاراتك مستخبية عن الزوار (مفيش حاجة اتمسحت)."
+                : `أول شهر مجانًا على باقة «${plan.data.name}»${plan.data.ends_at ? ` لحد ${formatDate(plan.data.ends_at)}` : ""}.`}
+                <span className="web-only">{plan.data.expired ? " اختار باقة وهترجع على طول." : " اختار باقتك قبل ما يخلص."}</span></span>
+              <button className={`web-only ${btnPrimary}`} onClick={() => setTab("plan")}>{plan.data.expired ? "اختار باقة" : "شوف الباقات"}</button>
             </div>
           )}
           {isOwner && (
