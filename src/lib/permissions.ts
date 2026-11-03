@@ -13,6 +13,7 @@ export const SECTION_GROUPS: { label: string; sections: Section[] }[] = [
     { key: "tasks", label: "المتابعات والمهام" },
     { key: "messages", label: "الرسايل" },
     { key: "review_alerts", label: "تنبيهات المراجعة" },
+    { key: "content_reports", label: "البلاغات", hint: "بلاغات الزوار عن الإعلانات والصفحات" },
     { key: "routing", label: "قواعد التوزيع" },
     { key: "referrals", label: "الإحالات بين الوسطاء" },
   ] },

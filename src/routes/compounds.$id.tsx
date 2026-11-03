@@ -16,6 +16,7 @@ import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/l
 import { t, useLang } from "@/lib/i18n";
 import { ContactActions, contactNumber } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
+import { ReportButton } from "@/components/site/ReportButton";
 
 export const Route = createFileRoute("/compounds/$id")({
   loader: ({ params, context }) =>
@@ -174,6 +175,7 @@ function CompoundPage() {
           <ReferButton kind="compound" targetId={c.id} share={c.co_broke_share} ownerId={c.developer_id} />
         </aside>
       </div>
+      <ReportButton kind="compound" id={c.id} title={c.name} />
     </PageShell>
   );
 }

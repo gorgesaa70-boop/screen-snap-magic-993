@@ -12,6 +12,7 @@ import { DEAL_KINDS, OPP_KINDS, fetchOpportunity, investmentRange, oppNo } from 
 import { pageHead, unavailableHead, breadcrumbs } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { ReportButton } from "@/components/site/ReportButton";
 
 export const Route = createFileRoute("/investments/$id")({
   loader: ({ params, context }) => context.queryClient.ensureQueryData({ queryKey: ["opportunity", params.id], queryFn: () => fetchOpportunity(params.id) }),
@@ -111,6 +112,7 @@ function OpportunityPage() {
           <Link to="/investments" className="mt-3 block text-center text-sm font-bold text-primary hover:text-teal">{t("كل الفرص الاستثمارية")}</Link>
         </aside>
       </div>
+      <ReportButton kind="investment" id={o.id} title={o.title} />
     </PageShell>
   );
 }

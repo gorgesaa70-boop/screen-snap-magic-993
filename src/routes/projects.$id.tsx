@@ -15,6 +15,7 @@ import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/l
 import { t, useLang } from "@/lib/i18n";
 import { ContactActions, contactNumber } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
+import { ReportButton } from "@/components/site/ReportButton";
 
 export const Route = createFileRoute("/projects/$id")({
   loader: ({ params, context }) =>
@@ -137,6 +138,7 @@ function ProjectPage() {
           <ReferButton kind="project" targetId={p.id} share={p.co_broke_share} ownerId={p.developer_id} />
         </aside>
       </div>
+      <ReportButton kind="project" id={p.id} title={p.name} />
     </PageShell>
   );
 }

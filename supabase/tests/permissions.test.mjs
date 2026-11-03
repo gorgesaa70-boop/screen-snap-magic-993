@@ -2186,4 +2186,59 @@ commit;`); }
     await expectOk("the scheduler call stays safe without pg_net", () => sys(`select public.call_social_dispatch()`));
     await as(U.admin, `update public.app_settings set social_autopost = false where id = 1`);
   }
+  console.log("\nStore review: reports on content, blocks between accounts");
+  {
+    // The direct-messages re-run above put back its own send_direct_message; this release always comes after it.
+    await exec(`begin;
+${(await import("node:fs")).readFileSync(new URL("../migrations/20261104100000_reports-and-blocks.sql", import.meta.url), "utf8")}
+commit;`);
+    const P = "c0000000-0000-0000-0000-0000000e0e01";
+    await expectErr("visitors can't report", () => as(null, `select public.report_content('property', '${P}', 'وهمي')`));
+    await expectErr("a report needs a reason", () => as(U.outsider, `select public.report_content('property', '${P}', '  ')`));
+    await expectOk("a signed-in user reports a listing; admins are notified", async () => {
+      await as(U.outsider, `select public.report_content('property', '${P}', 'صور مش حقيقية', 'شقة 120 متر', '/properties/${P}')`);
+      await as(U.outsider, `select public.report_content('property', '${P}', 'تاني')`);
+      return [await sys(`select count(*)::int n from public.content_reports where target_id='${P}'`),
+        await sys(`select count(*)::int n from public.notifications where user_id='${U.admin}' and title='بلاغ عن محتوى'`)];
+    }, (r) => r[0][0].n === 1 && r[1][0].n === 1);
+    await expectErr("unknown kinds are refused", () => as(U.outsider, `select public.report_content('x', '${P}', 'سبب')`));
+    await expectOk("reporters and employees without «البلاغات» can't read reports; the admin can",
+      async () => [await as(U.outsider, `select id from public.content_reports`), await as(U.staff, `select id from public.content_reports`), await as(U.admin, `select id from public.content_reports`)],
+      (r) => r[0].length === 0 && r[1].length === 0 && r[2].length === 1);
+    const rid = (await sys(`select id from public.content_reports where target_id='${P}'`))[0].id;
+    await expectErr("an employee without the section can't close a report", async () => {
+      await as(U.staff, `select public.resolve_content_report('${rid}', 'تم')`);
+      if ((await sys(`select status from public.content_reports where id='${rid}'`))[0].status === "open") throw new Error("refused");
+    });
+    await expectOk("the admin closes it; the same user can report again later", async () => {
+      await as(U.admin, `select public.resolve_content_report('${rid}', 'الإعلان اتشال')`);
+      await as(U.outsider, `select public.report_content('property', '${P}', 'لسه موجود')`);
+      return sys(`select status from public.content_reports where target_id='${P}' order by created_at`);
+    }, (r) => r.length === 2 && r[0].status === "done" && r[1].status === "open");
+
+    await as(U.admin, `select public.set_direct_thread_closed('${dmt}', false)`); // closed by an earlier check
+    await expectErr("Value Aqar's own conversation can't be blocked", async () => {
+      const p = (await as(DMU.ownA, `select public.start_direct_thread() id`))[0].id;
+      return as(DMU.ownA, `select public.set_direct_block('${p}', true)`);
+    });
+    await expectErr("a sales member can't block for the account", () => as(DMU.salesA, `select public.set_direct_block('${dmt}', true)`));
+    await expectOk("an account blocks the other one: both see it, nobody can send, the admin is told", async () => {
+      await as(DMU.ownB, `select public.set_direct_block('${dmt}', true)`);
+      return [await as(DMU.ownB, `select * from public.direct_block_state('${dmt}')`), await as(DMU.ownA, `select * from public.direct_block_state('${dmt}')`),
+        await sys(`select count(*)::int n from public.notifications where user_id='${U.admin}' and title='حظر بين حسابين'`)];
+    }, (r) => r[0][0].can_block && r[0][0].blocked_by_me && !r[0][0].blocked_me && r[1][0].blocked_me && !r[1][0].blocked_by_me && r[2][0].n === 1);
+    await expectErr("the blocked side can't send", () => as(DMU.ownA, `select public.send_direct_message('${dmt}', 'رد')`));
+    await expectErr("the blocking side can't send either", () => as(DMU.ownB, `select public.send_direct_message('${dmt}', 'رد')`));
+    await expectErr("the blocked side can't lift someone else's block (nothing to lift, still blocked)", async () => {
+      await as(DMU.ownA, `select public.set_direct_block('${dmt}', false)`);
+      return as(DMU.ownA, `select public.send_direct_message('${dmt}', 'رد')`);
+    });
+    await expectOk("nobody reads the blocks table directly", () => as(DMU.ownB, `select count(*)::int n from public.direct_block_state('${dmt}')`), (r) => r[0].n === 1);
+    await expectErr("…not even with select", () => as(DMU.ownB, `select * from public.broker_blocks`));
+    await expectOk("Value Aqar still writes in a blocked conversation", () => as(U.admin, `select public.send_direct_message('${dmt}', 'من الإدارة') id`), (r) => !!r[0].id);
+    await expectOk("unblocking opens it again", async () => {
+      await as(DMU.ownB, `select public.set_direct_block('${dmt}', false)`);
+      return as(DMU.ownA, `select public.send_direct_message('${dmt}', 'تمام') id`);
+    }, (r) => !!r[0].id);
+  }
 }

@@ -14,6 +14,7 @@ import { compoundCover, compoundWhere } from "@/components/site/compounds";
 import { projectCover } from "@/components/site/projects";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { thumb } from "@/lib/images";
+import { ReportButton } from "@/components/site/ReportButton";
 
 /** A developer's compounds, malls and projects (public ones only — the database hides the rest). */
 async function fetchDeveloperPortfolio(id: string) {
@@ -150,6 +151,7 @@ function BrokerProfile() {
           </div>
         </section>
       </div>
+      <ReportButton kind="broker" id={b.id} title={b.name} />
     </PageShell>
   );
 }

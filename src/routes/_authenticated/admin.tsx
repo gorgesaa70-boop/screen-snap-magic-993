@@ -49,6 +49,7 @@ import { RoutingRules } from "@/components/dash/RoutingRules";
 import { Reports as ReportsDashboard } from "@/components/dash/Reports";
 import { IndustrialAdmin } from "@/components/dash/IndustrialAdmin";
 import { AdminNotifications } from "@/components/dash/AdminNotifications";
+import { ContentReportsAdmin } from "@/components/dash/ContentReportsAdmin";
 import { PlansAdmin, AccountPlan } from "@/components/dash/PlansAdmin";
 import { createBrokerAccount, deleteAccountAsAdmin, notifySearchEnginesSoon, setBrokerActive } from "@/lib/admin.functions";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
@@ -60,8 +61,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social";
-const ALL_TABS: Tab[] = ["reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
+type Tab = "reports" | "content_reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social";
+const ALL_TABS: Tab[] = ["reports", "content_reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
 
 function useAdminData(enabled: boolean, isAdmin: boolean) {
   return useQuery({
@@ -115,12 +116,12 @@ function AdminPage() {
       {/* 16 sections grouped in 5 (UX review): pick a group, then a section inside it. */}
       {(() => {
         const labels: Record<Tab, string> = {
-          reports: "التقارير", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
+          reports: "التقارير", content_reports: "البلاغات", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
           wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
           industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", social: "النشر على السوشيال", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = ([
-          { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "alerts", "audit"] },
+          { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "content_reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "wa_inbox", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
@@ -149,6 +150,7 @@ function AdminPage() {
         // «يشوف بس»: every button and field inside is disabled (the database refuses the change anyway).
         <fieldset disabled={viewOnly} className="m-0 min-w-0 border-0 p-0">
           {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: !!me?.isAdmin, companyId: null }} />}
+          {tab === "content_reports" && <ContentReportsAdmin />}
           {tab === "alerts" && <AdminNotifications />}
           {tab === "staff" && <StaffAdmin />}
           {tab === "review_alerts" && <LeadAlerts />}

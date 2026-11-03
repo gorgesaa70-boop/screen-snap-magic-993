@@ -582,6 +582,51 @@ export type Database = {
           },
         ]
       }
+      content_reports: {
+        Row: {
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          reason: string
+          reporter: string
+          status: string
+          target_id: string
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          reason: string
+          reporter?: string
+          status?: string
+          target_id: string
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          reason?: string
+          reporter?: string
+          status?: string
+          target_id?: string
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: []
+      }
       company_members: {
         Row: {
           added_by: string | null
@@ -4494,6 +4539,10 @@ export type Database = {
         Args: { _name: string; _upload?: boolean }
         Returns: string
       }
+      direct_block_state: {
+        Args: { _thread: string }
+        Returns: { blocked_by_me: boolean; blocked_me: boolean; can_block: boolean }[]
+      }
       direct_thread_side: { Args: { _thread: string }; Returns: string }
       floor_level: { Args: { _floor: string }; Returns: number }
       has_role: {
@@ -5058,8 +5107,16 @@ export type Database = {
         Args: { _reply: string; _review: string }
         Returns: boolean
       }
+      report_content: {
+        Args: { _kind: string; _reason: string; _target: string; _title?: string; _url?: string }
+        Returns: undefined
+      }
       report_direct_message: {
         Args: { _message: string; _reason: string }
+        Returns: undefined
+      }
+      resolve_content_report: {
+        Args: { _note?: string; _report: string }
         Returns: undefined
       }
       report_lead_message: {
@@ -5185,6 +5242,10 @@ export type Database = {
       service_requests_this_month: {
         Args: { _provider: string }
         Returns: number
+      }
+      set_direct_block: {
+        Args: { _blocked: boolean; _thread: string }
+        Returns: undefined
       }
       set_direct_thread_closed: {
         Args: { _closed: boolean; _thread: string }

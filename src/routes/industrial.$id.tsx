@@ -8,6 +8,7 @@ import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, withContacts, type
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t } from "@/lib/i18n";
 import { PlaceMap } from "@/components/site/Gallery";
+import { ReportButton } from "@/components/site/ReportButton";
 
 async function fetchIndustrial(id: string) {
   const { data: p, error } = await supabase.from("properties").select("*, industrial_activities(name)").eq("id", id).eq("category", "industrial").maybeSingle();
@@ -96,6 +97,7 @@ function Page() {
           <Link to="/industrial" className={`${btnOutline} w-full`}>{t("كل العقارات الصناعية")}</Link>
         </aside>
       </div>
+      <ReportButton kind="industrial" id={p.id} title={p.title} />
     </PageShell>
   );
 }

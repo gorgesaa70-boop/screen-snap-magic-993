@@ -12,6 +12,7 @@ import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/l
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { t, useLang } from "@/lib/i18n";
 import { thumb } from "@/lib/images";
+import { ReportButton } from "@/components/site/ReportButton";
 
 async function fetchMall(id: string) {
   const { data, error } = await supabase.from("malls").select("*").eq("id", id).maybeSingle();
@@ -114,6 +115,7 @@ function MallPage() {
         </div>
         {m.lat != null && m.lng != null && <PlaceMap lat={m.lat} lng={m.lng} label={t("موقع المول على الخريطة")} />}
       </div>
+      <ReportButton kind="mall" id={m.id} title={m.name} />
     </PageShell>
   );
 }
