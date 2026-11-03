@@ -45,22 +45,18 @@ describe("social caption", () => {
 });
 
 describe("hashtags", () => {
-  it("are many, unique, valid and at most 30", () => {
-    for (const l of [house, clinic, shopRent]) {
+  it("are exactly 5 (Instagram's limit), unique and valid", () => {
+    const chalet: SocialListing = { ...house, type: "شاليه", status: "مصيف", area: house.city };
+    for (const l of [house, clinic, shopRent, chalet]) {
       const h = hashtags(l);
-      expect(h.length).toBeGreaterThanOrEqual(20);
-      expect(h.length).toBeLessThanOrEqual(30);
+      expect(h.length).toBe(5);
       expect(new Set(h).size).toBe(h.length);
       for (const t of h) expect(t).toMatch(/^#[\p{L}\p{N}_]+$/u);
     }
   });
   it("cover the brand, type, purpose, area and city", () => {
     const h = hashtags(house);
-    expect(h.slice(0, 2)).toEqual(["#فاليو_عقار", "#ValueAqar"]);
-    expect(h).toContain("#بيوت_للبيع");
-    expect(h).toContain("#الحي_الثالث");
-    expect(h).toContain("#برج_العرب_الجديدة");
-    expect(h).toContain("#سوبر_لوكس");
+    expect(h).toEqual(["#فاليو_عقار", "#بيوت_للبيع", "#برج_العرب_الجديدة", "#الحي_الثالث", "#عقارات_الإسكندرية"]);
     expect(hashtags(clinic)).toContain("#تقسيط");
     expect(hashtags(shopRent)).toContain("#محلات_للإيجار");
   });
