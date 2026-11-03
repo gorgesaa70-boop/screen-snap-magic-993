@@ -131,7 +131,7 @@ export function ListingPlan({ canRequest = true }: { canRequest?: boolean }) {
         </div>
       ) : null}
       {m.kind && !m.has ? (
-        <p className="rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">مالكش إعلانات {KIND_LABEL[m.kind]} لسه. أول إعلان {KIND_LABEL[m.kind]} بتعرضه بياخد أول شهر مجانًا على باقة «{m.name}»، وبعدها تختار باقتك من هنا.</p>
+        <p className="rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">مالكش إعلانات {KIND_LABEL[m.kind]} لسه. أول إعلان {KIND_LABEL[m.kind]} بتعرضه بياخد أول شهر مجانًا على باقة «{m.name}»<span className="web-only">، وبعدها تختار باقتك من هنا</span>.</p>
       ) : (
       <div className={`rounded-2xl border bg-card p-4 ${m.expired ? "border-destructive" : ""}`}>
         <div className="flex flex-wrap items-center gap-2">
@@ -146,18 +146,18 @@ export function ListingPlan({ canRequest = true }: { canRequest?: boolean }) {
         )}
         {m.expired && (
           <p className="mt-2 rounded-xl bg-destructive/10 p-3 text-sm font-bold text-destructive">
-            {m.trial ? "الشهر المجاني خلص" : "باقتك خلصت"}، وإعلاناتك مستخبية عن الزوار (مفيش حاجة اتمسحت). اختار باقة تحت وهترجع تظهر أول ما تتفعّل.
+            {m.trial ? "الشهر المجاني خلص" : "باقتك خلصت"}، وإعلاناتك مستخبية عن الزوار (مفيش حاجة اتمسحت).<span className="web-only"> اختار باقة تحت وهترجع تظهر أول ما تتفعّل.</span>
           </p>
         )}
         {m.trial && !m.expired && left != null && left <= 7 && (
-          <p className="mt-2 rounded-xl bg-[#f2b84b]/20 p-3 text-sm font-bold text-primary">الشهر المجاني بيخلص قريب. اختار باقتك دلوقتي عشان إعلاناتك ماتستخباش.</p>
+          <p className="web-only mt-2 rounded-xl bg-[#f2b84b]/20 p-3 text-sm font-bold text-primary">الشهر المجاني بيخلص قريب. اختار باقتك دلوقتي عشان إعلاناتك ماتستخباش.</p>
         )}
         {!dev && (
           <div className="mt-3">
             <div className="flex justify-between text-sm font-bold text-primary"><span>إعلانات ظاهرة دلوقتي</span><span>{formatPrice(m.used)} من {formatPrice(m.max)}</span></div>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary"><div className={`h-full rounded-full ${full ? "bg-destructive" : "bg-teal"}`} style={{ width: `${Math.min(100, (m.used / Math.max(1, m.max)) * 100)}%` }} /></div>
-            {full && <p className="mt-2 text-xs font-bold text-destructive">وصلت لحد باقتك. عشان تنزّل إعلان جديد: احذف إعلان قديم، أو اطلب باقة أكبر.</p>}
-            {(m.hidden ?? 0) > 0 && !m.expired && <p className="mt-2 text-xs font-bold text-destructive">{formatPrice(m.hidden!)} إعلان مستخبي لأنهم أكتر من حد الباقة. باقة أكبر بترجّعهم.</p>}
+            {full && <p className="mt-2 text-xs font-bold text-destructive">وصلت لحد باقتك. عشان تنزّل إعلان جديد: احذف إعلان قديم<span className="web-only">، أو اطلب باقة أكبر</span>.</p>}
+            {(m.hidden ?? 0) > 0 && !m.expired && <p className="mt-2 text-xs font-bold text-destructive">{formatPrice(m.hidden!)} إعلان مستخبي لأنهم أكتر من حد الباقة.<span className="web-only"> باقة أكبر بترجّعهم.</span></p>}
           </div>
         )}
         {dev && m.projects != null && <p className="mt-3 text-sm font-bold text-primary">باقتك بتسمح بـ {formatPrice(m.projects)} مشروع أو كمبوند، بوحدات من غير حد.</p>}
@@ -165,7 +165,7 @@ export function ListingPlan({ canRequest = true }: { canRequest?: boolean }) {
       )}
 
       {m.request && (
-        <div className="rounded-2xl border border-teal bg-teal-soft/40 p-4 text-sm text-primary">
+        <div className="web-only rounded-2xl border border-teal bg-teal-soft/40 p-4 text-sm text-primary">
           <p className="font-bold">طلبت باقة «{asked?.name ?? "جديدة"}» لمدة {PLAN_MONTHS_LABEL[m.request.months] ?? `${m.request.months} شهور`} — {formatPrice(Number(m.request.amount))} ج.م</p>
           <p className="mt-1 text-muted-foreground">فريق فاليو عقار هيكلّمك ويفعّلها. لو عايز تغيّر اختيارك، اطلب باقة تانية وهتحل محل الطلب ده.</p>
         </div>
@@ -176,9 +176,7 @@ export function ListingPlan({ canRequest = true }: { canRequest?: boolean }) {
         return current ? <PlanPerks plan={current} owner={!!m.kind} /> : null;
       })()}
 
-      {native ? (
-        <p className="rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">لتغيير باقتك ادخل على موقع فاليو عقار من المتصفح.</p>
-      ) : m.audience !== "broker" && (
+      {native ? null : m.audience !== "broker" && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 font-extrabold text-primary"><Sparkles className="size-5 text-teal" />اختار باقتك ومدتها{m.kind ? ` — ${KIND_LABEL[m.kind]}` : ""}</p>

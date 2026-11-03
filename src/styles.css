@@ -144,6 +144,8 @@
 }
 
 /* Keeps the header (and the news line) below the phone's status bar in the installed app. */
+/* Inside the store apps: hide plan prices and calls to subscribe (store billing rules); payment stays on the website. */
+.native-app .web-only { display: none !important; }
 .pt-safe { padding-top: max(env(safe-area-inset-top, 0px), var(--native-top, 0px)); }
 
 /* ---------- Dark mode (class "dark" on <html>, set before paint by the theme script) ---------- */

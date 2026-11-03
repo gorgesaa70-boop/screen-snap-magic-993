@@ -257,7 +257,7 @@ function ProviderPlan({ provider }: { provider: Provider }) {
         <p className="mt-1 text-xl font-extrabold text-primary">{current?.name ?? "مجانية"}</p>
         {provider.plan_ends_at && <p className="text-sm text-muted-foreground">لحد {formatDate(provider.plan_ends_at)}</p>}
       </div>
-      {native ? <p className="rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">لتغيير باقتك ادخل على موقع فاليو عقار من المتصفح.</p> : (
+      {native ? null : (
         <div className="grid gap-3 md:grid-cols-3">
           {plans.data?.map((p) => (
             <div key={p.id} className={`flex flex-col rounded-2xl border bg-card p-4 ${p.id === current?.id ? "border-teal" : ""}`}>

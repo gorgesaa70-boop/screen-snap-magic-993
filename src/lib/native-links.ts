@@ -4,6 +4,7 @@ const OWN_HOSTS = new Set(["valueaqar.com", "www.valueaqar.com"]);
 export async function initNativeShell() {
   const { Capacitor } = await import("@capacitor/core");
   if (!Capacitor.isNativePlatform()) return;
+  document.documentElement.classList.add("native-app");
   reserveStatusBar(Capacitor.getPlatform());
   const [{ Browser }, { App }] = await Promise.all([import("@capacitor/browser"), import("@capacitor/app")]);
 
