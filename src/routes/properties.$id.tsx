@@ -21,6 +21,7 @@ import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL 
 import { ContactActions } from "@/components/site/ContactActions";
 import { trackContact, trackView } from "@/lib/track";
 import { ReferButton } from "@/components/site/ReferButton";
+import { ReportButton } from "@/components/site/ReportButton";
 
 async function fetchProperty(id: string) {
   const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
@@ -131,6 +132,7 @@ function PropertyPage() {
           {coBroke && <ReferButton kind="property" targetId={p.id} share={coBroke.share} ownerId={p.brokerId} ownerListing={coBroke.ownerListing} />}
         </aside>
       </div>
+      <ReportButton kind="property" id={p.id} title={p.title} />
     </PageShell>
   );
 }

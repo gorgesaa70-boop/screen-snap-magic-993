@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCheck, FileText, Flag, Lock, LockOpen, Paperclip, Send, ShieldCheck, X } from "lucide-react";
+import { Ban, CheckCheck, FileText, Flag, Lock, LockOpen, Paperclip, Send, ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionUser } from "@/hooks/useAuth";
 import { attachmentUrl, chatTime, uploadAttachment, uploadDirectAttachment, type ChatMessage, type ChatSide } from "@/lib/messages";
@@ -29,6 +29,11 @@ type ChatSource = {
   /** Contact details are hidden for this side. */
   masking: (side: string) => boolean;
   closeConfirm: string;
+  /** Broker ↔ broker conversations: either account can block the other (store rules). */
+  block?: {
+    state: () => Promise<{ can_block: boolean; blocked_by_me: boolean; blocked_me: boolean } | null>;
+    set: (blocked: boolean) => Result;
+  } | undefined;
 };
 
 function AttachmentView({ m }: { m: ChatMessage }) {
@@ -97,6 +102,10 @@ export function DirectChat({ threadId, closed = false, brokers, className = "" }
     senderNote: () => "",
     masking: (side) => brokers && side !== "platform",
     closeConfirm: "تقفل المحادثة؟ الطرفين مش هيقدروا يبعتوا رسايل، بس هيشوفوا اللي فات.",
+    block: brokers ? {
+      state: async () => (await supabase.rpc("direct_block_state", { _thread: threadId })).data?.[0] ?? null,
+      set: (b) => supabase.rpc("set_direct_block", { _thread: threadId, _blocked: b }),
+    } : undefined,
   }), [threadId, brokers]);
   return <ChatView source={source} closed={closed} className={className} />;
 }
@@ -117,6 +126,7 @@ function ChatView({ source, closed, className }: { source: ChatSource; closed: b
   const side = useQuery({ queryKey: ["chat-side", id, user?.id], enabled: !!user, queryFn: source.side });
   const msgs = useQuery({ queryKey: ["chat", id], enabled: !!side.data, queryFn: source.messages });
   const reads = useQuery({ queryKey: ["chat-reads", id], enabled: !!side.data, queryFn: source.reads });
+  const block = useQuery({ queryKey: ["chat-block", id], enabled: !!side.data && !!source.block, queryFn: () => source.block!.state() });
 
   // Live: new messages and read marks of this conversation.
   useEffect(() => {
@@ -190,7 +200,17 @@ function ChatView({ source, closed, className }: { source: ChatSource; closed: b
     toast.success(next ? "المحادثة اتقفلت" : "المحادثة اتفتحت تاني");
   }
 
-  const canWrite = !isClosed || mySide === "platform";
+  async function toggleBlock() {
+    const next = !block.data?.blocked_by_me;
+    if (next && !window.confirm("تحظر الحساب ده؟ مش هتقدروا تبعتوا رسايل لبعض، وفاليو عقار هيوصله تنبيه. تقدر تلغي الحظر بعدين.")) return;
+    const { error } = await source.block!.set(next);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "الحساب اتحظر" : "الحظر اتلغى");
+    void block.refetch();
+  }
+
+  const blocked = !!block.data && (block.data.blocked_by_me || block.data.blocked_me);
+  const canWrite = (!isClosed && !(blocked && mySide !== "platform")) || mySide === "platform";
   return (
     <div className={`flex flex-col overflow-hidden rounded-2xl border bg-card ${className}`}>
       {masking && (
@@ -209,6 +229,18 @@ function ChatView({ source, closed, className }: { source: ChatSource; closed: b
           </button>
         </div>
       )}
+
+      {block.data?.can_block && (
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2 text-xs">
+          <span className="text-muted-foreground">{block.data.blocked_by_me ? "إنت حاظر الحساب ده." : block.data.blocked_me ? "الحساب ده وقف المحادثة." : "لو فيه إزعاج أو إساءة بلّغ عن الرسالة أو احظر الحساب."}</span>
+          {!block.data.blocked_me && (
+            <button type="button" onClick={toggleBlock} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 font-bold text-destructive hover:bg-destructive/10">
+              <Ban className="size-3.5" />{block.data.blocked_by_me ? "إلغاء الحظر" : "حظر الحساب"}
+            </button>
+          )}
+        </div>
+      )}
+      {mySide === "platform" && blocked && <p className="border-b bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">فيه حظر بين الحسابين؛ هما مش بيقدروا يبعتوا، وإنت تقدر.</p>}
 
       <div ref={listRef} className="flex max-h-[60vh] min-h-56 flex-1 flex-col gap-2 overflow-y-auto p-3" aria-live="polite">
         {msgs.isLoading ? <div className="h-20 animate-pulse rounded-xl bg-muted" />
@@ -264,7 +296,7 @@ function ChatView({ source, closed, className }: { source: ChatSource; closed: b
           </div>
         </form>
       ) : (
-        <p className="border-t bg-secondary/60 px-3 py-3 text-center text-xs font-bold text-muted-foreground">المحادثة دي اتقفلت من فاليو عقار.</p>
+        <p className="border-t bg-secondary/60 px-3 py-3 text-center text-xs font-bold text-muted-foreground">{isClosed ? "المحادثة دي اتقفلت من فاليو عقار." : "المحادثة دي متوقفة بسبب حظر."}</p>
       )}
     </div>
   );

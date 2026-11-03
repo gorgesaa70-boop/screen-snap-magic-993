@@ -9,6 +9,7 @@ import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { PROVIDER_KIND, SERVICE_CATEGORIES, formatDate, formatPrice, starsText } from "@/components/site/data";
 import { ServiceRequestForm } from "@/components/site/ServiceForms";
 import { thumb } from "@/lib/images";
+import { ReportButton } from "@/components/site/ReportButton";
 
 type Profile = {
   id: string; kind: string; category: string; name: string; specialty: string | null; areas: string[]; bio: string | null; photo_url: string | null;
@@ -122,6 +123,7 @@ function ProviderProfilePage() {
           <img src={zoom} alt="" className="max-h-full max-w-full rounded-xl object-contain" />
         </div>
       )}
+      <ReportButton kind="provider" id={p.id} title={p.name} />
     </PageShell>
   );
 }
