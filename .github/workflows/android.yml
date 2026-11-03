@@ -67,6 +67,12 @@ jobs:
           sed -i "s/versionCode [0-9]*/versionCode ${VERSION_CODE}/; s/versionName \"[^\"]*\"/versionName \"${VERSION_NAME}\"/" android/app/build.gradle
           grep -n "versionCode\|versionName\|targetSdk\|compileSdk" android/app/build.gradle android/variables.gradle
 
+      - name: Location permission («موقعي الحالي» when pinning a property; asked only on tap)
+        run: |
+          perms='    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n</manifest>'
+          sed -i "s|</manifest>|${perms}|" android/app/src/main/AndroidManifest.xml
+          grep -n "permission\|uses-feature" android/app/src/main/AndroidManifest.xml
+
       - run: bunx cap sync android
 
       - name: Build
