@@ -2154,6 +2154,8 @@ commit;`); }
   }
   {
     // Release 46: fixed posting times — all channels at the same minute; only the next few times are booked.
+    // Posts left by the release 45 checks may hold one of the next hours (depends on the time of day); free them.
+    await sys(`update public.social_posts set status = 'skipped' where status <> 'skipped'`);
     const B = "b0000000-0000-0000-0000-000000000046", BU = "00000000-0000-0000-0000-000000000046";
     await sys(`insert into auth.users (id, phone) values ('${BU}', '201055500046')`);
     await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active, plan_exempt) values ('${B}', '${BU}', 'slots-b', 'وسيط مواعيد', '201055500046', 'individual', true, true)`);
