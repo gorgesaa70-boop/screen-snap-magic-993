@@ -66,6 +66,8 @@ function Page() {
           </div>
           <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(Number(p.price))} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
+          {/* Below desktop the side card drops under the description and map — contact stays up here. */}
+          {broker && <div className="lg:hidden"><ContactActions who={broker} message={`${t("مرحبًا، أستفسر عن:")} ${p.title}`} /></div>}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className={chip}><Factory className="size-4 text-teal" />{t(p.type)}</span>
             <span className={chip}><MapPin className="size-4 text-teal" />{p.area}</span>

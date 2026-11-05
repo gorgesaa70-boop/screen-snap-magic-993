@@ -17,6 +17,12 @@ export const contactNumber = (c?: { phone?: string | null; whatsapp?: string | n
   return raw ? dialable(raw) : null;
 };
 
+/** Below desktop a page's inquiry form (#unit-inquiry) sits under the units table — bring it into view when a unit is picked. */
+export function pickScroll() {
+  if (window.matchMedia("(max-width: 1023px)").matches)
+    requestAnimationFrame(() => document.getElementById("unit-inquiry")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+}
+
 /**
  * WhatsApp button for an account, plus the number and a call button when the database returned it
  * (an account the admin opened up). Without a number WhatsApp goes to Value Aqar's number (see waLink).
