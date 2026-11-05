@@ -99,6 +99,12 @@ function PropertyPage() {
             </div>
           )}
           {p.code && <p className="mt-1 text-xs font-bold text-muted-foreground">{t("كود العقار:")} <span dir="ltr" className="text-primary">{p.code}</span></p>}
+          {/* Below desktop the side card drops under the description, map and similar listings — contact stays up here. */}
+          <div className="lg:hidden">
+            {broker
+              ? <ContactActions who={broker} message={listingMessage(p)} onContact={() => { if (!p.isDemo) trackContact(p.id); }} />
+              : <a href={waLink(WHATSAPP_NUMBER, listingMessage(p))} target="_blank" rel="noreferrer" onClick={() => { if (!p.isDemo) trackContact(p.id); }} className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-xl bg-whatsapp text-sm font-bold text-primary-foreground hover:brightness-95"><MessageCircle className="size-4" />{t("تواصل واتساب")}</a>}
+          </div>
           {p.rent && <RentDetails p={p} />}
           {p.installments && <InstallmentPlan p={p} />}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">

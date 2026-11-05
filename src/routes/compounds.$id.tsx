@@ -14,7 +14,7 @@ import { UNIT_STATUS, compoundCover, compoundWhere, developerLabel, fetchCompoun
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t, useLang } from "@/lib/i18n";
-import { ContactActions, contactNumber } from "@/components/site/ContactActions";
+import { ContactActions, contactNumber, pickScroll } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
 import { ReportButton } from "@/components/site/ReportButton";
 
@@ -140,7 +140,7 @@ function CompoundPage() {
                         <td className="p-3">{u.rooms ?? "—"}</td>
                         <td className="p-3 font-bold text-primary">{u.price != null ? `${formatPrice(Number(u.price))} ${t("ج.م")}` : t("اسأل عن السعر")}</td>
                         <td className="p-3"><span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${UNIT_STATUS[u.status]?.cls}`}>{t(UNIT_STATUS[u.status]?.label ?? u.status)}</span></td>
-                        <td className="p-3">{u.status === "available" && <button type="button" onClick={() => setPicked(u)} className="text-xs font-bold text-teal hover:underline">{t("استفسر واحسب القسط")}</button>}</td>
+                        <td className="p-3">{u.status === "available" && <button type="button" onClick={() => { setPicked(u); pickScroll(); }} className="text-xs font-bold text-teal hover:underline">{t("استفسر واحسب القسط")}</button>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -171,7 +171,7 @@ function CompoundPage() {
             {contactNumber(developer) && <ContactActions who={developer} message={t("مرحبًا، أستفسر عن كمبوند {name}", { name: c.name })} />}
             </div>
           )}
-          <CompoundInquiry compound={c.name} compoundId={c.id} unit={picked} onClearUnit={() => setPicked(null)} />
+          <div id="unit-inquiry" className="scroll-mt-20"><CompoundInquiry compound={c.name} compoundId={c.id} unit={picked} onClearUnit={() => setPicked(null)} /></div>
           <ReferButton kind="compound" targetId={c.id} share={c.co_broke_share} ownerId={c.developer_id} />
         </aside>
       </div>
