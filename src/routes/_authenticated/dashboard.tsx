@@ -106,7 +106,8 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-type Tab = "overview" | "projects" | "compounds" | "properties" | "plan" | "referrals" | "leads" | "wa" | "team" | "profile" | "stats";
+const TABS = ["overview", "projects", "compounds", "properties", "plan", "referrals", "leads", "wa", "team", "profile", "stats"] as const;
+type Tab = (typeof TABS)[number];
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
@@ -115,11 +116,16 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
   const { me } = useMe();
   const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
-  // A WhatsApp-chat bell links to /dashboard?tab=wa, a plan notice to /dashboard?tab=plan.
-  const [tab, setTab] = useState<Tab>(() => {
+  // A WhatsApp-chat bell links to /dashboard?tab=wa, a plan notice to /dashboard?tab=plan; the open tab stays in the
+  // address, so a refresh comes back to it.
+  const [tab, setRawTab] = useState<Tab>(() => {
     const q = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
-    return q === "wa" || q === "plan" ? q : "overview";
+    return q && (TABS as readonly string[]).includes(q) ? (q as Tab) : "overview";
   });
+  const setTab = (t: Tab) => {
+    setRawTab(t);
+    const u = new URL(window.location.href); u.searchParams.set("tab", t); window.history.replaceState(window.history.state, "", u);
+  };
   const chats = useOwnerThreads();
   const chatsUnread = (chats.data ?? []).reduce((n, t) => n + t.unread, 0);
   const props = useQuery({
@@ -184,14 +190,22 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
             ]} />
           )}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Stat label="كل العقارات" value={P.length} hint={plan.data ? `ظاهر ${plan.data.used} من ${plan.data.max} (${plan.data.name})` : undefined} />
-            <Stat label="معتمدة" value={count("approved")} />
-            <Stat label="قيد المراجعة" value={count("pending")} />
-            <Stat label="مرفوضة / مسودة" value={count("rejected") + count("draft")} />
-            <Stat label="كل العملاء" value={L.length} />
-            <Stat label="استفسارات العقارات" value={L.filter((l) => l.kind === "inquiry").length} />
-            <Stat label="عملاء جدد" value={L.filter((l) => l.stage === "new").length} />
-            <Stat label="مبيعات مؤكدة" value={L.filter((l) => l.stage === "sold").length} />
+            {/* Each number opens the list behind it. */}
+            {([
+              ["كل العقارات", P.length, "properties", plan.data ? `ظاهر ${plan.data.used} من ${plan.data.max} (${plan.data.name})` : undefined],
+              ["معتمدة", count("approved"), "properties"],
+              ["قيد المراجعة", count("pending"), "properties"],
+              ["مرفوضة / مسودة", count("rejected") + count("draft"), "properties"],
+              ["كل العملاء", L.length, "leads"],
+              ["استفسارات العقارات", L.filter((l) => l.kind === "inquiry").length, "leads"],
+              ["عملاء جدد", L.filter((l) => l.stage === "new").length, "leads"],
+              ["مبيعات مؤكدة", L.filter((l) => l.stage === "sold").length, "leads"],
+            ] as [string, number, Tab, string?][]).map(([label, value, to, hint]) => {
+              const open = to === "leads" || canList;
+              return open
+                ? <button key={label} type="button" onClick={() => setTab(to)} className="text-start transition hover:opacity-90 [&>div]:hover:border-teal"><Stat label={label} value={value} hint={hint} /></button>
+                : <Stat key={label} label={label} value={value} hint={hint} />;
+            })}
           </div>
           <div className="flex flex-wrap gap-2">
             <Link to="/brokers/$slug" params={{ slug: broker.slug }} className={btnOutline}>{isOwner ? "عرض ملفي العام" : "عرض ملف الشركة"}</Link>

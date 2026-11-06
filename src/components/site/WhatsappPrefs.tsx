@@ -21,7 +21,8 @@ const BROKER_TYPES = [
 export function WhatsappPrefs({ isBroker }: { isBroker: boolean }) {
   const { user } = useSessionUser();
   const types = isBroker ? BROKER_TYPES : CUSTOMER_TYPES;
-  const [enabled, setEnabled] = useState(false);
+  // Accounts get new requests and inquiries on WhatsApp until they save otherwise (release 48, src/lib/wa-notify.ts).
+  const [enabled, setEnabled] = useState(isBroker);
   const [phone, setPhone] = useState("");
   const [sel, setSel] = useState<string[]>(isBroker ? ["new_inquiry", "new_request"] : ["broker_reply", "request_status"]);
   const [saving, setSaving] = useState(false);

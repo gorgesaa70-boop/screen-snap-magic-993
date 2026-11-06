@@ -2243,4 +2243,26 @@ commit;`);
       return as(DMU.ownA, `select public.send_direct_message('${dmt}', 'تمام') id`);
     }, (r) => !!r[0].id);
   }
+  {
+  // Release 48: WhatsApp to people without an account — the customer gets a confirmation, a private owner a heads-up.
+  const svc = async (sql) => { await sys(`select set_config('request.jwt.claim.role','service_role',false)`); try { return await sys(sql); } finally { await sys(`select set_config('request.jwt.claim.role','',false)`); } };
+  const ol = (await svc(`insert into public.leads (name, phone, kind) values ('مالك واتساب','01077700001','listing') returning id`))[0].id;
+  const op = (await svc(`insert into public.properties (title, price, type, area, status, review_status, owner_lead_id) values ('شقة مالك واتساب',1,'شقة','الحي الأول','بيع','approved','${ol}') returning id`))[0].id;
+  await expectOk("an owner offering a listing gets no confirmation (not a request)", () => sys(`select count(*)::int n from public.wa_outbox where phone = '01077700001'`), (r) => r[0].n === 0);
+  await expectOk("an inquiry on a private owner's listing: the customer gets a confirmation, the owner a heads-up without the customer", async () => {
+    await as(null, `insert into public.leads (name, phone, property_id) values ('مشتري واتساب','01077700002','${op}')`);
+    return sys(`select kind, phone, message from public.wa_outbox where lead_id = (select id from public.leads where phone = '01077700002') order by kind`);
+  }, (r) => r.length === 2 && r[0].kind === "customer" && r[0].phone === "01077700002" && /VA-/.test(r[0].message)
+    && r[1].kind === "owner" && r[1].phone === "01077700001" && !r[1].message.includes("01077700002") && !r[1].message.includes("مشتري"));
+  await expectOk("one confirmation a day per number", async () => {
+    await as(null, `insert into public.leads (name, phone, property_id) values ('مشتري واتساب','01077700002','${op}')`);
+    return sys(`select count(*)::int n from public.wa_outbox where kind = 'customer' and phone = '01077700002'`);
+  }, (r) => r[0].n === 1);
+  await expectOk("a WhatsApp chat lead gets no template (the bot answers in the chat)", async () => {
+    await svc(`insert into public.leads (name, phone, kind, source) values ('واتساب','01077700003','request','whatsapp')`);
+    return sys(`select count(*)::int n from public.wa_outbox where phone = '01077700003'`);
+  }, (r) => r[0].n === 0);
+  await expectErr("nobody reads the outbox through the API", () => as(U.admin, `select * from public.wa_outbox`));
+  await expectErr("…nor writes to it", () => as(null, `insert into public.wa_outbox (kind, phone, title, message) values ('customer','010','x','y')`));
+  }
 }
