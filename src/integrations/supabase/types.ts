@@ -4067,6 +4067,56 @@ export type Database = {
           },
         ]
       }
+      wa_outbox: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          lead_id: string | null
+          message: string
+          message_id: string | null
+          phone: string
+          sent_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          lead_id?: string | null
+          message: string
+          message_id?: string | null
+          phone: string
+          sent_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string | null
+          message?: string
+          message_id?: string | null
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_outbox_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_messages: {
         Row: {
           body: string

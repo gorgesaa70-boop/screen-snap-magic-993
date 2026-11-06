@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { TablesUpdate } from "@/integrations/supabase/types";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,13 +12,12 @@ import { IndustrialForm } from "@/components/dash/IndustrialForm";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 
-/** fetchAll result in the { data, error } shape the admin loader already checks. */
-const paged = <T,>(load: () => Promise<T[]>) => load().then((data) => ({ data, error: null }), (error: Error) => ({ data: null, error }));
 import { dbx } from "@/lib/dbx";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
+import { AdminToday } from "@/components/dash/AdminToday";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
-import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow, leadKindLabel, PUBLIC_BROKER_COLS } from "@/components/site/data";
+import { STAGES_WITH_DATA, PRICE_UNIT_LABEL, ACCOUNT_LABEL, LEAD_KINDS, REVIEW, STAGES, formatPrice, formatDate, waLink, type BrokerRow, type PlanRow, type PropertyRow, leadKindLabel, PUBLIC_BROKER_COLS } from "@/components/site/data";
 import { can, hasAny } from "@/lib/permissions";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -61,66 +60,98 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "reports" | "content_reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social";
-const ALL_TABS: Tab[] = ["reports", "content_reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
+type Tab = "today" | "reports" | "content_reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social";
+const ALL_TABS: Tab[] = ["today", "reports", "content_reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "brokers", "accounts", "staff", "plans", "assistant", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
 
-function useAdminData(enabled: boolean, isAdmin: boolean) {
+// Each section loads only what it shows, when it's opened — the panel used to pull every listing and every lead on open.
+// All keys start with "admin-data", so one invalidate refreshes whatever is on screen.
+const ADMIN_KEY = "admin-data";
+const OWNER_EMBED = "*, owner:leads!properties_owner_lead_id_fkey(id, name, phone, phone_verified)";
+
+function useAdminBrokers(enabled: boolean, isAdmin: boolean) {
   return useQuery({
-    queryKey: ["admin-data", isAdmin], enabled,
+    queryKey: [ADMIN_KEY, "brokers", isAdmin], enabled,
     queryFn: async () => {
-      const [b, p, l, pl] = await Promise.all([
-        // Employees (release 38) don't get the admin's account list with contacts; the public columns are enough to assign.
-        isAdmin ? supabase.rpc("admin_brokers")
-          : supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("name").then((r) => ({ ...r, data: r.data as unknown as AdminBroker[] | null })),
-        paged(() => fetchAll((a, b) => supabase.from("properties").select("*, owner:leads!properties_owner_lead_id_fkey(name, phone, phone_verified)").order("updated_at", { ascending: false }).order("id").range(a, b))),
-        paged(() => fetchAll((a, b) => supabase.from("leads").select("*, properties!leads_property_id_fkey(title)").order("created_at", { ascending: false }).order("id").range(a, b))),
-        supabase.from("plans").select("*").order("audience").order("sort_order"),
-      ]);
-      const err = b.error || p.error || l.error || pl.error;
-      if (err) throw err;
+      // Employees (release 38) don't get the admin's account list with contacts; the public columns are enough to assign.
+      const r = isAdmin ? await supabase.rpc("admin_brokers")
+        : await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("is_active", true).order("name").then((x) => ({ ...x, data: x.data as unknown as AdminBroker[] | null }));
+      if (r.error) throw r.error;
       // Accounts deleted from the admin but kept for money records (release 31) leave every list.
-      return { brokers: (b.data ?? []).filter((x) => !x.deleted_at), properties: p.data, leads: l.data, plans: pl.data };
+      return (r.data ?? []).filter((x) => !x.deleted_at);
     },
   });
 }
 
+function usePlans(enabled: boolean) {
+  return useQuery({
+    queryKey: [ADMIN_KEY, "plans"], enabled,
+    queryFn: async () => { const r = await supabase.from("plans").select("*").order("audience").order("sort_order"); if (r.error) throw r.error; return r.data; },
+  });
+}
+
+/** Listings for one admin section: review (by status, "" = all), or one category's units. */
+function useAdminProperties(scope: { status: string } | { category: "mall" | "industrial" }) {
+  return useQuery({
+    queryKey: [ADMIN_KEY, "properties", scope],
+    queryFn: () => fetchAll((a, b) => {
+      let q = supabase.from("properties").select(OWNER_EMBED);
+      if ("category" in scope) q = q.eq("category", scope.category);
+      else if (scope.status) q = q.eq("review_status", scope.status as PropertyRow["review_status"]);
+      return q.order("updated_at", { ascending: false }).order("id").range(a, b);
+    }),
+  });
+}
+
+/** Cheap counts for the section labels (head requests: no rows travel). */
+function useCount(key: string, enabled: boolean, run: () => PromiseLike<{ count: number | null }>) {
+  return useQuery({ queryKey: [ADMIN_KEY, "count", key], enabled, queryFn: async () => (await run()).count ?? 0 }).data ?? 0;
+}
+
 function AdminPage() {
   const { me, loading } = useMe();
-  // Notifications can open a section directly (e.g. /admin?tab=locations).
-  const [rawTab, setTab] = useState<Tab>(() => {
+  // Notifications can open a section directly (e.g. /admin?tab=locations); the open section stays in the address,
+  // so a refresh comes back to it. With none, the panel opens on «المطلوب النهارده».
+  const [rawTab, setRawTab] = useState<Tab>(() => {
     const t = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("tab");
-    return t && (ALL_TABS as string[]).includes(t) ? (t as Tab) : "reports";
+    return t && (ALL_TABS as string[]).includes(t) ? (t as Tab) : "today";
   });
+  const setTab = (t: Tab) => {
+    setRawTab(t);
+    const u = new URL(window.location.href); u.searchParams.set("tab", t); window.history.replaceState(window.history.state, "", u);
+  };
   // The admin sees everything; an employee only the sections granted in «فريق فاليو عقار» (release 38).
   const perms = me?.perms;
   const allowed = !!me?.isAdmin || (!!me?.isStaff && hasAny(perms));
-  const pendingPlaces = useQuery({
-    queryKey: ["admin-locations-pending"], enabled: can(perms, "locations"),
-    queryFn: async () => (await supabase.from("locations").select("id", { count: "exact", head: true }).eq("status", "pending")).count ?? 0,
-  }).data ?? 0;
-  // Full account rows (status, contacts) for the admin and employees holding «الحسابات والشركات».
-  const q = useAdminData(allowed, !!me?.isAdmin || can(perms, "brokers"));
-  if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
-  if (!allowed) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">{me?.isStaff ? "لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك." : "ليست لديك صلاحية الوصول."} <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
-  // «فريق فاليو عقار» and the social auto-post switch are the admin's alone.
-  const visible = (id: Tab) => (id === "staff" || id === "social" ? !!me?.isAdmin : can(perms, id));
+  // «فريق فاليو عقار» and the social auto-post switch are the admin's alone; «المطلوب النهارده» only counts what you may open.
+  const visible = (id: Tab) => (id === "today" ? allowed : id === "staff" || id === "social" ? !!me?.isAdmin : can(perms, id));
   // A section that isn't granted opens the first one that is.
   const tab: Tab = visible(rawTab) ? rawTab : (ALL_TABS.find(visible) ?? rawTab);
-  const viewOnly = !me?.isAdmin && !can(perms, tab, "edit");
-  const d = q.data;
-  const reload = () => q.refetch();
-  const pending = d?.properties.filter((p) => p.review_status === "pending").length ?? 0;
-  const pendingAccounts = d?.brokers.filter((b) => accountStatus(b) === "pending").length ?? 0;
+  const qc = useQueryClient();
+  const reload = () => { void qc.invalidateQueries({ queryKey: [ADMIN_KEY] }); };
+  // Full account rows (status, contacts) for the admin and employees holding «الحسابات والشركات». Small: always loaded.
+  const brokersQ = useAdminBrokers(allowed, !!me?.isAdmin || can(perms, "brokers"));
+  const plansQ = usePlans(allowed && (tab === "brokers" || tab === "plans"));
+  const pendingPlaces = useCount("locations", allowed && can(perms, "locations"), () => supabase.from("locations").select("id", { count: "exact", head: true }).eq("status", "pending"));
+  const pending = useCount("review", allowed && can(perms, "review"), () => supabase.from("properties").select("id", { count: "exact", head: true }).eq("review_status", "pending"));
+  if (loading) return <DashShell title="لوحة الإدارة"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
+  if (!allowed) return <DashShell title="لوحة الإدارة"><p className="rounded-2xl border bg-card p-6 text-sm">{me?.isStaff ? "لسه مافيش أقسام متاحة ليك. اطلب من الأدمن يحددلك صلاحياتك." : "ليست لديك صلاحية الوصول."} <Link to="/dashboard" className="font-bold text-primary underline">لوحتي</Link></p></DashShell>;
+  const viewOnly = tab !== "today" && !me?.isAdmin && !can(perms, tab, "edit");
+  const brokers = brokersQ.data;
+  const pendingAccounts = brokers?.filter((b) => accountStatus(b) === "pending").length ?? 0;
+  // Sections that need the account list wait for it; the rest load their own data.
+  const needsBrokers: Tab[] = ["brokers", "review", "leads", "plans", "projects", "malls", "compounds", "industrial"];
+  const ready = visible(tab) && (!needsBrokers.includes(tab) || (!!brokers && (!(tab === "brokers" || tab === "plans") || !!plansQ.data)));
   return (
     <DashShell title={me?.isAdmin ? "لوحة الإدارة" : "لوحة العمل"} isAdmin={!!me?.isAdmin}>
-      {/* 16 sections grouped in 5 (UX review): pick a group, then a section inside it. */}
+      {/* Sections grouped (UX review): pick a group, then a section inside it. */}
       {(() => {
         const labels: Record<Tab, string> = {
-          reports: "التقارير", content_reports: "البلاغات", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
-          wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `مراجعة العقارات${pending ? ` (${pending})` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
+          today: "المطلوب النهارده", reports: "التقارير", content_reports: "البلاغات", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
+          wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `كل العقارات${pending ? ` (${pending} للمراجعة)` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "الباقات", projects: "المشروعات", investments: "الفرص الاستثمارية",
           industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "طلبات الخدمات", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", social: "النشر على السوشيال", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = ([
+          { id: "today", label: "المطلوب النهارده", tabs: ["today"] },
           { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "content_reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "wa_inbox", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
@@ -146,9 +177,10 @@ function AdminPage() {
       {viewOnly && visible(tab) && (
         <p className="mb-4 rounded-xl border border-teal/40 bg-teal-soft px-4 py-2 text-sm font-bold text-primary">👁️ القسم ده عندك «عرض بس»؛ أي تعديل محتاج صلاحية من الأدمن.</p>
       )}
-      {!d || !visible(tab) ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
+      {!ready ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : (
         // «يشوف بس»: every button and field inside is disabled (the database refuses the change anyway).
         <fieldset disabled={viewOnly} className="m-0 min-w-0 border-0 p-0">
+          {tab === "today" && <AdminToday visible={visible} go={setTab} isAdmin={!!me?.isAdmin} pending={pending} pendingPlaces={pendingPlaces} pendingAccounts={pendingAccounts} />}
           {tab === "reports" && <ReportsDashboard scope={{ seeAll: true, isAdmin: !!me?.isAdmin, companyId: null }} />}
           {tab === "content_reports" && <ContentReportsAdmin />}
           {tab === "alerts" && <AdminNotifications />}
@@ -166,24 +198,35 @@ function AdminPage() {
           {tab === "health" && <SystemHealth />}
           {tab === "routing" && <RoutingRules />}
           {tab === "referrals" && <ReferralsAdmin />}
-          {tab === "brokers" && <BrokersAdmin brokers={d.brokers} plans={d.plans} reload={reload} />}
-          {tab === "review" && <ReviewAdmin d={d} reload={reload} />}
-          {tab === "leads" && <LeadsAdmin d={d} reload={reload} />}
-          {tab === "plans" && <PlansAdmin plans={d.plans} reload={reload} canEdit={!viewOnly} />}
-          {tab === "projects" && <ProjectsAdmin brokers={d.brokers} />}
-          {tab === "malls" && <MallsAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
-          {tab === "compounds" && <CompoundsAdmin brokers={d.brokers} />}
+          {brokers && <>
+            {tab === "brokers" && plansQ.data && <BrokersAdmin brokers={brokers} plans={plansQ.data} reload={reload} />}
+            {tab === "review" && <ReviewAdmin brokers={brokers} reload={reload} />}
+            {tab === "leads" && <LeadsAdmin brokers={brokers} />}
+            {tab === "plans" && plansQ.data && <PlansAdmin plans={plansQ.data} reload={reload} canEdit={!viewOnly} />}
+            {tab === "projects" && <ProjectsAdmin brokers={brokers} />}
+            {tab === "malls" && <CategoryAdmin category="mall" brokers={brokers} reload={reload} />}
+            {tab === "compounds" && <CompoundsAdmin brokers={brokers} />}
+            {tab === "industrial" && <CategoryAdmin category="industrial" brokers={brokers} reload={reload} />}
+          </>}
           {tab === "locations" && <LocationsAdmin />}
           {tab === "accounts" && <AccountsAdmin />}
           {(tab === "svc_requests" || tab === "svc_providers" || tab === "svc_plans" || tab === "svc_reviews") && <ServicesAdmin tab={tab} />}
-          {tab === "industrial" && <IndustrialAdmin properties={d.properties} brokers={d.brokers} reload={reload} />}
         </fieldset>
       )}
     </DashShell>
   );
 }
 
-type D = NonNullable<ReturnType<typeof useAdminData>["data"]>;
+/** Malls / industrial: that category's units only (they used to filter the whole listings table in the browser). */
+function CategoryAdmin({ category, brokers, reload }: { category: "mall" | "industrial"; brokers: AdminBroker[]; reload: () => void }) {
+  const q = useAdminProperties({ category });
+  if (!q.data) return <div className="h-40 animate-pulse rounded-2xl bg-muted" />;
+  return category === "mall"
+    ? <MallsAdmin properties={q.data} brokers={brokers} reload={reload} />
+    : <IndustrialAdmin properties={q.data} brokers={brokers} reload={reload} />;
+}
+
+type AdminProperty = NonNullable<ReturnType<typeof useAdminProperties>["data"]>[number];
 
 const ACCOUNT_STATUS = {
   pending: { label: "بانتظار المراجعة", cls: "bg-teal-soft text-primary" },
@@ -358,20 +401,39 @@ function NewBroker({ onDone }: { onDone: () => void }) {
   );
 }
 
-function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
-  const [filter, setFilter] = useState("pending");
+const CATEGORY_LABEL: Record<string, string> = { "": "كل الأنواع", residential: "سكني وتجاري", mall: "وحدات المولات", industrial: "صناعي" };
+const PAGE = 50;
+
+/** «كل العقارات»: every listing, filtered by kind, review status, purpose, account and area, plus a search; each one editable. */
+function ReviewAdmin({ brokers, reload }: { brokers: AdminBroker[]; reload: () => void }) {
+  const [status, setStatus] = useState("pending");
+  const [category, setCategory] = useState("");
+  const [f, setF] = useState({ purpose: "", account: "", area: "", q: "" });
+  const [shown, setShown] = useState(PAGE);
   const [locFor, setLocFor] = useState<string | null>(null);
-  const [editing, setEditing] = useState<D["properties"][number] | null>(null);
-  const brokerName = (id: string | null) => d.brokers.find((b) => b.id === id)?.name ?? "—";
-  const active = d.brokers.filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
+  const [editing, setEditing] = useState<AdminProperty | null>(null);
+  const q = useAdminProperties({ status });
+  const pingEngines = useServerFn(notifySearchEnginesSoon);
+  const brokerName = (id: string | null) => brokers.find((b) => b.id === id)?.name ?? "—";
+  const active = brokers.filter((b) => b.is_active).map((b) => ({ id: b.id, name: b.name }));
   if (editing) {
     const done = () => { setEditing(null); reload(); };
-    if (editing.category === "mall") return <MallUnitForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
-    if (editing.category === "industrial") return <IndustrialForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
-    return <PropertyForm admin brokerId={editing.broker_id ?? ""} initial={editing} onCancel={() => setEditing(null)} onDone={done} />;
+    const owner = <OwnerPanel p={editing} brokers={brokers} onSaved={reload} />;
+    if (editing.category === "mall") return <div className="space-y-3">{owner}<MallUnitForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} /></div>;
+    if (editing.category === "industrial") return <div className="space-y-3">{owner}<IndustrialForm brokers={active} initial={editing} onCancel={() => setEditing(null)} onDone={done} /></div>;
+    return <div className="space-y-3">{owner}<PropertyForm admin brokerId={editing.broker_id ?? ""} initial={editing} onCancel={() => setEditing(null)} onDone={done} /></div>;
   }
-  const list = d.properties.filter((p) => !filter || p.review_status === filter);
-  const pingEngines = useServerFn(notifySearchEnginesSoon);
+  const all = q.data ?? [];
+  const needle = f.q.trim().replace(ARABIC_DIGITS, latinDigit).replace(/^va-?/i, "").toLowerCase();
+  const list = all.filter((p) =>
+    (!category || p.category === category)
+    && (!f.purpose || p.status === f.purpose)
+    && (!f.account || (f.account === "owners" ? !p.broker_id && !!p.owner_lead_id : p.broker_id === f.account))
+    && (!f.area || p.area === f.area)
+    && (!needle || [p.title, p.listing_no?.toString(), p.owner?.name, p.owner?.phone, brokerName(p.broker_id)].some((x) => x?.toLowerCase().includes(needle))));
+  const areas = [...new Set(all.map((p) => p.area).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ar"));
+  const accounts = [...new Set(all.map((p) => p.broker_id).filter((x): x is string => !!x))].map((id) => ({ id, name: brokerName(id) })).sort((a, b) => a.name.localeCompare(b.name, "ar"));
+  const set = (patch: Partial<typeof f>) => { setF({ ...f, ...patch }); setShown(PAGE); };
   const upd = async (id: string, patch: TablesUpdate<"properties">, msg: string) => {
     const { error } = await supabase.from("properties").update(patch).eq("id", id);
     if (error) toast.error(error.message);
@@ -383,11 +445,30 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
   };
   return (
     <div className="space-y-3">
-      <select className={`${inputCls} w-auto`} value={filter} onChange={(e) => setFilter(e.target.value)}>
-        <option value="">كل العقارات</option>{Object.entries(REVIEW).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-      </select>
-      {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد عقارات.</p>}
-      {list.map((p) => (
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(CATEGORY_LABEL).map(([k, v]) => (
+          <button key={k} type="button" aria-pressed={category === k} onClick={() => { setCategory(k); setShown(PAGE); }}
+            className={`h-9 rounded-full border px-3 text-xs font-bold ${category === k ? "border-teal bg-teal text-accent-foreground" : "bg-card text-primary"}`}>{v}</button>
+        ))}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <input aria-label="بحث" className={inputCls} placeholder="بحث: العنوان، الكود، المالك، الرقم" value={f.q} onChange={(e) => set({ q: e.target.value })} />
+        <select aria-label="الحالة" className={inputCls} value={status} onChange={(e) => { setStatus(e.target.value); setShown(PAGE); }}>
+          <option value="">كل الحالات</option>{Object.entries(REVIEW).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select aria-label="الغرض" className={inputCls} value={f.purpose} onChange={(e) => set({ purpose: e.target.value })}>
+          <option value="">بيع وإيجار ومصيف</option>{["بيع", "إيجار", "مصيف"].map((x) => <option key={x} value={x}>{x}</option>)}
+        </select>
+        <select aria-label="الحساب" className={inputCls} value={f.account} onChange={(e) => set({ account: e.target.value })}>
+          <option value="">كل الحسابات</option><option value="owners">عروض الملاك (بدون وسيط)</option>{accounts.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+        <select aria-label="المنطقة" className={inputCls} value={f.area} onChange={(e) => set({ area: e.target.value })}>
+          <option value="">كل المناطق</option>{areas.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      {!q.data ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : <p className="text-xs font-bold text-muted-foreground">{formatPrice(list.length)} عقار</p>}
+      {q.data && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد عقارات.</p>}
+      {list.slice(0, shown).map((p) => (
         <div key={p.id} className="rounded-2xl border bg-card">
         <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">
           <a href={p.images[0] || p.image_url || "/demo/p1.jpg"} target="_blank" rel="noreferrer" className="relative shrink-0">
@@ -396,10 +477,11 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
           </a>
           <div className="min-w-0 flex-1">
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
-            {p.owner_lead_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
+            {p.category !== "residential" && <span className="ms-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{CATEGORY_LABEL[p.category] ?? p.category}</span>}
+            {p.owner_lead_id && !p.broker_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
             {p.listing_no != null && <span className="ms-1.5 text-[11px] font-bold text-muted-foreground" dir="ltr">VA-{p.listing_no}</span>}
-            <p className="mt-1 truncate font-bold text-primary">{p.title}</p>
-            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`} · {p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
+            <p className="mt-1 truncate font-bold text-primary"><a href={`/properties/${p.id}`} target="_blank" rel="noreferrer" className="hover:underline">{p.title}</a></p>
+            <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`} · {!p.broker_id && p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
             {(p.payment_method === "installment" || p.payment_method === "both") && <p className="text-xs font-semibold text-teal">{p.payment_method === "both" ? "كاش أو تقسيط" : "تقسيط"}{p.down_payment != null ? ` · مقدم ${formatPrice(Number(p.down_payment))}` : ""}{p.installment_years ? ` · ${p.installment_years} سنين` : ""}{p.monthly_installment != null ? ` · قسط ${formatPrice(Number(p.monthly_installment))}` : ""}</p>}
             {p.owner && (
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -434,6 +516,63 @@ function ReviewAdmin({ d, reload }: { d: D; reload: () => void }) {
         {locFor === p.id && <LocationEditor id={p.id} initial={p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null} onDone={() => { setLocFor(null); reload(); }} />}
         </div>
       ))}
+      {list.length > shown && <button className={`${btnOutline} w-full`} onClick={() => setShown(shown + PAGE)}>عرض المزيد ({formatPrice(list.length - shown)})</button>}
+    </div>
+  );
+}
+
+/**
+ * «صاحب العقار» above the edit form: the admin moves a listing to another account (or back to its private owner) and
+ * corrects the private owner's name and phone; the account itself opens for editing right here.
+ */
+function OwnerPanel({ p, brokers, onSaved }: { p: AdminProperty; brokers: AdminBroker[]; onSaved: () => void }) {
+  const { me } = useMe();
+  const [account, setAccount] = useState(p.broker_id ?? "");
+  const [owner, setOwner] = useState({ name: p.owner?.name ?? "", phone: p.owner?.phone ? "+" + p.owner.phone : "" });
+  const [editAccount, setEditAccount] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const current = brokers.find((b) => b.id === p.broker_id);
+  async function save() {
+    setBusy(true);
+    try {
+      if (p.owner_lead_id && p.owner) {
+        const phone = cleanPhone(owner.phone);
+        if (owner.name.trim().length < 2 || !phone) { toast.error("اكتب اسم المالك ورقم صحيح"); return; }
+        const digits = phone.startsWith("+") ? phone.slice(1) : "20" + phone.slice(1);
+        if (owner.name.trim() !== p.owner.name || digits !== p.owner.phone) {
+          const { error } = await supabase.from("leads").update({ name: owner.name.trim().slice(0, 100), phone: digits }).eq("id", p.owner_lead_id);
+          if (error) { toast.error(error.message); return; }
+        }
+      }
+      if ((account || null) !== p.broker_id) {
+        if (!account && !p.owner_lead_id) { toast.error("العقار ده مالوش مالك مسجّل — اختار حساب"); return; }
+        const { error } = await supabase.from("properties").update({ broker_id: account || null }).eq("id", p.id);
+        if (error) { toast.error(error.message); return; }
+      }
+      toast.success("اتحفظت بيانات صاحب العقار"); onSaved();
+    } finally { setBusy(false); }
+  }
+  return (
+    <div className="space-y-3 rounded-2xl border bg-card p-4">
+      <p className="font-bold text-primary">صاحب العقار</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Field label="الحساب اللي العقار تبعه">
+          {/* Only the admin moves listings between accounts (the database keeps an employee's change out). */}
+          <select className={inputCls} value={account} disabled={!me?.isAdmin} onChange={(e) => setAccount(e.target.value)}>
+            {p.owner_lead_id ? <option value="">المالك نفسه (بدون وسيط)</option> : !p.broker_id && <option value="">—</option>}
+            {brokers.filter((b) => b.is_active || b.id === p.broker_id).map((b) => <option key={b.id} value={b.id}>{b.name} · {ACCOUNT_LABEL[b.account_type] ?? b.account_type}</option>)}
+          </select>
+        </Field>
+        {p.owner_lead_id && p.owner && <>
+          <Field label="اسم المالك"><input className={inputCls} value={owner.name} onChange={(e) => setOwner({ ...owner, name: e.target.value })} maxLength={100} /></Field>
+          <Field label="رقم المالك"><input dir="ltr" className={inputCls} value={owner.phone} onChange={(e) => setOwner({ ...owner, phone: e.target.value })} maxLength={20} /></Field>
+        </>}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button disabled={busy} onClick={save} className={btnPrimary}>{busy ? "..." : "حفظ صاحب العقار"}</button>
+        {current && me?.isAdmin && <button type="button" onClick={() => setEditAccount(!editAccount)} className={btnOutline}><Pencil className="size-4" />{editAccount ? "إغلاق" : `تعديل حساب «${current.name}»`}</button>}
+      </div>
+      {editAccount && current && <BrokerEdit b={current} onDone={() => { setEditAccount(false); onSaved(); }} />}
     </div>
   );
 }
@@ -456,25 +595,36 @@ function LocationEditor({ id, initial, onDone }: { id: string; initial: LatLng |
   );
 }
 
-function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
+function LeadsAdmin({ brokers }: { brokers: AdminBroker[] }) {
   const [filter, setFilter] = useState<"unassigned" | "all">("unassigned");
-  const list = d.leads.filter((l) => filter === "all" || !l.assigned_broker_id);
+  // Unassigned is the daily view: only those rows come down; «كل الطلبات» loads the rest when asked.
+  const q = useQuery({
+    queryKey: [ADMIN_KEY, "leads", filter],
+    queryFn: () => fetchAll((a, b) => {
+      let x = supabase.from("leads").select("*, properties!leads_property_id_fkey(title)");
+      if (filter === "unassigned") x = x.is("assigned_broker_id", null);
+      return x.order("created_at", { ascending: false }).order("id").range(a, b);
+    }),
+  });
+  const [shown, setShown] = useState(PAGE);
+  const list = q.data ?? [];
   const upd = async (id: string, patch: TablesUpdate<"leads">) => {
     const { error } = await supabase.from("leads").update(patch).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("تم التحديث"); reload(); }
+    if (error) toast.error(error.message); else { toast.success("تم التحديث"); void q.refetch(); }
   };
   return (
     <div className="space-y-3">
-      <select className={`${inputCls} w-auto`} value={filter} onChange={(e) => setFilter(e.target.value as "unassigned" | "all")}>
+      <select className={`${inputCls} w-auto`} value={filter} onChange={(e) => { setFilter(e.target.value as "unassigned" | "all"); setShown(PAGE); }}>
         <option value="unassigned">غير موزعة</option><option value="all">كل الطلبات</option>
       </select>
-      {list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد طلبات.</p>}
+      {!q.data && <div className="h-40 animate-pulse rounded-2xl bg-muted" />}
+      {q.data && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد طلبات.</p>}
       <div className="grid gap-3 lg:grid-cols-2">
-        {list.map((l) => (
+        {list.slice(0, shown).map((l) => (
           <div key={l.id} className="rounded-2xl border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-bold text-primary">{l.name} <span className="text-xs text-muted-foreground">· {leadKindLabel(l)} · {STAGES[l.stage]}</span></p>
+                <p className="font-bold text-primary"><Link to="/leads/$id" params={{ id: l.id }} className="hover:underline">{l.name}</Link> <span className="text-xs text-muted-foreground">· {leadKindLabel(l)} · {STAGES[l.stage]}</span></p>
                 <p className="text-xs text-muted-foreground">{formatDate(l.created_at)}</p>
               </div>
               <a href={`tel:${l.phone}`} dir="ltr" className="inline-flex h-9 items-center gap-1 rounded-lg bg-secondary px-3 text-sm font-bold text-primary"><Phone className="size-3.5" />{l.phone}</a>
@@ -483,7 +633,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
             {l.details && <p className="mt-1 text-sm text-foreground/70">{l.details}</p>}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <select aria-label="إسناد لوسيط" className={inputCls} value={l.assigned_broker_id ?? ""} onChange={(e) => upd(l.id, { assigned_broker_id: e.target.value || null })}>
-                <option value="">غير مُسند</option>{d.brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                <option value="">غير مُسند</option>{brokers.filter((b) => b.is_active).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
               <select aria-label="المرحلة" className={inputCls} value={l.stage} onChange={(e) => upd(l.id, { stage: e.target.value as NonNullable<TablesUpdate<"leads">["stage"]> })}>
                 {Object.entries(STAGES).filter(([k]) => k === l.stage || !STAGES_WITH_DATA.includes(k)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -492,6 +642,7 @@ function LeadsAdmin({ d, reload }: { d: D; reload: () => void }) {
           </div>
         ))}
       </div>
+      {list.length > shown && <button className={`${btnOutline} w-full`} onClick={() => setShown(shown + PAGE)}>عرض المزيد ({formatPrice(list.length - shown)})</button>}
     </div>
   );
 }

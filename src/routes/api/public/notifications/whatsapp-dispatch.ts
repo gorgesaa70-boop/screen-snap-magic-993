@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
+import { wantsWhatsapp } from "@/lib/wa-notify";
 
 /** Normalise to E.164 digits (Egypt local 01xxxxxxxxx -> 201xxxxxxxxx). */
 function toDigits(v: string | null | undefined) {
@@ -102,38 +103,64 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           .order("created_at").limit(50);
         if (error) return Response.json({ error: error.message }, { status: 500 });
 
-        let sent = 0, skipped = 0, failed = 0;
-        for (const n of pending ?? []) {
-          const [{ data: pref }, { data: broker }] = await Promise.all([
-            db.from("notification_preferences").select("*").eq("user_id", n.user_id).maybeSingle(),
-            db.from("brokers").select("whatsapp, phone").eq("user_id", n.user_id).maybeSingle(),
-          ]);
-          const to = toDigits(pref?.whatsapp_phone) ?? toDigits(broker?.whatsapp) ?? toDigits(broker?.phone);
-          if (!pref?.whatsapp_enabled || !pref.whatsapp_types.includes(n.type) || !to) {
-            await db.from("notifications").update({ whatsapp_status: "skipped", whatsapp_error: !to ? "no_phone" : "opted_out" }).eq("id", n.id);
-            skipped++; continue;
-          }
+        /** The approved template with its 2 body variables ({{1}} title, {{2}} message). */
+        const send = async (to: string, title: string, message: string) => {
           const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messages`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               messaging_product: "whatsapp", to, type: "template",
               template: { name: template, language: { code: lang }, components: [{ type: "body", parameters: [
-                { type: "text", text: n.title.slice(0, 200) }, { type: "text", text: (n.message || "-").slice(0, 500) },
+                { type: "text", text: title.slice(0, 200) }, { type: "text", text: (message || "-").slice(0, 500) },
               ] }] },
             }),
           });
           const body = await res.text();
-          if (res.ok) {
-            let mid: string | null = null;
-            try { mid = JSON.parse(body).messages?.[0]?.id ?? null; } catch { /* ignore */ }
-            await db.from("notifications").update({ whatsapp_status: "sent", whatsapp_sent_at: new Date().toISOString(), whatsapp_message_id: mid, whatsapp_error: null }).eq("id", n.id);
+          if (!res.ok) { console.error(`WhatsApp notify failed [${res.status}]: ${body}`); return { ok: false as const, error: `${res.status}: ${body.slice(0, 300)}` }; }
+          let mid: string | null = null;
+          try { mid = JSON.parse(body).messages?.[0]?.id ?? null; } catch { /* ignore */ }
+          return { ok: true as const, mid };
+        };
+
+        let sent = 0, skipped = 0, failed = 0;
+        for (const n of pending ?? []) {
+          const [{ data: pref }, { data: broker }, { data: admin }] = await Promise.all([
+            db.from("notification_preferences").select("*").eq("user_id", n.user_id).maybeSingle(),
+            db.from("brokers").select("whatsapp, phone").eq("user_id", n.user_id).maybeSingle(),
+            db.from("user_roles").select("user_id").eq("user_id", n.user_id).eq("role", "admin").maybeSingle(),
+          ]);
+          if (!wantsWhatsapp(n.type, pref, !!admin)) {
+            await db.from("notifications").update({ whatsapp_status: "skipped", whatsapp_error: "opted_out" }).eq("id", n.id);
+            skipped++; continue;
+          }
+          // Team members and employees have no account row: their sign-in phone is their number.
+          const to = toDigits(pref?.whatsapp_phone) ?? toDigits(broker?.whatsapp) ?? toDigits(broker?.phone)
+            ?? toDigits((await db.auth.admin.getUserById(n.user_id)).data.user?.phone);
+          if (!to) {
+            await db.from("notifications").update({ whatsapp_status: "skipped", whatsapp_error: "no_phone" }).eq("id", n.id);
+            skipped++; continue;
+          }
+          const r = await send(to, n.title, n.message ?? "");
+          if (r.ok) {
+            await db.from("notifications").update({ whatsapp_status: "sent", whatsapp_sent_at: new Date().toISOString(), whatsapp_message_id: r.mid, whatsapp_error: null }).eq("id", n.id);
             sent++;
           } else {
-            console.error(`WhatsApp notify failed [${res.status}]: ${body}`);
-            await db.from("notifications").update({ whatsapp_status: "failed", whatsapp_error: `${res.status}: ${body.slice(0, 300)}` }).eq("id", n.id);
+            await db.from("notifications").update({ whatsapp_status: "failed", whatsapp_error: r.error }).eq("id", n.id);
             failed++;
           }
+        }
+
+        // People without an account (release 48): the customer's confirmation and a private owner's heads-up.
+        // Before release 48 the table doesn't exist: the select fails quietly and nothing else changes.
+        await db.from("wa_outbox").update({ status: "skipped", error: "expired" })
+          .eq("status", "pending").lt("created_at", new Date(Date.now() - 864e5).toISOString());
+        const { data: outbox } = await db.from("wa_outbox").select("id, phone, title, message").eq("status", "pending").order("created_at").limit(50);
+        for (const o of outbox ?? []) {
+          const to = toDigits(o.phone);
+          if (!to) { await db.from("wa_outbox").update({ status: "skipped", error: "no_phone" }).eq("id", o.id); skipped++; continue; }
+          const r = await send(to, o.title, o.message);
+          if (r.ok) { await db.from("wa_outbox").update({ status: "sent", sent_at: new Date().toISOString(), message_id: r.mid, error: null }).eq("id", o.id); sent++; }
+          else { await db.from("wa_outbox").update({ status: "failed", error: r.error }).eq("id", o.id); failed++; }
         }
         return Response.json({ configured: true, sent, skipped, failed, reminders, transfers });
       },
