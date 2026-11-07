@@ -4,7 +4,7 @@ import { Factory, MapPin, Maximize, MessageCircle, Briefcase } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, btnOutline } from "@/components/site/ui";
 import { ContactActions } from "@/components/site/ContactActions";
-import { PUBLIC_BROKER_COLS, formatPrice, formatDate, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, formatPrice, formatDate, listingCode, waLink, withContacts, withUnitCode, type PublicBroker } from "@/components/site/data";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { t } from "@/lib/i18n";
 import { PlaceMap } from "@/components/site/Gallery";
@@ -56,6 +56,7 @@ function Page() {
   if (!q.data) return <PageShell><div className="mx-auto mt-10 max-w-md p-6 text-center"><p className="font-bold text-primary">{t("العقار غير متاح")}</p><Link to="/industrial" className={`${btnOutline} mt-4`}>{t("كل العقارات الصناعية")}</Link></div></PageShell>;
   const { p, broker } = q.data;
   const chip = "flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5";
+  const inquiry = withUnitCode(`${t("مرحبًا، أستفسر عن:")} ${p.title}`, p.listing_no != null ? listingCode(p.listing_no) : null, `/industrial/${p.id}`);
   return (
     <PageShell>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
@@ -67,7 +68,7 @@ function Page() {
           <h1 className="mt-5 text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
           <p className="mt-2 text-2xl font-extrabold text-teal">{formatPrice(Number(p.price))} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
           {/* Below desktop the side card drops under the description and map — contact stays up here. */}
-          {broker && <div className="lg:hidden"><ContactActions who={broker} message={`${t("مرحبًا، أستفسر عن:")} ${p.title}`} /></div>}
+          {broker && <div className="lg:hidden"><ContactActions who={broker} message={inquiry} /></div>}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className={chip}><Factory className="size-4 text-teal" />{t(p.type)}</span>
             <span className={chip}><MapPin className="size-4 text-teal" />{p.area}</span>
@@ -93,7 +94,7 @@ function Page() {
                 <Avatar name={broker.name} url={broker.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{broker.name}</p><Link to="/brokers/$slug" params={{ slug: broker.slug }} className="text-xs font-bold text-teal">{t("عرض الملف")}</Link></div>
               </div>
-              <ContactActions who={broker} message={`${t("مرحبًا، أستفسر عن:")} ${p.title}`} />
+              <ContactActions who={broker} message={inquiry} />
             </div>
           )}
           <Link to="/industrial" className={`${btnOutline} w-full`}>{t("كل العقارات الصناعية")}</Link>

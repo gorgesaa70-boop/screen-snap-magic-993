@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cairoHour, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, welcome } from "@/lib/whatsapp-bot";
+import { cairoHour, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, unitCodes, welcome } from "@/lib/whatsapp-bot";
 
 describe("WhatsApp bot: reading the customer's message", () => {
   it("finds listing codes written in different ways", () => {
@@ -11,6 +11,20 @@ describe("WhatsApp bot: reading the customer's message", () => {
 
   it("finds property links sent by the site's buttons", () => {
     expect(listingIds("https://valueaqar.com/properties/41B9849E-A71B-4018-92BD-14C12403D9A2")).toEqual(["41b9849e-a71b-4018-92bd-14c12403d9a2"]);
+    expect(listingIds("https://valueaqar.com/industrial/41b9849e-a71b-4018-92bd-14c12403d9a2")).toEqual(["41b9849e-a71b-4018-92bd-14c12403d9a2"]);
+  });
+
+  it("reads a mall unit's message: its VA code, not the mall link", () => {
+    const msg = "مرحبًا، أستفسر عن وحدة محل 12 في جميرا — كود VA-210\nhttps://valueaqar.com/malls/41b9849e-a71b-4018-92bd-14c12403d9a2";
+    expect(listingNumbers(msg)).toEqual([210]);
+    expect(listingIds(msg)).toEqual([]);
+  });
+
+  it("finds project and compound unit codes", () => {
+    expect(unitCodes("مرحبًا، أستفسر عن وحدة شقة في النخيل — كود VP-12")).toEqual([{ kind: "project", no: 12 }]);
+    expect(unitCodes("vc 7 و VC-7 و vp٣")).toEqual([{ kind: "compound", no: 7 }, { kind: "project", no: 3 }]);
+    expect(unitCodes("كود VA-12")).toEqual([]);
+    expect(listingNumbers("كود VP-12")).toEqual([]);
   });
 
   it("reads menu choices by number (also Arabic digits) and by words", () => {
@@ -46,6 +60,7 @@ describe("WhatsApp bot: replies", () => {
     expect(t).toContain("https://valueaqar.com/properties/abc");
     expect(t).not.toMatch(/01[0125]\d{8}/);
     expect(listingText({ id: "x", code: null, type: "محل", status: "بيع", city: null, area: null, size: null, rooms: null, price: null, available: false })).toContain("مش متاح");
+    expect(listingText({ id: "x", code: "VA-9", type: "محل", status: "بيع", city: null, area: null, size: null, rooms: null, price: null, available: true, path: "/malls/m1" })).toContain("https://valueaqar.com/malls/m1");
   });
 
   it("knows Cairo working hours", () => {

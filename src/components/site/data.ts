@@ -384,6 +384,21 @@ export function listingMessage(p: Pick<Property, "id" | "title" | "type" | "stat
   ].filter(Boolean).join("\n");
 }
 
+/**
+ * A WhatsApp inquiry with the unit's code and page link (mall, industrial, project and compound units): the bot reads
+ * the code and hands the chat to the unit's owner. Always the public domain, like listingMessage.
+ */
+/** A project (VP-12) or compound (VC-12) unit's public code (release 49); null before the release is applied. */
+export function unitCodeOf(prefix: "VP" | "VC", u: object) {
+  const n = (u as { unit_no?: number | null }).unit_no;
+  return n != null ? `${prefix}-${n}` : null;
+}
+
+export function withUnitCode(message: string, code: string | null | undefined, path: string) {
+  const label = getLang() === "en" ? "code" : "كود";
+  return [code ? `${message} — ${label} ${code}` : message, `${SITE_URL}${path}`].join("\n");
+}
+
 /** wa.me needs the international form: Egyptian mobiles saved as 01XXXXXXXXX become 201XXXXXXXXX. */
 const waDigits = (num: string) => {
   const d = num.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "").replace(/^00/, "");

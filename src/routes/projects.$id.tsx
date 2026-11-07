@@ -8,7 +8,7 @@ import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
-import { formatPrice } from "@/components/site/data";
+import { formatPrice, unitCodeOf, waLink, withUnitCode } from "@/components/site/data";
 import { UNIT_STATUS, fetchProject, projectCover, type UnitRow } from "@/components/site/projects";
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -108,7 +108,7 @@ function ProjectPage() {
                   <tbody>
                     {units.map((u) => (
                       <tr key={u.id} className="border-t">
-                        <td className="p-3 font-bold text-primary">{t(u.unit_type)}{u.code && <span className="ms-1 text-xs text-muted-foreground" dir="ltr">({u.code})</span>}</td>
+                        <td className="p-3 font-bold text-primary">{t(u.unit_type)}{u.code && <span className="ms-1 text-xs text-muted-foreground" dir="ltr">({u.code})</span>}{unitCodeOf("VP", u) && <span className="ms-1 rounded bg-secondary px-1.5 text-[11px]" dir="ltr">{unitCodeOf("VP", u)}</span>}</td>
                         <td className="p-3">{formatPrice(Number(u.size))} {t("م²")}</td>
                         <td className="p-3">{u.rooms ?? "—"}</td>
                         <td className="p-3">{u.floor ?? "—"}</td>
@@ -131,7 +131,7 @@ function ProjectPage() {
                 <Avatar name={developer.name} url={developer.photo_url} size="size-12" />
                 <div className="min-w-0"><p className="truncate font-bold text-primary">{developer.name}</p><span className="text-xs font-bold text-muted-foreground">{t("شركة تطوير")}</span></div>
               </div>
-              {contactNumber(developer) && <ContactActions who={developer} message={t("مرحبًا، أستفسر عن مشروع {name}", { name: p.name })} />}
+              {contactNumber(developer) && <ContactActions who={developer} message={unitInquiry(p.name, p.id, picked)} />}
             </div>
           )}
           <div id="unit-inquiry" className="scroll-mt-20"><ProjectInquiry project={p.name} projectId={p.id} unit={picked} onClearUnit={() => setPicked(null)} /></div>
@@ -141,6 +141,12 @@ function ProjectPage() {
       <ReportButton kind="project" id={p.id} title={p.name} />
     </PageShell>
   );
+}
+
+/** WhatsApp text about the project, or the picked unit with its code so the bot hands the chat to the developer. */
+function unitInquiry(project: string, projectId: string, unit: UnitRow | null) {
+  const msg = unit ? t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: t(unit.unit_type), name: project }) : t("مرحبًا، أستفسر عن مشروع {name}", { name: project });
+  return withUnitCode(msg, unit ? unitCodeOf("VP", unit) : null, `/projects/${projectId}`);
 }
 
 /** Inquiries go to Value Aqar as a lead — the developer's contact details show only if the admin opened them up. */
@@ -155,7 +161,7 @@ function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: st
     e.preventDefault();
     if (name.trim().length < 2 || !cleanPhone(phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const about = `مشروع: ${project}${unit ? ` — وحدة: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
+    const about = `مشروع: ${project}${unit ? ` — وحدة${unitCodeOf("VP", unit) ? ` ${unitCodeOf("VP", unit)}` : ""}: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
     const { error } = await supabase.from("leads").insert({
       name: name.trim(), phone: cleanPhone(phone)!, kind: "request", original_source: "website",
       // Linked to the project (and unit) so the request is traceable, not only written in the details.
@@ -173,7 +179,7 @@ function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: st
       <h2 className="font-bold text-primary">{t("استفسر عن المشروع")}</h2>
       {unit && (
         <p className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-xs font-bold text-primary">
-          <span>{t(unit.unit_type)} · {formatPrice(Number(unit.size))} {t("م²")}{unit.code ? ` · ${unit.code}` : ""}</span>
+          <span>{t(unit.unit_type)} · {formatPrice(Number(unit.size))} {t("م²")}{unit.code ? ` · ${unit.code}` : ""}{unitCodeOf("VP", unit) ? ` · ${unitCodeOf("VP", unit)}` : ""}</span>
           <button type="button" onClick={onClearUnit} className="text-muted-foreground hover:text-destructive" aria-label={t("إلغاء اختيار الوحدة")}>✕</button>
         </p>
       )}
@@ -181,6 +187,7 @@ function ProjectInquiry({ project, projectId, unit, onClearUnit }: { project: st
       <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={600} />
       <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال الاستفسار")}</button>
+      <a href={waLink(null, unitInquiry(project, projectId, unit))} target="_blank" rel="noreferrer" className="block text-center text-xs font-bold text-whatsapp hover:underline">{t("أو اسأل على واتساب")}</a>
     </form>
   );
 }

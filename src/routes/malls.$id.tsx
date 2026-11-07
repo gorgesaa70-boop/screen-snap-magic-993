@@ -5,7 +5,7 @@ import { Store, MapPin, Maximize, Layers, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell, inputCls, btnOutline } from "@/components/site/ui";
 import { ContactActions } from "@/components/site/ContactActions";
-import { PUBLIC_BROKER_COLS, formatPrice, waLink, withContacts, type PublicBroker } from "@/components/site/data";
+import { PUBLIC_BROKER_COLS, formatPrice, listingCode, waLink, withContacts, withUnitCode, type PublicBroker } from "@/components/site/data";
 import { MALL_UNIT_TYPES, fetchMallUnits, mallImages } from "@/components/site/malls";
 import { AvailabilityBadge, availabilityOf, byAvailability } from "@/components/site/availability";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -99,7 +99,7 @@ function MallPage() {
                   <AvailabilityBadge p={u} className="absolute top-12 right-3" />
                 </div>
                 <div className="p-4">
-                  <p className="text-xs font-bold text-teal">{t(u.type)}</p>
+                  <p className="flex items-center justify-between gap-2 text-xs font-bold text-teal">{t(u.type)}{u.listing_no != null && <span className="rounded bg-secondary px-1.5 text-primary" dir="ltr">{listingCode(u.listing_no)}</span>}</p>
                   <h2 className="mt-1 font-extrabold text-primary">{u.title}</h2>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-primary">
                     <span className="flex items-center gap-1 rounded-lg bg-secondary px-2 py-1"><Maximize className="size-3.5" />{formatPrice(Number(u.size))} {t("م²")}</span>
@@ -107,7 +107,7 @@ function MallPage() {
                   </div>
                   {u.description && <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{u.description}</p>}
                   <p className="mt-3 text-lg font-extrabold text-primary">{formatPrice(Number(u.price))} <span className="text-xs text-muted-foreground">{t("ج.م")}{u.status === "إيجار" ? t(" / شهريًا") : ""}</span></p>
-                  <ContactActions who={b} message={t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: m.name })} waLabel="استفسر واتساب" className="mt-3" />
+                  <ContactActions who={b} message={withUnitCode(t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: u.title, name: m.name }), u.listing_no != null ? listingCode(u.listing_no) : null, `/malls/${m.id}`)} waLabel="استفسر واتساب" className="mt-3" />
                 </div>
               </div>
             );

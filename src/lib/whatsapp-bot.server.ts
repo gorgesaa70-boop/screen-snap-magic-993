@@ -4,7 +4,7 @@ import { sendWhatsappText } from "./whatsapp-send.server";
 import { DEFAULT_HOURS } from "./response-time";
 import type { AiResult } from "./whatsapp-ai.server";
 import { OWNER_HANDOVER_PAUSE_MS, OWNER_SILENCE_MS, handoverText } from "./wa-owner";
-import { REPLY, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, welcome, type ListingCard } from "./whatsapp-bot";
+import { REPLY, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, unitCodes, welcome, type ListingCard, type UnitCode } from "./whatsapp-bot";
 
 /**
  * Runs for every new customer message on the API number (after the sign-in check and the lead import):
@@ -39,7 +39,7 @@ export async function sendAndRecord(db: Db, phone: string, body: string, sender:
 
 export async function findListings(db: Db, numbers: number[], ids: string[]): Promise<ListingCard[]> {
   if (!numbers.length && !ids.length) return [];
-  let q = db.from("properties").select("id, listing_no, type, status, city, area, size, rooms, price, availability").eq("review_status", "approved");
+  let q = db.from("properties").select("id, listing_no, type, status, city, area, size, rooms, price, availability, category, mall_id").eq("review_status", "approved");
   q = numbers.length && ids.length ? q.or(`listing_no.in.(${numbers.join(",")}),id.in.(${ids.join(",")})`)
     : numbers.length ? q.in("listing_no", numbers) : q.in("id", ids);
   const { data } = await q.limit(3);
@@ -47,7 +47,37 @@ export async function findListings(db: Db, numbers: number[], ids: string[]): Pr
     id: r.id, code: r.listing_no != null ? `VA-${r.listing_no}` : null, type: r.type, status: r.status, city: r.city, area: r.area,
     size: r.size != null ? Number(r.size) : null, rooms: r.rooms, price: r.price != null ? Number(r.price) : null,
     available: (r.availability ?? "available") === "available",
+    // Mall and industrial units have their own pages.
+    path: r.category === "mall" && r.mall_id ? `/malls/${r.mall_id}` : r.category === "industrial" ? `/industrial/${r.id}` : undefined,
   }));
+}
+
+type UnitRow = { id: string; unit_no: number; unit_type: string; size: number | null; rooms: number | null; price: number | null; status: string };
+export type UnitCard = ListingCard & { unit: UnitCode };
+
+/** Project (VP-n) and compound (VC-n) units as cards (release 49). */
+export async function findUnits(db: Db, codes: UnitCode[]): Promise<UnitCard[]> {
+  const out: UnitCard[] = [];
+  const card = (u: UnitRow, unit: UnitCode, code: string, place: string | null, path: string): UnitCard => ({
+    id: u.id, code, type: u.unit_type, status: "بيع", city: place, area: null,
+    size: u.size != null ? Number(u.size) : null, rooms: u.rooms, price: u.price != null ? Number(u.price) : null,
+    available: u.status === "available", path, unit,
+  });
+  const projectNos = codes.filter((c) => c.kind === "project").map((c) => c.no);
+  if (projectNos.length) {
+    const { data } = await raw(db).from("project_units").select("id, unit_no, unit_type, size, rooms, price, status, projects!inner(id, name, area, review_status)")
+      .in("unit_no", projectNos).eq("projects.review_status", "approved");
+    for (const u of (data ?? []) as unknown as (UnitRow & { projects: { id: string; name: string; area: string | null } })[])
+      out.push(card(u, { kind: "project", no: u.unit_no }, `VP-${u.unit_no}`, [u.projects.name, u.projects.area].filter(Boolean).join("، "), `/projects/${u.projects.id}`));
+  }
+  const compoundNos = codes.filter((c) => c.kind === "compound").map((c) => c.no);
+  if (compoundNos.length) {
+    const { data } = await raw(db).from("compound_units").select("id, unit_no, unit_type, size, rooms, price, status, compounds!inner(id, name, location, is_active)")
+      .in("unit_no", compoundNos).eq("compounds.is_active", true);
+    for (const u of (data ?? []) as unknown as (UnitRow & { compounds: { id: string; name: string; location: string | null } })[])
+      out.push(card(u, { kind: "compound", no: u.unit_no }, `VC-${u.unit_no}`, [u.compounds.name, u.compounds.location].filter(Boolean).join("، "), `/compounds/${u.compounds.id}`));
+  }
+  return out.slice(0, 3);
 }
 
 async function openLeadId(db: Db, phone: string) {
@@ -62,6 +92,14 @@ async function assignOwner(db: Db, phone: string, propertyId: string): Promise<s
   if (error || !brokerId) return null; // before release 39, or no owner on the platform
   const { data: b } = await db.from("brokers").select("name").eq("id", brokerId as string).maybeSingle();
   return b?.name ?? "صاحب الإعلان";
+}
+
+/** Hands a chat about a project / compound unit to its developer (release 49); null when it stays with the team. */
+async function assignUnitOwner(db: Db, phone: string, unit: UnitCode): Promise<string | null> {
+  const { data: brokerId, error } = await raw(db).rpc("wa_assign_unit", { _phone: phone, _kind: unit.kind, _no: unit.no });
+  if (error || !brokerId) return null;
+  const { data: b } = await db.from("brokers").select("name").eq("id", brokerId as string).maybeSingle();
+  return b?.name ?? "المطوّر";
 }
 
 async function handoff(db: Db, m: Inbound, leadId: string | null, workTime: boolean, text?: string) {
@@ -106,12 +144,14 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
 
   // 2) Should the bot answer at all?
   if (leadResult === "team" || leadResult === "ignored") return;
+  // A customer writing for the first time: the team always hears about it, whatever the bot does next.
+  if (!conv) await raw(db).rpc("wa_notify_team", { _title: "عميل جديد على الواتساب", _msg: `${m.name ? `${m.name} (+${m.phone})` : `+${m.phone}`}: ${text.slice(0, 140)}`, _phone: m.phone });
   const { data: settings } = await raw(db).from("app_settings").select("wa_bot_enabled, wa_bot_ai, work_start_hour, work_end_hour").eq("id", 1).maybeSingle();
   if (settings && settings.wa_bot_enabled === false) return;
   const paused = conv?.bot_paused_until && new Date(conv.bot_paused_until as string) > now;
   // A question about a specific listing (the site's «اسأل على واتساب» message carries its code) still gets its card and
   // goes to the listing's owner while the bot is paused — unless a person is answering in this chat right now.
-  const listingQuestion = listingNumbers(text).length > 0 || listingIds(text).length > 0;
+  const listingQuestion = listingNumbers(text).length > 0 || listingIds(text).length > 0 || unitCodes(text).length > 0;
   const personActive = paused && listingQuestion && ((await raw(db).from("wa_messages").select("id", { count: "exact", head: true })
     .eq("phone", m.phone).in("sender", ["staff", "owner"]).gt("created_at", new Date(now.getTime() - PERSON_ACTIVE_MS).toISOString())).count ?? 0) > 0;
   if (paused && !(listingQuestion && !personActive)) {
@@ -131,17 +171,25 @@ export async function handleInbound(db: Db, m: Inbound, leadResult: string | nul
   const firstToday = now.getTime() - prevInbound > 24 * HOUR;
   const isMedia = /^\([a-z_]+\)$/.test(text);
 
-  // 3) A listing code or a listing link → its card(s).
-  const numbers = listingNumbers(text), ids = listingIds(text);
-  if (numbers.length || ids.length) {
-    const found = await findListings(db, numbers, ids);
+  // 3) A listing / unit code or a listing link → its card(s).
+  const numbers = listingNumbers(text), ids = listingIds(text), units = unitCodes(text);
+  if (numbers.length || ids.length || units.length) {
+    const listings = await findListings(db, numbers, ids);
+    const unitCards = await findUnits(db, units);
+    const found: ListingCard[] = [...listings, ...unitCards].slice(0, 3);
     const intro = firstToday ? `أهلاً${m.name ? ` ${m.name.split(/\s+/)[0]}` : ""} 👋 ده العقار اللي بتسأل عليه:\n\n` : "";
-    // The listing has an owner on the platform (broker / company / developer): the chat goes to them (release 39).
-    const owner = found.length ? await assignOwner(db, m.phone, found[0]!.id) : null;
-    const next = owner ? handoverText(owner) : "لو حابب تعاين أو تعرف تفاصيل أكتر، اكتب 3 وحد من الفريق هيكلّمك.";
+    // The listing / unit has an owner on the platform (broker / company / developer): the chat goes to them (releases 39, 49).
+    const owner = listings.length ? await assignOwner(db, m.phone, listings[0]!.id)
+      : unitCards.length ? await assignUnitOwner(db, m.phone, unitCards[0]!.unit) : null;
+    const next = owner ? handoverText(owner) : "بلّغت فريق فاليو عقار بسؤالك، وحد هيرد عليك هنا في أقرب وقت.";
     const body = found.length ? `${intro}${found.map(listingText).join("\n\n")}\n\n${next}` : REPLY.notFound;
     await sendAndRecord(db, m.phone, body, "bot");
     if (owner) await raw(db).from("wa_conversations").update({ bot_paused_until: new Date(now.getTime() + OWNER_HANDOVER_PAUSE_MS).toISOString() }).eq("phone", m.phone);
+    // Nobody on the platform owns it (or the code wasn't found): the team takes it right away.
+    else await raw(db).rpc("wa_notify_team", {
+      _title: found.length ? "عميل بيسأل على وحدة على الواتساب" : "عميل بعت كود مش موجود على الواتساب",
+      _msg: `${m.name ?? "+" + m.phone}: ${found.length ? `سأل على ${found.map((f) => f.code ?? f.id).join("، ")}` : text.slice(0, 140)}`, _phone: m.phone,
+    });
     if (leadId && found.length) await db.from("lead_activities").insert({ lead_id: leadId, actor_id: null, kind: "whatsapp", summary: `سأل على ${found.map((f) => f.code ?? f.id).join("، ")} (بوت الواتساب بعتله التفاصيل${owner ? `، واتحوّل لـ ${owner}` : ""}).` });
     return;
   }
