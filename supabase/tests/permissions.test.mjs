@@ -1981,6 +1981,31 @@ commit;`);
   await sys(`update public.properties set review_status = 'approved' where id = '${NOB}'`);
   await expectOk("a listing with no broker stays with the team", () => sys(`select public.wa_assign_owner('201077777777', '${NOB}') b`), (r) => r[0].b === null);
 
+  // Release 49: every unit has a code, and a WhatsApp question about it reaches the unit's owner.
+  const UMALL = (await sys(`insert into public.malls (name, developer_id) values ('مول الكود', '${DEV}') returning id`))[0].id;
+  const WMU = (await sys(`insert into public.properties (broker_id, title, price, type, area, status, category, mall_id) values (null, 'محل في المول', 1, 'محل', 'الحي الأول', 'بيع', 'mall', '${UMALL}') returning id`))[0].id;
+  await sys(`update public.properties set review_status = 'approved' where id = '${WMU}'`);
+  await expectOk("a mall unit without a broker goes to the mall's developer", () => sys(`select public.wa_assign_owner('201077777777', '${WMU}') b`), (r) => r[0].b === DEV);
+  const UPRJ = (await sys(`insert into public.projects (developer_id, name, city, area, review_status) values ('${DEV}','مشروع الأكواد','برج العرب الجديدة','الحي الأول','approved') returning id`))[0].id;
+  const pu = await as(U.dev, `insert into public.project_units (project_id, unit_type, unit_no) values ('${UPRJ}', 'شقة', 999999) returning id, unit_no`);
+  await expectOk("a new project unit gets its own code (the app can't pick it)", async () => pu, (r) => r[0].unit_no != null && Number(r[0].unit_no) !== 999999);
+  await expectOk("…and the code never changes", () => as(U.dev, `update public.project_units set unit_no = 5, size = 120 where id = '${pu[0].id}' returning unit_no`), (r) => r[0].unit_no === pu[0].unit_no);
+  await expectOk("units that existed before have codes too", () => sys(`select count(*)::int n from public.project_units where unit_no is null`), (r) => r[0].n === 0);
+  await expectErr("only the service role hands a unit chat to its developer", () => as(U.admin, `select public.wa_assign_unit('201077777777', 'project', ${pu[0].unit_no})`));
+  await expectOk("a project unit chat goes to the project's developer", () => sys(`select public.wa_assign_unit('201077777777', 'project', ${pu[0].unit_no}) b`), (r) => r[0].b === DEV);
+  await expectOk("…the developer gets a bell", () => sys(`select count(*)::int n from public.notifications where user_id = '${U.dev}' and title = 'عميل بيسأل على وحدة عندك على الواتساب'`), (r) => r[0].n === 1);
+  await sys(`insert into public.wa_messages (phone, direction, sender, body) values ('201077777777', 'out', 'bot', 'دي الوحدة')`);
+  await expectOk("…and sees the unit in their chats", () => as(U.dev, `select * from public.wa_owner_threads()`), (r) => r.some((x) => x.is_current && x.property_id === null && x.property_title?.startsWith(`VP-${pu[0].unit_no} · شقة`)));
+  const UCMP = (await sys(`insert into public.compounds (developer_id, name) values ('${DEV}', 'كمبوند الأكواد') returning id`))[0].id;
+  const cu = (await sys(`insert into public.compound_units (compound_id, unit_type) values ('${UCMP}', 'فيلا') returning unit_no`))[0].unit_no;
+  await expectOk("a compound unit chat goes to the compound's developer", () => sys(`select public.wa_assign_unit('201077777777', 'compound', ${cu}) b`), (r) => r[0].b === DEV);
+  const TEAMC = (await sys(`insert into public.compounds (name) values ('كمبوند فاليو') returning id`))[0].id;
+  const tcu = (await sys(`insert into public.compound_units (compound_id, unit_type) values ('${TEAMC}', 'شقة') returning unit_no`))[0].unit_no;
+  await expectOk("a unit of a compound with no developer account stays with the team", () => sys(`select public.wa_assign_unit('201077777777', 'compound', ${tcu}) b`), (r) => r[0].b === null);
+  await expectOk("an unknown unit code stays with the team", () => sys(`select public.wa_assign_unit('201077777777', 'project', 987654321) b`), (r) => r[0].b === null);
+  await as(U.admin, `select public.wa_release_owner('201077777777')`);
+  await expectOk("taking the chat back clears the unit", () => sys(`select owner_unit_kind, owner_unit_id from public.wa_conversations where phone = '201077777777'`), (r) => r[0].owner_unit_kind === null && r[0].owner_unit_id === null);
+
   console.log("\nListing statistics (showings, views, contacts)");
   const stProp = (await sys(`select id from public.properties where broker_id='${CO}' and review_status='approved' and not is_demo limit 1`))[0].id;
   const track = (who, kind, dev, src = "home", ids = [stProp]) => as(who, `select public.track_listing(array[${ids.map((x) => `'${x}'`).join(",")}]::uuid[], '${kind}', '${dev}', '${src}') n`).then((r) => r[0].n);

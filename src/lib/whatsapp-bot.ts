@@ -22,9 +22,21 @@ export function listingNumbers(text: string): number[] {
   return [...out].slice(0, 3);
 }
 
-/** Property page ids from links like valueaqar.com/properties/<uuid> (the site's WhatsApp buttons send this). */
+/** Listing page ids from links like valueaqar.com/properties/<uuid> or /industrial/<uuid> (the site's WhatsApp buttons send this). */
 export function listingIds(text: string): string[] {
-  return [...new Set([...text.matchAll(/properties\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi)].map((m) => m[1]!.toLowerCase()))].slice(0, 3);
+  return [...new Set([...text.matchAll(/(?:properties|industrial)\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi)].map((m) => m[1]!.toLowerCase()))].slice(0, 3);
+}
+
+export type UnitCode = { kind: "project" | "compound"; no: number };
+
+/** Project and compound unit codes (release 49): «VP-12» is a unit in a project, «VC-12» a unit in a compound. */
+export function unitCodes(text: string): UnitCode[] {
+  const out = new Map<string, UnitCode>();
+  for (const m of normalize(text).matchAll(/\bv([pc])\s*-?\s*(\d{1,7})\b/g)) {
+    const u: UnitCode = { kind: m[1] === "p" ? "project" : "compound", no: Number(m[2]) };
+    out.set(`${u.kind}${u.no}`, u);
+  }
+  return [...out.values()].slice(0, 3);
 }
 
 export type MenuChoice = "search" | "sell" | "human";
@@ -67,6 +79,8 @@ export const REPLY = {
 export type ListingCard = {
   id: string; code: string | null; type: string; status: string; city: string | null; area: string | null;
   size: number | null; rooms: number | null; price: number | null; available: boolean;
+  /** The page on the site; a regular listing's page when missing. */
+  path?: string | undefined;
 };
 
 const money = (n: number) => new Intl.NumberFormat("ar-EG").format(n);
@@ -78,7 +92,7 @@ export function listingText(p: ListingCard) {
   const bits = [`${p.type} ${purpose}`, place, p.size ? `${money(p.size)} م²` : "", p.rooms ? `${money(p.rooms)} غرف` : ""].filter(Boolean).join(" · ");
   const price = p.price ? `💰 ${money(p.price)} ج.م` : "";
   const state = p.available ? "" : "⚠️ محجوز / مش متاح دلوقتي";
-  return [`🏠 ${p.code ? `*${p.code}* — ` : ""}${bits}`, price, state, `${SITE}/properties/${p.id}`].filter(Boolean).join("\n");
+  return [`🏠 ${p.code ? `*${p.code}* — ` : ""}${bits}`, price, state, `${SITE}${p.path ?? `/properties/${p.id}`}`].filter(Boolean).join("\n");
 }
 
 /** Cairo hour now (0-23). */

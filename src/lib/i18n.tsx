@@ -601,6 +601,7 @@ const EN: Record<string, string> = {
   "مرحبًا، أستفسر عن وحدة {title} في {name}": "Hello, I'm inquiring about unit {title} in {name}",
   "مرحبًا، أستفسر عن مشروع {name}": "Hello, I'm inquiring about the {name} project",
   "مرحبًا، أستفسر عن كمبوند {name}": "Hello, I'm inquiring about the {name} compound",
+  "أو اسأل على واتساب": "Or ask on WhatsApp",
   // Projects
   "المشروعات": "Projects",
   "مشروعات شركات التطوير العقاري والوحدات المتاحة فيها.": "Real estate developers' projects and their available units.",

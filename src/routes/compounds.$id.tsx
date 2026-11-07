@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { PropertyCard } from "@/components/site/Sections";
-import { formatPrice, toProperty } from "@/components/site/data";
+import { formatPrice, toProperty, unitCodeOf, waLink, withUnitCode } from "@/components/site/data";
 import { UNIT_STATUS, compoundCover, compoundWhere, developerLabel, fetchCompound, isReady, type CompoundUnitRow } from "@/components/site/compounds";
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
@@ -134,7 +134,7 @@ function CompoundPage() {
                   <tbody>
                     {units.map((u) => (
                       <tr key={u.id} className="border-t">
-                        <td className="p-3 font-bold text-primary">{t(u.unit_type)}{u.code && <span className="ms-1 text-xs text-muted-foreground" dir="ltr">({u.code})</span>}</td>
+                        <td className="p-3 font-bold text-primary">{t(u.unit_type)}{u.code && <span className="ms-1 text-xs text-muted-foreground" dir="ltr">({u.code})</span>}{unitCodeOf("VC", u) && <span className="ms-1 rounded bg-secondary px-1.5 text-[11px]" dir="ltr">{unitCodeOf("VC", u)}</span>}</td>
                         <td className="p-3">{[u.building, u.floor].filter(Boolean).join(" / ") || "—"}</td>
                         <td className="p-3">{formatPrice(Number(u.size))} {t("م²")}</td>
                         <td className="p-3">{u.rooms ?? "—"}</td>
@@ -168,7 +168,7 @@ function CompoundPage() {
                 <span className="text-xs font-bold text-muted-foreground">{t("المطور")}</span>
               </div>
             </div>
-            {contactNumber(developer) && <ContactActions who={developer} message={t("مرحبًا، أستفسر عن كمبوند {name}", { name: c.name })} />}
+            {contactNumber(developer) && <ContactActions who={developer} message={unitInquiry(c.name, c.id, picked)} />}
             </div>
           )}
           <div id="unit-inquiry" className="scroll-mt-20"><CompoundInquiry compound={c.name} compoundId={c.id} unit={picked} onClearUnit={() => setPicked(null)} /></div>
@@ -178,6 +178,12 @@ function CompoundPage() {
       <ReportButton kind="compound" id={c.id} title={c.name} />
     </PageShell>
   );
+}
+
+/** WhatsApp text about the compound, or the picked unit with its code so the bot hands the chat to the developer. */
+function unitInquiry(compound: string, compoundId: string, unit: CompoundUnitRow | null) {
+  const msg = unit ? t("مرحبًا، أستفسر عن وحدة {title} في {name}", { title: t(unit.unit_type), name: compound }) : t("مرحبًا، أستفسر عن كمبوند {name}", { name: compound });
+  return withUnitCode(msg, unit ? unitCodeOf("VC", unit) : null, `/compounds/${compoundId}`);
 }
 
 /** Inquiries go to Value Aqar as a lead linked to the compound (and unit) — the developer's contacts show only if the admin opened them up. */
@@ -192,7 +198,7 @@ function CompoundInquiry({ compound, compoundId, unit, onClearUnit }: { compound
     e.preventDefault();
     if (name.trim().length < 2 || !cleanPhone(phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const about = `كمبوند: ${compound}${unit ? ` — وحدة: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
+    const about = `كمبوند: ${compound}${unit ? ` — وحدة${unitCodeOf("VC", unit) ? ` ${unitCodeOf("VC", unit)}` : ""}: ${unit.unit_type}${unit.code ? ` (${unit.code})` : ""}، ${unit.size} م²` : ""}`;
     const { error } = await supabase.from("leads").insert({
       name: name.trim(), phone: cleanPhone(phone)!, kind: "request", original_source: "website",
       compound_id: compoundId, compound_unit_id: unit?.id ?? null,
@@ -209,7 +215,7 @@ function CompoundInquiry({ compound, compoundId, unit, onClearUnit }: { compound
       <h2 className="font-bold text-primary">{t("استفسر عن الكمبوند")}</h2>
       {unit && (
         <p className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-xs font-bold text-primary">
-          <span>{t(unit.unit_type)} · {formatPrice(Number(unit.size))} {t("م²")}{unit.code ? ` · ${unit.code}` : ""}</span>
+          <span>{t(unit.unit_type)} · {formatPrice(Number(unit.size))} {t("م²")}{unit.code ? ` · ${unit.code}` : ""}{unitCodeOf("VC", unit) ? ` · ${unitCodeOf("VC", unit)}` : ""}</span>
           <button type="button" onClick={onClearUnit} className="text-muted-foreground hover:text-destructive" aria-label={t("إلغاء اختيار الوحدة")}>✕</button>
         </p>
       )}
@@ -217,6 +223,7 @@ function CompoundInquiry({ compound, compoundId, unit, onClearUnit }: { compound
       <input className={inputCls} placeholder={t("رقم الهاتف")} dir="ltr" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} required />
       <textarea className={`${inputCls} h-20 py-2`} placeholder={t("رسالتك (اختياري)")} value={details} onChange={(e) => setDetails(e.target.value)} maxLength={600} />
       <button disabled={busy} className={`${btnPrimary} w-full`}>{busy ? t("بيتبعت...") : t("إرسال الاستفسار")}</button>
+      <a href={waLink(null, unitInquiry(compound, compoundId, unit))} target="_blank" rel="noreferrer" className="block text-center text-xs font-bold text-whatsapp hover:underline">{t("أو اسأل على واتساب")}</a>
     </form>
   );
 }
