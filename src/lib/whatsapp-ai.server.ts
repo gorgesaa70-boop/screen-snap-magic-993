@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { listingText, type ListingCard } from "./whatsapp-bot";
+import { listingPath, listingText, type ListingCard } from "./whatsapp-bot";
 
 /**
  * The bot's AI answers via the Lovable AI Gateway (no external key, no extra bill). It may only talk about listings
@@ -81,10 +81,10 @@ const TOOLS = [
 const STATUS: Record<string, string> = { sale: "بيع", rent: "إيجار", summer: "مصيف" };
 const clean = (s: unknown, max = 40) => String(s ?? "").replace(/[^\p{L}\p{N} -]/gu, "").trim().slice(0, max);
 
-/** Up to 4 approved listings matching the filters. */
-export async function searchListings(db: Db, args: Record<string, unknown>): Promise<ListingCard[]> {
+/** Up to 4 approved listings matching the filters (`offset`/`limit` page through more for the site's guided search). */
+export async function searchListings(db: Db, args: Record<string, unknown>, page: { offset?: number; limit?: number } = {}): Promise<ListingCard[]> {
   let q = db.from("properties")
-    .select("id, listing_no, type, status, city, area, size, rooms, price, availability")
+    .select("id, listing_no, type, status, city, area, size, rooms, price, availability, category, mall_id")
     .eq("review_status", "approved").in("category", ["residential", "mall", "industrial"]);
   const purpose = STATUS[String(args["purpose"] ?? "")];
   if (purpose) q = q.eq("status", purpose);
@@ -96,12 +96,13 @@ export async function searchListings(db: Db, args: Record<string, unknown>): Pro
   if (max > 0) q = q.lte("price", max);
   if (min > 0) q = q.gte("price", min);
   if (rooms > 0) q = q.gte("rooms", rooms);
-  const { data, error } = await q.order("is_featured", { ascending: false }).order("created_at", { ascending: false }).limit(4);
-  if (error) { console.error("wa bot search failed", error.code); return []; }
+  const from = page.offset ?? 0;
+  const { data, error } = await q.order("is_featured", { ascending: false }).order("created_at", { ascending: false }).range(from, from + (page.limit ?? 4) - 1);
+  if (error) { console.error("wa bot search failed", error.code, error.message?.slice(0, 160)); return []; }
   return (data ?? []).map((r) => ({
     id: r.id, code: r.listing_no != null ? `VA-${r.listing_no}` : null, type: r.type, status: r.status, city: r.city, area: r.area,
     size: r.size != null ? Number(r.size) : null, rooms: r.rooms, price: r.price != null ? Number(r.price) : null,
-    available: (r.availability ?? "available") === "available",
+    available: (r.availability ?? "available") === "available", path: listingPath(r),
   }));
 }
 

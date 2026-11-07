@@ -30,6 +30,29 @@ export const assistantInfo = createServerFn({ method: "GET" }).handler(async () 
   return { floating: s.floating, welcome: s.welcome };
 });
 
+const browseInput = z.object({
+  purpose: z.enum(["sale", "rent", "summer"]),
+  area: z.string().max(40).optional(),
+  type: z.string().max(40).optional(),
+  min: z.number().min(0).max(1e10).optional(),
+  max: z.number().min(0).max(1e10).optional(),
+  offset: z.number().int().min(0).max(40).default(0),
+});
+export type BrowseFilters = z.input<typeof browseInput>;
+export type BrowseReply = { ok: true; listings: ListingCard[]; more: boolean } | { ok: false; error: string };
+
+/** The guided search (buttons, no AI): 4 matching listings at a time, and whether there are more. */
+export const browseListings = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => browseInput.parse(d))
+  .handler(async ({ data }): Promise<BrowseReply> => {
+    const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (!allowed(ip)) return { ok: false, error: "rate" };
+    const { supabase: db } = await import("@/integrations/supabase/client");
+    const { searchListings } = await import("./whatsapp-ai.server");
+    const found = await searchListings(db, { purpose: data.purpose, area: data.area, type: data.type, min_price: data.min, max_price: data.max }, { offset: data.offset, limit: 5 });
+    return { ok: true, listings: found.slice(0, 4), more: found.length > 4 };
+  });
+
 export const askAssistant = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => input.parse(d))
   .handler(async ({ data }): Promise<AssistantReply> => {

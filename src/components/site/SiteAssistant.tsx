@@ -1,37 +1,76 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouterState, Link } from "@tanstack/react-router";
+import { useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Send, Sparkles, X, MapPin } from "lucide-react";
+import { Send, Sparkles, X, MapPin, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { askAssistant, assistantInfo } from "@/lib/assistant.functions";
+import { askAssistant, assistantInfo, browseListings, type BrowseFilters } from "@/lib/assistant.functions";
 import type { ListingCard } from "@/lib/whatsapp-bot";
 import { cleanPhone } from "@/lib/phone";
 import { getAttribution } from "@/lib/attribution";
 import { t, useLang } from "@/lib/i18n";
 import { inputCls } from "./ui";
 import { HIDDEN, WhatsAppMark, useFloatingWhatsapp } from "./FloatingWhatsApp";
-import { WHATSAPP_NUMBER, waLink, formatPrice } from "./data";
+import { CITY_NAMES, WHATSAPP_NUMBER, waLink, formatPrice, withUnitCode } from "./data";
 
-type Msg = { role: "user" | "model"; text: string; listings?: ListingCard[]; offerContact?: boolean };
+type Purpose = "sale" | "rent" | "summer";
+/** What the visitor picked so far in the guided search. */
+type Guide = { purpose?: Purpose | undefined; area?: string | undefined; type?: string | undefined; min?: number | undefined; max?: number | undefined };
+/** A button under the assistant's last message. */
+type Act =
+  | { k: "purpose"; v: Purpose } | { k: "area"; v: string } | { k: "type"; v: string } | { k: "budget"; min?: number | undefined; max?: number | undefined }
+  | { k: "step"; v: "area" | "type" | "budget" } | { k: "more" } | { k: "results" } | { k: "restart" } | { k: "contact" }
+  | { k: "ask"; q: string } | { k: "page"; href: string } | { k: "viewing" } | { k: "wa" };
+type Opt = { label: string; act: Act };
+type Msg = {
+  role: "user" | "model"; text: string; listings?: ListingCard[] | undefined; offerContact?: boolean | undefined;
+  options?: Opt[] | undefined; picked?: ListingCard | undefined; viewing?: ListingCard | undefined;
+};
 type Request = Record<string, string | number>;
 
 const STORE = "va-assistant";
-const CHIPS = ["🏠 شقة للبيع في برج العرب", "🔑 شقة إيجار", "🏬 محل في مول", "📝 عاوز أعرض عقاري", "⏳ سألت على عقار ومحدش رد", "📱 التطبيق"];
+const GUIDE_STORE = "va-assistant-guide";
 const POS = "va-assistant-pos";
+
+const START: Opt[] = [
+  { label: "🏠 عاوز أشتري", act: { k: "purpose", v: "sale" } },
+  { label: "🔑 عاوز أأجّر", act: { k: "purpose", v: "rent" } },
+  { label: "🏖️ مصيف", act: { k: "purpose", v: "summer" } },
+  { label: "📝 عاوز أعرض عقاري", act: { k: "page", href: "/sell" } },
+  { label: "⏳ سألت على عقار ومحدش رد", act: { k: "ask", q: "سألت على عقار ومحدش رد عليا" } },
+  { label: "📱 التطبيق", act: { k: "ask", q: "عاوز أنزّل تطبيق فاليو عقار" } },
+];
+const TYPES: Record<Purpose, string[]> = {
+  sale: ["شقة", "فيلا", "دوبلكس", "محل", "أرض"],
+  rent: ["شقة", "فيلا", "محل", "مكتب"],
+  summer: ["شاليه", "شقة", "فيلا"],
+};
+const BUDGETS: Record<Purpose, [string, number | undefined, number | undefined][]> = {
+  sale: [["لحد مليون", undefined, 1_000_000], ["من 1 لـ 2 مليون", 1_000_000, 2_000_000], ["من 2 لـ 4 مليون", 2_000_000, 4_000_000], ["أكتر من 4 مليون", 4_000_000, undefined]],
+  rent: [["لحد 5,000 في الشهر", undefined, 5000], ["من 5 لـ 10 آلاف", 5000, 10_000], ["من 10 لـ 20 ألف", 10_000, 20_000], ["أكتر من 20 ألف", 20_000, undefined]],
+  summer: [["لحد 2,000 الليلة", undefined, 2000], ["من 2 لـ 5 آلاف", 2000, 5000], ["أكتر من 5 آلاف", 5000, undefined]],
+};
+const PURPOSE_WORD: Record<Purpose, string> = { sale: "للبيع", rent: "للإيجار", summer: "مصيف" };
+
 type Pos = { x: number; y: number };
 const loadPos = (): Pos | null => { try { const p = JSON.parse(localStorage.getItem(POS) || "null") as Pos | null; return p && Number.isFinite(p.x) && Number.isFinite(p.y) ? p : null; } catch { return null; } };
 /** Keep the button on screen (also after the phone rotates). */
 const clamp = (p: Pos, w = 180, h = 56): Pos => ({ x: Math.min(Math.max(8, p.x), window.innerWidth - w - 8), y: Math.min(Math.max(8, p.y), window.innerHeight - h - 8) });
 const load = (): Msg[] => { try { return JSON.parse(sessionStorage.getItem(STORE) || "[]") as Msg[]; } catch { return []; } };
 const save = (m: Msg[]) => { try { sessionStorage.setItem(STORE, JSON.stringify(m.slice(-30))); } catch { /* storage blocked */ } };
+const loadGuide = (): Guide => { try { return JSON.parse(sessionStorage.getItem(GUIDE_STORE) || "{}") as Guide; } catch { return {}; } };
+const pagePath = (p: ListingCard) => p.path ?? `/properties/${p.id}`;
 
-function ListingMini({ p }: { p: ListingCard }) {
+/** A listing in the chat: tapping it picks it (the assistant then offers what to do next). */
+function ListingMini({ p, onPick, picked }: { p: ListingCard; onPick?: ((p: ListingCard) => void) | undefined; picked?: boolean | undefined }) {
   const place = p.area && p.area !== p.city ? `${p.area}، ${p.city ?? ""}` : p.city || p.area || "";
-  return (
-    <Link to="/properties/$id" params={{ id: p.id }} className="block rounded-xl border bg-background p-2.5 text-xs transition hover:border-teal">
-      <p className="font-bold text-primary">{p.code ? `${p.code} · ` : ""}{p.type} {p.status === "بيع" ? t("للبيع") : p.status === "إيجار" ? t("للإيجار") : p.status}</p>
+  const body = (
+    <>
+      <p className="flex items-center justify-between gap-2 font-bold text-primary">
+        <span>{p.code ? `${p.code} · ` : ""}{t(p.type)} {p.status === "بيع" ? t("للبيع") : p.status === "إيجار" ? t("للإيجار") : t(p.status)}</span>
+        {picked && <Check className="size-4 shrink-0 text-teal" />}
+      </p>
       {place && <p className="mt-0.5 flex items-center gap-1 text-muted-foreground"><MapPin className="size-3" />{place}</p>}
       <p className="mt-1 flex flex-wrap gap-x-2 text-muted-foreground">
         {p.size ? <span>{formatPrice(p.size)} {t("م²")}</span> : null}
@@ -39,8 +78,13 @@ function ListingMini({ p }: { p: ListingCard }) {
         {p.price ? <span className="font-bold text-teal">{formatPrice(p.price)} {t("ج.م")}</span> : null}
       </p>
       {!p.available && <p className="mt-1 font-bold text-destructive">{t("محجوز / مش متاح دلوقتي")}</p>}
-    </Link>
+      {onPick && <p className="mt-1.5 text-[11px] font-bold text-teal">{t("اختار دي ←")}</p>}
+    </>
   );
+  const cls = `block w-full rounded-xl border bg-background p-2.5 text-start text-xs transition ${picked ? "border-teal" : "hover:border-teal"}`;
+  return onPick
+    ? <button type="button" onClick={() => onPick(p)} className={cls}>{body}</button>
+    : <a href={pagePath(p)} className={cls}>{body}</a>;
 }
 
 /** «سيب رقمك»: the visitor's details become a request lead with what the assistant understood. */
@@ -76,11 +120,48 @@ function ContactForm({ request, transcript, onDone }: { request: Request; transc
   );
 }
 
-/** Floating AI assistant (opposite corner from the WhatsApp button): finds real listings and takes requests. */
+const WHEN = ["النهارده", "بكرة", "خلال الأسبوع", "أي وقت"];
+
+/** «احجز معاينة»: an inquiry lead on the picked listing, so it reaches the listing's owner (or the team) like the listing page's form. */
+function ViewingForm({ p, onDone }: { p: ListingCard; onDone: () => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [when, setWhen] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const ph = cleanPhone(phone);
+    if (name.trim().length < 2 || !ph) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
+    setBusy(true);
+    const { error } = await supabase.from("leads").insert({
+      name: name.trim(), phone: ph, kind: "inquiry", property_id: p.id, original_source: "website", utm: getAttribution(),
+      details: `طلب معاينة من المساعد الذكي${p.code ? ` — ${p.code}` : ""}${when ? ` — الميعاد المناسب: ${when}` : ""}`,
+    });
+    setBusy(false);
+    if (error) { toast.error(t("الطلب ماتبعتش، جرّب تاني")); return; }
+    onDone();
+  }
+  return (
+    <form onSubmit={submit} className="mt-2 grid gap-2 rounded-xl border bg-background p-2.5">
+      <input className={`${inputCls} h-10`} placeholder={t("الاسم")} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
+      <input className={`${inputCls} h-10`} placeholder={t("رقم الهاتف")} inputMode="tel" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={20} />
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("الميعاد المناسب")}>
+        {WHEN.map((w) => (
+          <button key={w} type="button" onClick={() => setWhen(w)} aria-pressed={when === w}
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${when === w ? "border-primary bg-primary text-primary-foreground" : "text-primary"}`}>{t(w)}</button>
+        ))}
+      </div>
+      <button disabled={busy} className="h-10 rounded-xl bg-primary text-sm font-bold text-primary-foreground disabled:opacity-60">{busy ? "..." : t("احجز المعاينة")}</button>
+    </form>
+  );
+}
+
+/** Floating AI assistant (opposite corner from the WhatsApp button): guides the visitor with buttons, finds real listings and takes requests. */
 export function SiteAssistant() {
   useLang();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const ask = useServerFn(askAssistant);
+  const browse = useServerFn(browseListings);
   const wa = useFloatingWhatsapp().data || WHATSAPP_NUMBER;
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -88,6 +169,9 @@ export function SiteAssistant() {
   const [busy, setBusy] = useState(false);
   const [request, setRequest] = useState<Request>({});
   const [sent, setSent] = useState(false);
+  const [guide, setGuide] = useState<Guide>({});
+  // The last guided results, so «ارجع للنتايج» and «اعرض أكتر» work after a listing was picked.
+  const [results, setResults] = useState<{ listings: ListingCard[]; more: boolean; offset: number } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const info = useServerFn(assistantInfo);
   const settings = useQuery({ queryKey: ["assistant-info"], queryFn: () => info(), staleTime: 5 * 60_000 }).data;
@@ -95,8 +179,9 @@ export function SiteAssistant() {
   const [pos, setPos] = useState<Pos | null>(null);
   const drag = useRef<{ dx: number; dy: number; sx: number; sy: number; moved: boolean } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
-  useEffect(() => { setMsgs(load()); const p = loadPos(); if (p) setPos(clamp(p)); }, []);
+  useEffect(() => { setMsgs(load()); setGuide(loadGuide()); const p = loadPos(); if (p) setPos(clamp(p)); }, []);
   useEffect(() => { save(msgs); end.current?.scrollIntoView({ block: "end" }); }, [msgs, open]);
+  useEffect(() => { try { sessionStorage.setItem(GUIDE_STORE, JSON.stringify(guide)); } catch { /* storage blocked */ } }, [guide]);
   useEffect(() => {
     const fit = () => setPos((p) => (p ? clamp(p, btn.current?.offsetWidth, btn.current?.offsetHeight) : p));
     window.addEventListener("resize", fit);
@@ -142,9 +227,105 @@ export function SiteAssistant() {
       role: "model",
       text: fallback ? t("المساعد الذكي مش متاح دلوقتي. تقدر تدوّر من البحث فوق، أو تسيب رقمك، أو تكلّمنا واتساب.") : r.text || (r.listings.length ? t("دي أنسب حاجات لقيتها:") : ""),
       listings: r.listings, offerContact: r.handoff || fallback || (!r.listings.length && Object.keys(r.request).length > 0),
+      options: r.listings.length ? [{ label: t("🔄 دوّر بالأزرار"), act: { k: "restart" } }] : undefined,
     }]);
   }
+
+  // ——— Guided search: one question per step, always with buttons, until the visitor books a viewing or leaves a request.
+  const say = (base: Msg[], m: Msg) => setMsgs([...base, m]);
+  const startOpts = (): Opt[] => START.map((o) => ({ ...o, label: t(o.label) }));
+  const restartOpts = (): Opt[] => [{ label: t("🔄 ابدأ من الأول"), act: { k: "restart" } }];
+  const askArea = (base: Msg[]) => say(base, {
+    role: "model", text: t("تمام 👌 في أنهي منطقة؟"),
+    options: [...CITY_NAMES.map((c) => ({ label: t(c), act: { k: "area", v: c } as Act })), { label: t("أي مكان"), act: { k: "area", v: "" } }],
+  });
+  const askType = (base: Msg[], g: Guide) => say(base, {
+    role: "model", text: t("نوع العقار إيه؟"),
+    options: [...TYPES[g.purpose ?? "sale"].map((x) => ({ label: t(x), act: { k: "type", v: x } as Act })), { label: t("أي نوع"), act: { k: "type", v: "" } }],
+  });
+  const askBudget = (base: Msg[], g: Guide) => say(base, {
+    role: "model", text: t("الميزانية تقريبًا كام؟"),
+    options: [...BUDGETS[g.purpose ?? "sale"].map(([l, min, max]) => ({ label: t(l), act: { k: "budget", min, max } as Act })), { label: t("مش فارقة"), act: { k: "budget" } }],
+  });
+
+  async function search(base: Msg[], g: Guide, offset = 0) {
+    if (!g.purpose) { say(base, { role: "model", text: t("بتدوّر على إيه؟"), options: startOpts() }); return; }
+    setBusy(true); setMsgs(base);
+    const filters: BrowseFilters = { purpose: g.purpose, area: g.area || undefined, type: g.type || undefined, min: g.min, max: g.max, offset };
+    const r = await browse({ data: filters }).catch(() => ({ ok: false as const, error: "network" }));
+    setBusy(false);
+    if (!r.ok) { say(base, { role: "model", text: r.error === "rate" ? t("بعت رسايل كتير، استنى دقايق وجرّب تاني.") : t("حصلت مشكلة في الاتصال، جرّب تاني."), options: restartOpts() }); return; }
+    // What the visitor asked for, in case they leave their number.
+    setRequest({ purpose: g.purpose, ...(g.type ? { property_type: g.type } : {}), ...(g.area ? { area: g.area } : {}), ...(g.max ? { budget: g.max } : {}) });
+    if (!r.listings.length) {
+      say(base, {
+        role: "model", text: offset ? t("دي كل الوحدات المناسبة 👆 تحب تغيّر حاجة؟") : t("مالقيتش حاجة مطابقة دلوقتي 😕 جرّب تغيّر حاجة، أو سيب طلبك وأول ما يتوفر نكلّمك:"),
+        options: [
+          { label: t("💰 غيّر الميزانية"), act: { k: "step", v: "budget" } },
+          { label: t("📍 منطقة تانية"), act: { k: "step", v: "area" } },
+          { label: t("🏠 نوع تاني"), act: { k: "step", v: "type" } },
+          { label: t("📝 سيب طلبك"), act: { k: "contact" } },
+          ...restartOpts(),
+        ],
+      });
+      return;
+    }
+    setResults({ listings: r.listings, more: r.more, offset });
+    say(base, {
+      role: "model", text: offset ? t("ودول كمان 👇 دوس على الوحدة اللي عجبتك:") : t("لقيتلك وحدات مناسبة 👇 دوس على اللي عجبتك وأكمّل معاك:"),
+      listings: r.listings,
+      options: [
+        ...(r.more ? [{ label: t("➕ اعرض أكتر"), act: { k: "more" } as Act }] : []),
+        { label: t("💰 غيّر الميزانية"), act: { k: "step", v: "budget" } },
+        { label: t("📍 منطقة تانية"), act: { k: "step", v: "area" } },
+        ...restartOpts(),
+      ],
+    });
+  }
+
+  function pick(p: ListingCard) {
+    if (busy) return;
+    const base: Msg[] = [...msgs, { role: "user", text: `${t("اخترت")} ${p.code ?? t(p.type)}` }];
+    say(base, {
+      role: "model", text: t("اختيار حلو 👌 تحب تعمل إيه؟"), picked: p,
+      options: [
+        { label: t("📅 احجز معاينة"), act: { k: "viewing" } },
+        { label: t("💬 اسأل صاحب الإعلان واتساب"), act: { k: "wa" } },
+        { label: t("📄 الصور والتفاصيل"), act: { k: "page", href: pagePath(p) } },
+        ...(results ? [{ label: t("🔙 ارجع للنتايج"), act: { k: "results" } as Act }] : []),
+      ],
+    });
+  }
+
+  function run(o: Opt, from: Msg) {
+    if (busy) return;
+    const a = o.act;
+    // Links don't add chat lines.
+    if (a.k === "page") { window.location.assign(a.href); return; }
+    if (a.k === "wa" && from.picked) {
+      const p = from.picked;
+      window.open(waLink(wa, withUnitCode(t("مرحبًا، أستفسر عن العقار"), p.code, pagePath(p))), "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (a.k === "ask") { void send(t(a.q)); return; }
+    const base: Msg[] = [...msgs, { role: "user", text: o.label }];
+    switch (a.k) {
+      case "restart": setGuide({}); setResults(null); say(base, { role: "model", text: t("بتدوّر على إيه؟"), options: startOpts() }); return;
+      case "purpose": { const g = { purpose: a.v }; setGuide(g); askArea(base); return; }
+      case "area": { const g = { ...guide, area: a.v }; setGuide(g); if (g.type !== undefined && g.min !== undefined) void search(base, g); else askType(base, g); return; }
+      case "type": { const g = { ...guide, type: a.v }; setGuide(g); if (g.min !== undefined || g.max !== undefined) void search(base, g); else askBudget(base, g); return; }
+      case "budget": { const g = { ...guide, min: a.min ?? 0, max: a.max }; setGuide(g); void search(base, g); return; }
+      case "step": if (a.v === "area") askArea(base); else if (a.v === "type") askType(base, guide); else askBudget(base, guide); return;
+      case "more": void search(base, guide, (results?.offset ?? 0) + 4); return;
+      case "results": if (results) say(base, { role: "model", text: t("دي النتايج تاني 👇"), listings: results.listings, options: restartOpts() }); return;
+      case "contact": say(base, { role: "model", text: t("تمام 📝"), offerContact: true }); return;
+      case "viewing": if (from.picked) say(base, { role: "model", text: t("تمام 📅 سيب اسمك ورقمك وإمتى يناسبك، وصاحب الإعلان أو فريقنا هيكلّمك يحدد الميعاد:"), viewing: from.picked }); return;
+      default:
+    }
+  }
+
   const transcript = msgs.filter((m) => m.role === "user").map((m) => `- ${m.text}`).join("\n");
+  const lastIdx = msgs.length - 1;
 
   return (
     <div className="print:hidden">
@@ -168,19 +349,32 @@ export function SiteAssistant() {
             </div>
             {msgs.length === 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {CHIPS.map((c) => <button key={c} type="button" onClick={() => send(t(c))} className="rounded-full border px-3 py-1.5 text-xs font-bold text-primary hover:border-teal">{t(c)}</button>)}
+                {START.map((o) => <button key={o.label} type="button" onClick={() => run({ ...o, label: t(o.label) }, { role: "model", text: "" })} className="rounded-full border px-3 py-1.5 text-xs font-bold text-primary hover:border-teal">{t(o.label)}</button>)}
               </div>
             )}
             {msgs.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[90%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary text-primary"}`}>
                   {m.text}
-                  {m.listings?.length ? <div className="mt-2 grid gap-1.5">{m.listings.map((p) => <ListingMini key={p.id} p={p} />)}</div> : null}
-                  {m.offerContact && i === msgs.length - 1 && !sent && <ContactForm request={request} transcript={transcript} onDone={() => { setSent(true); setMsgs((x) => [...x, { role: "model", text: t("تمام ✅ طلبك وصل، وحد من الفريق هيكلّمك قريب.") }]); }} />}
-                  {m.offerContact && i === msgs.length - 1 && (
+                  {m.picked && <div className="mt-2"><ListingMini p={m.picked} picked /></div>}
+                  {m.listings?.length ? <div className="mt-2 grid gap-1.5">{m.listings.map((p) => <ListingMini key={p.id} p={p} onPick={i === lastIdx ? pick : undefined} />)}</div> : null}
+                  {m.viewing && i === lastIdx && <ViewingForm p={m.viewing} onDone={() => setMsgs((x) => [...x, {
+                    role: "model", text: t("تمام ✅ طلب المعاينة وصل، وصاحب الإعلان أو فريق فاليو عقار هيكلّمك قريب يحدد الميعاد."),
+                    options: [{ label: t("🔍 دوّر على حاجة تانية"), act: { k: "restart" } }],
+                  }])} />}
+                  {m.offerContact && i === lastIdx && !sent && <ContactForm request={request} transcript={transcript} onDone={() => { setSent(true); setMsgs((x) => [...x, { role: "model", text: t("تمام ✅ طلبك وصل، وحد من الفريق هيكلّمك قريب."), options: [{ label: t("🔍 دوّر على حاجة تانية"), act: { k: "restart" } }] }]); }} />}
+                  {m.offerContact && i === lastIdx && (
                     <a href={waLink(wa, t("مرحبًا، كنت بكلّم المساعد الذكي في موقع فاليو عقار ومحتاج مساعدة."))} target="_blank" rel="noreferrer"
                       className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#128C7E] underline"><WhatsAppMark className="size-4" />{t("أو كلّمنا واتساب")}</a>
                   )}
+                  {m.options?.length && i === lastIdx ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {m.options.map((o) => (
+                        <button key={o.label} type="button" disabled={busy} onClick={() => run(o, m)}
+                          className="rounded-full border bg-background px-3 py-1.5 text-xs font-bold text-primary hover:border-teal disabled:opacity-50">{o.label}</button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}

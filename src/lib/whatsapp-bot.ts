@@ -83,6 +83,10 @@ export type ListingCard = {
   path?: string | undefined;
 };
 
+/** Mall and industrial units have their own pages; other listings use /properties/<id>. */
+export const listingPath = (r: { id: string; category?: string | null; mall_id?: string | null }) =>
+  r.category === "mall" && r.mall_id ? `/malls/${r.mall_id}` : r.category === "industrial" ? `/industrial/${r.id}` : undefined;
+
 const money = (n: number) => new Intl.NumberFormat("ar-EG").format(n);
 
 /** One listing as a short WhatsApp block with its link. */

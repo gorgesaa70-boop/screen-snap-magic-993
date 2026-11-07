@@ -4,7 +4,7 @@ import { sendWhatsappText } from "./whatsapp-send.server";
 import { DEFAULT_HOURS } from "./response-time";
 import type { AiResult } from "./whatsapp-ai.server";
 import { OWNER_HANDOVER_PAUSE_MS, OWNER_SILENCE_MS, handoverText } from "./wa-owner";
-import { REPLY, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingText, menuChoice, unitCodes, welcome, type ListingCard, type UnitCode } from "./whatsapp-bot";
+import { REPLY, isGreetingOnly, isWorkTime, listingIds, listingNumbers, listingPath, listingText, menuChoice, unitCodes, welcome, type ListingCard, type UnitCode } from "./whatsapp-bot";
 
 /**
  * Runs for every new customer message on the API number (after the sign-in check and the lead import):
@@ -47,8 +47,7 @@ export async function findListings(db: Db, numbers: number[], ids: string[]): Pr
     id: r.id, code: r.listing_no != null ? `VA-${r.listing_no}` : null, type: r.type, status: r.status, city: r.city, area: r.area,
     size: r.size != null ? Number(r.size) : null, rooms: r.rooms, price: r.price != null ? Number(r.price) : null,
     available: (r.availability ?? "available") === "available",
-    // Mall and industrial units have their own pages.
-    path: r.category === "mall" && r.mall_id ? `/malls/${r.mall_id}` : r.category === "industrial" ? `/industrial/${r.id}` : undefined,
+    path: listingPath(r),
   }));
 }
 
