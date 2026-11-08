@@ -1,5 +1,5 @@
 import { cleanPhone } from "@/lib/phone";
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX, Play } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -115,6 +115,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         {p.installments && !p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-bold text-primary">{tr("تقسيط")}{p.installments.down != null && p.price > 0 ? ` · ${tr("مقدم")} ${downPct(p.price, p.installments.down)}%` : ""}</span>}
         {p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{tr("سعر مميز")}</span>}
         <AvailabilityBadge p={p} className="absolute top-12 right-3" />
+        {p.video && <span className="absolute top-12 left-3 flex items-center gap-1 rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-bold text-primary"><Play className="size-3 fill-current" />{tr("فيديو")}</span>}
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
         {!p.parentId && <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />}

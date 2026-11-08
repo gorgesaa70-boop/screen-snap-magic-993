@@ -156,6 +156,13 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
                     </select>
                   </label>
                   <label>
+                    <span className={lbl}>{t("فيديو")}</span>
+                    <select value={draft.video ?? ""} onChange={set("video")} className={field}>
+                      <option value="">{t("كل الإعلانات")}</option>
+                      <option value="1">{t("فيه فيديو بس")}</option>
+                    </select>
+                  </label>
+                  <label>
                     <span className={lbl}>{t("طريقة الدفع")}</span>
                     <select value={draft.pay ?? ""} onChange={set("pay")} className={field}>
                       <option value="">{t("كاش أو تقسيط")}</option>

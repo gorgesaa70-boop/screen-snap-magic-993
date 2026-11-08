@@ -17,6 +17,7 @@ import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, FINISHING_LABEL, type
 import { AlertButton, FavoriteButton, ShareButton, VerifiedBadge } from "@/components/site/CustomerTools";
 import { PropertyCard } from "@/components/site/Sections";
 import { CompareButton } from "@/components/site/CompareBar";
+import { ListingVideo } from "@/components/site/ListingVideo";
 import { TYPE_GROUPS } from "@/components/site/search";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { ContactActions } from "@/components/site/ContactActions";
@@ -117,6 +118,7 @@ function PropertyPage() {
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{formatPrice(p.baths)} {t("حمام")}</span>}
             {p.finishing && FINISHING_LABEL[p.finishing] && <span className="rounded-lg bg-secondary px-3 py-1.5">{t(FINISHING_LABEL[p.finishing]!)}</span>}
           </div>
+          {p.video && <ListingVideo url={p.video} poster={p.image} title={p.title} />}
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}
           {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}

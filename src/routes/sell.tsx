@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { VIDEO_HINT, parseVideo } from "@/lib/video";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -107,7 +108,7 @@ function SellForm() {
   useLang();
   const send = useServerFn(sendWhatsappOtp);
   const submit = useServerFn(submitOwnerListing);
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", finishing: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
+  const [f, setF] = useState({ video: "", name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", price_unit: "night" as "night" | "week" | "month" | "season", property_type: "", finishing: "", city: DEFAULT_CITY, area: "", price: "", size: "", rooms: "", baths: "", floor: "", details: "" });
   const [photos, setPhotos] = useState<{ b64: string; preview: string }[]>([]);
   const [loc, setLoc] = useState<LatLng | null>(null);
   const [compressing, setCompressing] = useState(false);
@@ -143,6 +144,7 @@ function SellForm() {
   }, [resendIn]);
 
   async function save(p: string, withCode?: string, ticket?: string) {
+    if (f.video.trim() && !parseVideo(f.video)) { toast.error(t("لينك الفيديو لازم يكون عام من فيسبوك أو تيك توك أو يوتيوب")); return; }
     setBusy(true);
     const attr = getAttribution();
     const r = await submit({ data: {
@@ -150,7 +152,7 @@ function SellForm() {
       ...placeToSave(f), asking_price: Number(f.price), size_m2: Number(f.size),
       ...(f.purpose === "sale" ? stripNulls(installmentPayload(inst, Number(f.price))) : {}),
       ...(hasFinishing(f.property_type) && f.finishing ? { finishing: f.finishing as "skeleton" | "semi" | "full" | "super_lux" } : {}),
-      rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined,
+      rooms: num(f.rooms), baths: num(f.baths), floor: f.floor.trim() || undefined, details: f.details.trim() || undefined, ...(f.video.trim() ? { video_url: f.video.trim() } : {}),
       photos: photos.map((x) => x.b64), ...(loc ? { lat: loc.lat, lng: loc.lng } : {}), ...(attr ? { utm: attr } : {}),
     } }).catch(() => ({ ok: false as const, error: "server" }));
     setBusy(false);
@@ -307,6 +309,10 @@ function SellForm() {
       </div>
       <Field label={t("تفاصيل إضافية")}>
         <textarea className={`${inputCls} h-24 py-2`} value={f.details} onChange={set("details")} maxLength={1000} placeholder={t("الدور، التشطيب، عدد الغرف...")} />
+      </Field>
+      <Field label={t("لينك فيديو (اختياري)")}>
+        <input className={inputCls} dir="ltr" inputMode="url" maxLength={500} placeholder="https://" value={f.video} onChange={set("video")} />
+        <span className="mt-1 block text-xs font-normal text-muted-foreground">{t(VIDEO_HINT)}</span>
       </Field>
       <div className="grid gap-4 border-t pt-4 sm:col-span-2 sm:grid-cols-2">
         <Field label={t("الاسم")}>

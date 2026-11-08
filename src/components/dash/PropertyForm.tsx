@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { VIDEO_HINT, parseVideo } from "@/lib/video";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchCompounds } from "@/components/site/compounds";
@@ -20,6 +21,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
   const [f, setF] = useState({
     title: initial?.title ?? "",
     description: initial?.description ?? "",
+    video: initial?.video_urls?.[0] ?? "",
     price: initial ? String(initial.price) : "",
     type: initial?.type ?? TYPES_FOR[""]![0]!,
     city: initial?.city ?? DEFAULT_CITY,
@@ -71,7 +73,9 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
     const src = f.source_url.trim();
     if (src && !/^https:\/\/[a-z0-9-]+\.engazcrm\.net\//i.test(src)) { toast.error("رابط إنجاز غير صحيح — يجب أن يبدأ بـ https://…engazcrm.net/"); return; }
     setBusy(true);
+    if (f.video.trim() && !parseVideo(f.video)) { toast.error("لينك الفيديو لازم يكون عام من فيسبوك أو تيك توك أو يوتيوب"); setBusy(false); return; }
     const payload = {
+      video_urls: f.video.trim() ? [f.video.trim()] : [],
       title: f.title.trim().slice(0, 150), description: f.description.trim().slice(0, 3000) || null,
       price: summer ? 0 : Number(f.price), type: f.type,
       price_night: summer ? num(f.price_night) : null, price_week: summer ? num(f.price_week) : null,
@@ -137,6 +141,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
         </div>
         <div className="sm:col-span-2"><Field label="رابط العقار في إنجاز (اختياري)"><input className={inputCls} dir="ltr" inputMode="url" placeholder="https://valuegroup.engazcrm.net/consumer/unit/..." value={f.source_url} onChange={set("source_url")} maxLength={500} /></Field></div>
         <div className="sm:col-span-2"><Field label="الوصف"><textarea className={`${inputCls} h-28 py-2`} value={f.description} onChange={set("description")} maxLength={3000} /></Field></div>
+        <div className="sm:col-span-2"><Field label="لينك فيديو (اختياري)"><input className={inputCls} dir="ltr" inputMode="url" maxLength={500} placeholder="https://" value={f.video} onChange={set("video")} /></Field><p className="mt-1 text-xs text-muted-foreground">{VIDEO_HINT}. الفيديو مش بيترفع على الموقع.</p></div>
         <div className="sm:col-span-2">
           <Field label={`صور العقار (${f.images.length}/${MAX_IMAGES}) — أول صورة هي الرئيسية`}>
             <input type="file" accept="image/*" multiple disabled={busy || f.images.length >= MAX_IMAGES} onChange={onFiles} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" />
