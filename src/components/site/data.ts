@@ -255,6 +255,11 @@ export const serviceStagePatch = (stage: string): { status: string; work_stage: 
     : stage === "accepted" ? { status: "assigned", work_stage: null }
     : stage === "routing" ? { status: "contacted", work_stage: null }
     : { status: "new", work_stage: null };
+/** Shared housing labels. */
+export const SHARED_KIND: Record<string, string> = { bed: "سرير", room: "أوضة", group: "سكن جماعي" };
+export const SHARED_GENDER: Record<string, string> = { men: "رجال", women: "سيدات" };
+export const SHARED_WHO: Record<string, string> = { worker: "عامل / موظف في مصنع", student: "طالب", company: "شركة عايزة سكن لعمالها", owner: "عندي سكن عايز أأجّره" };
+export const SHARED_STAGES: Record<string, string> = { new: "جديد", contacted: "اتواصلنا", viewing: "معاينة", reserved: "اتحجز", moved_in: "سكن", left: "خرج", cancelled: "ملغي" };
 export const PROVIDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "قيد المراجعة", cls: "bg-[#f2b84b]/25 text-primary" },
   approved: { label: "معتمد", cls: "bg-teal-soft text-primary" },

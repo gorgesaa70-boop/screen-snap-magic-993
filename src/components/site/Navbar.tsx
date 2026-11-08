@@ -13,6 +13,7 @@ import { t, useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { useSessionUser } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchPriceIndex, hasData } from "@/components/site/prices";
 
 export function Logo({ light = false }: { light?: boolean }) {
@@ -54,6 +55,8 @@ export function Navbar() {
   const { user } = useSessionUser();
   // The prices page shows in the menu only once enough real units exist to show a price.
   const prices = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
+  // «قريبًا» goes away once there's a shared housing unit to show.
+  const sharedOpen = useQuery({ queryKey: ["shared-units-public"], staleTime: 5 * 60_000, queryFn: async () => { const { data, error } = await supabase.rpc("shared_units_public"); return error ? [] : (data ?? []); } });
   const links = [
     { label: t("الرئيسية"), href: "/#top" },
     { label: t("سكني"), href: "/?cat=residential#properties" },
@@ -66,7 +69,7 @@ export function Navbar() {
     { label: t("المشروعات"), href: "/projects" },
     { label: t("استثمار"), href: "/investments" },
     { label: t("الوسطاء"), href: "/brokers" },
-    { label: `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing" },
+    { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing" },
     { label: t("دليل الخدمات"), href: "/services" },
     ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices" }] : []),
   ];

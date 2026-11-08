@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      shared_units: {
+        Row: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; address: string | null; description: string | null; monthly_price: number; total_places: number; photos: string[]; owner_name: string | null; owner_phone: string | null; is_active: boolean; created_at: string; updated_at: string }
+        Insert: { id?: string; title: string; kind?: string; gender: string; area?: string | null; near?: string | null; address?: string | null; description?: string | null; monthly_price: number; total_places?: number; photos?: string[]; owner_name?: string | null; owner_phone?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+        Update: { id?: string; title?: string; kind?: string; gender?: string; area?: string | null; near?: string | null; address?: string | null; description?: string | null; monthly_price?: number; total_places?: number; photos?: string[]; owner_name?: string | null; owner_phone?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      shared_requests: {
+        Row: { id: string; request_no: number; unit_id: string | null; who: string; gender: string | null; name: string; phone: string; people: number | null; near: string | null; budget: number | null; stage: string; admin_notes: string | null; customer_id: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; request_no?: number; unit_id?: string | null; who?: string; gender?: string | null; name: string; phone: string; people?: number | null; near?: string | null; budget?: number | null; stage?: string; admin_notes?: string | null; customer_id?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; request_no?: number; unit_id?: string | null; who?: string; gender?: string | null; name?: string; phone?: string; people?: number | null; near?: string | null; budget?: number | null; stage?: string; admin_notes?: string | null; customer_id?: string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      shared_residents: {
+        Row: { id: string; unit_id: string; request_id: string | null; name: string; phone: string | null; place_label: string | null; monthly_rent: number; starts_on: string; paid_until: string | null; left_on: string | null; created_at: string }
+        Insert: { id?: string; unit_id: string; request_id?: string | null; name: string; phone?: string | null; place_label?: string | null; monthly_rent: number; starts_on?: string; paid_until?: string | null; left_on?: string | null; created_at?: string }
+        Update: { id?: string; unit_id?: string; request_id?: string | null; name?: string; phone?: string | null; place_label?: string | null; monthly_rent?: number; starts_on?: string; paid_until?: string | null; left_on?: string | null; created_at?: string }
+        Relationships: []
+      }
+      shared_rent_payments: {
+        Row: { id: string; resident_id: string; months: number; amount: number; method: string | null; paid_until: string; created_by: string | null; created_at: string }
+        Insert: { id?: string; resident_id: string; months: number; amount: number; method?: string | null; paid_until: string; created_by?: string | null; created_at?: string }
+        Update: { id?: string; resident_id?: string; months?: number; amount?: number; method?: string | null; paid_until?: string; created_by?: string | null; created_at?: string }
+        Relationships: []
+      }
       service_request_events: {
         Row: { id: string; request_id: string; kind: string; old_value: string | null; new_value: string | null; actor_label: string; created_at: string }
         Insert: { id?: string; request_id: string; kind: string; old_value?: string | null; new_value?: string | null; actor_label: string; created_at?: string }
@@ -4281,6 +4305,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      shared_units_public: { Args: never; Returns: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; description: string | null; monthly_price: number; total_places: number; free_places: number; photos: string[] }[] }
+      my_shared_requests: { Args: never; Returns: { id: string; request_no: number; stage: string; unit_title: string | null; near: string | null; created_at: string }[] }
+      admin_record_shared_rent: { Args: { _resident: string; _months: number; _amount: number; _method?: string }; Returns: string }
       my_service_work: { Args: never; Returns: { id: string; work_stage: string | null; scheduled_for: string | null; agreed_price: number | null }[] }
       admin_plan_finance: { Args: never; Returns: { kind: string; id: string; holder: string; phone: string | null; account_type: string; plan_name: string; months: number | null; status: string; is_trial: boolean; starts_at: string; ends_at: string | null; amount: number | null; paid_amount: number; paid_at: string | null; payment_method: string | null; payment_note: string | null; renew_amount: number }[] }
       admin_record_plan_payment: { Args: { _kind: string; _id: string; _amount: number; _paid: number; _method?: string; _note?: string }; Returns: undefined }

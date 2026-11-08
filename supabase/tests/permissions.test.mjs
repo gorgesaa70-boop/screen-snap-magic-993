@@ -2333,4 +2333,23 @@ commit;`);
   await expectOk("a visitor's request can't carry a price or notes", () => as(U.outsider, `insert into public.service_requests (name, phone, category, agreed_price, admin_notes) values ('زائر','201000000005','crafts',9,'x') returning agreed_price, admin_notes`), (r) => r[0].agreed_price === null && r[0].admin_notes === null);
   await expectOk("a company registers as a provider from its account", () => as(U.owner, `insert into public.service_providers (user_id, kind, category, name, phone) values ('${U.owner}','company','contracting','شركة تسويق','201000000001')`));
   await expectOk("the company's account finds its provider panel", () => as(U.owner, `select public.my_service_provider_id() id`), (r) => !!r[0].id);
+
+  console.log("\nShared housing (release 52)");
+  const unitId = (await as(U.admin, `insert into public.shared_units (title, kind, gender, monthly_price, total_places, owner_phone, address) values ('سكن تجربة','bed','men',1500,2,'201000000055','سر') returning id`))[0].id;
+  await expectErr("an outsider can't add a unit", () => as(U.outsider, `insert into public.shared_units (title, gender, monthly_price) values ('غريب','men',1)`));
+  await expectErr("a visitor can't read the units table", () => as(null, `select * from public.shared_units`));
+  await expectOk("a visitor sees the unit with free places", () => as(null, `select * from public.shared_units_public() where id='${unitId}'`), (r) => r.length === 1 && r[0].free_places === 2);
+  await expectOk("the public list hides the owner and address", () => as(null, `select * from public.shared_units_public() where id='${unitId}'`), (r) => !("owner_phone" in r[0]) && !("address" in r[0]));
+  await expectOk("a visitor sends a request", () => as(null, `insert into public.shared_requests (unit_id, gender, name, phone) values ('${unitId}','men','زائر سكن','01011112222')`));
+  await as(null, `insert into public.shared_requests (name, phone, stage, admin_notes) values ('زائر مرحلة','01011113333','moved_in',null)`).catch(() => {});
+  await expectOk("a visitor can't start past the first stage", () => sys(`select stage from public.shared_requests where name='زائر مرحلة'`), (r) => r.every((x) => x.stage === "new"));
+  const shReq = (await as(U.outsider, `insert into public.shared_requests (unit_id, gender, name, phone) values ('${unitId}','men','عميل سكن','201000000005') returning id`).catch(() => [{}]))[0].id ?? (await sys(`select id from public.shared_requests where name='زائر سكن'`))[0].id;
+  await expectOk("the admin moves a request", () => as(U.admin, `update public.shared_requests set stage='viewing' where id='${shReq}' returning stage`), (r) => r[0].stage === "viewing");
+  await expectOk("another account can't move it", () => as(U.owner, `update public.shared_requests set stage='left' where id='${shReq}' returning id`), (r) => r.length === 0);
+  const resId = (await as(U.admin, `insert into public.shared_residents (unit_id, name, monthly_rent, starts_on) values ('${unitId}','ساكن',1500,'2030-01-01') returning id`))[0].id;
+  await expectOk("a resident takes a place", () => as(null, `select free_places from public.shared_units_public() where id='${unitId}'`), (r) => r[0].free_places === 1);
+  await expectErr("an outsider can't record rent", () => as(U.outsider, `select public.admin_record_shared_rent('${resId}',1,1500)`));
+  await expectOk("rent moves the paid-until date", () => as(U.admin, `select public.admin_record_shared_rent('${resId}',2,3000,'cash') d`), (r) => String(r[0].d).startsWith("2030-03") || new Date(r[0].d).getUTCMonth() === 2);
+  await expectErr("an outsider can't read residents' payments", () => as(null, `select * from public.shared_rent_payments`));
+  await expectOk("leaving frees the place", async () => { await as(U.admin, `update public.shared_residents set left_on=current_date where id='${resId}'`); return as(null, `select free_places from public.shared_units_public() where id='${unitId}'`); }, (r) => r[0].free_places === 2);
 }
