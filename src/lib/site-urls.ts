@@ -39,7 +39,7 @@ export async function publicPages(): Promise<SiteEntry[]> {
   const { data: idx } = await (await import("@/integrations/supabase/client")).supabase.rpc("price_index");
   const totals = (idx ?? []).filter((r) => r.month === null);
   const prices: SiteEntry[] = totals.length
-    ? [{ path: "/prices" },
+    ? [
        ...[...new Set(totals.filter((r) => r.kind === "mall").map((r) => r.mall_id))].map((id) => ({ path: `/prices/malls/${id}` })),
        ...[...new Set(totals.filter((r) => r.kind === "residential").map((r) => r.area))].map((a) => ({ path: `/prices/areas/${encodeURIComponent(a)}` }))]
     : [];

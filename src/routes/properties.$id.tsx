@@ -77,7 +77,7 @@ function PropertyPage() {
   const { p, broker, sourceUrl, coBroke } = q.data;
   return (
     <PageShell>
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div>
           <Gallery images={p.images} title={p.title}>
             <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t(PURPOSE_LABEL[p.status] ?? p.status)}</span>
