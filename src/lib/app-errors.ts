@@ -7,9 +7,17 @@ import { supabase } from "@/integrations/supabase/client";
 let sent = 0;
 const NOISE = /ResizeObserver loop|^Script error\.?$|Load failed|Failed to fetch dynamically imported module|chrome-extension:|moz-extension:|safari-extension:/i;
 
+/** Thrown plain objects (e.g. database errors) would otherwise be logged as «[object Object]». */
+function describe(error: unknown) {
+  if (typeof error !== "object" || error === null) return String(error ?? "");
+  const message = (error as { message?: unknown }).message;
+  if (typeof message === "string" && message) return message;
+  try { return JSON.stringify(error); } catch { return "Unknown error"; }
+}
+
 export function reportAppError(error: unknown) {
   if (typeof window === "undefined" || sent >= 5) return;
-  const message = error instanceof Response ? `Response ${error.status} ${error.url}` : error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? "");
+  const message = error instanceof Response ? `Response ${error.status} ${error.url}` : error instanceof Error ? `${error.name}: ${error.message}` : describe(error);
   const stack = error instanceof Error ? (error.stack ?? null) : null;
   if (!message || NOISE.test(message) || (stack && NOISE.test(stack))) return;
   sent++;

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Gift, Camera, Pin, Megaphone, BarChart3 } from "lucide-react";
-import { useLang } from "@/lib/i18n";
+import { t, useLang } from "@/lib/i18n";
 import { pageHead, breadcrumbs } from "@/lib/seo";
 import { useSessionUser } from "@/hooks/useAuth";
 import { useIsNativeApp } from "@/lib/native";
@@ -39,7 +39,7 @@ function PlansPage() {
       <section className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
         <div className="text-center">
           <p className="inline-flex items-center gap-1.5 rounded-full bg-teal-soft px-3 py-1 text-sm font-bold text-primary"><Gift className="size-4" />أول {trial === 30 ? "شهر" : `${trial} يوم`} مجانًا للكل</p>
-          <h1 className="mt-3 text-3xl font-extrabold text-primary md:text-4xl">باقات الإعلان على فاليو عقار</h1>
+          <h1 className="mt-3 text-3xl font-extrabold text-primary md:text-4xl">{t("باقات الإعلان على فاليو عقار")}</h1>
           <p className="mx-auto mt-2 max-w-2xl text-muted-foreground">اختار نوع حسابك ومدة الاشتراك. كل ما المدة تطول، الخصم بيزيد. بعد الشهر المجاني بتختار باقتك، ولو ماختارتش إعلاناتك بتستخبى بس (مش بتتمسح) لحد ما تشترك.</p>
         </div>
 

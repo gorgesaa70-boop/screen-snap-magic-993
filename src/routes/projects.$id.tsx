@@ -12,7 +12,7 @@ import { formatPrice, unitCodeOf, waLink, withUnitCode } from "@/components/site
 import { UNIT_STATUS, fetchProject, projectCover, type UnitRow } from "@/components/site/projects";
 import { InstallmentCalc, ShareButton } from "@/components/site/CustomerTools";
 import { pageHead, unavailableHead, breadcrumbs, SITE_NAME, SITE_URL } from "@/lib/seo";
-import { t, useLang } from "@/lib/i18n";
+import { amenitiesLabel, t, useLang } from "@/lib/i18n";
 import { ContactActions, contactNumber, pickScroll } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
 import { ReportButton } from "@/components/site/ReportButton";
@@ -60,7 +60,7 @@ function ProjectPage() {
 
   return (
     <PageShell>
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0">
           <Gallery images={images} title={p.name} />
           <div className="mt-5 flex items-start justify-between gap-3">
@@ -82,7 +82,7 @@ function ProjectPage() {
           <InstallmentCalc price={picked?.price != null ? Number(picked.price) : cheapest} />
           {p.amenities.length > 0 && (
             <div className="mt-6">
-              <h2 className="text-lg font-extrabold text-primary">{t("الخدمات")}</h2>
+              <h2 className="text-lg font-extrabold text-primary">{amenitiesLabel()}</h2>
               <div className="mt-2 flex flex-wrap gap-2">
                 {p.amenities.map((a) => <span key={a} className="flex items-center gap-1 rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary"><CheckCircle2 className="size-3.5" />{t(a)}</span>)}
               </div>

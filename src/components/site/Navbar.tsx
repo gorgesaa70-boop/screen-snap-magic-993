@@ -76,14 +76,15 @@ export function Navbar() {
       <AnnouncementBar fallback={<NewsTicker />} />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-3 sm:gap-4 md:px-6">
         <Logo />
-        <nav className="hidden items-center gap-5 lg:flex">
+        {/* Scrolls inside itself so a long menu can never push the header past the screen. */}
+        <nav className="hidden min-w-0 items-center gap-3 overflow-x-auto [scrollbar-width:none] xl:flex 2xl:gap-5">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
+            <a key={l.href} href={l.href} className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
               {l.label}
             </a>
           ))}
         </nav>
-        <div className="flex items-center gap-0.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           {/* Search, theme and account stay visible on phones too (smaller buttons there); «بحث» left the bottom bar for «الخدمات». */}
           <a href="/#search" aria-label={t("بحث")} title={t("بحث")} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <Search className="size-5" />
@@ -98,13 +99,13 @@ export function Navbar() {
           <a href="/sell" className="hidden items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-navy-deep sm:inline-flex">
             <Plus className="size-4" /> {t("اعرض عقارك")}
           </a>
-          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary hover:bg-secondary lg:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)} aria-label={t("القائمة")} aria-expanded={open} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary hover:bg-secondary xl:hidden">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </Button>
         </div>
       </div>
       {open && (
-        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card lg:hidden">
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t bg-background px-4 pb-4 shadow-card xl:hidden">
           {links.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block border-b py-3.5 text-base font-semibold text-foreground/80 transition active:bg-secondary hover:text-primary">
               {l.label}

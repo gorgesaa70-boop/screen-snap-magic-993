@@ -94,7 +94,7 @@ function BrokerProfile() {
           </div>
         </div>
       </section>
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 pt-8 md:px-6 lg:grid-cols-[300px_1fr]">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 pt-8 md:px-6 lg:grid-cols-[300px_1fr]">
         <aside className="h-fit space-y-4 rounded-2xl border bg-card p-5">
           <h2 className="font-bold text-primary">{t("نبذة تعريفية")}</h2>
           <p className="text-sm leading-relaxed text-foreground/80">{b.bio || t("لم يضف الوسيط نبذة بعد.")}</p>

@@ -59,7 +59,7 @@ function Page() {
   const inquiry = withUnitCode(`${t("مرحبًا، أستفسر عن:")} ${p.title}`, p.listing_no != null ? listingCode(p.listing_no) : null, `/industrial/${p.id}`);
   return (
     <PageShell>
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div>
           <div className="relative overflow-hidden rounded-2xl bg-muted">
             {p.image_url ? <img src={p.image_url} alt={p.title} className="aspect-[4/3] w-full object-cover md:aspect-video" /> : <div className="grid aspect-video place-items-center"><Factory className="size-16 text-muted-foreground" /></div>}

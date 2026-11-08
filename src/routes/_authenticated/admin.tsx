@@ -467,7 +467,7 @@ function ReviewAdmin({ brokers, reload }: { brokers: AdminBroker[]; reload: () =
         </select>
       </div>
       {!q.data ? <div className="h-40 animate-pulse rounded-2xl bg-muted" /> : <p className="text-xs font-bold text-muted-foreground">{formatPrice(list.length)} عقار</p>}
-      {q.data && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">لا توجد عقارات.</p>}
+      {q.data && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">{status === "pending" ? <>مفيش عقارات قيد المراجعة. <button className="font-bold text-primary underline" onClick={() => { setStatus(""); setShown(PAGE); }}>عرض كل الحالات</button></> : "لا توجد عقارات."}</p>}
       {list.slice(0, shown).map((p) => (
         <div key={p.id} className="rounded-2xl border bg-card">
         <div className="flex flex-col gap-3 p-3 md:flex-row md:items-center">

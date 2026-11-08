@@ -66,7 +66,7 @@ function OpportunityPage() {
 
   return (
     <PageShell>
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_380px]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0">
           {o.images.length > 0 && <Gallery images={o.images} title={o.title} />}
           <p className="mt-5 text-sm font-bold text-teal" dir="ltr">{oppNo(o.opp_no)}</p>
