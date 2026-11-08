@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CompareBar } from "@/components/site/CompareBar";
 import { Navbar, MobileBar } from "./Navbar";
 import { Footer } from "./Sections";
 import { thumb } from "@/lib/images";
@@ -18,6 +19,7 @@ export function PageShell({ children }: { children: ReactNode }) {
       <Navbar />
       <main className="pb-6">{children}</main>
       <Footer />
+      <CompareBar />
       <MobileBar />
     </div>
   );

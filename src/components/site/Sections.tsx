@@ -12,6 +12,7 @@ import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waL
 import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
+import { CompareButton } from "./CompareBar";
 import { fetchOpportunities } from "@/lib/investments";
 import { fetchMallSummary } from "./malls";
 import { fetchSearchEverything } from "./search-everything";
@@ -117,6 +118,7 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
         {p.isDemo ? <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{tr("إعلان تجريبي")}</span>
           : p.featured ? <span className="absolute top-3 left-3 rounded-full bg-teal px-2.5 py-1 text-[11px] font-bold text-accent-foreground">{tr("مميز")}</span> : null}
         {!p.parentId && <FavoriteButton id={p.id} className="absolute bottom-3 left-3" />}
+        {!p.parentId && !p.kind && !p.isDemo && <CompareButton id={p.id} className="absolute bottom-3 left-[3.75rem]" />}
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">

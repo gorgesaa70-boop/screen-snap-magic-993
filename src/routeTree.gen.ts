@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthFacebookRouteImport } from './routes/auth-facebook'
 import { Route as BrokerNetworkRouteImport } from './routes/broker-network'
+import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as PlansRouteImport } from './routes/plans'
@@ -99,6 +100,11 @@ const AuthFacebookRoute = AuthFacebookRouteImport.update({
 const BrokerNetworkRoute = BrokerNetworkRouteImport.update({
   id: '/broker-network',
   path: '/broker-network',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareRoute = CompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeleteAccountRoute = DeleteAccountRouteImport.update({
@@ -396,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
+  '/compare': typeof CompareRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/plans': typeof PlansRoute
@@ -459,6 +466,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
+  '/compare': typeof CompareRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/plans': typeof PlansRoute
@@ -524,6 +532,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/auth-facebook': typeof AuthFacebookRoute
   '/broker-network': typeof BrokerNetworkRoute
+  '/compare': typeof CompareRoute
   '/delete-account': typeof DeleteAccountRoute
   '/map': typeof MapRoute
   '/plans': typeof PlansRoute
@@ -589,6 +598,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auth-facebook'
     | '/broker-network'
+    | '/compare'
     | '/delete-account'
     | '/map'
     | '/plans'
@@ -652,6 +662,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auth-facebook'
     | '/broker-network'
+    | '/compare'
     | '/delete-account'
     | '/map'
     | '/plans'
@@ -716,6 +727,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/auth-facebook'
     | '/broker-network'
+    | '/compare'
     | '/delete-account'
     | '/map'
     | '/plans'
@@ -781,6 +793,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   AuthFacebookRoute: typeof AuthFacebookRoute
   BrokerNetworkRoute: typeof BrokerNetworkRoute
+  CompareRoute: typeof CompareRoute
   DeleteAccountRoute: typeof DeleteAccountRoute
   MapRoute: typeof MapRoute
   PlansRoute: typeof PlansRoute
@@ -862,6 +875,13 @@ declare module '@tanstack/react-router' {
       path: '/broker-network'
       fullPath: '/broker-network'
       preLoaderRoute: typeof BrokerNetworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delete-account': {
@@ -1313,6 +1333,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   AuthFacebookRoute: AuthFacebookRoute,
   BrokerNetworkRoute: BrokerNetworkRoute,
+  CompareRoute: CompareRoute,
   DeleteAccountRoute: DeleteAccountRoute,
   MapRoute: MapRoute,
   PlansRoute: PlansRoute,

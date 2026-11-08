@@ -16,6 +16,7 @@ import { PageShell, Avatar, inputCls, btnPrimary, btnOutline } from "@/component
 import { PURPOSE_LABEL, PRICE_UNIT_LABEL, FURNISHED_LABEL, FINISHING_LABEL, type Property, ACCOUNT_LABEL, PUBLIC_BROKER_COLS, formatPrice, formatDate, toProperty, waLink, listingMessage, WHATSAPP_NUMBER, withContacts, type PublicBroker } from "@/components/site/data";
 import { AlertButton, FavoriteButton, ShareButton, VerifiedBadge } from "@/components/site/CustomerTools";
 import { PropertyCard } from "@/components/site/Sections";
+import { CompareButton } from "@/components/site/CompareBar";
 import { TYPE_GROUPS } from "@/components/site/search";
 import { pageHead, unavailableHead, breadcrumbs, priceText, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { ContactActions } from "@/components/site/ContactActions";
@@ -86,7 +87,7 @@ function PropertyPage() {
           </Gallery>
           <div className="mt-5 flex items-start justify-between gap-3">
             <h1 className="text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
-            <div className="flex shrink-0 gap-2"><FavoriteButton id={p.id} className="border" /><ShareButton title={p.title} /></div>
+            <div className="flex shrink-0 gap-2"><CompareButton id={p.id} className="border" /><FavoriteButton id={p.id} className="border" /><ShareButton title={p.title} /></div>
           </div>
           <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
           {p.status === "بيع" && p.price > 0 && p.size > 0 && <p className="mt-1 text-sm font-bold text-muted-foreground">{t("سعر المتر:")} {formatPrice(Math.round(p.price / p.size))} {t("ج.م")}</p>}
