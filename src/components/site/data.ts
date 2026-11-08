@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { parseVideo } from "@/lib/video";
 import type { Tables } from "@/integrations/supabase/types";
 import { useSyncExternalStore } from "react";
 import { addTranslations, getLang } from "@/lib/i18n";
@@ -36,6 +37,7 @@ export type Property = {
   /** On-site check by the Value Aqar team (admins only). */
   verified?: { at: string; note?: string | undefined } | undefined;
   confirmedAt?: string | undefined;
+  video?: string | undefined;
   rent?: {
     night?: number | undefined; week?: number | undefined; month?: number | undefined; season?: number | undefined;
     furnished?: string | undefined; minMonths?: number | undefined; deposit?: number | undefined; guests?: number | undefined;
@@ -179,6 +181,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),
   verified: r.verified_at ? { at: r.verified_at, note: r.verified_note ?? undefined } : undefined,
   confirmedAt: r.confirmed_at ?? undefined,
+  video: (r.video_urls ?? []).find((v) => parseVideo(v)),
   highlight: r.is_highlight && r.highlight_reason ? { reason: r.highlight_reason, yield: num(r.highlight_yield) } : undefined,
   rent: r.status === "بيع" ? undefined : {
     night: num(r.price_night), week: num(r.price_week), month: num(r.price_month), season: num(r.price_season),

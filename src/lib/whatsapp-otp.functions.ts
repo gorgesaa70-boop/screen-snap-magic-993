@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { parseVideo } from "@/lib/video";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -245,6 +246,7 @@ const listingSchema = z.object({
   baths: z.number().int().min(0).max(50).optional(),
   floor: z.string().trim().max(50).optional(),
   details: z.string().trim().max(3000).optional(),
+  video_url: z.string().trim().max(500).refine((v) => !!parseVideo(v)).optional(),
   // JPEG images, base64 without the data: prefix (the browser resizes them first)
   photos: z.array(z.string().max(Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4)).max(MAX_LISTING_PHOTOS).default([]),
   // Optional map pin, limited to Egypt.
@@ -317,7 +319,7 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
     const { error: propErr } = await db.from("properties").insert({
       broker_id: null, owner_lead_id: lead.id, review_status: "pending", category: "residential",
       title: `${data.property_type} ${status === "مصيف" ? "للمصيف" : `لل${status}`} في ${place}`.slice(0, 150),
-      description: data.details || null, price: data.asking_price, type: data.property_type, status,
+      video_urls: data.video_url ? [data.video_url] : [], description: data.details || null, price: data.asking_price, type: data.property_type, status,
       city: data.city, area: data.area, size: data.size_m2, finishing: data.property_type === "أرض" ? null : data.finishing ?? null, rooms: data.rooms ?? null, baths: data.baths ?? null,
       floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
       ...(status === "بيع" && data.payment_method ? {
