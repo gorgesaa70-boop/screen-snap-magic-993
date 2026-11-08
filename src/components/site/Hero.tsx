@@ -125,7 +125,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
           </label>
           <div className="order-4 col-span-2 flex gap-2 self-end md:order-none md:col-span-1 md:flex-col">
             <button type="submit"
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-teal text-base font-extrabold text-accent-foreground shadow-card transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98] md:text-sm">
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-teal md:flex-none text-base font-extrabold text-accent-foreground shadow-card transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none active:scale-[0.98] md:text-sm">
               <Search className="size-5 shrink-0" /> {t("ابحث عن عقار")}
             </button>
             {!isEmpty(draft) && (
