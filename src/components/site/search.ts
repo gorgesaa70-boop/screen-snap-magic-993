@@ -2,10 +2,10 @@ import { TYPES_FOR, type Property } from "./data";
 import { IND_TYPES } from "./industrial";
 
 /** «فلاتر أكتر»: pay = "installment" (installments only), maxDown = highest down payment, rooms = at least, finishing. */
-export type Filters = { type: string; status: string; area: string; min: string; max: string; city?: string; group?: string; pay?: string; maxDown?: string; rooms?: string; finishing?: string; place?: string };
-export const emptyFilters: Filters = { type: "", status: "", area: "", min: "", max: "", city: "", group: "", pay: "", maxDown: "", rooms: "", finishing: "", place: "" };
+export type Filters = { verified?: string; type: string; status: string; area: string; min: string; max: string; city?: string; group?: string; pay?: string; maxDown?: string; rooms?: string; finishing?: string; place?: string };
+export const emptyFilters: Filters = { verified: "", type: "", status: "", area: "", min: "", max: "", city: "", group: "", pay: "", maxDown: "", rooms: "", finishing: "", place: "" };
 /** How many of the extra filters are set (shown on the «فلاتر أكتر» button). */
-export const extraCount = (f: Filters) => [f.pay, f.maxDown, f.rooms, f.finishing].filter(Boolean).length;
+export const extraCount = (f: Filters) => [f.verified, f.pay, f.maxDown, f.rooms, f.finishing].filter(Boolean).length;
 
 /** Category groups shown on the home page and header. Values are canonical Arabic property types. */
 export const TYPE_GROUPS: Record<string, string[]> = {
@@ -50,6 +50,7 @@ export function applyFilters(list: Property[], f: Filters) {
       (!f.area || p.area === f.area) &&
       (min === null || p.price >= min) &&
       (max === null || p.price <= max) &&
+      (!f.verified || !!p.verified) &&
       (!f.pay || !!p.installments) &&
       (maxDown === null || (!!p.installments && (p.installments.down ?? 0) <= maxDown)) &&
       (rooms === null || (p.rooms ?? 0) >= rooms) &&

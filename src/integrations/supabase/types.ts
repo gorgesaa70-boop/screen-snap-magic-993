@@ -2881,6 +2881,9 @@ export type Database = {
       }
       properties: {
         Row: {
+          confirmed_at: string
+          stale_notified_at: string | null
+          stale_hidden_at: string | null
           activity_id: string | null
           address: string | null
           area: string
@@ -2948,6 +2951,9 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          confirmed_at?: string
+          stale_notified_at?: string | null
+          stale_hidden_at?: string | null
           activity_id?: string | null
           address?: string | null
           area: string
@@ -3015,6 +3021,9 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          confirmed_at?: string
+          stale_notified_at?: string | null
+          stale_hidden_at?: string | null
           activity_id?: string | null
           address?: string | null
           area?: string
@@ -4305,6 +4314,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_app_stats: { Args: { _days?: number }; Returns: Json }
+      confirm_listing: { Args: { _id: string }; Returns: string }
+      my_listing_freshness: { Args: never; Returns: { id: string; confirmed_at: string; stale_hidden_at: string | null }[] }
+      track_app_open: { Args: { _device: string; _platform: string }; Returns: undefined }
+      track_app_search: { Args: { _device: string; _label: string; _results: number }; Returns: undefined }
       shared_units_public: { Args: never; Returns: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; description: string | null; monthly_price: number; total_places: number; free_places: number; photos: string[] }[] }
       my_shared_requests: { Args: never; Returns: { id: string; request_no: number; stage: string; unit_title: string | null; near: string | null; created_at: string }[] }
       admin_record_shared_rent: { Args: { _resident: string; _months: number; _amount: number; _method?: string }; Returns: string }

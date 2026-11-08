@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ConfirmListing, useListingFreshness } from "@/components/dash/ListingFreshness";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/my-listings")({
 
 /** An owner's listings sent from «اعرض عقارك» (matched by the phone they signed in with), with renewal and their plan. */
 function MyListingsPage() {
+  const freshness = useListingFreshness();
   const [tab, setTab] = useState<"listings" | "plan" | "stats">("listings");
   const q = useQuery({ queryKey: ["my-owner-listings"], queryFn: async () => { const { data, error } = await supabase.rpc("my_owner_listings"); if (error) throw error; return data; } });
   const plan = useMyListingPlan();
@@ -53,6 +55,7 @@ function MyListingsPage() {
                   </div>
                   <div className="flex gap-2">
                     {p.review_status === "approved" && !term?.ended && <Link to="/properties/$id" params={{ id: p.id }} className={btnOutline}>اعرض</Link>}
+                    {p.review_status === "approved" && <ConfirmListing id={p.id} row={freshness.get(p.id)} onDone={reload} />}
                     {term?.renewable && plan.data && plan.data.days == null && (
                       <button className={`web-only ${btnPrimary}`} onClick={() => setTab("plan")}><RefreshCw className="size-4" />جدّد باقتك</button>
                     )}

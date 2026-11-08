@@ -9,6 +9,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
 import { ProviderHome, ProviderPanel } from "@/components/dash/ProviderHome";
+import { ConfirmListing, useListingFreshness } from "@/components/dash/ListingFreshness";
 import { ProviderJoinForm } from "@/components/site/ServiceForms";
 import { BrokerGuide } from "@/components/dash/BrokerGuide";
 import { DeadlineBadge } from "@/components/dash/Deadline";
@@ -237,6 +238,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
 }
 
 function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string; list: PropertyRow[]; remaining: number | null; reload: () => void }) {
+  const freshness = useListingFreshness();
   const [editing, setEditing] = useState<PropertyRow | null | "new" | "new-ind" | "new-mall" | "import" | "import-mall">(null);
   if (editing === "import")
     return <ListingsImport brokerId={brokerId} remaining={remaining} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); reload(); }} />;
@@ -270,6 +272,7 @@ function MyProperties({ brokerId, list, remaining, reload }: { brokerId: string;
           <div className="flex flex-wrap gap-2">
             {p.review_status !== "draft" && <AvailabilitySelect p={p} onChanged={reload} />}
             {p.review_status === "draft" && <button className={btnOutline} onClick={async () => { const { error } = await supabase.from("properties").update({ review_status: "pending" }).eq("id", p.id); if (error) toast.error(error.message); else { toast.success("أُرسل للمراجعة"); reload(); } }}>إرسال</button>}
+            {p.review_status === "approved" && <ConfirmListing id={p.id} row={freshness.get(p.id)} onDone={reload} />}
             {p.review_status === "approved" && !p.hidden_by_plan && listingTerm(p.listed_until)?.renewable && (
               <button className={btnOutline} onClick={async () => {
                 const { error } = await supabase.rpc("renew_listing", { _property: p.id });

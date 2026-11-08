@@ -6,7 +6,8 @@ import hero960 from "@/assets/hero-960.webp";
 import hero1440 from "@/assets/hero-1440.webp";
 import hero1920 from "@/assets/hero-1920.webp";
 import { CITY_NAMES, CITIES, FINISHING_LABEL, formatPrice, useLocations } from "./data";
-import { applyFilters, emptyFilters, extraCount, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
+import { applyFilters, emptyFilters, extraCount, GROUP_LABELS, isEmpty, SEARCH_TYPES_FOR, type Filters } from "./search";
+import { trackAppSearch } from "@/lib/app-metrics";
 import { fetchSearchEverything } from "./search-everything";
 import { fetchOpportunities } from "@/lib/investments";
 import { LiveStrip } from "./LiveStrip";
@@ -82,7 +83,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
             </button>
           ))}
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onSearch(); }}
+        <form onSubmit={(e) => { e.preventDefault(); trackAppSearch([draft.status, draft.type, draft.group ? GROUP_LABELS[draft.group] : "", draft.city, draft.area, draft.place, draft.verified ? "متحقق منه" : ""], found?.length ?? 0); onSearch(); }}
           className="grid grid-cols-2 gap-x-2.5 gap-y-2.5 rounded-2xl bg-card p-3 shadow-float md:grid-cols-6 md:gap-x-3 md:gap-y-3 md:p-5 rtl:rounded-tr-none ltr:rounded-tl-none">
           <label>
             <span className={lblDesktop}>{t("نوع العقار")}</span>
@@ -147,6 +148,13 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
             <div className="order-3 col-span-2 grid grid-cols-2 gap-3 border-t pt-3 animate-in fade-in slide-in-from-top-1 duration-200 motion-reduce:animate-none md:order-none md:col-span-6 md:grid-cols-4">
               {(draft.status === "" || draft.status === "بيع") && (
                 <>
+                  <label>
+                    <span className={lbl}>{t("التحقق")}</span>
+                    <select value={draft.verified ?? ""} onChange={set("verified")} className={field}>
+                      <option value="">{t("كل الإعلانات")}</option>
+                      <option value="1">{t("متحقق منه بس")}</option>
+                    </select>
+                  </label>
                   <label>
                     <span className={lbl}>{t("طريقة الدفع")}</span>
                     <select value={draft.pay ?? ""} onChange={set("pay")} className={field}>

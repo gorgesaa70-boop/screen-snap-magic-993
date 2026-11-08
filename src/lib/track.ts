@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 type Kind = "impression" | "view" | "contact";
 
 let deviceId: string | null = null;
-function device() {
+export function getDeviceId() {
   if (deviceId) return deviceId;
   const fresh = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 20);
   try {
@@ -50,7 +50,7 @@ function flush() {
     const ids = [...pending[kind]].slice(0, 60);
     pending[kind].clear();
     if (!ids.length) continue;
-    supabase.rpc("track_listing", { _ids: ids, _kind: kind, _device: device(), _source: source() }).then(() => {}, () => {});
+    supabase.rpc("track_listing", { _ids: ids, _kind: kind, _device: getDeviceId(), _source: source() }).then(() => {}, () => {});
   }
 }
 function queue(kind: Kind, id: string, now = false) {

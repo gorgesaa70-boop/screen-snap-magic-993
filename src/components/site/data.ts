@@ -35,6 +35,7 @@ export type Property = {
   highlight?: { reason: string; yield?: number | undefined } | undefined;
   /** On-site check by the Value Aqar team (admins only). */
   verified?: { at: string; note?: string | undefined } | undefined;
+  confirmedAt?: string | undefined;
   rent?: {
     night?: number | undefined; week?: number | undefined; month?: number | undefined; season?: number | undefined;
     furnished?: string | undefined; minMonths?: number | undefined; deposit?: number | undefined; guests?: number | undefined;
@@ -177,6 +178,7 @@ export const toProperty = (r: PropertyRow): Property => ({
   } : undefined,
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),
   verified: r.verified_at ? { at: r.verified_at, note: r.verified_note ?? undefined } : undefined,
+  confirmedAt: r.confirmed_at ?? undefined,
   highlight: r.is_highlight && r.highlight_reason ? { reason: r.highlight_reason, yield: num(r.highlight_yield) } : undefined,
   rent: r.status === "بيع" ? undefined : {
     night: num(r.price_night), week: num(r.price_week), month: num(r.price_month), season: num(r.price_season),

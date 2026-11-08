@@ -91,6 +91,7 @@ function PropertyPage() {
           <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
           {p.status === "بيع" && p.price > 0 && p.size > 0 && <p className="mt-1 text-sm font-bold text-muted-foreground">{t("سعر المتر:")} {formatPrice(Math.round(p.price / p.size))} {t("ج.م")}</p>}
           {p.verified && <VerifiedBadge at={p.verified.at} note={p.verified.note} />}
+          {p.confirmedAt && <p className="mt-2 text-xs font-bold text-muted-foreground">{t("آخر تأكيد إن الإعلان متاح:")} {formatDate(p.confirmedAt)}</p>}
           {p.highlight && (
             <div className="mt-3 rounded-2xl border-2 border-[#f2b84b]/60 bg-[#f2b84b]/10 p-4">
               <p className="text-sm font-extrabold text-primary">★ {t("ليه ده عرض بسعر مميز؟")}</p>
