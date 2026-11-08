@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar, MobileBar } from "@/components/site/Navbar";
+import { CompareBar } from "@/components/site/CompareBar";
 import { emptyFilters, TYPE_GROUPS, type Filters } from "@/components/site/search";
 import { Hero } from "@/components/site/Hero";
 import { Categories, FeaturedProperties, PurposeStrip, InvestmentsStrip, HighlightsStrip, MallsStrip, RequestCTA, Brokers, BrokerServices, Footer } from "@/components/site/Sections";
@@ -51,6 +52,7 @@ function Index() {
         <BrokerServices />
       </main>
       <Footer />
+      <CompareBar />
       <MobileBar />
     </div>
   );
