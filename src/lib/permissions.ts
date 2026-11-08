@@ -44,6 +44,7 @@ export const SECTION_GROUPS: { label: string; sections: Section[] }[] = [
   ] },
   { label: "الإعدادات", sections: [
     { key: "assistant", label: "المساعد والزرار العايم" },
+    { key: "news", label: "شريط الأخبار" },
     { key: "announce", label: "رسالة التثبيت" },
     { key: "closed", label: "غلق الموقع" },
     { key: "wa", label: "رقم الواتساب العائم" },

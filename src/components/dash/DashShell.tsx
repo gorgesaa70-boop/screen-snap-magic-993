@@ -57,8 +57,7 @@ export function DashShell({ title, children, isAdmin, customer }: { title: strin
             {show("leads") && <Link to="/inquiries" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العملاء والطلبات</Link>}
             {show("messages") && <Link to="/messages" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الرسايل</Link>}
             {show("reports") && <Link to="/reports" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>التقارير</Link>}
-            {show("deals") && <Link to="/deals" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الصفقات</Link>}
-            {show("commissions") && <Link to="/commissions" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>العمولات</Link>}
+            {(show("deals") || show("commissions")) && <Link to="/deals" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>الصفقات والعمولات</Link>}
             <Link to="/account" className="shrink-0 rounded-lg px-3 py-2 text-foreground/75 hover:bg-secondary hover:text-primary" activeProps={{ className: "text-primary bg-secondary" }}>حسابي</Link>
             </>)}
             </div>

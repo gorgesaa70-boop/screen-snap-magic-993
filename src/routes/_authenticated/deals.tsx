@@ -6,13 +6,16 @@ import { dbx } from "@/lib/dbx";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe } from "@/hooks/useAuth";
 import { DashShell } from "@/components/dash/DashShell";
+import { CommissionsPanel } from "@/components/dash/CommissionsPanel";
 import { DEAL_STATUS, dealNo } from "@/components/dash/LeadPipeline";
-import { Stat, inputCls, btnOutline } from "@/components/site/ui";
+import { Stat, Tabs, inputCls, btnOutline } from "@/components/site/ui";
+import { can } from "@/lib/permissions";
 import { formatPrice, leadNo } from "@/components/site/data";
 import type { DealRow } from "@/lib/finance";
 
 export const Route = createFileRoute("/_authenticated/deals")({
-  head: () => ({ meta: [{ title: "الصفقات | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
+  validateSearch: (s: Record<string, unknown>): { tab?: "commissions" } => (s["tab"] === "commissions" ? { tab: "commissions" } : {}),
+  head: () => ({ meta: [{ title: "الصفقات والعمولات | فاليو عقار" }, { name: "robots", content: "noindex" }] }),
   component: DealsPage,
 });
 
@@ -29,12 +32,33 @@ function exportCsv(rows: Row[]) {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `deals-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }
 
+const TITLE = "الصفقات والعمولات";
+
 function DealsPage() {
   const { me, loading } = useMe();
-  const seeAll = !!me?.isAdmin || !!me?.isStaff;
-  const allowed = seeAll || !!me?.broker;
+  const { tab: wanted } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const isAdmin = !!me?.isAdmin;
+  const seeAll = isAdmin || !!me?.isStaff;
+  const granted = (s: string) => isAdmin || !me?.isStaff || can(me?.perms, s);
+  const deals = (seeAll || !!me?.broker) && granted("deals");
+  const commissions = (seeAll || me?.memberRole === "owner" || me?.memberRole === "manager") && granted("commissions");
+  if (loading) return <DashShell title={TITLE}><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
+  if (!deals && !commissions) return <DashShell title={TITLE}><p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">الصفحة دي للشركات والوسطاء والإدارة.</p></DashShell>;
+  const tab = (wanted === "commissions" && commissions) || !deals ? "commissions" : "deals";
+  return (
+    <DashShell title={TITLE} isAdmin={isAdmin}>
+      {deals && commissions && (
+        <Tabs<"deals" | "commissions"> value={tab} onChange={(t) => void navigate({ search: t === "commissions" ? { tab: "commissions" } : {}, replace: true })} tabs={[{ id: "deals", label: "الصفقات" }, { id: "commissions", label: "العمولات" }]} />
+      )}
+      {tab === "deals" ? <DealsList seeAll={seeAll} /> : <CommissionsPanel isAdmin={isAdmin} seeAll={seeAll} />}
+    </DashShell>
+  );
+}
+
+function DealsList({ seeAll }: { seeAll: boolean }) {
   const q = useQuery({
-    queryKey: ["deals-center"], enabled: allowed,
+    queryKey: ["deals-center"],
     queryFn: async () => {
       return (await fetchAll((a, b) => dbx.from("deals").select("*, leads(name, lead_no), brokers(name)").order("updated_at", { ascending: false }).order("id").range(a, b))) as Row[];
     },
@@ -59,10 +83,7 @@ function DealsPage() {
   }, [all, status, company, search, from, to]);
   const approved = rows.filter((d) => d.review_status === "approved");
 
-  if (loading) return <DashShell title="الصفقات"><div className="h-40 animate-pulse rounded-2xl bg-muted" /></DashShell>;
-  if (!allowed) return <DashShell title="الصفقات"><p className="max-w-lg rounded-2xl border bg-card p-6 text-sm text-muted-foreground">الصفحة دي للشركات والوسطاء والإدارة.</p></DashShell>;
   return (
-    <DashShell title="الصفقات" isAdmin={!!me?.isAdmin}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           <Stat label="كل الصفقات" value={rows.length} />
@@ -121,6 +142,5 @@ function DealsPage() {
           </div>
         )}
       </div>
-    </DashShell>
   );
 }
