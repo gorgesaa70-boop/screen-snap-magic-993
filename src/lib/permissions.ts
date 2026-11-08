@@ -37,6 +37,9 @@ export const SECTION_GROUPS: { label: string; sections: Section[] }[] = [
     { key: "svc_plans", label: "باقات الخدمات", hint: "الأسعار والمميزات" },
     { key: "svc_reviews", label: "التقييمات", hint: "إخفاء أو مسح التقييمات" },
   ] },
+  { label: "السكن المشترك", sections: [
+    { key: "shared", label: "السكن المشترك", hint: "الوحدات والطلبات والساكنين والإيجار" },
+  ] },
   { label: "الحسابات", sections: [
     { key: "brokers", label: "الحسابات والشركات" },
     { key: "accounts", label: "كل الحسابات" },

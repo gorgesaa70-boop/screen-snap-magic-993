@@ -6,7 +6,7 @@ import { MessageCircle, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
 import { useMe } from "@/hooks/useAuth";
-import { LEAD_KINDS, SERVICE_CATEGORIES, SERVICE_STAGES, serviceStage, formatDate, formatPrice, leadNo, leadKindLabel, serviceRequestNo, starsText } from "@/components/site/data";
+import { LEAD_KINDS, SERVICE_CATEGORIES, SERVICE_STAGES, SHARED_STAGES, serviceStage, formatDate, formatPrice, leadNo, leadKindLabel, serviceRequestNo, starsText } from "@/components/site/data";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 
 export const Route = createFileRoute("/_authenticated/my-requests")({
@@ -67,11 +67,34 @@ function MyRequestsPage() {
           </ul>
         )}
       <MyServiceRequests />
+      <MySharedRequests />
     </DashShell>
   );
 }
 
 type ServiceRow = { id: string; request_no: number; category: string; details: string | null; area: string | null; status: string; created_at: string; provider_id: string | null; provider_name: string | null; waiting: boolean; stars: number | null; work_stage?: string | null; scheduled_for?: string | null; agreed_price?: number | null};
+
+/** Shared housing requests and how far each one got. */
+function MySharedRequests() {
+  const q = useQuery({ queryKey: ["my-shared-requests"], queryFn: async () => { const { data, error } = await supabase.rpc("my_shared_requests"); return error ? [] : (data ?? []); } });
+  if (!q.data?.length) return null;
+  return (
+    <section className="mt-8 max-w-3xl">
+      <h2 className="mb-3 text-lg font-extrabold text-primary">طلبات السكن المشترك</h2>
+      <ul className="space-y-2">
+        {q.data.map((r) => (
+          <li key={r.id} className="rounded-2xl border bg-card p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-bold text-primary">{r.unit_title ?? "سكن مشترك"} <span className="text-xs text-muted-foreground" dir="ltr">H-{String(r.request_no).padStart(6, "0")}</span></p>
+              <span className="rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{SHARED_STAGES[r.stage]}</span>
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">اتبعت {formatDate(r.created_at)}{r.near ? ` · قريب من ${r.near}` : ""}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 /** Requests from the services directory: who took them, and rating the provider once the work is done. */
 function MyServiceRequests() {
