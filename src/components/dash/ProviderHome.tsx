@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Phone, MessageCircle, BadgeCheck, Clock, Check, X, Timer, ImagePlus, Trash2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { DashShell } from "@/components/dash/DashShell";
 import { Stat, Tabs, Field, inputCls, btnPrimary, btnOutline, Avatar } from "@/components/site/ui";
 import { AreaPicker } from "@/components/site/AreaPicker";
-import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, servicePlanLines, serviceRequestNo, starsText, uploadImage, waLink } from "@/components/site/data";
+import { ServiceHistory, ServiceWorkFields } from "@/components/dash/ServiceWork";
+import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_STAGES, SERVICE_REQUEST_STATUS, serviceStage, serviceStagePatch, formatDate, formatPrice, servicePlanLines, serviceRequestNo, starsText, uploadImage, waLink } from "@/components/site/data";
 import { useIsNativeApp } from "@/lib/native";
 import { thumb } from "@/lib/images";
 
@@ -22,6 +23,11 @@ type Bucket = "new" | "assigned" | "done" | "closed";
  * the customer's contact details), the ones they took, work photos, ratings, their plan and profile.
  */
 export function ProviderHome({ provider, refetch }: { provider: Provider; refetch: () => void }) {
+  return <DashShell title={`أهلًا، ${provider.name}`}><ProviderPanel provider={provider} refetch={refetch} /></DashShell>;
+}
+
+/** The same panel opens as «خدماتي» for a company or broker who also offers services. */
+export function ProviderPanel({ provider, refetch }: { provider: Provider; refetch: () => void }) {
   const [tab, setTab] = useState<Tab>("requests");
   const approved = provider.status === "approved";
   const offers = useQuery({
@@ -37,7 +43,7 @@ export function ProviderHome({ provider, refetch }: { provider: Provider; refetc
   const O = offers.data ?? [];
   const S = stats.data;
   return (
-    <DashShell title={`أهلًا، ${provider.name}`}>
+    <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-teal-soft px-3 py-1 text-xs font-bold text-primary">{PROVIDER_KIND[provider.kind]} · {SERVICE_CATEGORIES[provider.category]}</span>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${PROVIDER_STATUS[provider.status]?.cls}`}>{PROVIDER_STATUS[provider.status]?.label}</span>
@@ -70,7 +76,7 @@ export function ProviderHome({ provider, refetch }: { provider: Provider; refetc
       {tab === "reviews" && <ProviderReviews provider={provider} />}
       {tab === "plan" && <ProviderPlan provider={provider} />}
       {tab === "profile" && <ProviderProfile provider={provider} onSaved={refetch} />}
-    </DashShell>
+    </>
   );
 }
 
@@ -144,7 +150,7 @@ function OfferCard({ o, onChanged }: { o: Offer; onChanged: () => void }) {
 
 function RequestCard({ r, onChanged }: { r: Tables<"service_requests">; onChanged: () => void }) {
   const [notes, setNotes] = useState(r.notes ?? "");
-  async function save(patch: { status?: string; notes?: string | null }) {
+  async function save(patch: TablesUpdate<"service_requests">) {
     const { error } = await supabase.from("service_requests").update(patch).eq("id", r.id);
     if (error) toast.error(error.message); else { toast.success("اتحفظ"); onChanged(); }
   }
@@ -155,20 +161,24 @@ function RequestCard({ r, onChanged }: { r: Tables<"service_requests">; onChange
           <p className="font-bold text-primary">{r.name} <span className="text-xs font-semibold text-muted-foreground">· {SERVICE_CATEGORIES[r.category]}</span></p>
           <p className="text-xs text-muted-foreground"><span dir="ltr">{serviceRequestNo(r.request_no)}</span> · {formatDate(r.created_at)}{r.area ? ` · ${r.area}` : ""}</p>
         </div>
-        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${SERVICE_REQUEST_STATUS[r.status]?.cls}`}>{r.status === "assigned" ? "شغّال عليه" : SERVICE_REQUEST_STATUS[r.status]?.label}</span>
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${SERVICE_REQUEST_STATUS[r.status]?.cls}`}>{r.status === "assigned" ? SERVICE_STAGES[serviceStage(r)]?.label : SERVICE_REQUEST_STATUS[r.status]?.label}</span>
       </div>
       {r.details && <p className="mt-2 text-sm whitespace-pre-line text-foreground/80">{r.details}</p>}
       <div className="mt-3 flex flex-wrap gap-2">
         <a href={`tel:${r.phone}`} className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-secondary px-3 text-sm font-bold text-primary" dir="ltr"><Phone className="size-4" />{r.phone}</a>
         <a href={waLink(r.phone, `مرحبًا ${r.name}، معاك مقدم الخدمة من فاليو عقار`)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-whatsapp px-3 text-sm font-bold text-primary-foreground"><MessageCircle className="size-4" />واتساب</a>
+        {r.status === "assigned" && !r.work_stage && <button onClick={() => save(serviceStagePatch("inspection"))} className={btnOutline}>بدأت المعاينة</button>}
+        {r.status === "assigned" && r.work_stage !== "working" && <button onClick={() => save(serviceStagePatch("working"))} className={btnOutline}>بدأ الشغل</button>}
         {r.status === "assigned" && <button onClick={() => save({ status: "done" })} className={btnPrimary}><Check className="size-4" />اتنفّذ</button>}
         {r.status === "assigned" && <button onClick={() => { if (confirm("قفل الطلب من غير تنفيذ؟")) save({ status: "closed" }); }} className={btnOutline}>اتقفل من غير تنفيذ</button>}
       </div>
+      {r.status === "assigned" && <ServiceWorkFields key={`${r.agreed_price}-${r.scheduled_for}`} r={r} save={save} />}
       {r.status === "assigned" && <p className="mt-2 text-xs text-muted-foreground">لما تدوس «اتنفّذ» بيوصل للعميل إشعار يقيّمك، والتقييم بيظهر في ملفك العام.</p>}
       <div className="mt-3 flex gap-2">
         <input className={inputCls} placeholder="ملاحظاتك على الطلب (بتوصل لفاليو عقار)" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         <button className={btnOutline} onClick={() => save({ notes: notes.trim() || null })}>حفظ</button>
       </div>
+      <ServiceHistory id={r.id} />
     </div>
   );
 }

@@ -232,6 +232,29 @@ export const SERVICE_REQUEST_STATUS: Record<string, { label: string; cls: string
   done: { label: "اتنفّذ", cls: "bg-primary text-primary-foreground" },
   closed: { label: "اتقفل", cls: "bg-muted text-muted-foreground" },
 };
+/** How far a request got. status stays the routing state; work_stage refines it while a provider has the request. */
+export const SERVICE_STAGES: Record<string, { label: string; cls: string; customer: string }> = {
+  new: { label: "جديد", cls: "bg-teal-soft text-primary", customer: "طلبك وصل" },
+  routing: { label: "بنوزّعه", cls: "bg-secondary text-primary", customer: "بندوّر على أنسب مقدم خدمة" },
+  accepted: { label: "مقدم الخدمة قبل", cls: "bg-[#f2b84b]/25 text-primary", customer: "مقدم الخدمة هيتواصل معاك" },
+  inspection: { label: "معاينة", cls: "bg-[#f2b84b]/25 text-primary", customer: "مرحلة المعاينة" },
+  working: { label: "شغّال", cls: "bg-[#f2b84b]/25 text-primary", customer: "الشغل ماشي" },
+  done: { label: "اتنفّذ", cls: "bg-primary text-primary-foreground", customer: "اتنفّذت ✓" },
+  cancelled: { label: "ملغي", cls: "bg-muted text-muted-foreground", customer: "اتقفل" },
+};
+export function serviceStage(r: { status: string; work_stage?: string | null; offer_provider_id?: string | null }) {
+  if (r.status === "closed") return "cancelled";
+  if (r.status === "done") return "done";
+  if (r.status === "assigned") return r.work_stage ?? "accepted";
+  return r.status === "contacted" || r.offer_provider_id ? "routing" : "new";
+}
+export const serviceStagePatch = (stage: string): { status: string; work_stage: string | null } =>
+  stage === "cancelled" ? { status: "closed", work_stage: null }
+    : stage === "done" ? { status: "done", work_stage: null }
+    : stage === "inspection" || stage === "working" ? { status: "assigned", work_stage: stage }
+    : stage === "accepted" ? { status: "assigned", work_stage: null }
+    : stage === "routing" ? { status: "contacted", work_stage: null }
+    : { status: "new", work_stage: null };
 export const PROVIDER_STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: "قيد المراجعة", cls: "bg-[#f2b84b]/25 text-primary" },
   approved: { label: "معتمد", cls: "bg-teal-soft text-primary" },

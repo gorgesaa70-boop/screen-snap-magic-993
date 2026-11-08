@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { Field, Stat, inputCls, btnPrimary, btnOutline } from "@/components/site/ui";
 import { cleanPhone } from "@/lib/phone";
-import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_REQUEST_STATUS, formatDate, formatPrice, serviceRequestNo, starsText } from "@/components/site/data";
+import { PROVIDER_KIND, PROVIDER_STATUS, SERVICE_CATEGORIES, SERVICE_STAGES, formatDate, formatPrice, serviceRequestNo, serviceStage, serviceStagePatch, starsText } from "@/components/site/data";
+import { ServiceHistory, ServiceWorkFields } from "@/components/dash/ServiceWork";
 
 type Provider = Tables<"service_providers">;
 type Plan = Tables<"service_plans">;
@@ -31,6 +32,16 @@ export function ServicesAdmin({ tab }: { tab: ServicesTab }) {
   return <RequestsAdmin />;
 }
 
+/** Why a request needs a look: nobody took it, its date passed, or nothing moved for 3 days. */
+function lateReason(r: Tables<"service_requests">, now: number) {
+  const stage = serviceStage(r);
+  if (stage === "done" || stage === "cancelled") return null;
+  if ((stage === "new" || stage === "routing") && now - Date.parse(r.created_at) > 86_400_000) return "مستني توزيع من أكتر من يوم";
+  if (r.scheduled_for && r.scheduled_for < new Date(now).toISOString().slice(0, 10)) return "عدّى ميعاده";
+  if (r.assigned_provider_id && now - Date.parse(r.updated_at) > 3 * 86_400_000) return "مفيش تحديث من 3 أيام";
+  return null;
+}
+
 function RequestsAdmin() {
   const q = useQuery({
     queryKey: ["svc-requests"],
@@ -40,37 +51,61 @@ function RequestsAdmin() {
       const { data, error } = await supabase.from("service_requests").select("*").order("created_at", { ascending: false }).limit(500); if (error) throw error; return data;
     },
   });
+  const reviews = useQuery({ queryKey: ["svc-request-stars"], queryFn: async () => (await supabase.from("service_reviews").select("request_id, stars")).data ?? [] });
   const providers = useProviders();
-  const [status, setStatus] = useState("");
+  const [stage, setStage] = useState("");
   const [cat, setCat] = useState("");
-  const list = (q.data ?? []).filter((r) => (!status || (status === "manual" ? r.needs_manual && !r.assigned_provider_id : status === "offered" ? !!r.offer_provider_id : r.status === status)) && (!cat || r.category === cat));
-  const manual = (q.data ?? []).filter((r) => r.needs_manual && !r.assigned_provider_id).length;
-  const count = (s: string) => (q.data ?? []).filter((r) => r.status === s).length;
+  const [search, setSearch] = useState("");
+  const now = Date.now();
+  const all = q.data ?? [];
+  const stars = new Map((reviews.data ?? []).map((v) => [v.request_id, v.stars]));
+  const manual = all.filter((r) => r.needs_manual && !r.assigned_provider_id).length;
+  const open = all.filter((r) => !["done", "cancelled"].includes(serviceStage(r)));
+  const late = open.filter((r) => lateReason(r, now));
+  const month = new Date(now).toISOString().slice(0, 7);
+  const doneMonth = all.filter((r) => r.status === "done" && (r.done_at ?? r.updated_at).slice(0, 7) === month).length;
+  const avg = stars.size ? [...stars.values()].reduce((s, n) => s + n, 0) / stars.size : null;
+  const s = search.trim().toLowerCase();
+  const list = all.filter((r) => {
+    if (cat && r.category !== cat) return false;
+    if (s && !r.name.toLowerCase().includes(s) && !r.phone.includes(s) && !serviceRequestNo(r.request_no).toLowerCase().includes(s)) return false;
+    if (stage === "late") return !!lateReason(r, now);
+    if (stage === "manual") return r.needs_manual && !r.assigned_provider_id;
+    if (stage === "rated") return stars.has(r.id);
+    return !stage || serviceStage(r) === stage;
+  });
+  const chip = (id: string, label: string, n: number) => <button key={id} type="button" aria-pressed={stage === id} onClick={() => setStage(stage === id ? "" : id)} className={`h-10 shrink-0 rounded-full border px-4 text-sm font-bold transition ${stage === id ? "border-primary bg-primary text-primary-foreground" : "bg-card text-primary hover:border-teal"}`}>{label} ({formatPrice(n)})</button>;
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="محتاج توزيع يدوي" value={formatPrice(manual)} hint={manual ? "مفيش مقدم خدمة متاح في التخصص والمنطقة" : undefined} />
-        <Stat label="اتحوّل لمقدم خدمة" value={formatPrice(count("assigned"))} />
-        <Stat label="اتنفّذ" value={formatPrice(count("done"))} />
-        <Stat label="كل الطلبات" value={formatPrice(q.data?.length ?? 0)} />
+        <Stat label="طلبات مفتوحة" value={formatPrice(open.length)} hint={manual ? `${formatPrice(manual)} محتاج توزيع يدوي` : undefined} />
+        <Stat label="متأخرة" value={formatPrice(late.length)} hint={late.length ? "محتاجة متابعة" : undefined} />
+        <Stat label="اتنفّذت الشهر ده" value={formatPrice(doneMonth)} />
+        <Stat label="متوسط التقييم" value={avg == null ? "—" : `${avg.toFixed(1)} ★`} hint={stars.size ? `${formatPrice(stars.size)} تقييم` : "لسه مفيش تقييمات"} />
       </div>
-      <div className="flex flex-wrap gap-2">
-        <select aria-label="الحالة" className={`${inputCls} w-auto`} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option><option value="manual">محتاج توزيع يدوي</option><option value="offered">معروض على مقدم خدمة</option>{Object.entries(SERVICE_REQUEST_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
-        <select aria-label="الخدمة" className={`${inputCls} w-auto`} value={cat} onChange={(e) => setCat(e.target.value)}>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {chip("late", "متأخرة", late.length)}
+        {chip("manual", "توزيع يدوي", manual)}
+        {Object.entries(SERVICE_STAGES).map(([k, v]) => chip(k, v.label, all.filter((r) => serviceStage(r) === k).length))}
+        {chip("rated", "اتقيّم", stars.size)}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input aria-label="بحث" className={`${inputCls} flex-1`} placeholder="الاسم أو الموبايل أو رقم الطلب" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select aria-label="الخدمة" className={`${inputCls} sm:w-48`} value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">كل الخدمات</option>{Object.entries(SERVICE_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
-      {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش طلبات خدمات.</p>}
-      {list.map((r) => <RequestRow key={r.id} r={r} all={providers.data ?? []} providers={(providers.data ?? []).filter((p) => p.status === "approved" && p.category === r.category)} onChanged={() => q.refetch()} />)}
+      {!q.isLoading && list.length === 0 && <p className="rounded-2xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground">مفيش طلبات {all.length ? "مطابقة للفلاتر" : "خدمات"}.</p>}
+      {list.map((r) => <RequestRow key={r.id} r={r} late={lateReason(r, now)} stars={stars.get(r.id) ?? null} all={providers.data ?? []} providers={(providers.data ?? []).filter((p) => p.status === "approved" && p.category === r.category)} onChanged={() => q.refetch()} />)}
     </div>
   );
 }
 
-function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_requests">; all: Provider[]; providers: Provider[]; onChanged: () => void }) {
+function RequestRow({ r, late, stars, all, providers, onChanged }: { r: Tables<"service_requests">; late: string | null; stars: number | null; all: Provider[]; providers: Provider[]; onChanged: () => void }) {
   const name = (id: string | null) => all.find((p) => p.id === id)?.name ?? "مقدم خدمة";
   const [notes, setNotes] = useState(r.notes ?? "");
+  const [adminNotes, setAdminNotes] = useState(r.admin_notes ?? "");
+  const stage = serviceStage(r);
   const [edit, setEdit] = useState<{ name: string; phone: string; details: string; area: string } | null>(null);
   async function save(patch: TablesUpdate<"service_requests">, ok = "اتحفظ") {
     const { error } = await supabase.from("service_requests").update(patch).eq("id", r.id);
@@ -83,12 +118,14 @@ function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_reque
           <p className="font-bold text-primary">{r.name} <span className="text-xs font-semibold text-muted-foreground">· {SERVICE_CATEGORIES[r.category]}</span></p>
           <p className="text-xs text-muted-foreground"><span dir="ltr">{serviceRequestNo(r.request_no)}</span> · {formatDate(r.created_at)}</p>
         </div>
-        <select aria-label="الحالة" className={`${inputCls} h-10 w-auto text-xs`} value={r.status} onChange={(e) => save({ status: e.target.value })}>
-          {Object.entries(SERVICE_REQUEST_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        <select aria-label="المرحلة" className={`${inputCls} h-10 w-auto text-xs`} value={stage} onChange={(e) => save(serviceStagePatch(e.target.value))}>
+          {Object.entries(SERVICE_STAGES).map(([k, v]) => <option key={k} value={k} disabled={!r.assigned_provider_id && ["accepted", "inspection", "working", "done"].includes(k)}>{v.label}</option>)}
         </select>
       </div>
       {r.details && <p className="mt-2 text-sm whitespace-pre-line text-foreground/80">{r.details}</p>}
       <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold">
+        {late && <span className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-destructive">{late}</span>}
+        {stars != null && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-primary">{starsText(stars)}</span>}
         {r.area && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-primary">{r.area}</span>}
         {r.target_provider_id && <span className="rounded-full bg-secondary px-2.5 py-0.5 text-primary">العميل اختار: {name(r.target_provider_id)}</span>}
         {r.offer_provider_id && r.offer_expires_at && <span className="inline-flex items-center gap-1 rounded-full bg-[#f2b84b]/20 px-2.5 py-0.5 text-primary"><Timer className="size-3" />معروض على {name(r.offer_provider_id)} لحد {new Date(r.offer_expires_at).toLocaleTimeString("ar-EG", { hour: "numeric", minute: "2-digit" })}</span>}
@@ -109,8 +146,13 @@ function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_reque
           {providers.map((p) => <option key={p.id} value={p.id}>{p.name}{p.verified ? " ✓" : ""}{p.areas.length ? ` — ${p.areas.slice(0, 2).join("، ")}` : ""}</option>)}
         </select>
       </div>
+      {r.assigned_provider_id && <ServiceWorkFields key={`${r.agreed_price}-${r.scheduled_for}`} r={r} save={save} />}
       <div className="mt-3 flex gap-2">
-        <input className={inputCls} placeholder="ملاحظات" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
+        <input className={inputCls} placeholder="ملاحظات داخلية (فاليو عقار بس)" value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} maxLength={2000} />
+        <button className={btnOutline} onClick={() => save({ admin_notes: adminNotes.trim() || null })}>حفظ</button>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <input className={inputCls} placeholder="ملاحظات مقدم الخدمة" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
         <button className={btnOutline} onClick={() => save({ notes: notes.trim() || null })}>حفظ</button>
       </div>
       {edit ? (
@@ -131,6 +173,7 @@ function RequestRow({ r, all, providers, onChanged }: { r: Tables<"service_reque
           {r.customer_id && <DeleteAccountButton userId={r.customer_id} name={r.name} onDone={onChanged} />}
         </div>
       )}
+      <ServiceHistory id={r.id} />
     </div>
   );
 }

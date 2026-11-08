@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { MessageCircle, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashShell } from "@/components/dash/DashShell";
-import { LEAD_KINDS, SERVICE_CATEGORIES, formatDate, formatPrice, leadNo, leadKindLabel, serviceRequestNo, starsText } from "@/components/site/data";
+import { useMe } from "@/hooks/useAuth";
+import { LEAD_KINDS, SERVICE_CATEGORIES, SERVICE_STAGES, serviceStage, formatDate, formatPrice, leadNo, leadKindLabel, serviceRequestNo, starsText } from "@/components/site/data";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 
 export const Route = createFileRoute("/_authenticated/my-requests")({
@@ -28,9 +29,10 @@ function customerStage(stage: string, purpose: string | null) {
 }
 
 function MyRequestsPage() {
+  const { me } = useMe();
   const q = useQuery({ queryKey: ["my-requests"], queryFn: async () => (await supabase.rpc("my_requests")).data ?? [] });
   return (
-    <DashShell title="طلباتي" customer>
+    <DashShell title="طلباتي" customer={!me?.broker}>
       <p className="mb-4 max-w-3xl text-sm text-muted-foreground">كل الطلبات والاستفسارات اللي بعتها من حسابك أو من نفس رقم موبايلك. أول ما طلبك يتحرك خطوة هيوصلك إشعار، وتقدر تراسل الشركة اللي ماسكة طلبك من «رسايل الطلب».</p>
       {q.isLoading ? <div className="h-40 animate-pulse rounded-2xl bg-muted" />
         : !q.data?.length ? (
@@ -69,14 +71,18 @@ function MyRequestsPage() {
   );
 }
 
-type ServiceRow = { id: string; request_no: number; category: string; details: string | null; area: string | null; status: string; created_at: string; provider_id: string | null; provider_name: string | null; waiting: boolean; stars: number | null };
+type ServiceRow = { id: string; request_no: number; category: string; details: string | null; area: string | null; status: string; created_at: string; provider_id: string | null; provider_name: string | null; waiting: boolean; stars: number | null; work_stage?: string | null; scheduled_for?: string | null; agreed_price?: number | null};
 
 /** Requests from the services directory: who took them, and rating the provider once the work is done. */
 function MyServiceRequests() {
-  const q = useQuery({ queryKey: ["my-service-requests"], queryFn: async () => { const { data, error } = await supabase.rpc("my_service_requests"); return error ? [] : (data as ServiceRow[]); } });
+  const q = useQuery({ queryKey: ["my-service-requests"], queryFn: async () => {
+    const [{ data, error }, work] = await Promise.all([supabase.rpc("my_service_requests"), supabase.rpc("my_service_work")]);
+    if (error) return [];
+    const byId = new Map((work.data ?? []).map((w) => [w.id, w]));
+    return (data as ServiceRow[]).map((r) => ({ ...r, ...byId.get(r.id) }));
+  } });
   if (!q.data?.length) return null;
-  const label = (r: ServiceRow) => r.status === "done" ? { t: "اتنفّذت ✓", c: "bg-primary text-primary-foreground" } : r.status === "closed" ? { t: "اتقفل", c: "bg-secondary text-muted-foreground" }
-    : r.provider_id ? { t: "مقدم الخدمة هيتواصل معاك", c: "bg-teal-soft text-primary" } : { t: "بندوّر على أنسب مقدم خدمة", c: "bg-secondary text-primary" };
+  const label = (r: ServiceRow) => { const s = SERVICE_STAGES[serviceStage(r)]!; return { t: s.customer, c: s.cls }; };
   return (
     <section className="mt-8 max-w-3xl">
       <h2 className="mb-3 text-lg font-extrabold text-primary">طلبات الخدمات</h2>
@@ -89,7 +95,7 @@ function MyServiceRequests() {
             </div>
             {r.provider_id && r.provider_name && <Link to="/services/$id" params={{ id: r.provider_id }} className="mt-1 block text-sm font-bold text-teal hover:underline">{r.provider_name}</Link>}
             {(r.details || r.area) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{[r.area, r.details].filter(Boolean).join(" · ")}</p>}
-            <p className="mt-2 text-[11px] text-muted-foreground">اتبعت {formatDate(r.created_at)}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">اتبعت {formatDate(r.created_at)}{r.scheduled_for ? ` · الميعاد ${formatDate(r.scheduled_for)}` : ""}{r.agreed_price != null ? ` · السعر ${formatPrice(Number(r.agreed_price))} ج.م` : ""}</p>
             {r.status === "done" && r.provider_id && (r.stars ? <p className="mt-2 text-sm font-bold text-primary">تقييمك: <span className="text-[#f2b84b]">{starsText(r.stars)}</span></p> : <RateForm id={r.id} onDone={() => q.refetch()} />)}
           </li>
         ); })}

@@ -2311,4 +2311,26 @@ commit;`);
   await expectOk("the admin publishes news", () => as(U.admin, `insert into public.site_news (text_ar) values ('خبر مفعّل')`));
   await expectOk("the admin hides news", () => as(U.admin, `insert into public.site_news (text_ar, is_active) values ('خبر متوقف', false)`));
   await expectOk("visitors see live news only", () => as(U.outsider, `select text_ar from public.site_news`), (r) => r.length === 1 && r[0].text_ar === "خبر مفعّل");
+
+  console.log("\nService work tracking (release 51)");
+  const svcUser = "00000000-0000-0000-0000-00000000f0e1";
+  const svcProvider = "e0000000-0000-0000-0000-00000000f0e1";
+  await sys(`insert into auth.users (id, phone) values ('${svcUser}','201000007788')`);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await sys(`insert into public.service_providers (id, kind, category, name, phone, status) values ('${svcProvider}','technician','crafts','فني متابعة','201000007788','approved')`);
+  const svcReq = (await sys(`insert into public.service_requests (name, phone, category, assigned_provider_id, customer_id) values ('عميل خدمة','201000000005','crafts','${svcProvider}','${U.outsider}') returning id`))[0].id;
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("the provider moves the work to inspection with a price and date", () => as(svcUser, `update public.service_requests set status='assigned', work_stage='inspection', agreed_price=1500, scheduled_for='2030-01-02' where id='${svcReq}' returning work_stage, agreed_price`), (r) => r.length === 1 && r[0].work_stage === "inspection" && Number(r[0].agreed_price) === 1500);
+  await expectOk("a provider can't write Value Aqar's internal notes", () => as(svcUser, `update public.service_requests set admin_notes='سر' where id='${svcReq}' returning admin_notes`), (r) => r[0].admin_notes === null);
+  await expectOk("the admin writes internal notes", () => as(U.admin, `update public.service_requests set admin_notes='متابعة' where id='${svcReq}' returning admin_notes`), (r) => r[0].admin_notes === "متابعة");
+  await expectOk("another account can't move the work", () => as(U.owner, `update public.service_requests set work_stage='working' where id='${svcReq}' returning id`), (r) => r.length === 0);
+  await expectOk("the history says who did it", () => as(U.admin, `select kind, new_value, actor_label from public.service_request_events where request_id='${svcReq}'`), (r) => r.some((e) => e.kind === "stage" && e.new_value === "inspection" && e.actor_label === "مقدم الخدمة") && r.some((e) => e.kind === "price") && r.some((e) => e.kind === "schedule"));
+  await expectOk("the provider reads their request's history", () => as(svcUser, `select id from public.service_request_events where request_id='${svcReq}'`), (r) => r.length >= 3);
+  await expectOk("nobody else reads it", () => as(U.owner, `select id from public.service_request_events where request_id='${svcReq}'`), (r) => r.length === 0);
+  await expectOk("the customer sees the stage, date and price", () => as(U.outsider, `select work_stage, scheduled_for, agreed_price from public.my_service_work() where id='${svcReq}'`), (r) => r.length === 1 && r[0].work_stage === "inspection" && Number(r[0].agreed_price) === 1500);
+  await expectOk("the customer was told about the stage", () => sys(`select title from public.notifications where user_id='${U.outsider}' and related_id='${svcReq}'`), (r) => r.some((n) => n.title.includes("المعاينة")));
+  await expectOk("finishing clears the work stage", () => as(svcUser, `update public.service_requests set status='done' where id='${svcReq}' returning status, work_stage`), (r) => r[0].status === "done" && r[0].work_stage === null);
+  await expectOk("a visitor's request can't carry a price or notes", () => as(U.outsider, `insert into public.service_requests (name, phone, category, agreed_price, admin_notes) values ('زائر','201000000005','crafts',9,'x') returning agreed_price, admin_notes`), (r) => r[0].agreed_price === null && r[0].admin_notes === null);
+  await expectOk("a company registers as a provider from its account", () => as(U.owner, `insert into public.service_providers (user_id, kind, category, name, phone) values ('${U.owner}','company','contracting','شركة تسويق','201000000001')`));
+  await expectOk("the company's account finds its provider panel", () => as(U.owner, `select public.my_service_provider_id() id`), (r) => !!r[0].id);
 }

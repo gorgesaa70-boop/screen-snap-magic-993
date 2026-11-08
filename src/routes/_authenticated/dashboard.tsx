@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchAll } from "@/lib/fetch-all";
 import { useMe, type MemberRole } from "@/hooks/useAuth";
 import { CustomerHome } from "@/components/dash/CustomerHome";
-import { ProviderHome } from "@/components/dash/ProviderHome";
+import { ProviderHome, ProviderPanel } from "@/components/dash/ProviderHome";
+import { ProviderJoinForm } from "@/components/site/ServiceForms";
 import { BrokerGuide } from "@/components/dash/BrokerGuide";
 import { DeadlineBadge } from "@/components/dash/Deadline";
 import { ContactOutcome } from "@/components/dash/LeadsBoard";
@@ -106,14 +107,14 @@ function Dashboard() {
   return <BrokerDash broker={me.broker} isAdmin={me.isAdmin} role={me.memberRole ?? "owner"} memberName={me.memberName} />;
 }
 
-const TABS = ["overview", "projects", "compounds", "properties", "plan", "referrals", "leads", "wa", "team", "profile", "stats"] as const;
+const TABS = ["services", "overview", "projects", "compounds", "properties", "plan", "referrals", "leads", "wa", "team", "profile", "stats"] as const;
 type Tab = (typeof TABS)[number];
 const TEAM_ACCOUNTS = ["office", "company", "developer"];
 
 function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; isAdmin: boolean; role: MemberRole; memberName: string | null }) {
   const isOwner = role === "owner";
   // Also a Value Aqar employee on the same account (release 38): a shortcut to their «لوحة العمل».
-  const { me } = useMe();
+  const { me, refetch: refetchMe } = useMe();
   const worksForValueAqar = !!me?.isStaff && !me.isAdmin && hasAny(me.perms);
   const canList = isOwner || role === "manager";
   // A WhatsApp-chat bell links to /dashboard?tab=wa, a plan notice to /dashboard?tab=plan; the open tab stays in the
@@ -167,6 +168,7 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
         { id: "leads", label: "أحدث العملاء" },
         { id: "wa", label: chatsUnread ? `محادثات الواتساب (${chatsUnread})` : "محادثات الواتساب" },
         { id: "referrals", label: "الإحالات" },
+        ...(isOwner || me?.provider ? [{ id: "services" as const, label: "خدماتي" }] : []),
         ...(isOwner && TEAM_ACCOUNTS.includes(broker.account_type) ? [{ id: "team" as const, label: "الفريق" }] : []),
         ...(isOwner ? [{ id: "profile" as const, label: "الملف الشخصي" }] : []),
       ]} />
@@ -223,6 +225,12 @@ function BrokerDash({ broker, isAdmin, role, memberName }: { broker: BrokerRow; 
       {tab === "leads" && <MyLeads list={L} reload={() => leads.refetch()} />}
       {tab === "wa" && <OwnerChats />}
       {tab === "referrals" && <Referrals canManage={isOwner || role === "manager"} />}
+      {tab === "services" && (me?.provider ? <ProviderPanel provider={me.provider} refetch={refetchMe} /> : (
+        <div className="max-w-xl space-y-3">
+          <p className="text-sm text-muted-foreground">بتقدم خدمة زي التشطيب أو الصيانة أو التصوير؟ سجّلها هنا من نفس حسابك، وبعد مراجعة فاليو عقار هتظهر في دليل الخدمات والطلبات هتوصلك في التبويب ده.</p>
+          <ProviderJoinForm account={{ name: broker.name, phone: broker.phone ?? "", userId: me?.broker?.user_id ?? null, kind: broker.account_type === "individual" ? "technician" : "company" }} onJoined={() => void refetchMe()} />
+        </div>
+      ))}
       {tab === "profile" && isOwner && <ProfileForm broker={broker} />}
     </DashShell>
   );

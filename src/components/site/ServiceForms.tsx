@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
 import { cleanPhone } from "@/lib/phone";
+import { useMe } from "@/hooks/useAuth";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 import { ALL_AREAS, SERVICE_CATEGORIES, useLocations } from "@/components/site/data";
 
@@ -22,6 +23,14 @@ export function ServiceRequestForm({ provider, category, onCategory }: { provide
   useLocations();
   useLang();
   const [f, setF] = useState({ group: (provider?.category ?? category ?? "crafts") as ServiceGroup, area: "", what: "", name: "", phone: "" });
+  // Signed in: their own details are already filled, and they can still change them.
+  const { user, me } = useMe();
+  useEffect(() => {
+    if (!user) return;
+    const name = me?.broker?.name ?? String(user.user_metadata?.["full_name"] ?? user.user_metadata?.["name"] ?? "");
+    const phone = me?.broker?.phone ?? user.phone ?? "";
+    setF((c) => ({ ...c, name: c.name || name, phone: c.phone || phone }));
+  }, [user, me]);
   const group = category && !provider ? category : f.group;
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -68,9 +77,9 @@ export function ServiceRequestForm({ provider, category, onCategory }: { provide
 }
 
 /** Join as a provider (company / office or technician): saved for Value Aqar's review. */
-export function ProviderJoinForm() {
+export function ProviderJoinForm({ account, onJoined }: { account?: { name: string; phone: string; userId: string | null; kind: "technician" | "company" }; onJoined?: () => void }) {
   useLang();
-  const [f, setF] = useState({ kind: "technician" as "technician" | "company", group: "crafts" as ServiceGroup, what: "", name: "", phone: "" });
+  const [f, setF] = useState({ kind: (account?.kind ?? "technician") as "technician" | "company", group: "crafts" as ServiceGroup, what: "", name: account?.name ?? "", phone: account?.phone ?? "" });
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   async function submit(e: React.FormEvent) {
@@ -78,10 +87,11 @@ export function ProviderJoinForm() {
     const phone = cleanPhone(f.phone);
     if (f.name.trim().length < 2 || !phone) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
-    const { error } = await supabase.from("service_providers").insert({ kind: f.kind, category: f.group, name: f.name.trim().slice(0, 100), phone, specialty: f.what.trim().slice(0, 120) || null });
+    const { error } = await supabase.from("service_providers").insert({ kind: f.kind, category: f.group, name: f.name.trim().slice(0, 100), phone, specialty: f.what.trim().slice(0, 120) || null, ...(account?.userId ? { user_id: account.userId } : {}) });
     setBusy(false);
     if (error) { toast.error(error.code === "23505" ? t("الرقم ده مسجّل كمقدم خدمة قبل كده — سجّل دخول برقمك عشان تتابع حسابك.") : t("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(true);
+    onJoined?.();
   }
   if (done) return (
     <div className="rounded-2xl border bg-card p-6 text-center">
