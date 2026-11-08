@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      site_news: {
+        Row: { id: string; text_ar: string; text_en: string | null; is_active: boolean; sort_order: number; created_by: string | null; created_at: string }
+        Insert: { id?: string; text_ar: string; text_en?: string | null; is_active?: boolean; sort_order?: number; created_by?: string | null; created_at?: string }
+        Update: { id?: string; text_ar?: string; text_en?: string | null; is_active?: boolean; sort_order?: number; created_by?: string | null; created_at?: string }
+        Relationships: []
+      }
       app_errors: {
         Row: {
           count: number
@@ -4257,6 +4263,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_plan_finance: { Args: never; Returns: { kind: string; id: string; holder: string; phone: string | null; account_type: string; plan_name: string; months: number | null; status: string; is_trial: boolean; starts_at: string; ends_at: string | null; amount: number | null; paid_amount: number; paid_at: string | null; payment_method: string | null; payment_note: string | null; renew_amount: number }[] }
+      admin_record_plan_payment: { Args: { _kind: string; _id: string; _amount: number; _paid: number; _method?: string; _note?: string }; Returns: undefined }
       accept_referral: { Args: { _id: string }; Returns: string }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
       account_audience: { Args: { _type: string }; Returns: string }

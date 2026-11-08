@@ -2290,4 +2290,25 @@ commit;`);
   await expectErr("nobody reads the outbox through the API", () => as(U.admin, `select * from public.wa_outbox`));
   await expectErr("…nor writes to it", () => as(null, `insert into public.wa_outbox (kind, phone, title, message) values ('customer','010','x','y')`));
   }
+
+  console.log("\nPlan money and news (release 50)");
+  const moneyCo = "c0000000-0000-0000-0000-0000000000f1";
+  await sys(`insert into public.brokers (id, slug, name, phone, account_type, is_active) values ('${moneyCo}','money-co','شركة باقات','201000000099','company', true)`);
+  const companyPlan = (await sys(`select id from public.plans where audience='company' and is_active order by monthly_price desc limit 1`))[0].id;
+  await expectOk("the admin activates a plan", () => as(U.admin, `select public.admin_grant_plan('${moneyCo}', null, '${companyPlan}', 3)`));
+  const moneySub = (await sys(`select id, amount, paid_amount from public.subscriptions where broker_id='${moneyCo}' and status='active'`))[0];
+  if (!(Number(moneySub.amount) > 0) || Number(moneySub.paid_amount) !== 0) throw new Error("a manual activation must be priced and unpaid");
+  await expectErr("an outsider can't read the plan money", () => as(U.outsider, `select * from public.admin_plan_finance()`));
+  await expectErr("an outsider can't record a payment", () => as(U.outsider, `select public.admin_record_plan_payment('account','${moneySub.id}',100,100)`));
+  await expectErr("paid can't be more than the plan", () => as(U.admin, `select public.admin_record_plan_payment('account','${moneySub.id}',100,101)`));
+  await expectOk("the admin records part of a payment", () => as(U.admin, `select public.admin_record_plan_payment('account','${moneySub.id}',1000,400,'cash','دفعة أولى')`));
+  await expectOk("the page shows what is paid", () => as(U.admin, `select * from public.admin_plan_finance() where id='${moneySub.id}'`), (r) => r.length === 1 && Number(r[0].paid_amount) === 400 && Number(r[0].amount) === 1000 && Number(r[0].renew_amount) > 0);
+  const moneyReq = (await sys(`insert into public.plan_requests (broker_id, plan_id, months, amount) values ('${moneyCo}','${companyPlan}',1,777) returning id`))[0].id;
+  await expectOk("activating a request succeeds", () => as(U.admin, `select public.admin_handle_plan_request('${moneyReq}', true)`));
+  await expectOk("a request paid with «اتدفع» counts as fully paid", () => sys(`select amount, paid_amount from public.subscriptions where broker_id='${moneyCo}' order by created_at desc, starts_at desc limit 1`), (r) => Number(r[0].amount) === 777 && Number(r[0].paid_amount) === 777);
+  await expectErr("an outsider can't publish news", () => as(U.outsider, `insert into public.site_news (text_ar) values ('خبر غريب')`));
+  await expectErr("an employee without the section can't publish news", () => as(U.staff, `insert into public.site_news (text_ar) values ('خبر موظف')`));
+  await expectOk("the admin publishes news", () => as(U.admin, `insert into public.site_news (text_ar) values ('خبر مفعّل')`));
+  await expectOk("the admin hides news", () => as(U.admin, `insert into public.site_news (text_ar, is_active) values ('خبر متوقف', false)`));
+  await expectOk("visitors see live news only", () => as(U.outsider, `select text_ar from public.site_news`), (r) => r.length === 1 && r[0].text_ar === "خبر مفعّل");
 }
