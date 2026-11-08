@@ -108,16 +108,22 @@
   }
 }
 
-/* News ticker: the line moves from left to right (Arabic reading direction) and stops for reduced-motion users. */
+/* News ticker: the line enters at one edge of its box, crosses it and leaves at the other, so it is never empty for long whatever the text's length. */
+.ticker > .relative { container-type: inline-size; }
 @keyframes ticker-rtl {
-  from { transform: translateX(-100%); }
+  from { transform: translateX(-100cqw); }
   to { transform: translateX(100%); }
+}
+@keyframes ticker-ltr {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100cqw); }
 }
 .ticker-line {
   display: inline-block;
   white-space: nowrap;
   animation: ticker-rtl 22s linear infinite;
 }
+[dir="ltr"] .ticker-line { animation-name: ticker-ltr; }
 .ticker:hover .ticker-line { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .ticker-line { animation: none; transform: none; }
