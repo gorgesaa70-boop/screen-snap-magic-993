@@ -1102,15 +1102,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
   };
 
-  // The server always renders Arabic: wait a tick so lazy parts finish hydrating before the saved language applies.
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved === "en" || saved === "ar") setLangState(saved);
-      } catch { /* ignore */ }
-    }, 0);
-    return () => window.clearTimeout(id);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved === "en" || saved === "ar") setLangState(saved);
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
