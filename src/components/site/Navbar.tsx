@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
+import { ChevronDown, Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { MessagesButton, MessagesMenuLink } from "@/components/site/MessagesButton";
 import { NewsTicker } from "@/components/site/NewsTicker";
@@ -52,26 +52,27 @@ export function LangToggle() {
 export function Navbar() {
   useLang();
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const { user } = useSessionUser();
   // The prices page shows in the menu only once enough real units exist to show a price.
   const prices = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
   // «قريبًا» goes away once there's a shared housing unit to show.
   const sharedOpen = useQuery({ queryKey: ["shared-units-public"], staleTime: 5 * 60_000, queryFn: async () => { const { data, error } = await supabase.rpc("shared_units_public"); return error ? [] : (data ?? []); } });
-  const links = [
+  const links: { label: string; href: string; more?: boolean }[] = [
     { label: t("الرئيسية"), href: "/#top" },
     { label: t("سكني"), href: "/?cat=residential#properties" },
     { label: t("تجاري"), href: "/?cat=commercial#properties" },
     { label: t("إداري"), href: "/?cat=office#properties" },
     { label: t("أراضي"), href: "/?cat=land#properties" },
-    { label: t("صناعي"), href: "/industrial" },
+    { label: t("صناعي"), href: "/industrial", more: true },
     { label: t("المولات"), href: "/malls" },
     { label: t("الكمبوندات"), href: "/compounds" },
-    { label: t("المشروعات"), href: "/projects" },
-    { label: t("استثمار"), href: "/investments" },
+    { label: t("المشروعات"), href: "/projects", more: true },
+    { label: t("استثمار"), href: "/investments", more: true },
     { label: t("الوسطاء"), href: "/brokers" },
-    { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing" },
-    { label: t("دليل الخدمات"), href: "/services" },
-    ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices" }] : []),
+    { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing", more: true },
+    { label: t("الخدمات"), href: "/services" },
+    ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices", more: true }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
   return (
@@ -79,15 +80,25 @@ export function Navbar() {
       <AnnouncementBar fallback={<NewsTicker />} />
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 max-[359px]:gap-1 max-[359px]:px-3 sm:gap-4 md:px-6">
         <Logo />
-        {/* Scrolls inside itself so a long menu can never push the header past the screen. */}
-        <nav className="hidden min-w-0 items-center gap-3 overflow-x-auto [scrollbar-width:none] xl:flex 2xl:gap-5">
+        {/* The main links and «المزيد»: all of them never fit in one line, so nothing gets cut off. */}
+        <nav className="hidden items-center gap-3 xl:flex">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="shrink-0 whitespace-nowrap text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
+            <a key={l.href} href={l.href} className={`shrink-0 whitespace-nowrap text-sm font-semibold text-foreground/75 transition-colors hover:text-primary ${l.more ? "hidden" : ""}`}>
               {l.label}
             </a>
           ))}
+          <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setMoreOpen(false); }}>
+            <button type="button" aria-expanded={moreOpen} onClick={() => setMoreOpen(!moreOpen)} className="flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-foreground/75 transition-colors hover:text-primary">
+              {t("المزيد")}<ChevronDown className={`size-4 transition ${moreOpen ? "rotate-180" : ""}`} />
+            </button>
+            {moreOpen && (
+              <div className="absolute start-0 top-full z-50 mt-3 min-w-44 rounded-xl border bg-background p-1.5 shadow-card">
+                {links.filter((l) => l.more).map((l) => <a key={l.href} href={l.href} className="block rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap text-foreground/80 hover:bg-secondary hover:text-primary">{l.label}</a>)}
+              </div>
+            )}
+          </div>
         </nav>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2 xl:gap-1">
           {/* Search, theme and account stay visible on phones too (smaller buttons there); «بحث» left the bottom bar for «الخدمات». */}
           <a href="/#search" aria-label={t("بحث")} title={t("بحث")} className="grid size-9 sm:size-10 place-items-center rounded-full text-primary transition-colors hover:bg-secondary">
             <Search className="size-5" />

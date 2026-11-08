@@ -1065,6 +1065,7 @@ const EN: Record<string, string> = {
   "فنيين": "Technicians",
   "شركة أو مكتب": "Company or office",
   "فني": "Technician",
+  "المزيد": "More",
   "التحقق": "Verification",
   "كل الإعلانات": "All listings",
   "متحقق منه بس": "Verified only",
