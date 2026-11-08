@@ -1,0 +1,96 @@
+# Builds the iPhone app for the simulator and opens it once, to prove it builds and launches without a Mac.
+# The native project is generated fresh from capacitor.config.ts each run, so nothing native lives in the repo.
+# Signing and the TestFlight upload come later, once the Apple Developer account is active.
+name: ios
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: "Version shown in the store (e.g. 1.0.0)"
+        default: "1.0.0"
+  push:
+    branches: ["ios/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
+      # Store build number: must grow with every upload.
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: bun install
+
+      - name: Create the iOS project
+        run: |
+          rm -rf ios
+          bunx cap add ios
+
+      - name: Icons and splash from resources/
+        run: |
+          brew install imagemagick
+          mkdir -p assets
+          # Apple rejects icons with transparency
+          magick resources/icon.png -background "#02162E" -alpha remove -alpha off assets/icon-only.png
+          # Navy splash with the mark in the middle
+          magick -size 2732x2732 xc:"#02162E" \( resources/splash-icon.png -resize 900x900 \) -gravity center -composite assets/splash.png
+          cp assets/splash.png assets/splash-dark.png
+          bunx @capacitor/assets@3 generate --ios --iconBackgroundColor "#02162E" --iconBackgroundColorDark "#02162E" --splashBackgroundColor "#02162E" --splashBackgroundColorDark "#02162E"
+
+      - name: Arabic app name, permission messages, encryption answer
+        run: |
+          plist=ios/App/App/Info.plist
+          set_string() {
+            /usr/libexec/PlistBuddy -c "Set :$1 '$2'" "$plist" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$1 string '$2'" "$plist"
+          }
+          set_string CFBundleDisplayName "فاليو عقار"
+          # Asked only on tap: «موقعي الحالي» when pinning a property, and adding property photos
+          set_string NSLocationWhenInUseUsageDescription "نستخدم موقعك لتحديد مكان العقار على الخريطة عند الضغط على «موقعي الحالي»."
+          set_string NSCameraUsageDescription "نستخدم الكاميرا لتصوير العقار وإضافة الصور لإعلانك."
+          set_string NSPhotoLibraryUsageDescription "نستخدم مكتبة الصور لاختيار صور العقار وإضافتها لإعلانك."
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist"
+          plutil -lint "$plist"
+
+      - run: bunx cap sync ios
+
+      - name: Build for the simulator
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Open the app in the simulator
+        run: |
+          mkdir out
+          udid=$(xcrun simctl list devices available | grep -m1 -E 'iPhone .*Pro Max' | grep -oE '[0-9A-F-]{36}')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid"
+          xcrun simctl install "$udid" build/Build/Products/Release-iphonesimulator/App.app
+          xcrun simctl launch "$udid" com.valueaqar.app
+          sleep 30
+          xcrun simctl io "$udid" screenshot out/launch.png
+          # The app must still be running after the site has loaded
+          xcrun simctl spawn "$udid" launchctl list | grep com.valueaqar.app
+
+      - name: Collect
+        run: |
+          ditto -c -k --keepParent build/Build/Products/Release-iphonesimulator/App.app out/value-aqar-${VERSION_NAME}-${BUILD_NUMBER}-simulator.zip
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-${{ env.VERSION_NAME }}-${{ env.BUILD_NUMBER }}
+          path: out/
