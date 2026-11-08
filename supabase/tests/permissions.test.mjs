@@ -2352,4 +2352,40 @@ commit;`);
   await expectOk("rent moves the paid-until date", () => as(U.admin, `select public.admin_record_shared_rent('${resId}',2,3000,'cash') d`), (r) => String(r[0].d).startsWith("2030-03") || new Date(r[0].d).getUTCMonth() === 2);
   await expectErr("an outsider can't read residents' payments", () => as(null, `select * from public.shared_rent_payments`));
   await expectOk("leaving frees the place", async () => { await as(U.admin, `update public.shared_residents set left_on=current_date where id='${resId}'`); return as(null, `select free_places from public.shared_units_public() where id='${unitId}'`); }, (r) => r[0].free_places === 2);
+
+  console.log("\nFresh listings and app numbers (release 53)");
+  {
+  const freshUser = "00000000-0000-0000-0000-00000000f153";
+  const freshCo = "c0000000-0000-0000-0000-00000000f153";
+  await sys(`insert into auth.users (id, phone) values ('${freshUser}','201000009153')`);
+  await sys(`insert into public.brokers (id, user_id, slug, name, phone, account_type, is_active) values ('${freshCo}','${freshUser}','fresh-co','شركة تأكيد','201000009153','company', true)`);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  const cols = await sys(`select column_name, data_type, is_nullable, column_default from information_schema.columns where table_schema='public' and table_name='properties' and is_nullable='NO' and column_default is null`);
+  const fill = { title: "'شقة تأكيد'", broker_id: `'${freshCo}'`, type: "'شقة'", status: "'بيع'", price: "1000000", area: "'الحي الأول'", city: "'برج العرب الجديدة'", size: "100" };
+  const names = cols.map((c) => c.column_name).filter((n) => n !== "listing_no");
+  const row = names.map((n) => fill[n] ?? "'x'");
+  const prop = (await sys(`insert into public.properties (${[...names, "review_status", ...(names.includes("broker_id") ? [] : ["broker_id"])].join(",")}) values (${[...row, "'approved'", ...(names.includes("broker_id") ? [] : [fill.broker_id])].join(",")}) returning id`))[0].id;
+  await sys(`update public.properties set review_status='approved', confirmed_at=now()-interval '31 days', hidden_by_plan=false where id='${prop}'`);
+  await sys(`select public.run_stale_listings()`);
+  await expectOk("after 30 days the owner is asked, once", () => sys(`select stale_notified_at, stale_hidden_at from public.properties where id='${prop}'`), (r) => !!r[0].stale_notified_at && !r[0].stale_hidden_at);
+  await expectOk("the owner got the question", () => sys(`select title from public.notifications where user_id='${freshUser}'`), (r) => r.some((n) => n.title.includes("لسه متاحة")));
+  await sys(`update public.properties set confirmed_at=now()-interval '61 days', stale_notified_at=now()-interval '31 days' where id='${prop}'`);
+  await sys(`select public.run_stale_listings()`);
+  await expectOk("after 60 days it is hidden, not deleted", () => sys(`select hidden_by_plan, stale_hidden_at from public.properties where id='${prop}'`), (r) => r[0].hidden_by_plan === true && !!r[0].stale_hidden_at);
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("visitors can't see the hidden listing", () => as(null, `select id from public.properties where id='${prop}'`), (r) => r.length === 0);
+  await expectErr("another account can't confirm it", () => as(U.owner, `select public.confirm_listing('${prop}')`));
+  await expectOk("the owner can't fake the date", () => as(freshUser, `update public.properties set confirmed_at=now() where id='${prop}' returning confirmed_at < now()-interval '1 day' old`), (r) => r.length === 0 || r[0].old === true);
+  await expectOk("the owner confirms and it comes back", async () => { await as(freshUser, `select public.confirm_listing('${prop}')`); return sys(`select stale_hidden_at, stale_notified_at from public.properties where id='${prop}'`); }, (r) => !r[0].stale_hidden_at && !r[0].stale_notified_at);
+  await sys(`select set_config('request.jwt.claim.role','service_role',false)`);
+  await sys(`update public.brokers set plan_exempt=true where id='${freshCo}'`);
+  await sys(`update public.properties set confirmed_at=now()-interval '90 days', stale_notified_at=now()-interval '40 days', hidden_by_plan=false where id='${prop}'`);
+  await sys(`select public.run_stale_listings()`);
+  await expectOk("Value Aqar's own accounts are never hidden", () => sys(`select stale_hidden_at from public.properties where id='${prop}'`), (r) => !r[0].stale_hidden_at);
+  await sys(`select set_config('request.jwt.claim.role','',false)`);
+  await expectOk("a visitor's open is counted once a day", async () => { await as(null, `select public.track_app_open('device-test-1','web')`); await as(null, `select public.track_app_open('device-test-1','web')`); return sys(`select count(*)::int n from public.app_opens where device='device-test-1'`); }, (r) => r[0].n === 1);
+  await expectOk("a search with no results is counted", async () => { await as(null, `select public.track_app_search('device-test-1','شقة · بيع',0)`); return as(U.admin, `select public.admin_app_stats(30) s`); }, (r) => r[0].s.empty.some((x) => x.label === "شقة · بيع") && r[0].s.devices >= 1);
+  await expectErr("visitors can't read the raw numbers", () => as(null, `select * from public.app_searches`));
+  await expectErr("an outsider can't read the app numbers", () => as(U.outsider, `select public.admin_app_stats(30)`));
+  }
 }

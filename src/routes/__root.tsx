@@ -121,6 +121,7 @@ function RootComponent() {
   useEffect(() => {
     void import("../lib/native-links").then((m) => m.initNativeShell()).catch(() => {});
     void import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});
+    void import("../lib/app-metrics").then((m) => m.trackAppOpen()).catch(() => {});
     void import("../lib/app-errors").then((m) => m.initErrorReporting()).catch(() => {});
   }, []);
   useEffect(() => {

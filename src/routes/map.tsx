@@ -28,8 +28,8 @@ function MapPage() {
   useLang();
   const q = useQuery({ queryKey: ["public-properties"], queryFn: () => fetchPublicProperties() });
   const all = useMemo(() => q.data ?? [], [q.data]);
-  const [f, setF] = useState({ city: "", area: "", purpose: "", type: "" });
-  const filtered = useMemo(() => all.filter((p) => matchesArea(p, f) && (!f.purpose || p.status === f.purpose) && (!f.type || p.type === f.type)), [all, f]);
+  const [f, setF] = useState({ city: "", area: "", purpose: "", type: "", verified: false });
+  const filtered = useMemo(() => all.filter((p) => matchesArea(p, f) && (!f.purpose || p.status === f.purpose) && (!f.type || p.type === f.type) && (!f.verified || !!p.verified)), [all, f]);
   const located = filtered.filter((p) => p.lat != null && p.lng != null);
   const anyLocated = all.some((p) => p.lat != null && p.lng != null);
   const active = !!(f.city || f.area || f.purpose || f.type);
@@ -48,10 +48,11 @@ function MapPage() {
             <option value="">{t("كل الأنواع")}</option>{TYPES.map((x) => <option key={x} value={x}>{t(x)}</option>)}
           </select>
         </div>
+        <label className="mt-2 flex items-center gap-2 text-sm font-bold text-primary"><input type="checkbox" checked={f.verified} onChange={(e) => setF({ ...f, verified: e.target.checked })} />{t("متحقق منه بس")}</label>
         {active && !q.isLoading && (
           <p className="mt-2 text-xs font-bold text-muted-foreground">
             {t("على الخريطة:")} {located.length}
-            <button type="button" onClick={() => setF({ city: "", area: "", purpose: "", type: "" })} className="ms-3 text-teal hover:underline">{t("مسح الفلاتر")}</button>
+            <button type="button" onClick={() => setF({ city: "", area: "", purpose: "", type: "", verified: false })} className="ms-3 text-teal hover:underline">{t("مسح الفلاتر")}</button>
           </p>
         )}
         <div className="mt-3">
@@ -60,7 +61,7 @@ function MapPage() {
             : located.length === 0 && anyLocated ? (
               <div className="rounded-2xl border border-dashed bg-card p-8 text-center">
                 <p className="font-bold text-primary">{t("مفيش عقارات على الخريطة بالفلاتر دي")}</p>
-                <button type="button" onClick={() => setF({ city: "", area: "", purpose: "", type: "" })} className="mt-3 text-sm font-bold text-teal">{t("مسح الفلاتر")}</button>
+                <button type="button" onClick={() => setF({ city: "", area: "", purpose: "", type: "", verified: false })} className="mt-3 text-sm font-bold text-teal">{t("مسح الفلاتر")}</button>
               </div>
             ) : located.length === 0 ? (
               <div className="rounded-2xl border border-dashed bg-card p-8 text-center">

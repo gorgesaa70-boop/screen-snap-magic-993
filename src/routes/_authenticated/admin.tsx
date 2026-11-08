@@ -35,6 +35,7 @@ import { StaffAdmin } from "@/components/dash/StaffAdmin";
 import { AppSettingsAdmin } from "@/components/dash/AppSettingsAdmin";
 import { AnnouncementAdmin } from "@/components/dash/AnnouncementAdmin";
 import { NewsAdmin } from "@/components/dash/NewsAdmin";
+import { AppStats } from "@/components/dash/AppStats";
 import { SharedHousingAdmin } from "@/components/dash/SharedHousingAdmin";
 import { PlanMoney } from "@/components/dash/PlanMoney";
 import { SiteClosedAdmin } from "@/components/dash/SiteClosedAdmin";
@@ -63,8 +64,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "today" | "reports" | "content_reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social" | "plan_money" | "news" | "shared_units" | "shared_requests" | "shared_residents";
-const ALL_TABS: Tab[] = ["today", "reports", "content_reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "shared_requests", "shared_units", "shared_residents", "brokers", "accounts", "staff", "plan_money", "plans", "assistant", "news", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
+type Tab = "today" | "reports" | "content_reports" | "review_alerts" | "alerts" | "brokers" | "staff" | "review" | "leads" | "plans" | "projects" | "industrial" | "malls" | "compounds" | "svc_requests" | "svc_providers" | "svc_plans" | "svc_reviews" | "referrals" | "app" | "announce" | "closed" | "wa" | "audit" | "health" | "routing" | "investments" | "locations" | "accounts" | "wa_inbox" | "assistant" | "social" | "plan_money" | "news" | "app_stats" | "shared_units" | "shared_requests" | "shared_residents";
+const ALL_TABS: Tab[] = ["today", "reports", "app_stats", "content_reports", "leads", "wa_inbox", "review", "svc_requests", "review_alerts", "routing", "referrals", "locations", "projects", "investments", "malls", "compounds", "industrial", "svc_providers", "svc_plans", "svc_reviews", "shared_requests", "shared_units", "shared_residents", "brokers", "accounts", "staff", "plan_money", "plans", "assistant", "news", "announce", "closed", "wa", "social", "app", "health", "alerts", "audit"];
 
 // Each section loads only what it shows, when it's opened — the panel used to pull every listing and every lead on open.
 // All keys start with "admin-data", so one invalidate refreshes whatever is on screen.
@@ -126,7 +127,7 @@ function AdminPage() {
   const perms = me?.perms;
   const allowed = !!me?.isAdmin || (!!me?.isStaff && hasAny(perms));
   // «فريق فاليو عقار» and the social auto-post switch are the admin's alone; «المطلوب النهارده» only counts what you may open.
-  const visible = (id: Tab) => (id === "today" ? allowed : id === "staff" || id === "social" ? !!me?.isAdmin : can(perms, id === "plan_money" ? "plans" : id.startsWith("shared_") ? "shared" : id));
+  const visible = (id: Tab) => (id === "today" ? allowed : id === "staff" || id === "social" ? !!me?.isAdmin : can(perms, id === "plan_money" ? "plans" : id.startsWith("shared_") ? "shared" : id === "app_stats" ? "reports" : id));
   // A section that isn't granted opens the first one that is.
   const tab: Tab = visible(rawTab) ? rawTab : (ALL_TABS.find(visible) ?? rawTab);
   const qc = useQueryClient();
@@ -150,12 +151,12 @@ function AdminPage() {
       {(() => {
         const labels: Record<Tab, string> = {
           today: "المطلوب النهارده", reports: "التقارير", content_reports: "البلاغات", review_alerts: "تنبيهات المراجعة", alerts: "الإشعارات الإدارية", brokers: `الحسابات والشركات${pendingAccounts ? ` (${pendingAccounts})` : ""}`, staff: "فريق فاليو عقار", accounts: "كل الحسابات",
-          wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `كل العقارات${pending ? ` (${pending} للمراجعة)` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "إعدادات الباقات", plan_money: "المشتركين والتحصيل", shared_requests: "طلبات السكن", shared_units: "الوحدات", shared_residents: "الساكنين والإيجار", news: "شريط الأخبار", projects: "المشروعات", investments: "الفرص الاستثمارية",
+          wa_inbox: "محادثات الواتساب", assistant: "المساعد والزرار العايم", review: `كل العقارات${pending ? ` (${pending} للمراجعة)` : ""}`, leads: "طلبات العملاء", routing: "قواعد التوزيع", plans: "إعدادات الباقات", plan_money: "المشتركين والتحصيل", app_stats: "أداء التطبيق", shared_requests: "طلبات السكن", shared_units: "الوحدات", shared_residents: "الساكنين والإيجار", news: "شريط الأخبار", projects: "المشروعات", investments: "الفرص الاستثمارية",
           industrial: "الصناعي", malls: "المولات", compounds: "الكمبوندات", locations: `المناطق${pendingPlaces ? ` (${pendingPlaces})` : ""}`, svc_requests: "متابعة الشغل", svc_providers: "مقدمين الخدمة", svc_plans: "باقات الخدمات", svc_reviews: "التقييمات", referrals: "الإحالات بين الوسطاء", app: "التطبيق", announce: "رسالة التثبيت", closed: "غلق الموقع", wa: "رقم الواتساب العائم", social: "النشر على السوشيال", audit: "سجل التدقيق", health: "الصيانة والنسخ الاحتياطي",
         };
         const groups: { id: string; label: string; tabs: Tab[] }[] = ([
           { id: "today", label: "المطلوب النهارده", tabs: ["today"] },
-          { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "content_reports", "alerts", "audit"] },
+          { id: "reports", label: "التقارير والتنبيهات", tabs: ["reports", "app_stats", "content_reports", "alerts", "audit"] },
           { id: "customers", label: "العملاء", tabs: ["leads", "wa_inbox", "review_alerts", "routing", "referrals"] },
           { id: "listings", label: `العقارات${pending + pendingPlaces ? ` (${pending + pendingPlaces})` : ""}`, tabs: ["review", "locations", "projects", "investments", "malls", "compounds", "industrial"] },
           { id: "services", label: "الخدمات", tabs: ["svc_requests", "svc_providers", "svc_plans", "svc_reviews"] },
@@ -194,6 +195,7 @@ function AdminPage() {
           {tab === "app" && <AppSettingsAdmin />}
           {tab === "announce" && <AnnouncementAdmin />}
           {tab === "news" && <NewsAdmin canEdit={!viewOnly} />}
+          {tab === "app_stats" && <AppStats canEdit={!viewOnly} />}
           {(tab === "shared_requests" || tab === "shared_units" || tab === "shared_residents") && <SharedHousingAdmin tab={tab} canEdit={!viewOnly} />}
           {tab === "plan_money" && <PlanMoney canEdit={!viewOnly} />}
           {tab === "closed" && <SiteClosedAdmin />}
