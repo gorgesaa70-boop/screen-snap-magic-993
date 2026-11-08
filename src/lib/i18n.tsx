@@ -1065,6 +1065,7 @@ const EN: Record<string, string> = {
   "فنيين": "Technicians",
   "شركة أو مكتب": "Company or office",
   "فني": "Technician",
+  "شوف كل مقدمي الخدمة": "See all service providers",
   "باقات الإعلان على فاليو عقار": "Advertising plans on Value Aqar",
 };
 

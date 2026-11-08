@@ -73,6 +73,7 @@ function Services() {
           : list.length === 0 ? (
             <div className="rounded-2xl border border-dashed bg-card p-8 text-center">
               <p className="text-sm text-muted-foreground">{t("لسه مفيش مقدمين خدمة معتمدين في الاختيار ده. ابعت طلبك وفريق فاليو عقار هيوصّلك بالأنسب.")}</p>
+              {(cat || kind || area) && <button type="button" onClick={() => { setCat(""); setKind(""); setArea(""); }} className="mt-3 me-2 text-sm font-bold text-primary underline">{t("شوف كل مقدمي الخدمة")}</button>}
               <button type="button" onClick={() => scrollTo("service-request")} className={`${btnOutline} mt-3`}>{t("اطلب خدمة")}</button>
             </div>
           ) : (

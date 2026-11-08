@@ -14,6 +14,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      service_request_events: {
+        Row: { id: string; request_id: string; kind: string; old_value: string | null; new_value: string | null; actor_label: string; created_at: string }
+        Insert: { id?: string; request_id: string; kind: string; old_value?: string | null; new_value?: string | null; actor_label: string; created_at?: string }
+        Update: { id?: string; request_id?: string; kind?: string; old_value?: string | null; new_value?: string | null; actor_label?: string; created_at?: string }
+        Relationships: []
+      }
       site_news: {
         Row: { id: string; text_ar: string; text_en: string | null; is_active: boolean; sort_order: number; created_by: string | null; created_at: string }
         Insert: { id?: string; text_ar: string; text_en?: string | null; is_active?: boolean; sort_order?: number; created_by?: string | null; created_at?: string }
@@ -3578,6 +3584,10 @@ export type Database = {
       service_requests: {
         Row: {
           accepted_at: string | null
+          work_stage: string | null
+          agreed_price: number | null
+          scheduled_for: string | null
+          admin_notes: string | null
           area: string | null
           assigned_provider_id: string | null
           category: string
@@ -3602,6 +3612,10 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          work_stage?: string | null
+          agreed_price?: number | null
+          scheduled_for?: string | null
+          admin_notes?: string | null
           area?: string | null
           assigned_provider_id?: string | null
           category: string
@@ -3626,6 +3640,10 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          work_stage?: string | null
+          agreed_price?: number | null
+          scheduled_for?: string | null
+          admin_notes?: string | null
           area?: string | null
           assigned_provider_id?: string | null
           category?: string
@@ -4263,6 +4281,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      my_service_work: { Args: never; Returns: { id: string; work_stage: string | null; scheduled_for: string | null; agreed_price: number | null }[] }
       admin_plan_finance: { Args: never; Returns: { kind: string; id: string; holder: string; phone: string | null; account_type: string; plan_name: string; months: number | null; status: string; is_trial: boolean; starts_at: string; ends_at: string | null; amount: number | null; paid_amount: number; paid_at: string | null; payment_method: string | null; payment_note: string | null; renew_amount: number }[] }
       admin_record_plan_payment: { Args: { _kind: string; _id: string; _amount: number; _paid: number; _method?: string; _note?: string }; Returns: undefined }
       accept_referral: { Args: { _id: string }; Returns: string }
