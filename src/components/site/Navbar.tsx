@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { ChevronDown, Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, Wrench } from "lucide-react";
+import { ChevronDown, Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, ClipboardList } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { MessagesButton, MessagesMenuLink } from "@/components/site/MessagesButton";
 import { NewsTicker } from "@/components/site/NewsTicker";
@@ -70,8 +70,9 @@ export function Navbar() {
     { label: t("المشروعات"), href: "/projects", more: true },
     { label: t("استثمار"), href: "/investments", more: true },
     { label: t("الوسطاء"), href: "/brokers" },
+    { label: t("المطلوب"), href: "/wanted" },
     { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing", more: true },
-    { label: t("الخدمات"), href: "/services" },
+    { label: t("الخدمات"), href: "/services", more: true },
     ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices", more: true }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
@@ -145,7 +146,7 @@ export function MobileBar() {
   const short = (ar: string, en: string) => (lang === "en" ? en : t(ar));
   const items = [
     { id: "home", label: t("الرئيسية"), href: "/#top", icon: Home },
-    { id: "services", label: t("الخدمات"), href: "/services", icon: Wrench },
+    { id: "wanted", label: t("المطلوب"), href: "/wanted", icon: ClipboardList },
     { id: "sell", label: short("اعرض عقارك", "List"), href: "/sell", icon: Plus },
     { id: "brokers", label: t("الوسطاء"), href: "/brokers", icon: Building2 },
     { id: "request", label: short("اطلب عقارك", "Request"), href: "/#request", icon: FileSearch },
@@ -153,7 +154,7 @@ export function MobileBar() {
   const active =
     pathname === "/sell" ? "sell"
     : pathname.startsWith("/brokers") ? "brokers"
-    : pathname.startsWith("/services") ? "services"
+    : pathname.startsWith("/wanted") ? "wanted"
     : pathname === "/" ? (hash === "request" ? hash : "home")
     : null;
   return (
