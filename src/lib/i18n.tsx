@@ -246,6 +246,7 @@ const EN: Record<string, string> = {
   "مطلوب للإيجار": "Wanted to rent",
   "مطلوب للمصيف": "Wanted for summer",
   "مطلوب": "Wanted",
+  "تابعنا": "Follow us",
   "عميل بيدور على {type}": "A customer is looking for: {type}",
   "ميزانيته": "Budget",
   "الميزانية حسب العرض": "Budget depends on the offer",

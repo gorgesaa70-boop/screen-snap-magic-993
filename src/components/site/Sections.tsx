@@ -427,37 +427,38 @@ export function Footer() {
   useLang();
   const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["المطلوب", "/wanted"], ["الخدمات", "/services"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
   return (
-    <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
-      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 md:grid-cols-4 md:gap-10 md:px-6 md:py-14">
-        {/* Phones: brand + social across the top, then links and contact side by side (the footer was very tall). */}
-        <div className="col-span-2">
-          <Logo light />
-          <p className="mt-4 max-w-sm text-sm leading-relaxed">{tr("منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.")}</p>
-          <div className="mt-5 flex gap-2">
+    <footer className="mt-16 bg-navy-deep pb-36 text-primary-foreground/75 md:mt-20 lg:pb-0">
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-10 md:grid-cols-12 md:gap-10 md:px-6 md:py-14">
+        {/* Brand and social first, then the links and the contact buttons in their own boxes. */}
+        <div className="text-center md:col-span-5 md:text-start">
+          <div className="flex justify-center md:justify-start"><Logo light /></div>
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed md:mx-0">{tr("منصة عقارية تربطك بالعقارات والوسطاء في برج العرب والساحل الشمالي.")}</p>
+          <h2 className="mt-6 text-sm font-bold text-primary-foreground">{tr("تابعنا")}</h2>
+          <div className="mt-3 flex justify-center gap-3 md:justify-start">
             {[
-              { icon: <FacebookMark className="size-10" />, bg: "", href: "https://www.facebook.com/profile.php?id=61595136777685", label: "صفحتنا على فيسبوك" },
+              { icon: <FacebookMark className="size-11" />, bg: "", href: "https://www.facebook.com/profile.php?id=61595136777685", label: "صفحتنا على فيسبوك" },
               { icon: <Instagram className="size-5" />, bg: "bg-[radial-gradient(circle_at_30%_107%,#fdf497_0%,#fdf497_5%,#fd5949_45%,#d6249f_60%,#285AEB_90%)] text-white", href: "https://www.instagram.com/valueaqar", label: "حسابنا على إنستاجرام" },
               { icon: <TikTokIcon className="size-5 [filter:drop-shadow(-1.5px_-1.5px_0_#25F4EE)_drop-shadow(1.5px_1.5px_0_#FE2C55)]" />, bg: "bg-black text-white", href: "https://www.tiktok.com/@value.aqar", label: "حسابنا على تيك توك" },
               { icon: <WhatsAppMark className="size-5" />, bg: "bg-[#25D366] text-white", href: waLink(WHATSAPP_NUMBER, tr("مرحبًا، أريد الاستفسار عن أحد العقارات على منصة فاليو عقار.")), label: "تواصل معنا على واتساب" },
             ].map(({ icon, bg, href, label }, i) => (
-              <a key={i} href={href} aria-label={tr(label)} title={tr(label)} target="_blank" rel="noreferrer" className={`grid size-10 place-items-center overflow-hidden rounded-full transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy-deep ${bg}`}>{icon}<span className="sr-only">{tr(label)}</span></a>
+              <a key={i} href={href} aria-label={tr(label)} title={tr(label)} target="_blank" rel="noreferrer" className={`grid size-11 place-items-center overflow-hidden rounded-full transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-navy-deep ${bg}`}>{icon}<span className="sr-only">{tr(label)}</span></a>
             ))}
           </div>
         </div>
-        <div>
+        <div className="rounded-2xl bg-primary-foreground/5 p-4 md:col-span-4 md:bg-transparent md:p-0">
           <h2 className="font-bold text-primary-foreground">{tr("روابط")}</h2>
-          <ul className="mt-3 text-sm">{pages.map(([l, h]) => <li key={h} className={h === "/plans" ? "web-only" : undefined}><a href={h} className="inline-block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
+          <ul className="mt-2 grid grid-cols-2 gap-x-4 text-sm">{pages.map(([l, h]) => <li key={h} className={h === "/plans" ? "web-only" : undefined}><a href={h} className="block py-2.5 hover:text-teal">{tr(l)}</a></li>)}</ul>
         </div>
-        <div>
+        <div className="rounded-2xl bg-primary-foreground/5 p-4 md:col-span-3 md:bg-transparent md:p-0">
           <h2 className="font-bold text-primary-foreground">{tr("تواصل معنا")}</h2>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            <li><a href={waLink(WHATSAPP_NUMBER, tr("أهلاً فاليو عقار"))} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 py-1 hover:text-teal"><MessageCircle className="size-4 text-teal" />{tr("راسلنا على واتساب")}</a></li>
-            <li><a href="mailto:info@valueaqar.com" className="inline-flex items-center gap-2 py-1 hover:text-teal"><Mail className="size-4 text-teal" />info@valueaqar.com</a></li>
+          <ul className="mt-3 space-y-2.5 text-sm">
+            <li><a href={waLink(WHATSAPP_NUMBER, tr("أهلاً فاليو عقار"))} target="_blank" rel="noreferrer" className="flex h-12 items-center gap-2.5 rounded-xl bg-primary-foreground/5 px-3.5 font-semibold transition hover:text-teal"><MessageCircle className="size-5 shrink-0 text-teal" />{tr("راسلنا على واتساب")}</a></li>
+            <li><a href="mailto:info@valueaqar.com" className="flex h-12 items-center gap-2.5 rounded-xl bg-primary-foreground/5 px-3.5 font-semibold transition hover:text-teal"><Mail className="size-5 shrink-0 text-teal" /><span dir="ltr">info@valueaqar.com</span></a></li>
           </ul>
         </div>
       </div>
       <div className="border-t border-primary-foreground/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs md:flex-row md:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-1 px-4 py-4 text-xs md:flex-row md:px-6">
           <p>© {new Date().getFullYear()} {tr("فاليو عقار. جميع الحقوق محفوظة.")}</p>
           <div className="flex gap-5"><Link to="/privacy" className="inline-block py-2.5 hover:text-teal">{tr("سياسة الخصوصية")}</Link><Link to="/terms" className="inline-block py-2.5 hover:text-teal">{tr("الشروط والأحكام")}</Link></div>
         </div>
