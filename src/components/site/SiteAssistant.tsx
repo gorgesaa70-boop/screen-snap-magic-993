@@ -164,6 +164,17 @@ export function SiteAssistant() {
   const browse = useServerFn(browseListings);
   const wa = useFloatingWhatsapp().data || WHATSAPP_NUMBER;
   const [open, setOpen] = useState(false);
+  // The visible height (shrinks when the phone keyboard opens), so the chat never runs past the screen.
+  const [vh, setVh] = useState<number | null>(null);
+  useEffect(() => {
+    if (!open || typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    const read = () => setVh(Math.round(vv?.height ?? window.innerHeight));
+    read();
+    vv?.addEventListener("resize", read);
+    window.addEventListener("resize", read);
+    return () => { vv?.removeEventListener("resize", read); window.removeEventListener("resize", read); };
+  }, [open]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -331,7 +342,10 @@ export function SiteAssistant() {
     <div className="print:hidden">
       {open && (
         <div role="dialog" aria-label={t("فاليو عقار")}
-          className="fixed inset-x-2 bottom-[calc(10rem+env(safe-area-inset-bottom))] z-50 flex max-h-[65vh] flex-col overflow-hidden rounded-2xl border bg-card shadow-float sm:inset-x-auto sm:w-96 ltr:sm:left-4 rtl:sm:right-4 lg:bottom-24">
+          // Phones: between the header (~6rem) and the floating button (10rem from the bottom); at least 15rem.
+          // Keyboard open (little height left): sit at the bottom edge and take what's visible.
+          style={vh ? (vh < 520 ? { bottom: 8, top: 8, maxHeight: "none" } : { maxHeight: `max(15rem, min(${Math.round(vh * 0.65)}px, ${vh}px - 16.5rem))` }) : undefined}
+          className="fixed inset-x-2 bottom-[calc(10rem+env(safe-area-inset-bottom))] z-50 flex max-h-[min(65dvh,calc(100dvh-16.5rem))] min-h-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-float sm:inset-x-auto sm:w-96 ltr:sm:left-4 rtl:sm:right-4 lg:bottom-24">
           <div className="flex items-center gap-2 bg-primary px-4 py-3 text-primary-foreground">
             <Sparkles className="size-5 text-teal" />
             <div className="flex-1">
