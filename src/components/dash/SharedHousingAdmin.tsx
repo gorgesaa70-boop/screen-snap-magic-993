@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImagePlus, Pencil, Phone, Plus, Trash2 } from "lucide-react";
