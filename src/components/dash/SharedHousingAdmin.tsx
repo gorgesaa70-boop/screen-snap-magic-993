@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Database } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ImagePlus, Pencil, Phone, Plus, Trash2 } from "lucide-react";
@@ -170,7 +171,7 @@ function Requests() {
 
 function RequestRow({ r, units, onChanged }: { r: Req; units: Unit[]; onChanged: () => void }) {
   const [notes, setNotes] = useState(r.admin_notes ?? "");
-  const save = async (patch: Partial<Req>, ok = "اتحفظ") => {
+  const save = async (patch: Database["public"]["Tables"]["shared_requests"]["Update"], ok = "اتحفظ") => {
     const { error } = await supabase.from("shared_requests").update(patch).eq("id", r.id);
     if (error) toast.error(error.message); else { toast.success(ok); onChanged(); }
   };
