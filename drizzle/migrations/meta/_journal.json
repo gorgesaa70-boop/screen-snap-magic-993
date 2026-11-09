@@ -288,6 +288,13 @@
       "when": 1792227890671,
       "tag": "0040_release_27_direct_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794260727370,
+      "tag": "0041_tighten_selected_policies",
+      "breakpoints": true
     }
   ]
 }
