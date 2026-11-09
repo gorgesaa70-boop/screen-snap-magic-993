@@ -14,42 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      shared_units: {
-        Row: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; address: string | null; description: string | null; monthly_price: number; total_places: number; photos: string[]; owner_name: string | null; owner_phone: string | null; is_active: boolean; created_at: string; updated_at: string }
-        Insert: { id?: string; title: string; kind?: string; gender: string; area?: string | null; near?: string | null; address?: string | null; description?: string | null; monthly_price: number; total_places?: number; photos?: string[]; owner_name?: string | null; owner_phone?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
-        Update: { id?: string; title?: string; kind?: string; gender?: string; area?: string | null; near?: string | null; address?: string | null; description?: string | null; monthly_price?: number; total_places?: number; photos?: string[]; owner_name?: string | null; owner_phone?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
-      shared_requests: {
-        Row: { id: string; request_no: number; unit_id: string | null; who: string; gender: string | null; name: string; phone: string; people: number | null; near: string | null; budget: number | null; stage: string; admin_notes: string | null; customer_id: string | null; created_at: string; updated_at: string }
-        Insert: { id?: string; request_no?: number; unit_id?: string | null; who?: string; gender?: string | null; name: string; phone: string; people?: number | null; near?: string | null; budget?: number | null; stage?: string; admin_notes?: string | null; customer_id?: string | null; created_at?: string; updated_at?: string }
-        Update: { id?: string; request_no?: number; unit_id?: string | null; who?: string; gender?: string | null; name?: string; phone?: string; people?: number | null; near?: string | null; budget?: number | null; stage?: string; admin_notes?: string | null; customer_id?: string | null; created_at?: string; updated_at?: string }
-        Relationships: []
-      }
-      shared_residents: {
-        Row: { id: string; unit_id: string; request_id: string | null; name: string; phone: string | null; place_label: string | null; monthly_rent: number; starts_on: string; paid_until: string | null; left_on: string | null; created_at: string }
-        Insert: { id?: string; unit_id: string; request_id?: string | null; name: string; phone?: string | null; place_label?: string | null; monthly_rent: number; starts_on?: string; paid_until?: string | null; left_on?: string | null; created_at?: string }
-        Update: { id?: string; unit_id?: string; request_id?: string | null; name?: string; phone?: string | null; place_label?: string | null; monthly_rent?: number; starts_on?: string; paid_until?: string | null; left_on?: string | null; created_at?: string }
-        Relationships: []
-      }
-      shared_rent_payments: {
-        Row: { id: string; resident_id: string; months: number; amount: number; method: string | null; paid_until: string; created_by: string | null; created_at: string }
-        Insert: { id?: string; resident_id: string; months: number; amount: number; method?: string | null; paid_until: string; created_by?: string | null; created_at?: string }
-        Update: { id?: string; resident_id?: string; months?: number; amount?: number; method?: string | null; paid_until?: string; created_by?: string | null; created_at?: string }
-        Relationships: []
-      }
-      service_request_events: {
-        Row: { id: string; request_id: string; kind: string; old_value: string | null; new_value: string | null; actor_label: string; created_at: string }
-        Insert: { id?: string; request_id: string; kind: string; old_value?: string | null; new_value?: string | null; actor_label: string; created_at?: string }
-        Update: { id?: string; request_id?: string; kind?: string; old_value?: string | null; new_value?: string | null; actor_label?: string; created_at?: string }
-        Relationships: []
-      }
-      site_news: {
-        Row: { id: string; text_ar: string; text_en: string | null; is_active: boolean; sort_order: number; created_by: string | null; created_at: string }
-        Insert: { id?: string; text_ar: string; text_en?: string | null; is_active?: boolean; sort_order?: number; created_by?: string | null; created_at?: string }
-        Update: { id?: string; text_ar?: string; text_en?: string | null; is_active?: boolean; sort_order?: number; created_by?: string | null; created_at?: string }
-        Relationships: []
-      }
       app_errors: {
         Row: {
           count: number
@@ -92,6 +56,48 @@ export type Database = {
           stack?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      app_opens: {
+        Row: {
+          day: string
+          device: string
+          platform: string
+        }
+        Insert: {
+          day?: string
+          device: string
+          platform: string
+        }
+        Update: {
+          day?: string
+          device?: string
+          platform?: string
+        }
+        Relationships: []
+      }
+      app_searches: {
+        Row: {
+          created_at: string
+          device: string
+          id: number
+          label: string
+          results: number
+        }
+        Insert: {
+          created_at?: string
+          device: string
+          id?: never
+          label: string
+          results: number
+        }
+        Update: {
+          created_at?: string
+          device?: string
+          id?: never
+          label?: string
+          results?: number
         }
         Relationships: []
       }
@@ -331,6 +337,42 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      broker_blocks: {
+        Row: {
+          blocked_id: string
+          broker_id: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          blocked_id: string
+          broker_id: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          blocked_id?: string
+          broker_id?: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broker_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broker_blocks_broker_id_fkey"
+            columns: ["broker_id"]
+            isOneToOne: false
+            referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       brokers: {
         Row: {
@@ -618,51 +660,6 @@ export type Database = {
           },
         ]
       }
-      content_reports: {
-        Row: {
-          created_at: string
-          handled_at: string | null
-          handled_by: string | null
-          id: string
-          kind: string
-          note: string | null
-          reason: string
-          reporter: string
-          status: string
-          target_id: string
-          title: string | null
-          url: string | null
-        }
-        Insert: {
-          created_at?: string
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          kind: string
-          note?: string | null
-          reason: string
-          reporter?: string
-          status?: string
-          target_id: string
-          title?: string | null
-          url?: string | null
-        }
-        Update: {
-          created_at?: string
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          kind?: string
-          note?: string | null
-          reason?: string
-          reporter?: string
-          status?: string
-          target_id?: string
-          title?: string | null
-          url?: string | null
-        }
-        Relationships: []
-      }
       company_members: {
         Row: {
           added_by: string | null
@@ -808,6 +805,7 @@ export type Database = {
           rooms: number | null
           size: number
           status: string
+          unit_no: number
           unit_type: string
           updated_at: string
         }
@@ -825,6 +823,7 @@ export type Database = {
           rooms?: number | null
           size?: number
           status?: string
+          unit_no?: number
           unit_type: string
           updated_at?: string
         }
@@ -842,6 +841,7 @@ export type Database = {
           rooms?: number | null
           size?: number
           status?: string
+          unit_no?: number
           unit_type?: string
           updated_at?: string
         }
@@ -955,6 +955,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      content_reports: {
+        Row: {
+          created_at: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          reason: string
+          reporter: string
+          status: string
+          target_id: string
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          reason: string
+          reporter?: string
+          status?: string
+          target_id: string
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          reason?: string
+          reporter?: string
+          status?: string
+          target_id?: string
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: []
       }
       deal_documents: {
         Row: {
@@ -1801,11 +1846,11 @@ export type Database = {
           updated_at: string
           utm: Json | null
           via_broker_id: string | null
+          visit_at: string | null
           wanted_lead_id: string | null
           wanted_note: string | null
           wanted_public: boolean
           wanted_until: string | null
-          visit_at: string | null
         }
         Insert: {
           admin_queue_at?: string | null
@@ -1864,11 +1909,11 @@ export type Database = {
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
+          visit_at?: string | null
           wanted_lead_id?: string | null
           wanted_note?: string | null
           wanted_public?: boolean
           wanted_until?: string | null
-          visit_at?: string | null
         }
         Update: {
           admin_queue_at?: string | null
@@ -1927,11 +1972,11 @@ export type Database = {
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
+          visit_at?: string | null
           wanted_lead_id?: string | null
           wanted_note?: string | null
           wanted_public?: boolean
           wanted_until?: string | null
-          visit_at?: string | null
         }
         Relationships: [
           {
@@ -2016,6 +2061,13 @@ export type Database = {
             columns: ["via_broker_id"]
             isOneToOne: false
             referencedRelation: "brokers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_wanted_lead_id_fkey"
+            columns: ["wanted_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2311,6 +2363,7 @@ export type Database = {
       }
       owner_plan_grants: {
         Row: {
+          amount: number | null
           created_at: string
           created_by: string | null
           ends_at: string
@@ -2318,12 +2371,17 @@ export type Database = {
           is_trial: boolean
           months: number | null
           note: string | null
+          paid_amount: number
+          paid_at: string | null
+          payment_method: string | null
+          payment_note: string | null
           phone: string
           plan_id: string
           starts_at: string
           status: string
         }
         Insert: {
+          amount?: number | null
           created_at?: string
           created_by?: string | null
           ends_at: string
@@ -2331,12 +2389,17 @@ export type Database = {
           is_trial?: boolean
           months?: number | null
           note?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
           phone: string
           plan_id: string
           starts_at?: string
           status?: string
         }
         Update: {
+          amount?: number | null
           created_at?: string
           created_by?: string | null
           ends_at?: string
@@ -2344,6 +2407,10 @@ export type Database = {
           is_trial?: boolean
           months?: number | null
           note?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
           phone?: string
           plan_id?: string
           starts_at?: string
@@ -2774,6 +2841,7 @@ export type Database = {
           rooms: number | null
           size: number
           status: string
+          unit_no: number
           unit_type: string
           updated_at: string
         }
@@ -2789,6 +2857,7 @@ export type Database = {
           rooms?: number | null
           size?: number
           status?: string
+          unit_no?: number
           unit_type: string
           updated_at?: string
         }
@@ -2804,6 +2873,7 @@ export type Database = {
           rooms?: number | null
           size?: number
           status?: string
+          unit_no?: number
           unit_type?: string
           updated_at?: string
         }
@@ -2893,9 +2963,6 @@ export type Database = {
       }
       properties: {
         Row: {
-          confirmed_at: string
-          stale_notified_at: string | null
-          stale_hidden_at: string | null
           activity_id: string | null
           address: string | null
           area: string
@@ -2910,6 +2977,7 @@ export type Database = {
           city: string
           co_broke_share: number | null
           compound_id: string | null
+          confirmed_at: string
           created_at: string
           deposit: number | null
           description: string | null
@@ -2953,6 +3021,8 @@ export type Database = {
           rooms: number | null
           size: number
           source_url: string | null
+          stale_hidden_at: string | null
+          stale_notified_at: string | null
           status: string
           title: string
           type: string
@@ -2963,9 +3033,6 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
-          confirmed_at?: string
-          stale_notified_at?: string | null
-          stale_hidden_at?: string | null
           activity_id?: string | null
           address?: string | null
           area: string
@@ -2980,6 +3047,7 @@ export type Database = {
           city?: string
           co_broke_share?: number | null
           compound_id?: string | null
+          confirmed_at?: string
           created_at?: string
           deposit?: number | null
           description?: string | null
@@ -3023,6 +3091,8 @@ export type Database = {
           rooms?: number | null
           size?: number
           source_url?: string | null
+          stale_hidden_at?: string | null
+          stale_notified_at?: string | null
           status: string
           title: string
           type: string
@@ -3033,9 +3103,6 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
-          confirmed_at?: string
-          stale_notified_at?: string | null
-          stale_hidden_at?: string | null
           activity_id?: string | null
           address?: string | null
           area?: string
@@ -3050,6 +3117,7 @@ export type Database = {
           city?: string
           co_broke_share?: number | null
           compound_id?: string | null
+          confirmed_at?: string
           created_at?: string
           deposit?: number | null
           description?: string | null
@@ -3093,6 +3161,8 @@ export type Database = {
           rooms?: number | null
           size?: number
           source_url?: string | null
+          stale_hidden_at?: string | null
+          stale_notified_at?: string | null
           status?: string
           title?: string
           type?: string
@@ -3626,13 +3696,49 @@ export type Database = {
           },
         ]
       }
+      service_request_events: {
+        Row: {
+          actor_label: string
+          created_at: string
+          id: string
+          kind: string
+          new_value: string | null
+          old_value: string | null
+          request_id: string
+        }
+        Insert: {
+          actor_label: string
+          created_at?: string
+          id?: string
+          kind: string
+          new_value?: string | null
+          old_value?: string | null
+          request_id: string
+        }
+        Update: {
+          actor_label?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          new_value?: string | null
+          old_value?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           accepted_at: string | null
-          work_stage: string | null
-          agreed_price: number | null
-          scheduled_for: string | null
           admin_notes: string | null
+          agreed_price: number | null
           area: string | null
           assigned_provider_id: string | null
           category: string
@@ -3650,17 +3756,17 @@ export type Database = {
           offered_at: string | null
           phone: string
           request_no: number
+          scheduled_for: string | null
           source: string
           status: string
           target_provider_id: string | null
           updated_at: string
+          work_stage: string | null
         }
         Insert: {
           accepted_at?: string | null
-          work_stage?: string | null
-          agreed_price?: number | null
-          scheduled_for?: string | null
           admin_notes?: string | null
+          agreed_price?: number | null
           area?: string | null
           assigned_provider_id?: string | null
           category: string
@@ -3678,17 +3784,17 @@ export type Database = {
           offered_at?: string | null
           phone: string
           request_no?: never
+          scheduled_for?: string | null
           source?: string
           status?: string
           target_provider_id?: string | null
           updated_at?: string
+          work_stage?: string | null
         }
         Update: {
           accepted_at?: string | null
-          work_stage?: string | null
-          agreed_price?: number | null
-          scheduled_for?: string | null
           admin_notes?: string | null
+          agreed_price?: number | null
           area?: string | null
           assigned_provider_id?: string | null
           category?: string
@@ -3706,10 +3812,12 @@ export type Database = {
           offered_at?: string | null
           phone?: string
           request_no?: never
+          scheduled_for?: string | null
           source?: string
           status?: string
           target_provider_id?: string | null
           updated_at?: string
+          work_stage?: string | null
         }
         Relationships: [
           {
@@ -3846,6 +3954,253 @@ export type Database = {
           },
         ]
       }
+      shared_rent_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string | null
+          months: number
+          paid_until: string
+          resident_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string | null
+          months: number
+          paid_until: string
+          resident_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string | null
+          months?: number
+          paid_until?: string
+          resident_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_rent_payments_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "shared_residents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_requests: {
+        Row: {
+          admin_notes: string | null
+          budget: number | null
+          created_at: string
+          customer_id: string | null
+          gender: string | null
+          id: string
+          name: string
+          near: string | null
+          people: number | null
+          phone: string
+          request_no: number
+          stage: string
+          unit_id: string | null
+          updated_at: string
+          who: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          budget?: number | null
+          created_at?: string
+          customer_id?: string | null
+          gender?: string | null
+          id?: string
+          name: string
+          near?: string | null
+          people?: number | null
+          phone: string
+          request_no?: never
+          stage?: string
+          unit_id?: string | null
+          updated_at?: string
+          who?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          budget?: number | null
+          created_at?: string
+          customer_id?: string | null
+          gender?: string | null
+          id?: string
+          name?: string
+          near?: string | null
+          people?: number | null
+          phone?: string
+          request_no?: never
+          stage?: string
+          unit_id?: string | null
+          updated_at?: string
+          who?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "shared_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_residents: {
+        Row: {
+          created_at: string
+          id: string
+          left_on: string | null
+          monthly_rent: number
+          name: string
+          paid_until: string | null
+          phone: string | null
+          place_label: string | null
+          request_id: string | null
+          starts_on: string
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          left_on?: string | null
+          monthly_rent: number
+          name: string
+          paid_until?: string | null
+          phone?: string | null
+          place_label?: string | null
+          request_id?: string | null
+          starts_on?: string
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          left_on?: string | null
+          monthly_rent?: number
+          name?: string
+          paid_until?: string | null
+          phone?: string | null
+          place_label?: string | null
+          request_id?: string | null
+          starts_on?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_residents_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "shared_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_residents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "shared_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_units: {
+        Row: {
+          address: string | null
+          area: string | null
+          created_at: string
+          description: string | null
+          gender: string
+          id: string
+          is_active: boolean
+          kind: string
+          monthly_price: number
+          near: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          photos: string[]
+          title: string
+          total_places: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          area?: string | null
+          created_at?: string
+          description?: string | null
+          gender: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          monthly_price: number
+          near?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          photos?: string[]
+          title: string
+          total_places?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          area?: string | null
+          created_at?: string
+          description?: string | null
+          gender?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          monthly_price?: number
+          near?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          photos?: string[]
+          title?: string
+          total_places?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      site_news: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          sort_order: number
+          text_ar: string
+          text_en: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          text_ar: string
+          text_en?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          text_ar?: string
+          text_en?: string | null
+        }
+        Relationships: []
+      }
       social_posts: {
         Row: {
           attempts: number
@@ -3925,12 +4280,17 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          amount: number | null
           broker_id: string
           created_at: string
           ends_at: string | null
           id: string
           months: number | null
+          paid_amount: number
+          paid_at: string | null
           payment_id: string | null
+          payment_method: string | null
+          payment_note: string | null
           plan_id: string
           provider: string | null
           provider_ref: string | null
@@ -3940,12 +4300,17 @@ export type Database = {
           status: string
         }
         Insert: {
+          amount?: number | null
           broker_id: string
           created_at?: string
           ends_at?: string | null
           id?: string
           months?: number | null
+          paid_amount?: number
+          paid_at?: string | null
           payment_id?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
           plan_id: string
           provider?: string | null
           provider_ref?: string | null
@@ -3955,12 +4320,17 @@ export type Database = {
           status?: string
         }
         Update: {
+          amount?: number | null
           broker_id?: string
           created_at?: string
           ends_at?: string | null
           id?: string
           months?: number | null
+          paid_amount?: number
+          paid_at?: string | null
           payment_id?: string | null
+          payment_method?: string | null
+          payment_note?: string | null
           plan_id?: string
           provider?: string | null
           provider_ref?: string | null
@@ -4069,6 +4439,8 @@ export type Database = {
           owner_broker_id: string | null
           owner_property_id: string | null
           owner_replied_at: string | null
+          owner_unit_id: string | null
+          owner_unit_kind: string | null
           owner_unread: number
           phone: string
           unread: number
@@ -4088,6 +4460,8 @@ export type Database = {
           owner_broker_id?: string | null
           owner_property_id?: string | null
           owner_replied_at?: string | null
+          owner_unit_id?: string | null
+          owner_unit_kind?: string | null
           owner_unread?: number
           phone: string
           unread?: number
@@ -4107,6 +4481,8 @@ export type Database = {
           owner_broker_id?: string | null
           owner_property_id?: string | null
           owner_replied_at?: string | null
+          owner_unit_id?: string | null
+          owner_unit_kind?: string | null
           owner_unread?: number
           phone?: string
           unread?: number
@@ -4132,56 +4508,6 @@ export type Database = {
             columns: ["owner_property_id"]
             isOneToOne: false
             referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wa_outbox: {
-        Row: {
-          created_at: string
-          error: string | null
-          id: string
-          kind: string
-          lead_id: string | null
-          message: string
-          message_id: string | null
-          phone: string
-          sent_at: string | null
-          status: string
-          title: string
-        }
-        Insert: {
-          created_at?: string
-          error?: string | null
-          id?: string
-          kind: string
-          lead_id?: string | null
-          message: string
-          message_id?: string | null
-          phone: string
-          sent_at?: string | null
-          status?: string
-          title: string
-        }
-        Update: {
-          created_at?: string
-          error?: string | null
-          id?: string
-          kind?: string
-          lead_id?: string | null
-          message?: string
-          message_id?: string | null
-          phone?: string
-          sent_at?: string | null
-          status?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wa_outbox_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -4237,6 +4563,56 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "wa_conversations"
             referencedColumns: ["phone"]
+          },
+        ]
+      }
+      wa_outbox: {
+        Row: {
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          lead_id: string | null
+          message: string
+          message_id: string | null
+          phone: string
+          sent_at: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          lead_id?: string | null
+          message: string
+          message_id?: string | null
+          phone: string
+          sent_at?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          lead_id?: string | null
+          message?: string
+          message_id?: string | null
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_outbox_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4326,20 +4702,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_app_stats: { Args: { _days?: number }; Returns: Json }
-      confirm_listing: { Args: { _id: string }; Returns: string }
-      my_listing_freshness: { Args: never; Returns: { id: string; confirmed_at: string; stale_hidden_at: string | null }[] }
-      track_app_open: { Args: { _device: string; _platform: string }; Returns: undefined }
-      track_app_search: { Args: { _device: string; _label: string; _results: number }; Returns: undefined }
-      wanted_board: { Args: never; Returns: { id: string; lead_no: number; purpose: string | null; property_type: string | null; area: string | null; budget: number | null; note: string | null; created_at: string }[] }
-      submit_wanted_offer: { Args: { _request: string; _name: string; _phone: string; _details?: string }; Returns: string }
-      admin_set_wanted: { Args: { _lead: string; _show: boolean; _note?: string }; Returns: undefined }
-      shared_units_public: { Args: never; Returns: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; description: string | null; monthly_price: number; total_places: number; free_places: number; photos: string[] }[] }
-      my_shared_requests: { Args: never; Returns: { id: string; request_no: number; stage: string; unit_title: string | null; near: string | null; created_at: string }[] }
-      admin_record_shared_rent: { Args: { _resident: string; _months: number; _amount: number; _method?: string }; Returns: string }
-      my_service_work: { Args: never; Returns: { id: string; work_stage: string | null; scheduled_for: string | null; agreed_price: number | null }[] }
-      admin_plan_finance: { Args: never; Returns: { kind: string; id: string; holder: string; phone: string | null; account_type: string; plan_name: string; months: number | null; status: string; is_trial: boolean; starts_at: string; ends_at: string | null; amount: number | null; paid_amount: number; paid_at: string | null; payment_method: string | null; payment_note: string | null; renew_amount: number }[] }
-      admin_record_plan_payment: { Args: { _kind: string; _id: string; _amount: number; _paid: number; _method?: string; _note?: string }; Returns: undefined }
       accept_referral: { Args: { _id: string }; Returns: string }
       accept_service_offer: { Args: { _req: string }; Returns: boolean }
       account_audience: { Args: { _type: string }; Returns: string }
@@ -4374,6 +4736,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_app_stats: { Args: { _days?: number }; Returns: Json }
       admin_brokers: {
         Args: never
         Returns: {
@@ -4485,6 +4848,52 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_plan_finance: {
+        Args: never
+        Returns: {
+          account_type: string
+          amount: number
+          ends_at: string
+          holder: string
+          id: string
+          is_trial: boolean
+          kind: string
+          months: number
+          paid_amount: number
+          paid_at: string
+          payment_method: string
+          payment_note: string
+          phone: string
+          plan_name: string
+          renew_amount: number
+          starts_at: string
+          status: string
+        }[]
+      }
+      admin_record_plan_payment: {
+        Args: {
+          _amount: number
+          _id: string
+          _kind: string
+          _method?: string
+          _note?: string
+          _paid: number
+        }
+        Returns: undefined
+      }
+      admin_record_shared_rent: {
+        Args: {
+          _amount: number
+          _method?: string
+          _months: number
+          _resident: string
+        }
+        Returns: string
+      }
+      admin_set_wanted: {
+        Args: { _lead: string; _note?: string; _show: boolean }
+        Returns: undefined
       }
       admin_update_plan_task: {
         Args: { _day?: string; _id: string; _note?: string; _status: string }
@@ -4633,6 +5042,7 @@ export type Database = {
         Returns: number
       }
       compound_role: { Args: { _compound: string }; Returns: string }
+      confirm_listing: { Args: { _id: string }; Returns: string }
       confirm_referral_received: { Args: { _payout: string }; Returns: boolean }
       create_payment: {
         Args: {
@@ -4668,13 +5078,17 @@ export type Database = {
         Returns: undefined
       }
       demo_visible: { Args: never; Returns: boolean }
+      direct_block_state: {
+        Args: { _thread: string }
+        Returns: {
+          blocked_by_me: boolean
+          blocked_me: boolean
+          can_block: boolean
+        }[]
+      }
       direct_folder_side: {
         Args: { _name: string; _upload?: boolean }
         Returns: string
-      }
-      direct_block_state: {
-        Args: { _thread: string }
-        Returns: { blocked_by_me: boolean; blocked_me: boolean; can_block: boolean }[]
       }
       direct_thread_side: { Args: { _thread: string }; Returns: string }
       floor_level: { Args: { _floor: string }; Returns: number }
@@ -4860,6 +5274,14 @@ export type Database = {
           unread: number
         }[]
       }
+      my_listing_freshness: {
+        Args: never
+        Returns: {
+          confirmed_at: string
+          id: string
+          stale_hidden_at: string
+        }[]
+      }
       my_listing_plan: { Args: never; Returns: Json }
       my_listing_stats: { Args: { _days?: number }; Returns: Json }
       my_member_id: { Args: never; Returns: string }
@@ -5003,6 +5425,26 @@ export type Database = {
         }[]
       }
       my_service_stats: { Args: never; Returns: Json }
+      my_service_work: {
+        Args: never
+        Returns: {
+          agreed_price: number
+          id: string
+          scheduled_for: string
+          work_stage: string
+        }[]
+      }
+      my_shared_requests: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          near: string
+          request_no: number
+          stage: string
+          unit_title: string
+        }[]
+      }
       my_unread_messages: { Args: never; Returns: number }
       next_transfer_company: {
         Args: { _lead: Database["public"]["Tables"]["leads"]["Row"] }
@@ -5241,15 +5683,17 @@ export type Database = {
         Returns: boolean
       }
       report_content: {
-        Args: { _kind: string; _reason: string; _target: string; _title?: string; _url?: string }
+        Args: {
+          _kind: string
+          _reason: string
+          _target: string
+          _title?: string
+          _url?: string
+        }
         Returns: undefined
       }
       report_direct_message: {
         Args: { _message: string; _reason: string }
-        Returns: undefined
-      }
-      resolve_content_report: {
-        Args: { _note?: string; _report: string }
         Returns: undefined
       }
       report_lead_message: {
@@ -5266,6 +5710,11 @@ export type Database = {
       }
       request_service_plan: { Args: { _plan: string }; Returns: boolean }
       reroute_service_request: { Args: { _req: string }; Returns: string }
+      resolve_content_report: {
+        Args: { _note?: string; _report: string }
+        Returns: undefined
+      }
+      run_app_metrics_cleanup: { Args: never; Returns: number }
       run_lead_transfers: { Args: never; Returns: Json }
       run_listing_expiry: { Args: never; Returns: Json }
       run_referrals: { Args: never; Returns: number }
@@ -5274,6 +5723,7 @@ export type Database = {
       run_scheduled_jobs: { Args: never; Returns: Json }
       run_service_offers: { Args: never; Returns: number }
       run_service_subscriptions: { Args: never; Returns: number }
+      run_stale_listings: { Args: never; Returns: number }
       run_subscription_expiry: { Args: never; Returns: Json }
       save_push_subscription: {
         Args: {
@@ -5376,6 +5826,10 @@ export type Database = {
         Args: { _provider: string }
         Returns: number
       }
+      service_stage: {
+        Args: { _offered: boolean; _status: string; _work: string }
+        Returns: string
+      }
       set_direct_block: {
         Args: { _blocked: boolean; _thread: string }
         Returns: undefined
@@ -5391,6 +5845,22 @@ export type Database = {
       set_mall_images: {
         Args: { _images: string[]; _mall: string }
         Returns: undefined
+      }
+      shared_units_public: {
+        Args: never
+        Returns: {
+          area: string
+          description: string
+          free_places: number
+          gender: string
+          id: string
+          kind: string
+          monthly_price: number
+          near: string
+          photos: string[]
+          title: string
+          total_places: number
+        }[]
       }
       social_backfill: { Args: never; Returns: number }
       social_claim: {
@@ -5446,6 +5916,15 @@ export type Database = {
         Args: { _kind: string; _phone: string }
         Returns: undefined
       }
+      submit_wanted_offer: {
+        Args: {
+          _details?: string
+          _name: string
+          _phone: string
+          _request: string
+        }
+        Returns: string
+      }
       sync_broker_access: {
         Args: { _broker: string; _limit?: boolean }
         Returns: string
@@ -5466,6 +5945,14 @@ export type Database = {
           title: string
         }[]
       }
+      track_app_open: {
+        Args: { _device: string; _platform: string }
+        Returns: undefined
+      }
+      track_app_search: {
+        Args: { _device: string; _label: string; _results: number }
+        Returns: undefined
+      }
       track_listing: {
         Args: {
           _device: string
@@ -5482,6 +5969,10 @@ export type Database = {
       }
       wa_assign_owner: {
         Args: { _phone: string; _property: string }
+        Returns: string
+      }
+      wa_assign_unit: {
+        Args: { _kind: string; _no: number; _phone: string }
         Returns: string
       }
       wa_mark_read: { Args: { _phone: string }; Returns: undefined }
@@ -5521,6 +6012,24 @@ export type Database = {
         }[]
       }
       wa_release_owner: { Args: { _phone: string }; Returns: undefined }
+      wanted_board: {
+        Args: never
+        Returns: {
+          area: string
+          budget: number
+          created_at: string
+          id: string
+          lead_no: number
+          note: string
+          property_type: string
+          purpose: string
+        }[]
+      }
+      wanted_is_open: {
+        Args: { _l: Database["public"]["Tables"]["leads"]["Row"] }
+        Returns: boolean
+      }
+      wanted_safe_text: { Args: { _max: number; _t: string }; Returns: string }
       whatsapp_inbound_lead: {
         Args: { _msg_id: string; _name: string; _phone: string; _text: string }
         Returns: string
