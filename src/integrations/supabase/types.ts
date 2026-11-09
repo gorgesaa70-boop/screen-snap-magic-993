@@ -2961,8 +2961,27 @@ export type Database = {
           },
         ]
       }
+      property_assignment_docs: {
+        Row: { created_at: string; id: string; path: string; property_id: string; uploaded_by: string | null }
+        Insert: { created_at?: string; id?: string; path: string; property_id: string; uploaded_by?: string | null }
+        Update: { created_at?: string; id?: string; path?: string; property_id?: string; uploaded_by?: string | null }
+        Relationships: []
+      }
       properties: {
         Row: {
+          asg_contract_price: number | null
+          asg_delivery: string | null
+          asg_dev_approval: string | null
+          asg_developer: string | null
+          asg_doc_checked_at: string | null
+          asg_fee: number | null
+          asg_fee_kind: string | null
+          asg_monthly: number | null
+          asg_months: number | null
+          asg_paid: number | null
+          asg_project_id: string | null
+          asg_remaining: number | null
+          is_assignment: boolean
           activity_id: string | null
           address: string | null
           area: string
@@ -3033,6 +3052,19 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          asg_contract_price?: number | null
+          asg_delivery?: string | null
+          asg_dev_approval?: string | null
+          asg_developer?: string | null
+          asg_doc_checked_at?: string | null
+          asg_fee?: number | null
+          asg_fee_kind?: string | null
+          asg_monthly?: number | null
+          asg_months?: number | null
+          asg_paid?: number | null
+          asg_project_id?: string | null
+          asg_remaining?: number | null
+          is_assignment?: boolean
           activity_id?: string | null
           address?: string | null
           area: string
@@ -3103,6 +3135,19 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          asg_contract_price?: number | null
+          asg_delivery?: string | null
+          asg_dev_approval?: string | null
+          asg_developer?: string | null
+          asg_doc_checked_at?: string | null
+          asg_fee?: number | null
+          asg_fee_kind?: string | null
+          asg_monthly?: number | null
+          asg_months?: number | null
+          asg_paid?: number | null
+          asg_project_id?: string | null
+          asg_remaining?: number | null
+          is_assignment?: boolean
           activity_id?: string | null
           address?: string | null
           area?: string

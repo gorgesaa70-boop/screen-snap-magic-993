@@ -24,6 +24,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SharedHousingRouteImport } from './routes/shared-housing'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TanazulRouteImport } from './routes/tanazul'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WantedRouteImport } from './routes/wanted'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
@@ -146,6 +147,11 @@ const SharedHousingRoute = SharedHousingRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TanazulRoute = TanazulRouteImport.update({
+  id: '/tanazul',
+  path: '/tanazul',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsRoute = TermsRouteImport.update({
@@ -417,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tanazul': typeof TanazulRoute
   '/terms': typeof TermsRoute
   '/wanted': typeof WantedRoute
   '/account': typeof AuthenticatedAccountRoute
@@ -482,6 +489,7 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tanazul': typeof TanazulRoute
   '/terms': typeof TermsRoute
   '/wanted': typeof WantedRoute
   '/account': typeof AuthenticatedAccountRoute
@@ -549,6 +557,7 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/tanazul': typeof TanazulRoute
   '/terms': typeof TermsRoute
   '/wanted': typeof WantedRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
@@ -616,6 +625,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/shared-housing'
     | '/sitemap.xml'
+    | '/tanazul'
     | '/terms'
     | '/wanted'
     | '/account'
@@ -681,6 +691,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/shared-housing'
     | '/sitemap.xml'
+    | '/tanazul'
     | '/terms'
     | '/wanted'
     | '/account'
@@ -747,6 +758,7 @@ export interface FileRouteTypes {
     | '/sell'
     | '/shared-housing'
     | '/sitemap.xml'
+    | '/tanazul'
     | '/terms'
     | '/wanted'
     | '/_authenticated/account'
@@ -814,6 +826,7 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   SharedHousingRoute: typeof SharedHousingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TanazulRoute: typeof TanazulRoute
   TermsRoute: typeof TermsRoute
   WantedRoute: typeof WantedRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
@@ -951,6 +964,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tanazul': {
+      id: '/tanazul'
+      path: '/tanazul'
+      fullPath: '/tanazul'
+      preLoaderRoute: typeof TanazulRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms': {
@@ -1362,6 +1382,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   SharedHousingRoute: SharedHousingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TanazulRoute: TanazulRoute,
   TermsRoute: TermsRoute,
   WantedRoute: WantedRoute,
   BrokersSlugRoute: BrokersSlugRoute,

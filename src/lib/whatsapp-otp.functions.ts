@@ -249,6 +249,20 @@ const listingSchema = z.object({
   video_url: z.string().trim().max(500).refine((v) => !!parseVideo(v)).optional(),
   // JPEG images, base64 without the data: prefix (the browser resizes them first)
   photos: z.array(z.string().max(Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4)).max(MAX_LISTING_PHOTOS).default([]),
+  // «تنازل»: the contract numbers (public) and its photo(s) (private, for review).
+  assignment: z.object({
+    asg_developer: z.string().trim().min(2).max(120),
+    asg_contract_price: z.number().positive().max(1e12),
+    asg_paid: z.number().min(0).max(1e12),
+    asg_remaining: z.number().min(0).max(1e12).optional(),
+    asg_months: z.number().int().min(0).max(360).optional(),
+    asg_monthly: z.number().min(0).max(1e12).optional(),
+    asg_delivery: z.string().trim().max(40).optional(),
+    asg_fee: z.number().min(0).max(1e12).optional(),
+    asg_fee_kind: z.enum(["pct", "amount"]).optional(),
+    asg_dev_approval: z.enum(["allowed", "needs", "unknown"]).optional(),
+  }).optional(),
+  contract: z.array(z.string().max(Math.ceil((MAX_PHOTO_BYTES * 4) / 3) + 4)).max(3).default([]),
   // Optional map pin, limited to Egypt.
   lat: z.number().min(22).max(32).optional(),
   lng: z.number().min(24).max(37).optional(),
@@ -278,6 +292,10 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ ok: true } | { ok: false; error: string; remaining?: number }> => {
     const photos = data.photos.map(decodeJpeg);
     if (photos.some((p) => !p)) return { ok: false, error: "bad_photo" };
+    const asg = data.purpose === "sale" ? data.assignment : undefined;
+    const contract = asg ? data.contract.map(decodeJpeg) : [];
+    if (contract.some((p) => !p)) return { ok: false, error: "bad_photo" };
+    if (asg && contract.length === 0) return { ok: false, error: "contract_required" };
 
     const verified = waReady();
     if (verified) {
@@ -316,20 +334,36 @@ export const submitOwnerListing = createServerFn({ method: "POST" })
       if (signed?.signedUrl) urls.push(signed.signedUrl);
     }
 
-    const { error: propErr } = await db.from("properties").insert({
+    const { data: prop, error: propErr } = await db.from("properties").insert({
       broker_id: null, owner_lead_id: lead.id, review_status: "pending", category: "residential",
-      title: `${data.property_type} ${status === "مصيف" ? "للمصيف" : `لل${status}`} في ${place}`.slice(0, 150),
+      title: `${data.property_type} ${asg ? "تنازل" : status === "مصيف" ? "للمصيف" : `لل${status}`} في ${place}`.slice(0, 150),
+      ...(asg ? {
+        is_assignment: true, asg_developer: asg.asg_developer, asg_contract_price: asg.asg_contract_price, asg_paid: asg.asg_paid,
+        asg_remaining: asg.asg_remaining ?? Math.max(asg.asg_contract_price - asg.asg_paid, 0), asg_months: asg.asg_months ?? null,
+        asg_monthly: asg.asg_monthly ?? null, asg_delivery: asg.asg_delivery || null, asg_fee: asg.asg_fee ?? null,
+        asg_fee_kind: asg.asg_fee != null ? asg.asg_fee_kind ?? "pct" : null, asg_dev_approval: asg.asg_dev_approval ?? "unknown",
+      } : {}),
       video_urls: data.video_url ? [data.video_url] : [], description: data.details || null, price: data.asking_price, type: data.property_type, status,
       city: data.city, area: data.area, size: data.size_m2, finishing: data.property_type === "أرض" ? null : data.finishing ?? null, rooms: data.rooms ?? null, baths: data.baths ?? null,
       floor: data.floor || null, image_url: urls[0] ?? null, images: urls, ...summerPrice,
-      ...(status === "بيع" && data.payment_method ? {
+      ...(status === "بيع" && !asg && data.payment_method ? {
         payment_method: data.payment_method, down_payment: data.down_payment ?? null, installment_years: data.installment_years ?? null,
         monthly_installment: data.monthly_installment ?? null, installment_note: data.installment_note || null,
       } : {}),
       lat: data.lat ?? null, lng: data.lng ?? null,
-    });
+    }).select("id").single();
     // The lead is already saved, so the team can still follow up if this fails.
     if (propErr) console.error("owner listing property", propErr.code, propErr.message);
+    // The contract stays private: a private bucket, and its path in a table visitors can't read.
+    if (prop && contract.length) {
+      for (const [i, bytes] of contract.entries()) {
+        const path = `owners/${prop.id}/${i + 1}.jpg`;
+        const { error: upErr } = await db.storage.from("assignment-docs").upload(path, bytes!, { contentType: "image/jpeg", upsert: true });
+        if (upErr) { console.error("contract upload", upErr.message); continue; }
+        const { error: docErr } = await db.from("property_assignment_docs").insert({ property_id: prop.id, path, uploaded_by: null });
+        if (docErr) console.error("contract row", docErr.code);
+      }
+    }
     return { ok: true };
   });
 

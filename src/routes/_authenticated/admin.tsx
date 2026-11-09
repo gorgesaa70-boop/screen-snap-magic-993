@@ -38,6 +38,7 @@ import { NewsAdmin } from "@/components/dash/NewsAdmin";
 import { AppStats } from "@/components/dash/AppStats";
 import { SharedHousingAdmin } from "@/components/dash/SharedHousingAdmin";
 import { WantedAdmin } from "@/components/dash/WantedAdmin";
+import { AssignmentDocs } from "@/components/dash/AssignmentDocs";
 import { PlanMoney } from "@/components/dash/PlanMoney";
 import { SiteClosedAdmin } from "@/components/dash/SiteClosedAdmin";
 import { WhatsappSettingsAdmin } from "@/components/dash/WhatsappSettingsAdmin";
@@ -491,9 +492,11 @@ function ReviewAdmin({ brokers, reload }: { brokers: AdminBroker[]; reload: () =
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${REVIEW[p.review_status].cls}`}>{REVIEW[p.review_status].label}</span>
             {p.category !== "residential" && <span className="ms-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-bold text-primary">{CATEGORY_LABEL[p.category] ?? p.category}</span>}
             {p.owner_lead_id && !p.broker_id && <span className="ms-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground">عرض مالك</span>}
+            {p.is_assignment && <span className="ms-1.5 rounded-full bg-[#e76f51] px-2.5 py-0.5 text-[11px] font-bold text-white">تنازل{p.asg_doc_checked_at ? " · العقد متراجع" : ""}</span>}
             {p.listing_no != null && <span className="ms-1.5 text-[11px] font-bold text-muted-foreground" dir="ltr">VA-{p.listing_no}</span>}
             <p className="mt-1 truncate font-bold text-primary"><a href={`/properties/${p.id}`} target="_blank" rel="noreferrer" className="hover:underline">{p.title}</a></p>
             <p className="text-sm text-muted-foreground">{formatPrice(Number(p.price))} ج.م{PRICE_UNIT_LABEL[p.price_unit ?? ""] ?? ""} · {p.status} · {p.type} · {p.area === p.city ? p.city : `${p.area}، ${p.city}`} · {!p.broker_id && p.owner_lead_id ? "بدون وسيط" : brokerName(p.broker_id)}</p>
+            {p.is_assignment && <p className="text-xs font-semibold text-[#e76f51]">{p.asg_developer ?? "—"} · عقد {p.asg_contract_price != null ? formatPrice(Number(p.asg_contract_price)) : "—"} · مدفوع {p.asg_paid != null ? formatPrice(Number(p.asg_paid)) : "—"} · باقي {p.asg_remaining != null ? formatPrice(Number(p.asg_remaining)) : "—"}{p.asg_months ? ` على ${p.asg_months} شهر` : ""}</p>}
             {(p.payment_method === "installment" || p.payment_method === "both") && <p className="text-xs font-semibold text-teal">{p.payment_method === "both" ? "كاش أو تقسيط" : "تقسيط"}{p.down_payment != null ? ` · مقدم ${formatPrice(Number(p.down_payment))}` : ""}{p.installment_years ? ` · ${p.installment_years} سنين` : ""}{p.monthly_installment != null ? ` · قسط ${formatPrice(Number(p.monthly_installment))}` : ""}</p>}
             {p.owner && (
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -506,6 +509,7 @@ function ReviewAdmin({ brokers, reload }: { brokers: AdminBroker[]; reload: () =
           </div>
           <div className="flex flex-wrap gap-2">
             {p.review_status !== "approved" && <button className={btnPrimary} onClick={() => upd(p.id, { review_status: "approved", review_note: null }, "تم الاعتماد")}><Check className="size-4" />اعتماد</button>}
+            {p.is_assignment && <AssignmentDocs propertyId={p.id} />}
             <AvailabilitySelect p={p} onChanged={reload} />
             <button className={btnOutline} onClick={() => setEditing(p)}><Pencil className="size-4" />تعديل</button>
             <DeleteButton kind="property" id={p.id} name={p.title} onDone={reload} />

@@ -167,6 +167,7 @@ export function Hero({ draft, setDraft, onSearch, onClear }: Props) {
                     <select value={draft.pay ?? ""} onChange={set("pay")} className={field}>
                       <option value="">{t("كاش أو تقسيط")}</option>
                       <option value="installment">{t("تقسيط بس")}</option>
+                      <option value="assignment">{t("تنازل بس")}</option>
                     </select>
                   </label>
                   <label>

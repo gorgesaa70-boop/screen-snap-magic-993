@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, Wallet } from "lucide-react";
 import { PAYMENT_LABEL, monthlyFor } from "@/lib/installments";
+import { AssignmentPlan } from "@/components/site/AssignmentPlan";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { getAttribution } from "@/lib/attribution";
@@ -82,7 +83,7 @@ function PropertyPage() {
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-6 md:px-6 lg:grid-cols-[1fr_360px]">
         <div>
           <Gallery images={p.images} title={p.title}>
-            <span className="absolute top-3 right-3 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">{t(PURPOSE_LABEL[p.status] ?? p.status)}</span>
+            <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.assignment ? "bg-[#e76f51] text-white" : "bg-primary text-primary-foreground"}`}>{t(p.assignment ? "تنازل" : PURPOSE_LABEL[p.status] ?? p.status)}</span>
             {p.isDemo && <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("إعلان تجريبي")}</span>}
             <AvailabilityBadge p={p} className="absolute top-14 right-3" />
           </Gallery>
@@ -90,8 +91,8 @@ function PropertyPage() {
             <h1 className="text-2xl font-extrabold text-primary md:text-3xl">{p.title}</h1>
             <div className="flex shrink-0 gap-2"><CompareButton id={p.id} className="border" /><FavoriteButton id={p.id} className="border" /><ShareButton title={p.title} /></div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
-          {p.status === "بيع" && p.price > 0 && p.size > 0 && <p className="mt-1 text-sm font-bold text-muted-foreground">{t("سعر المتر:")} {formatPrice(Math.round(p.price / p.size))} {t("ج.م")}</p>}
+          <p className="mt-2 text-2xl font-extrabold text-teal">{p.status === "مصيف" && <span className="text-sm text-muted-foreground">{t("من")} </span>}{p.assignment && <span className="text-sm text-muted-foreground">{t("مبلغ التنازل")} </span>}{formatPrice(p.price)} <span className="text-sm text-muted-foreground">{t("ج.م")}{p.priceUnit ? t(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span></p>
+          {p.status === "بيع" && !p.assignment && p.price > 0 && p.size > 0 && <p className="mt-1 text-sm font-bold text-muted-foreground">{t("سعر المتر:")} {formatPrice(Math.round(p.price / p.size))} {t("ج.م")}</p>}
           {p.verified && <VerifiedBadge at={p.verified.at} note={p.verified.note} />}
           {p.confirmedAt && <p className="mt-2 text-xs font-bold text-muted-foreground">{t("آخر تأكيد إن الإعلان متاح:")} {formatDate(p.confirmedAt)}</p>}
           {p.highlight && (
@@ -110,6 +111,7 @@ function PropertyPage() {
           </div>
           {p.rent && <RentDetails p={p} />}
           {p.installments && <InstallmentPlan p={p} />}
+          {p.assignment && <AssignmentPlan p={p} />}
           <div className="mt-4 flex flex-wrap gap-2 text-sm font-semibold text-primary">
             <span className="rounded-lg bg-secondary px-3 py-1.5">{t(p.type)}</span>
             <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><MapPin className="size-4 text-teal" />{p.area === p.city ? t(p.city) : `${t(p.area)} / ${t(p.city)}`}</span>

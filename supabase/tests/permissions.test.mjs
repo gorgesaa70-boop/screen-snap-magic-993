@@ -2428,4 +2428,26 @@ commit;`);
   await expectOk("it disappears after 60 days", board, (r) => !r.some((x) => x.id === req));
   await expectOk("the other visible cards are still there", board, (r) => r.some((x) => x.area === "حساب"));
   }
+
+  {
+  console.log("\n— tanazul (assignment) —");
+  const ins = (extra = "") => as(U.manager, "insert into public.properties (broker_id, title, price, type, area, status, review_status, is_assignment, asg_developer, asg_contract_price, asg_paid, asg_remaining, asg_months, asg_monthly, asg_fee, asg_fee_kind, asg_dev_approval, payment_method, asg_doc_checked_at" + extra + ") values ('" + CO + "', 'شقة تنازل', 400000, 'شقة', 'العلمين', 'بيع', 'pending', true, 'مطور تجربة', 2000000, 500000, 1500000, 60, 25000, 2.5, 'pct', 'allowed', 'installment', now()) returning id, asg_doc_checked_at, payment_method, asg_remaining");
+  const [row] = await ins();
+  const A = row.id;
+  await expectOk("a company adds an assignment listing with its contract numbers", async () => [row], (r) => r[0].asg_remaining == 1500000);
+  await expectOk("the sale installment fields are cleared on an assignment", async () => [row], (r) => r[0].payment_method === null);
+  await expectOk("a company can't stamp the contract as checked", async () => [row], (r) => r[0].asg_doc_checked_at === null);
+  await expectErr("an assignment can't be for rent", () => as(U.manager, "insert into public.properties (broker_id, title, price, type, area, status, is_assignment) values ('" + CO + "', 'غلط', 1, 'شقة', 'العلمين', 'إيجار', true)"));
+  await expectErr("a percentage fee can't pass 100", () => as(U.manager, "insert into public.properties (broker_id, title, price, type, area, status, is_assignment, asg_fee, asg_fee_kind) values ('" + CO + "', 'غلط', 1, 'شقة', 'العلمين', 'بيع', true, 150, 'pct')"));
+  await expectErr("no approval without a contract photo", () => as(U.admin, "update public.properties set review_status='approved' where id='" + A + "'"));
+  await expectErr("a company can't attach a file from someone else's folder", () => as(U.manager, "insert into public.property_assignment_docs (property_id, path) values ('" + A + "', '" + U.admin + "/x.jpg')"));
+  await expectErr("an outsider can't attach a contract to another company's listing", () => as(U.outsider, "insert into public.property_assignment_docs (property_id, path) values ('" + A + "', '" + U.outsider + "/x.jpg')"));
+  await expectOk("the company attaches its contract", () => as(U.manager, "insert into public.property_assignment_docs (property_id, path) values ('" + A + "', '" + U.manager + "/c1.jpg') returning id"), (r) => r.length === 1);
+  await expectOk("visitors can't see contracts", async () => { try { return await as(null, "select * from public.property_assignment_docs"); } catch { return []; } }, (r) => r.length === 0);
+  await expectOk("an outsider can't see contracts", () => as(U.outsider, "select * from public.property_assignment_docs"), (r) => r.length === 0);
+  await expectOk("the review team sees the contract", () => as(U.admin, "select path from public.property_assignment_docs where property_id='" + A + "'"), (r) => r.length === 1);
+  await expectOk("approving stamps «العقد متراجع»", () => as(U.admin, "update public.properties set review_status='approved' where id='" + A + "' returning asg_doc_checked_at"), (r) => r[0].asg_doc_checked_at !== null);
+  await expectOk("visitors see the approved assignment with its numbers", () => as(null, "select is_assignment, asg_paid, asg_months, asg_doc_checked_at from public.properties where id='" + A + "'"), (r) => r.length === 1 && r[0].is_assignment && r[0].asg_months === 60 && !!r[0].asg_doc_checked_at);
+  await expectOk("a normal sale keeps no assignment data", () => as(U.manager, "insert into public.properties (broker_id, title, price, type, area, status, asg_paid, asg_developer) values ('" + CO + "', 'شقة عادية', 1000000, 'شقة', 'العلمين', 'بيع', 5, 'x') returning asg_paid, asg_developer"), (r) => r[0].asg_paid === null && r[0].asg_developer === null);
+  }
 }
