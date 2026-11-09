@@ -2450,4 +2450,25 @@ commit;`);
   await expectOk("visitors see the approved assignment with its numbers", () => as(null, "select is_assignment, asg_paid, asg_months, asg_doc_checked_at from public.properties where id='" + A + "'"), (r) => r.length === 1 && r[0].is_assignment && r[0].asg_months === 60 && !!r[0].asg_doc_checked_at);
   await expectOk("a normal sale keeps no assignment data", () => as(U.manager, "insert into public.properties (broker_id, title, price, type, area, status, asg_paid, asg_developer) values ('" + CO + "', 'شقة عادية', 1000000, 'شقة', 'العلمين', 'بيع', 5, 'x') returning asg_paid, asg_developer"), (r) => r[0].asg_paid === null && r[0].asg_developer === null);
   }
+
+  {
+  console.log("\n— app devices —");
+  // An earlier check re-runs release 21, which puts back the old push trigger: apply this release again (it is re-runnable).
+  await exec(`begin;\n${(await import("node:fs")).readFileSync(new URL("../migrations/20261110100000_app-devices.sql", import.meta.url), "utf8")}\ncommit;`);
+  const TOK = "fcm-token-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  await expectErr("visitors can't register a device", () => as(null, "select public.register_push_device('" + TOK + "', 'android')"));
+  await expectErr("an unknown platform is refused", () => as(U.outsider, "select public.register_push_device('" + TOK + "', 'windows')"));
+  await expectOk("a signed-in user registers the phone", () => as(U.outsider, "select public.register_push_device('" + TOK + "', 'android', '2.0.0') id"), (r) => !!r[0].id);
+  await expectOk("the same token twice stays one device", async () => { await as(U.outsider, "select public.register_push_device('" + TOK + "', 'android')"); return sys("select count(*)::int n from public.push_devices where token='" + TOK + "'"); }, (r) => r[0].n === 1);
+  await expectOk("another account can't read it", () => as(U.applicant, "select * from public.push_devices"), (r) => r.length === 0);
+  await expectOk("a notification for an app-only user is queued for push", async () => {
+    await sys("select set_config('request.jwt.claim.role','service_role',false)");
+    await sys("delete from public.push_subscriptions where user_id='" + U.outsider + "'"); await sys("update public.notification_preferences set push_types = null where user_id='" + U.outsider + "'");
+    await sys("insert into public.notifications (user_id, title, message, type) values ('" + U.outsider + "', 'تجربة التطبيق', '', 'admin')");
+    await sys("select set_config('request.jwt.claim.role','',false)");
+    return sys("select push_status from public.notifications where user_id='" + U.outsider + "' and title='تجربة التطبيق'");
+  }, (r) => r[0].push_status === "pending");
+  await expectOk("a phone signed in to a new account moves to it", async () => { await as(U.applicant, "select public.register_push_device('" + TOK + "', 'android')"); return sys("select user_id from public.push_devices where token='" + TOK + "'"); }, (r) => r[0].user_id === U.applicant);
+  await expectOk("sign-out removes it", async () => { await as(U.applicant, "select public.unregister_push_device('" + TOK + "')"); return sys("select count(*)::int n from public.push_devices where token='" + TOK + "'"); }, (r) => r[0].n === 0);
+  }
 }

@@ -3292,6 +3292,12 @@ export type Database = {
         }
         Relationships: []
       }
+      push_devices: {
+        Row: { app_version: string | null; created_at: string; failed_count: number; id: string; last_used_at: string | null; platform: string; token: string; user_id: string }
+        Insert: { app_version?: string | null; created_at?: string; failed_count?: number; id?: string; last_used_at?: string | null; platform: string; token: string; user_id: string }
+        Update: { app_version?: string | null; created_at?: string; failed_count?: number; id?: string; last_used_at?: string | null; platform?: string; token?: string; user_id?: string }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -5891,6 +5897,8 @@ export type Database = {
         Args: { _images: string[]; _mall: string }
         Returns: undefined
       }
+      register_push_device: { Args: { _token: string; _platform: string; _app_version?: string }; Returns: string }
+      unregister_push_device: { Args: { _token: string }; Returns: undefined }
       shared_units_public: {
         Args: never
         Returns: {
