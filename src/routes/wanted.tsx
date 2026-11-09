@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Banknote, ClipboardList, HandCoins, MapPin, Plus, ShieldCheck, X } from "lucide-react";
+import { CalendarClock, ClipboardList, HandCoins, MapPin, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { t, useLang } from "@/lib/i18n";
 import { cleanPhone } from "@/lib/phone";
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/wanted")({
 });
 
 const PURPOSES: Record<string, string> = { sale: "شراء", rent: "إيجار", summer: "مصيف" };
+const WANTED_LABEL: Record<string, string> = { sale: "مطلوب للشراء", rent: "مطلوب للإيجار", summer: "مطلوب للمصيف" };
 type Item = { id: string; lead_no: number; purpose: string | null; property_type: string | null; area: string | null; budget: number | null; note: string | null; created_at: string };
 
 /** Customers' requests, open to everyone without their name or number. An offer goes to Value Aqar only. */
@@ -47,7 +48,7 @@ function Wanted() {
       <section className="bg-primary">
         <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
           <h1 className="text-2xl font-extrabold text-primary-foreground md:text-4xl">{t("العقارات المطلوبة")}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("طلبات عملاء بيدوروا على عقار دلوقتي. عندك عقار مناسب؟ ابعت عرضك، ولو ملقتش اللي بتدور عليه اكتب طلبك.")}</p>
+          <p className="mt-3 max-w-2xl text-sm text-primary-foreground/80 md:text-base">{t("دي مش عقارات معروضة. دي طلبات عملاء بيدوروا على عقار دلوقتي. عندك عقار مناسب؟ ابعت عرضك، ولو ملقتش اللي بتدور عليه اكتب طلبك.")}</p>
           <button type="button" className={`${btnTeal} mt-5`} aria-expanded={writing} onClick={() => setWriting(!writing)}>
             {writing ? <X className="size-4" /> : <Plus className="size-4" />}{t(writing ? "إغلاق" : "اكتب طلبك")}
           </button>
@@ -98,16 +99,29 @@ function Card({ x }: { x: Item }) {
     setDone(true);
   }
   return (
-    <article className="flex flex-col rounded-2xl border bg-card p-4">
-      <div className="flex items-center justify-between gap-2 text-[11px] font-bold">
-        <span className="rounded-full bg-primary px-2.5 py-0.5 text-primary-foreground">{t(PURPOSES[x.purpose ?? ""] ?? "مطلوب")}</span>
-        <span className="text-muted-foreground" dir="ltr">VA-{String(x.lead_no).padStart(6, "0")}</span>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card transition duration-300 hover:-translate-y-0.5 hover:shadow-card motion-reduce:hover:translate-y-0">
+      <div className="relative grid aspect-[4/3] shrink-0 place-items-center bg-primary text-primary-foreground">
+        <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${x.purpose === "sale" ? "bg-background text-primary" : x.purpose === "summer" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>{t(WANTED_LABEL[x.purpose ?? ""] ?? "مطلوب")}</span>
+        <div className="text-center">
+          <Search className="mx-auto size-12 text-teal" />
+          <p className="mt-2 text-3xl font-extrabold">{t("مطلوب")}</p>
+          <p className="mt-1 text-xs font-semibold text-primary-foreground/70">{t("عميل بيدور على العقار ده")}</p>
+        </div>
       </div>
-      <h2 className="mt-2 font-extrabold text-primary">{t(x.property_type ?? "عقار")}</h2>
-      {x.area && <p className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin className="mt-0.5 size-4 shrink-0 text-teal" />{x.area}</p>}
-      {x.budget != null && <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-teal"><Banknote className="size-4 shrink-0" />{formatPrice(Number(x.budget))} {t("ج.م")}</p>}
-      {x.note && <p className="mt-2 text-sm text-foreground/75">{x.note}</p>}
-      <p className="mt-2 text-xs text-muted-foreground">{formatDate(x.created_at)}</p>
+      <div className="flex flex-1 flex-col p-4 md:p-5">
+        <p className="text-xl font-extrabold text-primary md:text-2xl">
+          {x.budget != null ? <><span className="text-sm font-semibold text-muted-foreground">{t("ميزانيته")} </span>{formatPrice(Number(x.budget))} <span className="text-sm font-semibold text-muted-foreground">{t("ج.م")}</span></> : <span className="text-base">{t("الميزانية حسب العرض")}</span>}
+        </p>
+        <h2 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{t("عميل بيدور على {type}", { type: t(x.property_type ?? "عقار") })}</h2>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
+          {x.property_type && <span className="rounded-lg bg-secondary px-2.5 py-1.5 text-primary">{t(x.property_type)}</span>}
+          {x.area && <span className="flex items-center gap-1 rounded-lg bg-secondary px-2.5 py-1.5 text-primary"><MapPin className="size-3.5 shrink-0 text-teal" />{x.area}</span>}
+        </div>
+        {x.note && <p className="mt-3 line-clamp-2 text-sm text-foreground/70">{x.note}</p>}
+        <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground">
+          <span className="font-bold text-primary" dir="ltr">VA-{String(x.lead_no).padStart(6, "0")}</span>
+          <span className="flex items-center gap-1"><CalendarClock className="size-3.5 shrink-0" />{t("اتطلب في {date}", { date: formatDate(x.created_at) })}</span>
+        </div>
       {done ? <p className="mt-3 rounded-xl bg-teal/10 p-3 text-center text-sm font-bold text-primary">{t("عرضك وصل ✓ فريق فاليو عقار هيتواصل معاك.")}</p>
         : open ? (
           <form onSubmit={send} className="mt-3 space-y-2">
@@ -120,7 +134,8 @@ function Card({ x }: { x: Item }) {
               <button disabled={busy} className={btnPrimary}>{busy ? "..." : t("ابعت العرض")}</button>
             </div>
           </form>
-        ) : <button type="button" className={`${btnPrimary} mt-3 w-full`} onClick={() => setOpen(true)}><HandCoins className="size-4" />{t("عندي العقار ده")}</button>}
+        ) : <div className="mt-auto pt-4"><p className="mb-1.5 text-center text-xs font-bold text-muted-foreground">{t("عندك عقار زي ده؟")}</p><button type="button" className={`${btnPrimary} w-full`} onClick={() => setOpen(true)}><HandCoins className="size-4" />{t("عندي العقار ده")}</button></div>}
+      </div>
     </article>
   );
 }
