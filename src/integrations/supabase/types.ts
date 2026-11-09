@@ -1801,6 +1801,10 @@ export type Database = {
           updated_at: string
           utm: Json | null
           via_broker_id: string | null
+          wanted_lead_id: string | null
+          wanted_note: string | null
+          wanted_public: boolean
+          wanted_until: string | null
           visit_at: string | null
         }
         Insert: {
@@ -1860,6 +1864,10 @@ export type Database = {
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
+          wanted_lead_id?: string | null
+          wanted_note?: string | null
+          wanted_public?: boolean
+          wanted_until?: string | null
           visit_at?: string | null
         }
         Update: {
@@ -1919,6 +1927,10 @@ export type Database = {
           updated_at?: string
           utm?: Json | null
           via_broker_id?: string | null
+          wanted_lead_id?: string | null
+          wanted_note?: string | null
+          wanted_public?: boolean
+          wanted_until?: string | null
           visit_at?: string | null
         }
         Relationships: [
@@ -4319,6 +4331,9 @@ export type Database = {
       my_listing_freshness: { Args: never; Returns: { id: string; confirmed_at: string; stale_hidden_at: string | null }[] }
       track_app_open: { Args: { _device: string; _platform: string }; Returns: undefined }
       track_app_search: { Args: { _device: string; _label: string; _results: number }; Returns: undefined }
+      wanted_board: { Args: never; Returns: { id: string; lead_no: number; purpose: string | null; property_type: string | null; area: string | null; budget: number | null; note: string | null; created_at: string }[] }
+      submit_wanted_offer: { Args: { _request: string; _name: string; _phone: string; _details?: string }; Returns: string }
+      admin_set_wanted: { Args: { _lead: string; _show: boolean; _note?: string }; Returns: undefined }
       shared_units_public: { Args: never; Returns: { id: string; title: string; kind: string; gender: string; area: string | null; near: string | null; description: string | null; monthly_price: number; total_places: number; free_places: number; photos: string[] }[] }
       my_shared_requests: { Args: never; Returns: { id: string; request_no: number; stage: string; unit_title: string | null; near: string | null; created_at: string }[] }
       admin_record_shared_rent: { Args: { _resident: string; _months: number; _amount: number; _method?: string }; Returns: string }

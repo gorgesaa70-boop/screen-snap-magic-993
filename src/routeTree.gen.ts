@@ -25,6 +25,7 @@ import { Route as SellRouteImport } from './routes/sell'
 import { Route as SharedHousingRouteImport } from './routes/shared-housing'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WantedRouteImport } from './routes/wanted'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
@@ -150,6 +151,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WantedRoute = WantedRouteImport.update({
+  id: '/wanted',
+  path: '/wanted',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
@@ -412,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/wanted': typeof WantedRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
@@ -476,6 +483,7 @@ export interface FileRoutesByTo {
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/wanted': typeof WantedRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
@@ -542,6 +550,7 @@ export interface FileRoutesById {
   '/shared-housing': typeof SharedHousingRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/wanted': typeof WantedRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/commissions': typeof AuthenticatedCommissionsRoute
@@ -608,6 +617,7 @@ export interface FileRouteTypes {
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
+    | '/wanted'
     | '/account'
     | '/admin'
     | '/commissions'
@@ -672,6 +682,7 @@ export interface FileRouteTypes {
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
+    | '/wanted'
     | '/account'
     | '/admin'
     | '/commissions'
@@ -737,6 +748,7 @@ export interface FileRouteTypes {
     | '/shared-housing'
     | '/sitemap.xml'
     | '/terms'
+    | '/wanted'
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/_authenticated/commissions'
@@ -803,6 +815,7 @@ export interface RootRouteChildren {
   SharedHousingRoute: typeof SharedHousingRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  WantedRoute: typeof WantedRoute
   BrokersSlugRoute: typeof BrokersSlugRoute
   CompoundsIdRoute: typeof CompoundsIdRoute
   DemoCentralPointRoute: typeof DemoCentralPointRoute
@@ -945,6 +958,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wanted': {
+      id: '/wanted'
+      path: '/wanted'
+      fullPath: '/wanted'
+      preLoaderRoute: typeof WantedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/account': {
@@ -1343,6 +1363,7 @@ const rootRouteChildren: RootRouteChildren = {
   SharedHousingRoute: SharedHousingRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  WantedRoute: WantedRoute,
   BrokersSlugRoute: BrokersSlugRoute,
   CompoundsIdRoute: CompoundsIdRoute,
   DemoCentralPointRoute: DemoCentralPointRoute,

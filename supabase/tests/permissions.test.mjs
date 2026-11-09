@@ -2388,4 +2388,44 @@ commit;`);
   await expectErr("visitors can't read the raw numbers", () => as(null, `select * from public.app_searches`));
   await expectErr("an outsider can't read the app numbers", () => as(U.outsider, `select public.admin_app_stats(30)`));
   }
+
+  {
+  console.log("\n— wanted board —");
+  const P = "01012345678";
+  await as(null, "insert into public.leads (name, phone, kind, purpose, property_type, area, budget, details, wanted_public) values ('زبون سري', '" + P + "', 'request', 'sale', 'شقة', 'الحي الأول', 2000000, 'تفاصيل سرية', true)");
+  const [{ id: req, lead_no: no }] = await sys("select id, lead_no from public.leads where phone='" + P + "' and name='زبون سري'");
+  const board = () => as(null, "select * from public.wanted_board()");
+  await expectOk("a request appears on the page", board, (r) => r.some((x) => x.id === req && x.area === "الحي الأول"));
+  await expectOk("no name, number or details reach the page", board, (r) => { const s = JSON.stringify(r); return !s.includes("زبون سري") && !s.includes(P) && !s.includes("تفاصيل سرية"); });
+  await expectOk("a request lasts 60 days", () => sys("select wanted_until > now()+interval '59 days' ok from public.leads where id='" + req + "'"), (r) => r[0].ok);
+  await expectErr("visitors still can't read leads", async () => { const r = await as(null, "select phone from public.leads"); if (!r.length) throw new Error("no rows"); return r; });
+  await as(null, "insert into public.leads (name, phone, kind, purpose, property_type, area, budget, wanted_public) values ('حيلة', '01012345670', 'request', 'rent', 'محل', 'كلمني ٠١٠١٢٣٤٥٦٧٨', 1012345678999, true)");
+  await expectOk("a number typed as the area or budget is dropped", board, (r) => { const x = r.find((i) => i.property_type === "محل"); return x && x.area === null && x.budget === null; });
+  await as(null, "insert into public.leads (name, phone, kind, purpose, area, wanted_public, wanted_note, wanted_lead_id) values ('مزور', '01012345671', 'request', 'sale', 'مزور', true, 'وصف مزور', '" + req + "')");
+  await expectOk("a visitor can't write the public note or link an offer", () => sys("select wanted_note, wanted_lead_id from public.leads where name='مزور'"), (r) => r[0].wanted_note === null && r[0].wanted_lead_id === null);
+  await as(null, "insert into public.leads (name, phone, kind, purpose, area) values ('قديم', '01012345672', 'request', 'sale', 'قديم')");
+  await expectOk("a request not marked public stays off the page", board, (r) => !r.some((x) => x.area === "قديم"));
+  await expectOk("an offer is accepted", () => as(null, "select public.submit_wanted_offer('" + req + "', 'مالك العرض', '01122334455', 'عندي شقة') r"), (r) => r[0].r === "ok");
+  await expectOk("the offer stays with Value Aqar, tied to the request", () => sys("select kind, source_note, assigned_broker_id, details from public.leads where wanted_lead_id='" + req + "'"), (r) => r.length === 1 && r[0].kind === "inquiry" && r[0].source_note === "صفحة المطلوب" && r[0].assigned_broker_id === null && r[0].details.includes("عندي شقة"));
+  await expectOk("the admin is notified with the request's number", () => sys("select title from public.notifications where user_id='" + U.admin + "' and title like 'عرض على طلب%'"), (r) => r.length === 1 && r[0].title.includes(String(no)));
+  await expectOk("a requester without an account gets WhatsApp, without the offerer", () => sys("select message from public.wa_outbox where phone='" + P + "' and title='عرض على طلبك'"), (r) => r.length === 1 && !r[0].message.includes("مالك العرض") && !r[0].message.includes("01122334455"));
+  await expectOk("the same number can't offer twice", () => as(null, "select public.submit_wanted_offer('" + req + "', 'مالك العرض', '01122334455', null) r"), (r) => r[0].r === "dup");
+  await expectErr("the requester can't offer on their own request", () => as(null, "select public.submit_wanted_offer('" + req + "', 'أنا', '" + P + "', null)"));
+  await expectOk("a second offer the same day doesn't repeat the WhatsApp", async () => { await as(null, "select public.submit_wanted_offer('" + req + "', 'تاني', '01122334466', null)"); return sys("select count(*)::int n from public.wa_outbox where phone='" + P + "' and title='عرض على طلبك'"); }, (r) => r[0].n === 1);
+  await as(U.outsider, "insert into public.leads (name, phone, kind, purpose, area, wanted_public) values ('صاحب حساب', '01012345673', 'request', 'rent', 'حساب', true)");
+  const [{ id: acct }] = await sys("select id from public.leads where name='صاحب حساب'");
+  await expectOk("a requester with an account is notified in the app", async () => { await as(null, "select public.submit_wanted_offer('" + acct + "', 'مالك', '01122334477', null)"); return sys("select related_url from public.notifications where user_id='" + U.outsider + "' and title='حد عنده عقار مناسب لطلبك'"); }, (r) => r.length === 1 && r[0].related_url === "/my-requests");
+  await expectErr("an outsider can't hide requests", () => as(U.outsider, "select public.admin_set_wanted('" + req + "', false, null)"));
+  await expectErr("visitors can't hide requests", () => as(null, "select public.admin_set_wanted('" + req + "', false, null)"));
+  await as(U.admin, "select public.admin_set_wanted('" + req + "', false, null)");
+  await expectOk("the admin hides a request", board, (r) => !r.some((x) => x.id === req));
+  await expectErr("no offers on a hidden request", () => as(null, "select public.submit_wanted_offer('" + req + "', 'جديد', '01122334488', null)"));
+  await as(U.admin, "select public.admin_set_wanted('" + req + "', true, 'شقة دور أول')");
+  await expectOk("the admin shows it with a description", board, (r) => r.some((x) => x.id === req && x.note === "شقة دور أول"));
+  await sys("select set_config('request.jwt.claim.role','service_role',false)");
+  await sys("update public.leads set wanted_until = now()-interval '1 day' where id='" + req + "'");
+  await sys("select set_config('request.jwt.claim.role','',false)");
+  await expectOk("it disappears after 60 days", board, (r) => !r.some((x) => x.id === req));
+  await expectOk("the other visible cards are still there", board, (r) => r.some((x) => x.area === "حساب"));
+  }
 }

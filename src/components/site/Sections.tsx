@@ -1,14 +1,10 @@
-import { cleanPhone } from "@/lib/phone";
 import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX, Play } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { getAttribution } from "@/lib/attribution";
-import { supabase } from "@/integrations/supabase/client";
 import { contactNumber } from "./ContactActions";
-import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, listingMessage, WHATSAPP_NUMBER, TYPES_FOR, CITIES, CITY_NAMES, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property, useLocations } from "./data";
+import { fetchPublicProperties, fetchPublicBrokers, formatPrice, formatDate, waLink, listingMessage, WHATSAPP_NUMBER, PURPOSE_LABEL, PRICE_UNIT_LABEL, type Property } from "./data";
 import { PropertiesMap } from "./PropertiesMap";
 import { OpportunityCard } from "./OpportunityCard";
 import { AlertButton, FavoriteButton } from "./CustomerTools";
@@ -19,10 +15,10 @@ import { fetchSearchEverything } from "./search-everything";
 import { withPins } from "./mix";
 import { useBadgeAccounts, useHomePins } from "@/lib/plan-perks";
 import { AvailabilityBadge } from "./availability";
-import { Avatar, inputCls } from "./ui";
+import { Avatar } from "./ui";
+import { RequestForm, REQUEST_PLACE_EVENT } from "./RequestForm";
 import { Logo } from "./Navbar";
 import { t as tr, useLang } from "@/lib/i18n";
-import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { downPct } from "@/lib/installments";
 import { WhatsAppMark } from "./FloatingWhatsApp";
 import { thumb } from "@/lib/images";
@@ -348,60 +344,6 @@ export function RequestCTA() {
   );
 }
 
-/** The search sends a typed place here so «اطلب عقارك» starts with it. */
-const REQUEST_PLACE_EVENT = "va-request-place";
-
-function RequestForm() {
-  useLocations();
-  useLang();
-  const [f, setF] = useState({ name: "", phone: "", purpose: "sale" as "sale" | "rent" | "summer", property_type: "", city: "", area: "", budget: "", details: "" });
-  const [typed, setTyped] = useState(false);
-  useEffect(() => {
-    const onPlace = (e: Event) => { const place = String((e as CustomEvent).detail ?? "").slice(0, 60); setTyped(true); setF((x) => ({ ...x, city: place, area: "" })); };
-    window.addEventListener(REQUEST_PLACE_EVENT, onPlace);
-    return () => window.removeEventListener(REQUEST_PLACE_EVENT, onPlace);
-  }, []);
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (f.name.trim().length < 2 || !cleanPhone(f.phone)) { toast.error(tr("اكتب الاسم ورقم هاتف صحيح")); return; }
-    setBusy(true);
-    const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: cleanPhone(f.phone)!, kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: (f.area.trim() && f.city.trim() ? `${f.area.trim()}، ${f.city.trim()}` : f.area.trim() || f.city.trim()).slice(0, 60) || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, original_source: "website", utm: getAttribution() });
-    setBusy(false);
-    if (error) { toast.error(tr("الطلب ماتبعتش، جرّب تاني")); return; }
-    setDone(true);
-  }
-  if (done) return <div className="rounded-2xl bg-card p-6 text-center"><p className="text-lg font-bold text-primary">{tr("طلبك وصل ✓")}</p><p className="mt-2 text-sm text-muted-foreground">{tr("سيتواصل معك أحد وسطائنا قريبًا.")}</p></div>;
-  return (
-    <form onSubmit={submit} className="grid gap-2.5 rounded-2xl bg-card p-4 sm:grid-cols-2 md:p-5">
-      <input className={inputCls} placeholder={tr("الاسم")} value={f.name} onChange={set("name")} maxLength={100} required />
-      <input className={inputCls} placeholder={tr("رقم الهاتف")} inputMode="tel" dir="ltr" value={f.phone} onChange={set("phone")} maxLength={20} required />
-      <div role="radiogroup" aria-label={tr("الغرض")} className="grid grid-cols-3 gap-1.5 sm:col-span-2">
-        {([["sale", "شراء"], ["rent", "إيجار"], ["summer", "مصيف"]] as const).map(([v, l]) => (
-          <button key={v} type="button" role="radio" aria-checked={f.purpose === v} onClick={() => setF({ ...f, purpose: v })}
-            className={`h-10 rounded-xl border text-sm font-bold transition ${f.purpose === v ? "border-teal bg-teal/10 text-primary" : "text-muted-foreground hover:border-teal/50"}`}>{tr(l)}</button>
-        ))}
-      </div>
-      <select aria-label={tr("نوع العقار")} className={`${inputCls} sm:col-span-2`} value={f.property_type} onChange={set("property_type")}><option value="">{tr("نوع العقار")}</option>{TYPES_FOR[f.purpose === "sale" ? "بيع" : f.purpose === "rent" ? "إيجار" : "مصيف"]!.map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
-      <select className={inputCls} value={typed ? "__other__" : f.city} aria-label={tr("المدينة")} onChange={(e) => {
-        const other = e.target.value === "__other__";
-        setTyped(other); setF({ ...f, city: other ? "" : e.target.value, area: "" });
-      }}><option value="">{tr("المدينة")}</option>{CITY_NAMES.map((v) => <option key={v} value={v}>{tr(v)}</option>)}<option value="__other__">{tr("مدينة تانية…")}</option></select>
-      {typed ? (
-        <input className={inputCls} placeholder={tr("اكتب المدينة")} value={f.city} onChange={set("city")} maxLength={40} aria-label={tr("المدينة")} />
-      ) : (
-        <select className={inputCls} value={f.area} onChange={set("area")} aria-label={tr("المنطقة")} disabled={!CITIES[f.city]?.length}><option value="">{tr("المنطقة")}</option>{(CITIES[f.city] ?? []).map((v) => <option key={v} value={v}>{tr(v)}</option>)}</select>
-      )}
-      {typed && <input className={`${inputCls} sm:col-span-2`} placeholder={tr("المنطقة (اختياري)")} value={f.area} onChange={set("area")} maxLength={40} aria-label={tr("المنطقة")} />}
-      <input className={`${inputCls} sm:col-span-2`} placeholder={tr(f.purpose === "rent" ? "الميزانية الشهرية (ج.م)" : f.purpose === "summer" ? "الميزانية لليلة (ج.م)" : "الميزانية (ج.م)")} inputMode="numeric" value={f.budget} onChange={(e) => setF({ ...f, budget: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} />
-      <textarea className={`${inputCls} h-20 py-2 sm:col-span-2`} placeholder={tr("تفاصيل إضافية")} value={f.details} onChange={set("details")} maxLength={1000} />
-      <button disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-teal font-bold text-accent-foreground transition hover:brightness-95 disabled:opacity-60 sm:col-span-2">{busy ? tr("بيتبعت...") : tr("ابعت طلبك")} <ArrowLeft className="size-4" /></button>
-    </form>
-  );
-}
-
 export function Brokers() {
   useLang();
   const { data: brokers = [] } = useQuery({ queryKey: ["public-brokers"], queryFn: fetchPublicBrokers });
@@ -483,7 +425,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   useLang();
-  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
+  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["المطلوب", "/wanted"], ["الخدمات", "/services"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 pb-20 lg:pb-0 md:mt-20 bg-navy-deep text-primary-foreground/75">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-10 md:grid-cols-4 md:gap-10 md:px-6 md:py-14">
