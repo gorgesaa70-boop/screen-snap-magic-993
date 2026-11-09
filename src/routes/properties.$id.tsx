@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { BedDouble, Bath, Maximize, MapPin, MessageCircle, ExternalLink, Wallet } from "lucide-react";
 import { PAYMENT_LABEL, monthlyFor } from "@/lib/installments";
 import { AssignmentPlan } from "@/components/site/AssignmentPlan";
+import { UnitInsight, unitInsight, unitPlace, type UnitContext } from "@/components/site/UnitInsight";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { Gallery, PlaceMap } from "@/components/site/Gallery";
 import { getAttribution } from "@/lib/attribution";
@@ -35,7 +36,16 @@ async function fetchProperty(id: string) {
     const r = await supabase.from("brokers").select(PUBLIC_BROKER_COLS).eq("id", data.broker_id).maybeSingle();
     broker = r.data ? ((await withContacts([r.data]))[0] as PublicBroker) : null;
   }
-  return { p: toProperty(data), broker, sourceUrl: data.source_url, approved: data.review_status === "approved", createdAt: data.created_at,
+  // Mall units: the mall's name and the other units, so the page says something of its own (see UnitInsight).
+  let unit: UnitContext | null = null;
+  if (data.category === "mall" && data.mall_id) {
+    const [mall, sibs] = await Promise.all([
+      supabase.from("malls").select("id, name").eq("id", data.mall_id).maybeSingle(),
+      supabase.from("properties").select("id, title, price, size, floor").eq("mall_id", data.mall_id).eq("review_status", "approved").limit(300),
+    ]);
+    if (mall.data) unit = { mall: mall.data, floor: data.floor, siblings: (sibs.data ?? []).map((s) => ({ ...s, price: Number(s.price), size: Number(s.size) })) };
+  }
+  return { p: toProperty(data), broker, unit, sourceUrl: data.source_url, approved: data.review_status === "approved", createdAt: data.created_at,
     coBroke: { share: data.co_broke_share, ownerListing: !data.broker_id && !!data.owner_lead_id } };
 }
 
@@ -45,23 +55,27 @@ export const Route = createFileRoute("/properties/$id")({
   head: ({ params, loaderData }) => {
     const path = `/properties/${params.id}`;
     if (!loaderData || !loaderData.approved) return unavailableHead(path, "العقار غير متاح");
-    const { p, broker } = loaderData;
+    const { p, broker, unit } = loaderData;
+    const insight = unit ? unitInsight(p, unit) : null;
     const price = priceText(p.price, p.status);
     const purpose = p.status === "مصيف" ? "للإيجار المصيفي" : `لل${p.status}`;
-    const title = `${p.title}${p.title.includes(purpose) ? "" : ` ${purpose}`} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
-    const description = `${p.type} ${purpose} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
+    const title = unit
+      ? `${p.type} ${p.size} م² ${purpose}${unit.floor ? ` بالدور ${unit.floor}` : ""} – ${unit.mall.name}، ${unitPlace(p, unit)}${price ? ` – ${price}` : ""} | ${SITE_NAME}`
+      : `${p.title}${p.title.includes(purpose) ? "" : ` ${purpose}`} في ${p.area}${price ? ` – ${price}` : ""} | ${SITE_NAME}`;
+    const description = insight?.meta || `${p.type} ${purpose} في ${p.area} بمساحة ${p.size} م²${p.rooms ? `، ${p.rooms} غرف` : ""}${price ? ` بسعر ${price}` : ""}. ${p.description ?? ""}`;
     return pageHead({
       path, title, description, image: p.image, type: "article", noindex: p.isDemo,
       jsonLd: [
         {
           "@context": "https://schema.org", "@type": "RealEstateListing", name: p.title, url: `${SITE_URL}${path}`,
-          description: p.description || undefined, datePosted: loaderData.createdAt,
+          description: insight?.meta || p.description || undefined, datePosted: loaderData.createdAt,
+          ...(p.size > 0 ? { floorSize: { "@type": "QuantitativeValue", value: p.size, unitCode: "MTK" } } : {}),
           image: /^https:/.test(p.image) ? p.image : p.image.startsWith("/") ? `${SITE_URL}${p.image}` : undefined,
           offers: p.price ? { "@type": "Offer", price: p.price, priceCurrency: "EGP" } : undefined,
-          address: { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG" },
+          address: { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG", ...(unit ? { streetAddress: unit.mall.name } : {}) },
           ...(broker ? { provider: { "@type": "RealEstateAgent", name: broker.name, url: `${SITE_URL}/brokers/${broker.slug}` } } : {}),
         },
-        breadcrumbs([{ name: "الرئيسية", path: "/" }, { name: p.title, path }]),
+        breadcrumbs(unit ? [{ name: "الرئيسية", path: "/" }, { name: "المولات", path: "/malls" }, { name: unit.mall.name, path: `/malls/${unit.mall.id}` }, { name: p.title, path }] : [{ name: "الرئيسية", path: "/" }, { name: p.title, path }]),
       ],
     });
   },
@@ -121,6 +135,7 @@ function PropertyPage() {
             {p.finishing && FINISHING_LABEL[p.finishing] && <span className="rounded-lg bg-secondary px-3 py-1.5">{t(FINISHING_LABEL[p.finishing]!)}</span>}
           </div>
           {p.video && <ListingVideo url={p.video} poster={p.image} title={p.title} />}
+          {q.data.unit && <UnitInsight p={p} u={q.data.unit} />}
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
           {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className={`${btnOutline} mt-4 gap-1.5`}><ExternalLink className="size-4" />{t("عرض التفاصيل من المصدر")}</a>}
           {p.lat != null && p.lng != null && <PlaceMap lat={p.lat} lng={p.lng} />}
