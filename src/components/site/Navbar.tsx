@@ -73,6 +73,7 @@ export function Navbar() {
     { label: t("المطلوب"), href: "/wanted" },
     { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing", more: true },
     { label: t("الخدمات"), href: "/services", more: true },
+    { label: t("تنازل"), href: "/tanazul", more: true },
     ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices", more: true }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };

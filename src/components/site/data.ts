@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Assignment } from "@/lib/assignment";
 import { parseVideo } from "@/lib/video";
 import type { Tables } from "@/integrations/supabase/types";
 import { useSyncExternalStore } from "react";
@@ -54,6 +55,8 @@ export type Property = {
   brokerId: string | null;
   /** Short public code (VA-1234); missing until release 25 is applied. */
   code?: string | undefined;
+  /** «تنازل»: an installment contract handed over (price = what the buyer pays the seller now). */
+  assignment?: Assignment | undefined;
   /** Sale listings paid in installments (or cash or installments). */
   installments?: { method: "installment" | "both"; down?: number | undefined; years?: number | undefined; monthly?: number | undefined; note?: string | undefined } | undefined;
   /** Search results only: where the result lives (missing = a regular listing). Compound / project price-list
@@ -175,7 +178,13 @@ export const toProperty = (r: PropertyRow): Property => ({
   featured: r.is_featured && (!r.featured_until || Date.parse(r.featured_until) > Date.now()),
   brokerId: r.broker_id,
   code: r.listing_no != null ? listingCode(r.listing_no) : undefined,
-  installments: r.status === "بيع" && (r.payment_method === "installment" || r.payment_method === "both") ? {
+  assignment: r.is_assignment ? {
+    developer: r.asg_developer ?? undefined, projectId: r.asg_project_id ?? undefined, contractPrice: num(r.asg_contract_price), paid: num(r.asg_paid),
+    remaining: num(r.asg_remaining), months: r.asg_months ?? undefined, monthly: num(r.asg_monthly), delivery: r.asg_delivery ?? undefined,
+    fee: num(r.asg_fee), feeKind: (r.asg_fee_kind as Assignment["feeKind"]) ?? undefined, devApproval: (r.asg_dev_approval as Assignment["devApproval"]) ?? undefined,
+    checkedAt: r.asg_doc_checked_at ?? undefined,
+  } : undefined,
+  installments: r.status === "بيع" && !r.is_assignment && (r.payment_method === "installment" || r.payment_method === "both") ? {
     method: r.payment_method, down: num(r.down_payment), years: r.installment_years ?? undefined, monthly: num(r.monthly_installment), note: r.installment_note ?? undefined,
   } : undefined,
   priceUnit: r.price_unit ?? (r.status === "إيجار" ? "month" : undefined),

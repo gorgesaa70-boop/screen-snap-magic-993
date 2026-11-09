@@ -10,6 +10,8 @@ import { MapPicker, type LatLng } from "@/components/site/MapPicker";
 import { PlacePicker, placeReady, placeToSave } from "@/components/site/PlacePicker";
 import { InstallmentFields, emptyInstallments, installmentError, installmentPayload, type InstallmentDraft } from "@/components/site/InstallmentFields";
 import type { PaymentMethod } from "@/lib/installments";
+import { AssignmentFields } from "@/components/site/AssignmentFields";
+import { assignmentError, assignmentPayload, draftFrom, emptyAssignment, type AssignmentDraft } from "@/lib/assignment";
 import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 
 /** `admin`: Value Aqar edits someone's listing — saving keeps its review status (approved stays approved). */
@@ -43,6 +45,14 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
     payment_method: initial.payment_method as PaymentMethod, down_payment: initial.down_payment?.toString() ?? "", installment_years: initial.installment_years?.toString() ?? "",
     monthly_installment: initial.monthly_installment?.toString() ?? "", installment_note: initial.installment_note ?? "",
   } : emptyInstallments);
+  const [asg, setAsg] = useState(initial?.is_assignment ?? false);
+  const [asgD, setAsgD] = useState<AssignmentDraft>(initial?.is_assignment ? draftFrom(initial) : emptyAssignment);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const docs = useQuery({
+    queryKey: ["assignment-docs", initial?.id], enabled: !!initial?.id,
+    queryFn: async () => (await supabase.from("property_assignment_docs").select("id", { count: "exact", head: true }).eq("property_id", initial!.id)).count ?? 0,
+  });
+  const isAsg = f.status === "بيع" && asg;
   const summer = f.status === "مصيف";
   const rent = f.status !== "بيع";
   const [loc, setLoc] = useState<LatLng | null>(initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null);
@@ -68,8 +78,9 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
     if (f.title.trim().length < 3 || (summer ? !anySummerPrice : !f.price)) { toast.error(summer ? "أدخل العنوان وسعر واحد على الأقل (الليلة أو الأسبوع أو الشهر أو الموسم)" : "أدخل العنوان والسعر"); return; }
     if (submit && hasFinishing(f.type) && !f.finishing) { toast.error("اختار حالة التشطيب"); return; }
     if (!placeReady(f)) { toast.error("اختار المدينة والمنطقة، أو اكتب المنطقة الجديدة"); return; }
-    const instErr = f.status === "بيع" ? installmentError(inst, Number(f.price)) : "";
+    const instErr = f.status === "بيع" ? (isAsg ? assignmentError(asgD) : installmentError(inst, Number(f.price))) : "";
     if (instErr) { toast.error(instErr); return; }
+    if (isAsg && submit && !contractFile && !(docs.data ?? 0)) { toast.error("ارفع صورة عقد الوحدة عشان نراجعه"); return; }
     const src = f.source_url.trim();
     if (src && !/^https:\/\/[a-z0-9-]+\.engazcrm\.net\//i.test(src)) { toast.error("رابط إنجاز غير صحيح — يجب أن يبدأ بـ https://…engazcrm.net/"); return; }
     setBusy(true);
@@ -86,15 +97,25 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
       finishing: hasFinishing(f.type) ? f.finishing || null : null,
       rooms: num(f.rooms), baths: num(f.baths), status: f.status, image_url: f.images[0] ?? null, images: f.images, source_url: src || null,
       compound_id: f.compound_id || null,
-      ...(f.status === "بيع" ? installmentPayload(inst, Number(f.price)) : { payment_method: null }),
+      ...(f.status === "بيع" && !isAsg ? installmentPayload(inst, Number(f.price)) : { payment_method: null }),
+      is_assignment: isAsg, ...(isAsg ? assignmentPayload(asgD) : {}),
       lat: loc?.lat ?? null, lng: loc?.lng ?? null,
       review_status: (admin && initial ? initial.review_status : submit ? "pending" : "draft") as "pending" | "draft",
     };
     const res = initial
-      ? await supabase.from("properties").update(payload).eq("id", initial.id)
-      : await supabase.from("properties").insert({ ...payload, broker_id: brokerId });
+      ? await supabase.from("properties").update(payload).eq("id", initial.id).select("id").single()
+      : await supabase.from("properties").insert({ ...payload, broker_id: brokerId }).select("id").single();
+    if (res.error) { setBusy(false); toast.error(res.error.message); return; }
+    // The contract goes to a private bucket; only the uploader and the review team can open it.
+    if (isAsg && contractFile && res.data) {
+      const uid = (await supabase.auth.getUser()).data.user?.id;
+      const ext = (contractFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+      const path = `${uid}/${res.data.id}-${Date.now()}.${ext}`;
+      const up = uid ? await supabase.storage.from("assignment-docs").upload(path, contractFile, { contentType: contractFile.type || undefined }) : { error: new Error("no user") };
+      const row = up.error ? up : await supabase.from("property_assignment_docs").insert({ property_id: res.data.id, path });
+      if (row.error) toast.error("العقار اتحفظ، بس صورة العقد ماترفعتش. جرّب ترفعها تاني من التعديل.");
+    }
     setBusy(false);
-    if (res.error) { toast.error(res.error.message); return; }
     toast.success(admin && initial ? "اتحفظت التعديلات" : !submit ? "تم الحفظ كمسودة" : "تم إرسال العقار للمراجعة — هيظهر على الموقع أول ما فريق فاليو عقار يعتمده");
     onDone();
   }
@@ -108,7 +129,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Field label="عنوان الإعلان"><input className={inputCls} value={f.title} onChange={set("title")} maxLength={150} /></Field></div>
         <Field label="الغرض"><select className={inputCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value, type: TYPES_FOR[e.target.value]!.includes(f.type) ? f.type : TYPES_FOR[e.target.value]![0]! })}><option value="بيع">بيع</option><option value="إيجار">إيجار شهري</option><option value="مصيف">مصيف (يومي / أسبوعي / موسم)</option></select></Field>
-        {!summer && <Field label={f.status === "إيجار" ? "الإيجار الشهري (ج.م)" : "السعر (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>}
+        {!summer && <Field label={f.status === "إيجار" ? "الإيجار الشهري (ج.م)" : isAsg ? "مبلغ التنازل (اللي المشتري يدفعه دلوقتي)" : "السعر (ج.م)"}><input className={inputCls} inputMode="numeric" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>}
         <Field label="النوع"><select className={inputCls} value={f.type} onChange={set("type")}>{TYPES_FOR[f.status]!.map((t) => <option key={t}>{t}</option>)}</select></Field>
         {summer && (
           <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
@@ -130,7 +151,22 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
             {summer && <Field label="متاح لحد"><input type="date" className={inputCls} value={f.available_to} onChange={set("available_to")} /></Field>}
           </div>
         )}
-        {f.status === "بيع" && <InstallmentFields value={inst} onChange={setInst} price={Number(f.price || 0)} />}
+        {f.status === "بيع" && (
+          <label className="flex items-center gap-2 rounded-xl border p-3 text-sm font-bold text-primary sm:col-span-2">
+            <input type="checkbox" className="size-4 accent-[#e76f51]" checked={asg} onChange={(e) => setAsg(e.target.checked)} />
+            الوحدة دي تنازل (لسه بالتقسيط مع المطور)
+          </label>
+        )}
+        {f.status === "بيع" && !isAsg && <InstallmentFields value={inst} onChange={setInst} price={Number(f.price || 0)} />}
+        {isAsg && <AssignmentFields value={asgD} onChange={setAsgD} />}
+        {isAsg && (
+          <div className="sm:col-span-2">
+            <Field label="صورة العقد (للمراجعة بس، مش بتظهر في الإعلان)">
+              <input type="file" accept="image/*,application/pdf" disabled={busy} onChange={(e) => setContractFile(e.target.files?.[0] ?? null)} className="block w-full text-sm file:me-3 file:rounded-lg file:border-0 file:bg-secondary file:px-4 file:py-2 file:font-bold file:text-primary" />
+            </Field>
+            {(docs.data ?? 0) > 0 && !contractFile && <p className="mt-1 text-xs font-bold text-teal">✓ صورة العقد مرفوعة — ارفع واحدة تانية لو عايز تضيف</p>}
+          </div>
+        )}
         <PlacePicker city={f.city} area={f.area} onChange={(v) => setF({ ...f, ...v })} />
         <Field label="الكمبوند (اختياري)"><select className={inputCls} value={f.compound_id} onChange={set("compound_id")}><option value="">— بدون كمبوند</option>{compounds.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
         <Field label={f.type === "بيت" || f.type === "عمارة" ? "مساحة الأرض (م²)" : "المساحة (م²)"}><input className={inputCls} inputMode="numeric" value={f.size} onChange={(e) => setF({ ...f, size: e.target.value.replace(ARABIC_DIGITS, latinDigit).replace(/\D/g, "") })} /></Field>

@@ -52,7 +52,7 @@ export function applyFilters(list: Property[], f: Filters) {
       (max === null || p.price <= max) &&
       (!f.verified || !!p.verified) &&
       (!f.video || !!p.video) &&
-      (!f.pay || !!p.installments) &&
+      (!f.pay || (f.pay === "assignment" ? !!p.assignment : !!p.installments)) &&
       (maxDown === null || (!!p.installments && (p.installments.down ?? 0) <= maxDown)) &&
       (rooms === null || (p.rooms ?? 0) >= rooms) &&
       (!f.finishing || p.finishing === f.finishing) &&

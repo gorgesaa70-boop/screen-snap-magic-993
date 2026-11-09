@@ -1,4 +1,4 @@
-import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX, Play } from "lucide-react";
+import { Home, LandPlot, Store, Briefcase, Factory, Landmark, House, BedDouble, Bath, Maximize, MapPin, MessageCircle, Phone, ArrowLeft, Instagram, Mail, BarChart3, Megaphone, Inbox, ShieldQuestion, BadgeCheck, CalendarClock, RotateCcw, SearchX, Play, ArrowLeftRight } from "lucide-react";
 import { applyFilters, isEmpty, type Filters } from "./search";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -69,6 +69,10 @@ export function Categories({ onPick, status = "" }: { onPick: (f: Partial<Filter
           <span className={icon}><House className="size-5 md:size-6" /></span>
           <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("الكمبوندات")}</span>
         </Link>
+        <Link to="/tanazul" className={card}>
+          <span className={icon}><ArrowLeftRight className="size-5 md:size-6" /></span>
+          <span className="text-[13px] leading-tight font-bold text-primary md:text-sm">{tr("تنازل")}</span>
+        </Link>
       </div>
     </section>
   );
@@ -105,8 +109,8 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
       <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-muted">
         <img src={thumb(p.image)} alt={p.title} loading="lazy" decoding="async" width={944} height={704}
           className="size-full object-cover transition duration-500 group-hover:scale-105" />
-        <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.status === "بيع" ? "bg-primary text-primary-foreground" : p.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>
-          {tr(PURPOSE_LABEL[p.status] ?? p.status)}
+        <span className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-bold ${p.assignment ? "bg-[#e76f51] text-white" : p.status === "بيع" ? "bg-primary text-primary-foreground" : p.status === "مصيف" ? "bg-[#f2b84b] text-primary" : "bg-teal text-accent-foreground"}`}>
+          {tr(p.assignment ? "تنازل" : PURPOSE_LABEL[p.status] ?? p.status)}
         </span>
         {p.installments && !p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-bold text-primary">{tr("تقسيط")}{p.installments.down != null && p.price > 0 ? ` · ${tr("مقدم")} ${downPct(p.price, p.installments.down)}%` : ""}</span>}
         {p.highlight && <span className="absolute bottom-3 right-3 rounded-full bg-[#f2b84b] px-2.5 py-1 text-[11px] font-bold text-primary">{tr("سعر مميز")}</span>}
@@ -119,9 +123,10 @@ export function PropertyCard({ p, whatsapp }: { p: Property; whatsapp?: string |
       </div>
       <div className="flex flex-1 flex-col p-4 md:p-5">
         <p className="text-xl font-extrabold text-primary md:text-2xl">
-          {p.status === "مصيف" && <span className="text-sm font-semibold text-muted-foreground">{tr("من")} </span>}{formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.priceUnit ? tr(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span>
+          {p.status === "مصيف" && <span className="text-sm font-semibold text-muted-foreground">{tr("من")} </span>}{p.assignment && <span className="text-sm font-semibold text-muted-foreground">{tr("تنازل بـ")} </span>}{formatPrice(p.price)} <span className="text-sm font-semibold text-muted-foreground">{tr("ج.م")}{p.priceUnit ? tr(PRICE_UNIT_LABEL[p.priceUnit] ?? "") : ""}</span>
         </p>
         <h3 className="mt-1 line-clamp-1 text-base font-bold text-foreground">{p.title}</h3>
+        {p.assignment && p.assignment.remaining != null && <p className="mt-1 line-clamp-1 text-xs font-bold text-[#e76f51]">{tr("والباقي")} {formatPrice(p.assignment.remaining)} {tr("ج.م")}{p.assignment.months ? ` ${tr("على {n} شهر", { n: formatPrice(p.assignment.months) })}` : ""}</p>}
         {p.place && <p className="mt-1 line-clamp-1 flex items-center gap-1 text-xs font-bold text-teal">{p.kind === "mall" ? <Landmark className="size-3.5 shrink-0" /> : <House className="size-3.5 shrink-0" />}{tr(p.kind === "mall" ? "داخل مول" : p.kind === "project" ? "داخل مشروع" : "داخل كمبوند")} {p.place}</p>}
         {p.highlight && <p className="mt-1 line-clamp-1 text-xs font-bold text-teal">★ {p.highlight.reason}{p.highlight.yield ? ` · ${tr("عائد تقريبي")} ${formatPrice(p.highlight.yield)}%` : ""}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -425,7 +430,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   useLang();
-  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["المطلوب", "/wanted"], ["الخدمات", "/services"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
+  const pages: [string, string][] = [["الرئيسية", "/#top"], ["العقارات", "/#properties"], ["الوسطاء العقاريون", "/brokers"], ["اطلب عقارك", "/#request"], ["المطلوب", "/wanted"], ["تنازل", "/tanazul"], ["الخدمات", "/services"], ["الباقات", "/plans"], ["تسجيل الدخول", "/auth"]];
   return (
     <footer className="mt-16 bg-navy-deep pb-36 text-primary-foreground/75 md:mt-20 lg:pb-0">
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-10 md:grid-cols-12 md:gap-10 md:px-6 md:py-14">
