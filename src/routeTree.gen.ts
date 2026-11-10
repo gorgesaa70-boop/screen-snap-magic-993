@@ -63,6 +63,7 @@ import { Route as ServicesIdRouteImport } from './routes/services.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
 import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedMyCompoundsIdRouteImport } from './routes/_authenticated/my-compounds.$id'
+import { Route as ApiAppActionRouteImport } from './routes/api/app/$action'
 import { Route as PricesAreasAreaRouteImport } from './routes/prices.areas.$area'
 import { Route as PricesMallsIdRouteImport } from './routes/prices.malls.$id'
 import { Route as ApiPublicFeedNameRouteImport } from './routes/api/public/feed/$name'
@@ -348,6 +349,11 @@ const AuthenticatedMyCompoundsIdRoute =
     path: '/my-compounds/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiAppActionRoute = ApiAppActionRouteImport.update({
+  id: '/api/app/$action',
+  path: '/api/app/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricesAreasAreaRoute = PricesAreasAreaRouteImport.update({
   id: '/prices/areas/$area',
   path: '/prices/areas/$area',
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
+  '/api/app/$action': typeof ApiAppActionRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
@@ -528,6 +535,7 @@ export interface FileRoutesByTo {
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
+  '/api/app/$action': typeof ApiAppActionRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
@@ -596,6 +604,7 @@ export interface FileRoutesById {
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/my-compounds/$id': typeof AuthenticatedMyCompoundsIdRoute
+  '/api/app/$action': typeof ApiAppActionRoute
   '/prices/areas/$area': typeof PricesAreasAreaRoute
   '/prices/malls/$id': typeof PricesMallsIdRoute
   '/api/public/feed/$name': typeof ApiPublicFeedNameRoute
@@ -664,6 +673,7 @@ export interface FileRouteTypes {
     | '/investments/new'
     | '/leads/$id'
     | '/my-compounds/$id'
+    | '/api/app/$action'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/feed/$name'
@@ -730,6 +740,7 @@ export interface FileRouteTypes {
     | '/investments/new'
     | '/leads/$id'
     | '/my-compounds/$id'
+    | '/api/app/$action'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/feed/$name'
@@ -797,6 +808,7 @@ export interface FileRouteTypes {
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
     | '/_authenticated/my-compounds/$id'
+    | '/api/app/$action'
     | '/prices/areas/$area'
     | '/prices/malls/$id'
     | '/api/public/feed/$name'
@@ -846,6 +858,7 @@ export interface RootRouteChildren {
   PricesIndexRoute: typeof PricesIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
+  ApiAppActionRoute: typeof ApiAppActionRoute
   PricesAreasAreaRoute: typeof PricesAreasAreaRoute
   PricesMallsIdRoute: typeof PricesMallsIdRoute
   ApiPublicFeedNameRoute: typeof ApiPublicFeedNameRoute
@@ -1239,6 +1252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMyCompoundsIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/app/$action': {
+      id: '/api/app/$action'
+      path: '/api/app/$action'
+      fullPath: '/api/app/$action'
+      preLoaderRoute: typeof ApiAppActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prices/areas/$area': {
       id: '/prices/areas/$area'
       path: '/prices/areas/$area'
@@ -1402,6 +1422,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricesIndexRoute: PricesIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
+  ApiAppActionRoute: ApiAppActionRoute,
   PricesAreasAreaRoute: PricesAreasAreaRoute,
   PricesMallsIdRoute: PricesMallsIdRoute,
   ApiPublicFeedNameRoute: ApiPublicFeedNameRoute,

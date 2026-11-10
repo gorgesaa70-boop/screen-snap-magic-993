@@ -43,6 +43,8 @@ export async function dispatchPush(db: Db, id?: string) {
   if (!items?.length) return { sent: 0, failed: 0 };
 
   const vapid = await siteVapid(db);
+  const { fcmAccount, sendFcm } = await import("@/lib/fcm.server");
+  const fcm = fcmAccount();
   let sent = 0, failed = 0;
   for (const n of items) {
     // Claim it first so a parallel run doesn't send it twice.
@@ -68,10 +70,21 @@ export async function dispatchPush(db: Db, id?: string) {
         await db.from("push_subscriptions").update({ failed_count: d.failed_count + 1 }).eq("id", d.id);
       }
     }
+    // The native app (release 56). Without the Firebase secret these devices just wait.
+    const { data: phones } = await db.from("push_devices").select("id, token, failed_count").eq("user_id", n.user_id);
+    if (fcm) {
+      for (const d of phones ?? []) {
+        let r: "ok" | "gone" | "error" = "error";
+        try { r = await sendFcm(fcm, d.token, { title: n.title, body: n.message, url: safePath(n.related_url), tag: n.related_id ?? n.id }); } catch { r = "error"; }
+        if (r === "ok") { delivered++; await db.from("push_devices").update({ last_used_at: new Date().toISOString(), failed_count: 0 }).eq("id", d.id); }
+        else if (r === "gone" || d.failed_count >= 4) await db.from("push_devices").delete().eq("id", d.id);
+        else await db.from("push_devices").update({ failed_count: d.failed_count + 1 }).eq("id", d.id);
+      }
+    }
     if (delivered) sent++;
     else {
       failed++;
-      await db.from("notifications").update({ push_status: devices?.length ? "failed" : "skipped" }).eq("id", n.id);
+      await db.from("notifications").update({ push_status: devices?.length || (fcm && phones?.length) ? "failed" : "skipped" }).eq("id", n.id);
     }
   }
   return { sent, failed };
