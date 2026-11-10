@@ -27,6 +27,7 @@ import { trackContact, trackView } from "@/lib/track";
 import { ReferButton } from "@/components/site/ReferButton";
 import { ReportButton } from "@/components/site/ReportButton";
 import { landingOf, landingPath, landingTitle } from "@/lib/landings";
+import { trackMeta } from "@/lib/meta-pixel";
 
 async function fetchProperty(id: string) {
   const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
@@ -214,6 +215,7 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
     if (name.trim().length < 2 || !cleanPhone(phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
     const { error } = await supabase.from("leads").insert({ name: name.trim(), phone: cleanPhone(phone)!, details: details.trim().slice(0, 1000) || null, property_id: propertyId, kind: "inquiry", original_source: "website", utm: getAttribution() });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);

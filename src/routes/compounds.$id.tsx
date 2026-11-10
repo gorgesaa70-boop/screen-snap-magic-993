@@ -17,6 +17,7 @@ import { amenitiesLabel, t, useLang } from "@/lib/i18n";
 import { ContactActions, contactNumber, pickScroll } from "@/components/site/ContactActions";
 import { ReferButton } from "@/components/site/ReferButton";
 import { ReportButton } from "@/components/site/ReportButton";
+import { trackMeta } from "@/lib/meta-pixel";
 
 export const Route = createFileRoute("/compounds/$id")({
   loader: ({ params, context }) =>
@@ -205,6 +206,7 @@ function CompoundInquiry({ compound, compoundId, unit, onClearUnit }: { compound
       property_type: unit?.unit_type ?? null, budget: unit?.price ?? null,
       details: [about, details.trim()].filter(Boolean).join("\n").slice(0, 1000), utm: getAttribution(),
     });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);

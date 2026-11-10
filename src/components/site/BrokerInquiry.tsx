@@ -5,6 +5,7 @@ import { getAttribution } from "@/lib/attribution";
 import { supabase } from "@/integrations/supabase/client";
 import { inputCls, btnPrimary } from "@/components/site/ui";
 import { t, useLang } from "@/lib/i18n";
+import { trackMeta } from "@/lib/meta-pixel";
 
 /** Inquiry from a broker's page: recorded on the platform and routed to that broker (contact details stay private). */
 export function BrokerInquiry({ brokerId, brokerName }: { brokerId: string; brokerName: string }) {
@@ -17,6 +18,7 @@ export function BrokerInquiry({ brokerId, brokerName }: { brokerId: string; brok
     if (f.name.trim().length < 2 || !cleanPhone(f.phone)) { toast.error(t("اكتب الاسم ورقم هاتف صحيح")); return; }
     setBusy(true);
     const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: cleanPhone(f.phone)!, details: f.details.trim().slice(0, 1000) || null, via_broker_id: brokerId, kind: "inquiry", original_source: "website", utm: getAttribution() });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("ماتبعتش، جرّب تاني")); return; }
     setDone(true);

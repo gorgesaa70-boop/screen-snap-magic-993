@@ -8,6 +8,7 @@ import { ARABIC_DIGITS, latinDigit } from "@/lib/digits";
 import { t as tr, useLang } from "@/lib/i18n";
 import { TYPES_FOR, CITIES, CITY_NAMES, useLocations } from "./data";
 import { inputCls } from "./ui";
+import { trackMeta } from "@/lib/meta-pixel";
 
 /** The search sends a typed place here so «اطلب عقارك» starts with it. */
 export const REQUEST_PLACE_EVENT = "va-request-place";
@@ -31,6 +32,7 @@ export function RequestForm({ onSent }: { onSent?: () => void }) {
     if (!f.property_type && !f.city.trim() && !f.area.trim()) { toast.error(tr("اختار نوع العقار أو المدينة")); return; }
     setBusy(true);
     const { error } = await supabase.from("leads").insert({ name: f.name.trim(), phone: cleanPhone(f.phone)!, kind: "request", purpose: f.purpose, property_type: f.property_type || null, area: (f.area.trim() && f.city.trim() ? `${f.area.trim()}، ${f.city.trim()}` : f.area.trim() || f.city.trim()).slice(0, 60) || null, budget: f.budget ? Number(f.budget) : null, details: f.details.trim().slice(0, 1000) || null, wanted_public: true, original_source: "website", utm: getAttribution() });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(tr("الطلب ماتبعتش، جرّب تاني")); return; }
     setDone(true);

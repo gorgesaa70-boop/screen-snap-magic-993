@@ -13,6 +13,7 @@ import { t, useLang } from "@/lib/i18n";
 import { inputCls } from "./ui";
 import { HIDDEN, WhatsAppMark, useFloatingWhatsapp } from "./FloatingWhatsApp";
 import { CITY_NAMES, WHATSAPP_NUMBER, waLink, formatPrice, withUnitCode } from "./data";
+import { trackMeta } from "@/lib/meta-pixel";
 
 type Purpose = "sale" | "rent" | "summer";
 /** What the visitor picked so far in the guided search. */
@@ -106,6 +107,7 @@ function ContactForm({ request, transcript, onDone }: { request: Request; transc
       budget: typeof request["budget"] === "number" ? request["budget"] : null,
       details: `من المساعد الذكي في الموقع:\n${transcript}`.slice(0, 1000),
     });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("الطلب ماتبعتش، جرّب تاني")); return; }
     onDone();
@@ -137,6 +139,7 @@ function ViewingForm({ p, onDone }: { p: ListingCard; onDone: () => void }) {
       name: name.trim(), phone: ph, kind: "inquiry", property_id: p.id, original_source: "website", utm: getAttribution(),
       details: `طلب معاينة من المساعد الذكي${p.code ? ` — ${p.code}` : ""}${when ? ` — الميعاد المناسب: ${when}` : ""}`,
     });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("الطلب ماتبعتش، جرّب تاني")); return; }
     onDone();
