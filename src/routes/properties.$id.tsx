@@ -226,9 +226,10 @@ function InquiryForm({ propertyId }: { propertyId: string }) {
 
 /** Rent terms; summer listings show every price the owner set. */
 function RentDetails({ p }: { p: Property }) {
-  useLang();
+  const { lang } = useLang();
   const r = p.rent!;
-  const day = (d?: string) => (d ? new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "long" }) : "");
+  // A fixed language + Cairo time: «undefined» meant the server's English vs the visitor's Arabic, two different texts (React #418).
+  const day = (d?: string) => (d ? new Date(d).toLocaleDateString(lang === "en" ? "en-GB" : "ar-EG", { day: "numeric", month: "long", timeZone: "Africa/Cairo" }) : "");
   const prices = p.status === "مصيف" ? ([["night", r.night], ["week", r.week], ["month", r.month], ["season", r.season]] as const).filter(([, v]) => v) : [];
   const facts = [
     r.furnished && t(FURNISHED_LABEL[r.furnished] ?? r.furnished),

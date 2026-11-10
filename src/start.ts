@@ -12,8 +12,8 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     }
     console.error(error);
     return new Response(renderErrorPage(), {
-      status: 500,
-      headers: { "content-type": "text/html; charset=utf-8" },
+      status: 503,
+      headers: { "content-type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex", "Retry-After": "120", "Cache-Control": "no-store" },
     });
   }
 });
