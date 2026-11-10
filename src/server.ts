@@ -46,8 +46,8 @@ async function normalizeCatastrophicSsrResponse(response: Response, request: Req
   console.error(error);
   await logServerError(error, request);
   return new Response(renderErrorPage(), {
-    status: 500,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    status: 503,
+    headers: { "content-type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex", "Retry-After": "120", "Cache-Control": "no-store" },
   });
 }
 
@@ -60,18 +60,35 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+/**
+ * A render error inside the page (the root error screen, «الصفحة ما حمّلتش») used to go out as a normal 200 page,
+ * and Google kept it as the page's content. Such pages now answer 503 «try again later» with noindex: search engines
+ * keep the last good copy and come back. Only HTML pages are read; everything else streams as before.
+ */
+async function markFailedRender(response: Response): Promise<Response> {
+  if (response.status !== 200 || !(response.headers.get("content-type") ?? "").includes("text/html")) return response;
+  const body = await response.text();
+  const headers = new Headers(response.headers);
+  // <!--$!--> is React's mark for a part that failed on the server and is left to the browser (which may fail too).
+  if (!body.includes('data-va-failed="1"') && !body.includes("<!--$!-->")) return new Response(body, { status: 200, statusText: response.statusText, headers });
+  headers.set("X-Robots-Tag", "noindex");
+  headers.set("Retry-After", "120");
+  headers.set("Cache-Control", "no-store");
+  return new Response(body, { status: 503, headers });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response, request);
+      return await markFailedRender(await normalizeCatastrophicSsrResponse(response, request));
     } catch (error) {
       console.error(error);
       await logServerError(error, request);
       return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
+        status: 503,
+        headers: { "content-type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex", "Retry-After": "120", "Cache-Control": "no-store" },
       });
     }
   },

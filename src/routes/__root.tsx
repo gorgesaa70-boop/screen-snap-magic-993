@@ -23,9 +23,10 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import cairoArabic from "@/assets/fonts/cairo-arabic.woff2?url";
 
 /** Shared frame for the 404 and error screens: logo, message, and ways back into the site (Arabic / English). */
-function FallbackScreen({ code, title, text, children }: { code?: string; title: string; text: string; children: ReactNode }) {
+function FallbackScreen({ code, title, text, children, failed }: { code?: string; title: string; text: string; children: ReactNode; failed?: boolean }) {
   return (
-    <div dir={getLang() === "en" ? "ltr" : "rtl"} className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-10 text-center">
+    // data-va-failed: the server turns a page that rendered this into a 503, so search engines never keep it.
+    <div data-va-failed={failed ? "1" : undefined} dir={getLang() === "en" ? "ltr" : "rtl"} className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-10 text-center">
       <a href="/" className="mb-8 text-2xl font-extrabold text-primary">{t("فاليو عقار")} <span className="text-teal">Value Aqar</span></a>
       <div className="w-full max-w-md rounded-3xl border bg-card p-8 shadow-card">
         {code && <p className="text-6xl font-extrabold text-primary">{code}</p>}
@@ -49,16 +50,36 @@ function NotFoundComponent() {
   );
 }
 
+/** A file the open page needs was replaced by a newer Publish (old file names are gone). */
+const STALE_CHUNK = /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module|Unable to preload CSS/i;
+
+/** Reloads once to pick up the new files instead of showing the error screen; a second failure in a row shows it. */
+function reloadForNewVersion(): boolean {
+  try {
+    const last = Number(sessionStorage.getItem("va-chunk-reload") ?? 0);
+    if (Date.now() - last < 60_000) return false;
+    sessionStorage.setItem("va-chunk-reload", String(Date.now()));
+  } catch { return false; }
+  location.reload();
+  return true;
+}
+
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    if (STALE_CHUNK.test(String((error as Error | undefined)?.message ?? error)) && reloadForNewVersion()) return;
+    // Search engines that run the page (Google does) must not keep this screen as the page's content.
+    const robots = document.createElement("meta");
+    robots.name = "robots";
+    robots.content = "noindex";
+    document.head.appendChild(robots);
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
     void import("../lib/app-errors").then((m) => m.reportAppError(error)).catch(() => {});
   }, [error]);
 
   return (
-    <FallbackScreen title={t("الصفحة ما حمّلتش")} text={t("حصل خطأ عندنا واتسجّل عشان نصلّحه. جرّب تاني، أو ارجع للرئيسية.")}>
+    <FallbackScreen failed title={t("الصفحة ما حمّلتش")} text={t("حصل خطأ عندنا واتسجّل عشان نصلّحه. جرّب تاني، أو ارجع للرئيسية.")}>
       <button type="button" onClick={() => { router.invalidate(); reset(); }} className={fallbackBtn}>{t("جرّب تاني")}</button>
       <a href="/" className={fallbackBtnOutline}>{t("الرئيسية")}</a>
     </FallbackScreen>
@@ -117,6 +138,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useSocialReturn(useCallback((to: string) => { void router.navigate({ to, replace: true }); }, [router]));
+  useEffect(() => {
+    // Vite tells us when a page file can't load (a newer Publish removed it): reload once for the new version.
+    const onPreloadError = (e: Event) => { if (reloadForNewVersion()) e.preventDefault(); };
+    window.addEventListener("vite:preloadError", onPreloadError);
+    return () => window.removeEventListener("vite:preloadError", onPreloadError);
+  }, []);
   useEffect(() => {
     void import("../lib/native-links").then((m) => m.initNativeShell()).catch(() => {});
     void import("../lib/attribution").then((m) => m.captureAttribution()).catch(() => {});

@@ -26,7 +26,8 @@ export const Route = createFileRoute("/prices/")({
 function PricesPage() {
   useLocations();
   useLang();
-  const idx = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
+  // initialData: the server's copy rides along with the page, so the browser's first draft matches it (React #418).
+  const idx = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, initialData: Route.useLoaderData(), staleTime: 60 * 60_000 });
   const malls = useQuery({ queryKey: ["malls"], queryFn: () => fetchMalls() });
   const ratios = useQuery({ queryKey: ["finishing-ratios"], queryFn: fetchFinishingRatios, staleTime: 60 * 60_000 });
   const rows = idx.data ?? [];

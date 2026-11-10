@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useHydrated, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Menu, Search, X, Plus, Building2, FileSearch, Home, UserRound, ClipboardList } from "lucide-react";
 import { NotificationBell } from "@/components/site/NotificationBell";
 import { MessagesButton, MessagesMenuLink } from "@/components/site/MessagesButton";
@@ -54,6 +54,9 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const { user } = useSessionUser();
+  // Links that depend on fetched data wait until the page is live in the browser: the server can already have that
+  // data (a page that loads it) while the browser doesn't yet, and both first drafts must match (React #418).
+  const hydrated = useHydrated();
   // The prices page shows in the menu only once enough real units exist to show a price.
   const prices = useQuery({ queryKey: ["price-index"], queryFn: fetchPriceIndex, staleTime: 60 * 60_000 });
   // «قريبًا» goes away once there's a shared housing unit to show.
@@ -71,10 +74,10 @@ export function Navbar() {
     { label: t("استثمار"), href: "/investments", more: true },
     { label: t("الوسطاء"), href: "/brokers" },
     { label: t("المطلوب"), href: "/wanted" },
-    { label: sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing", more: true },
+    { label: hydrated && sharedOpen.data?.length ? t("سكن مشترك") : `${t("سكن مشترك")} · ${t("قريبًا")}`, href: "/shared-housing", more: true },
     { label: t("الخدمات"), href: "/services", more: true },
     { label: t("تنازل"), href: "/tanazul", more: true },
-    ...(hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices", more: true }] : []),
+    ...(hydrated && hasData(prices.data ?? []) ? [{ label: t("الأسعار"), href: "/prices", more: true }] : []),
   ];
   const account = user ? { href: "/dashboard", label: t("حسابي") } : { href: "/auth", label: t("تسجيل الدخول") };
   return (
