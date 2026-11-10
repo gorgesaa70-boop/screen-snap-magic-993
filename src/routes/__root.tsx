@@ -24,7 +24,6 @@ import cairoArabic from "@/assets/fonts/cairo-arabic.woff2?url";
 
 /** Shared frame for the 404 and error screens: logo, message, and ways back into the site (Arabic / English). */
 function FallbackScreen({ code, title, text, children }: { code?: string; title: string; text: string; children: ReactNode }) {
-  useEffect(() => { document.title = `${title} | ${t("فاليو عقار")}`; }, [title]);
   return (
     <div dir={getLang() === "en" ? "ltr" : "rtl"} className="flex min-h-screen flex-col items-center justify-center bg-secondary px-4 py-10 text-center">
       <a href="/" className="mb-8 text-2xl font-extrabold text-primary">{t("فاليو عقار")} <span className="text-teal">Value Aqar</span></a>

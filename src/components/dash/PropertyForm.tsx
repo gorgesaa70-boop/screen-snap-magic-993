@@ -111,7 +111,7 @@ export function PropertyForm({ brokerId, initial, onDone, onCancel, admin }: Pro
       const uid = (await supabase.auth.getUser()).data.user?.id;
       const ext = (contractFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
       const path = `${uid}/${res.data.id}-${Date.now()}.${ext}`;
-      const up = uid ? await supabase.storage.from("assignment-docs").upload(path, contractFile, { contentType: contractFile.type || undefined }) : { error: new Error("no user") };
+      const up = uid ? await supabase.storage.from("assignment-docs").upload(path, contractFile, contractFile.type ? { contentType: contractFile.type } : {}) : { error: new Error("no user") };
       const row = up.error ? up : await supabase.from("property_assignment_docs").insert({ property_id: res.data.id, path });
       if (row.error) toast.error("العقار اتحفظ، بس صورة العقد ماترفعتش. جرّب ترفعها تاني من التعديل.");
     }
