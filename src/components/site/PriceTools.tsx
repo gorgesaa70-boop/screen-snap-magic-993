@@ -11,6 +11,7 @@ import { formatPrice, FINISHING_LABEL, CITY_NAMES, areasOf, hasFinishing, useLoc
 import { MALL_UNIT_TYPES, type MallRow } from "./malls";
 import { inputCls, btnPrimary, btnOutline } from "./ui";
 import { FLOOR_LABEL, FLOOR_USE, FINISHING_KEYS, change3m, current, estimate, series, yieldPct, type IndexRow } from "./prices";
+import { trackMeta } from "@/lib/meta-pixel";
 
 const money = (n: number | null | undefined) => (n ? `${formatPrice(n)} ${t("ج.م")}` : "—");
 /** Numbers stay on one line; the 3-month change drops under them on phones. */
@@ -139,6 +140,7 @@ export function PriceCalculator({ rows, ratios, malls, preset }: {
       details: `طلب تقييم من حاسبة الأسعار: ${what}${size ? ` — ${size} م²` : ""}${est ? ` — التقدير ${formatPrice(est.low)}–${formatPrice(est.high)} ج.م` : ""}`.slice(0, 1000),
       original_source: "website", utm: getAttribution(),
     });
+    if (!error) trackMeta("Lead");
     setBusy(false);
     if (error) { toast.error(t("الطلب ماتبعتش، جرّب تاني")); return; }
     setSent(true);

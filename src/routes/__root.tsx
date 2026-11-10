@@ -150,6 +150,15 @@ function RootComponent() {
     void import("../lib/app-metrics").then((m) => m.trackAppOpen()).catch(() => {});
     void import("../lib/app-errors").then((m) => m.initErrorReporting()).catch(() => {});
   }, []);
+  // Meta Pixel (ads measurement): starts a few seconds after load; each page change inside the site counts as a view.
+  useEffect(() => {
+    let unsub = () => {};
+    void import("../lib/meta-pixel").then((m) => {
+      m.initMetaPixel();
+      unsub = router.subscribe("onResolved", (e) => { if (e.pathChanged) m.metaPageView(); });
+    }).catch(() => {});
+    return () => unsub();
+  }, [router]);
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
