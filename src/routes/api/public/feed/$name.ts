@@ -53,6 +53,8 @@ export const Route = createFileRoute("/api/public/feed/$name")({
               "content-type": "application/json; charset=utf-8",
               // Browsers keep it 30s; the CDN may share it for a minute and serve the old copy while refreshing.
               "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=60",
+              // Public data: the app's web build (and previews) may read it from another address.
+              "Access-Control-Allow-Origin": "*",
             },
           });
         } catch {
