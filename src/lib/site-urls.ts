@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 /** IndexNow key. Not a secret: the protocol publishes it at /<key>.txt so search engines can check we own the site. */
 export const INDEXNOW_KEY = "7c2634d3ce1140f698df0ac7c20553e1";
 
-const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/compounds", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account", "/shared-housing", "/services", "/wanted", "/tanazul", "/broker-network", "/sell", "/prices", "/plans"];
+const STATIC_PATHS = ["/", "/brokers", "/industrial", "/malls", "/compounds", "/projects", "/investments", "/app", "/map", "/privacy", "/terms", "/delete-account", "/shared-housing", "/services", "/wanted", "/tanazul", "/broker-network", "/sell", "/prices", "/plans", "/real-estate"];
 
 export type SiteEntry = { path: string; lastmod?: string };
 
@@ -46,7 +46,10 @@ export async function publicPages(): Promise<SiteEntry[]> {
   // Approved service providers' public profiles (the directory function returns approved ones only).
   const { data: providers } = await (await import("@/integrations/supabase/client")).supabase.rpc("service_directory", {});
   const services: SiteEntry[] = (providers ?? []).map((p) => ({ path: `/services/${p.id}` }));
-  return [...STATIC_PATHS.map((path) => ({ path })), ...res, ...mallUnits, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices, ...services];
+  // Search pages («شقق للبيع في برج العرب الجديدة»…) that have listings now; empty ones stay out.
+  const [{ fetchSearchEverything }, { liveLandings, landingPath }] = await Promise.all([import("@/components/site/search-everything"), import("@/lib/landings")]);
+  const landings: SiteEntry[] = liveLandings(await fetchSearchEverything().catch(() => [])).map((x) => ({ path: landingPath(x.landing) }));
+  return [...STATIC_PATHS.map((path) => ({ path })), ...landings, ...res, ...mallUnits, ...ind, ...brokers, ...malls, ...compounds, ...projects, ...prices, ...services];
 }
 
 export const absoluteUrl = (path: string) => SITE_URL + (path === "/" ? "/" : path);
