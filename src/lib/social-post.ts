@@ -1,6 +1,7 @@
 // Social auto-post (release 45): the caption, hashtags and card fields for one listing. Pure, so it is unit-tested;
 // the card is drawn by social-card.server.ts and sent to Buffer by /api/public/social/dispatch.
-import { FINISHING_LABEL, PRICE_UNIT_LABEL, PURPOSE_LABEL, listingCode } from "@/components/site/data";
+import { FINISHING_LABEL, PRICE_UNIT_LABEL, PURPOSE_LABEL, listingCode, type Property } from "@/components/site/data";
+import { landingOf, landingPath, landingTitle } from "@/lib/landings";
 import { SITE_URL } from "@/lib/seo";
 
 /** The properties columns the post needs. */
@@ -111,6 +112,9 @@ export function caption(l: SocialListing, opts: { appUrl?: string | null } = {})
   if (details) lines.push(`📝 ${details.length > 400 ? `${details.slice(0, 399)}…` : details}`);
   if (l.listing_no != null) lines.push(`🔖 كود العقار: ${listingCode(l.listing_no)}`);
   lines.push(`👈 الصور والتفاصيل: ${listingUrl(l)}`);
+  // The search page it belongs to («كل المحلات للبيع في برج العرب الجديدة»): more choices for the reader, and links Google sees.
+  const landing = landingOf({ type: l.type, status: l.status, city: l.city, isDemo: false, availability: "available" } as unknown as Property);
+  if (landing) lines.push(`🔎 كل ${landingTitle(landing)}: ${SITE_URL}${landingPath(landing)}`);
   if (opts.appUrl) lines.push(`📲 حمّل التطبيق: ${opts.appUrl}`);
   lines.push("", hashtags(l).join(" "));
   return lines.join("\n");
