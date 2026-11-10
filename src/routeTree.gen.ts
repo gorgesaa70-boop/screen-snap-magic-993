@@ -58,6 +58,8 @@ import { Route as PricesIndexRouteImport } from './routes/prices.index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 import { Route as PropertiesIdRouteImport } from './routes/properties.$id'
+import { Route as RealEstateIndexRouteImport } from './routes/real-estate.index'
+import { Route as RealEstateSlugRouteImport } from './routes/real-estate.$slug'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ServicesIdRouteImport } from './routes/services.$id'
 import { Route as AuthenticatedInvestmentsNewRouteImport } from './routes/_authenticated/investments.new'
@@ -322,6 +324,16 @@ const PropertiesIdRoute = PropertiesIdRouteImport.update({
   path: '/properties/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RealEstateIndexRoute = RealEstateIndexRouteImport.update({
+  id: '/real-estate/',
+  path: '/real-estate/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RealEstateSlugRoute = RealEstateSlugRouteImport.update({
+  id: '/real-estate/$slug',
+  path: '/real-estate/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesIndexRoute = ServicesIndexRouteImport.update({
   id: '/services/',
   path: '/services/',
@@ -456,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/real-estate/$slug': typeof RealEstateSlugRoute
   '/services/$id': typeof ServicesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/compounds/': typeof CompoundsIndexRoute
@@ -464,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/malls/': typeof MallsIndexRoute
   '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/real-estate/': typeof RealEstateIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -523,6 +537,7 @@ export interface FileRoutesByTo {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/real-estate/$slug': typeof RealEstateSlugRoute
   '/services/$id': typeof ServicesIdRoute
   '/brokers': typeof BrokersIndexRoute
   '/compounds': typeof CompoundsIndexRoute
@@ -531,6 +546,7 @@ export interface FileRoutesByTo {
   '/malls': typeof MallsIndexRoute
   '/prices': typeof PricesIndexRoute
   '/projects': typeof ProjectsIndexRoute
+  '/real-estate': typeof RealEstateIndexRoute
   '/services': typeof ServicesIndexRoute
   '/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -592,6 +608,7 @@ export interface FileRoutesById {
   '/malls/$id': typeof MallsIdRoute
   '/projects/$id': typeof ProjectsIdRoute
   '/properties/$id': typeof PropertiesIdRoute
+  '/real-estate/$slug': typeof RealEstateSlugRoute
   '/services/$id': typeof ServicesIdRoute
   '/brokers/': typeof BrokersIndexRoute
   '/compounds/': typeof CompoundsIndexRoute
@@ -600,6 +617,7 @@ export interface FileRoutesById {
   '/malls/': typeof MallsIndexRoute
   '/prices/': typeof PricesIndexRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/real-estate/': typeof RealEstateIndexRoute
   '/services/': typeof ServicesIndexRoute
   '/_authenticated/investments/new': typeof AuthenticatedInvestmentsNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
@@ -661,6 +679,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/real-estate/$slug'
     | '/services/$id'
     | '/brokers/'
     | '/compounds/'
@@ -669,6 +688,7 @@ export interface FileRouteTypes {
     | '/malls/'
     | '/prices/'
     | '/projects/'
+    | '/real-estate/'
     | '/services/'
     | '/investments/new'
     | '/leads/$id'
@@ -728,6 +748,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/real-estate/$slug'
     | '/services/$id'
     | '/brokers'
     | '/compounds'
@@ -736,6 +757,7 @@ export interface FileRouteTypes {
     | '/malls'
     | '/prices'
     | '/projects'
+    | '/real-estate'
     | '/services'
     | '/investments/new'
     | '/leads/$id'
@@ -796,6 +818,7 @@ export interface FileRouteTypes {
     | '/malls/$id'
     | '/projects/$id'
     | '/properties/$id'
+    | '/real-estate/$slug'
     | '/services/$id'
     | '/brokers/'
     | '/compounds/'
@@ -804,6 +827,7 @@ export interface FileRouteTypes {
     | '/malls/'
     | '/prices/'
     | '/projects/'
+    | '/real-estate/'
     | '/services/'
     | '/_authenticated/investments/new'
     | '/_authenticated/leads/$id'
@@ -849,6 +873,7 @@ export interface RootRouteChildren {
   MallsIdRoute: typeof MallsIdRoute
   ProjectsIdRoute: typeof ProjectsIdRoute
   PropertiesIdRoute: typeof PropertiesIdRoute
+  RealEstateSlugRoute: typeof RealEstateSlugRoute
   ServicesIdRoute: typeof ServicesIdRoute
   BrokersIndexRoute: typeof BrokersIndexRoute
   CompoundsIndexRoute: typeof CompoundsIndexRoute
@@ -857,6 +882,7 @@ export interface RootRouteChildren {
   MallsIndexRoute: typeof MallsIndexRoute
   PricesIndexRoute: typeof PricesIndexRoute
   ProjectsIndexRoute: typeof ProjectsIndexRoute
+  RealEstateIndexRoute: typeof RealEstateIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
   ApiAppActionRoute: typeof ApiAppActionRoute
   PricesAreasAreaRoute: typeof PricesAreasAreaRoute
@@ -1217,6 +1243,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropertiesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/real-estate/': {
+      id: '/real-estate/'
+      path: '/real-estate'
+      fullPath: '/real-estate/'
+      preLoaderRoute: typeof RealEstateIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/real-estate/$slug': {
+      id: '/real-estate/$slug'
+      path: '/real-estate/$slug'
+      fullPath: '/real-estate/$slug'
+      preLoaderRoute: typeof RealEstateSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services/': {
       id: '/services/'
       path: '/services'
@@ -1413,6 +1453,7 @@ const rootRouteChildren: RootRouteChildren = {
   MallsIdRoute: MallsIdRoute,
   ProjectsIdRoute: ProjectsIdRoute,
   PropertiesIdRoute: PropertiesIdRoute,
+  RealEstateSlugRoute: RealEstateSlugRoute,
   ServicesIdRoute: ServicesIdRoute,
   BrokersIndexRoute: BrokersIndexRoute,
   CompoundsIndexRoute: CompoundsIndexRoute,
@@ -1421,6 +1462,7 @@ const rootRouteChildren: RootRouteChildren = {
   MallsIndexRoute: MallsIndexRoute,
   PricesIndexRoute: PricesIndexRoute,
   ProjectsIndexRoute: ProjectsIndexRoute,
+  RealEstateIndexRoute: RealEstateIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
   ApiAppActionRoute: ApiAppActionRoute,
   PricesAreasAreaRoute: PricesAreasAreaRoute,

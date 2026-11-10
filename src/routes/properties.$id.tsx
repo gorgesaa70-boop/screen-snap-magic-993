@@ -26,6 +26,7 @@ import { ContactActions } from "@/components/site/ContactActions";
 import { trackContact, trackView } from "@/lib/track";
 import { ReferButton } from "@/components/site/ReferButton";
 import { ReportButton } from "@/components/site/ReportButton";
+import { landingOf, landingPath, landingTitle } from "@/lib/landings";
 
 async function fetchProperty(id: string) {
   const { data, error } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
@@ -75,7 +76,7 @@ export const Route = createFileRoute("/properties/$id")({
           address: { "@type": "PostalAddress", addressLocality: p.area, addressCountry: "EG", ...(unit ? { streetAddress: unit.mall.name } : {}) },
           ...(broker ? { provider: { "@type": "RealEstateAgent", name: broker.name, url: `${SITE_URL}/brokers/${broker.slug}` } } : {}),
         },
-        breadcrumbs(unit ? [{ name: "الرئيسية", path: "/" }, { name: "المولات", path: "/malls" }, { name: unit.mall.name, path: `/malls/${unit.mall.id}` }, { name: p.title, path }] : [{ name: "الرئيسية", path: "/" }, { name: p.title, path }]),
+        breadcrumbs(unit ? [{ name: "الرئيسية", path: "/" }, { name: "المولات", path: "/malls" }, { name: unit.mall.name, path: `/malls/${unit.mall.id}` }, { name: p.title, path }] : (() => { const l = landingOf(p); return [{ name: "الرئيسية", path: "/" }, ...(l ? [{ name: landingTitle(l), path: landingPath(l) }] : []), { name: p.title, path }]; })()),
       ],
     });
   },
@@ -134,6 +135,11 @@ function PropertyPage() {
             {p.baths && <span className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5"><Bath className="size-4 text-teal" />{formatPrice(p.baths)} {t("حمام")}</span>}
             {p.finishing && FINISHING_LABEL[p.finishing] && <span className="rounded-lg bg-secondary px-3 py-1.5">{t(FINISHING_LABEL[p.finishing]!)}</span>}
           </div>
+          {(() => {
+            // Link to the search page this listing is part of (e.g. «شقق للبيع في برج العرب الجديدة»).
+            const l = landingOf(p);
+            return l ? <a href={landingPath(l)} className="mt-3 inline-flex text-sm font-bold text-teal hover:underline">{t("كل")} {landingTitle(l)} ←</a> : null;
+          })()}
           {p.video && <ListingVideo url={p.video} poster={p.image} title={p.title} />}
           {q.data.unit && <UnitInsight p={p} u={q.data.unit} />}
           <p className="mt-5 leading-relaxed whitespace-pre-line text-foreground/80">{p.description || t("مفيش وصف إضافي.")}</p>
