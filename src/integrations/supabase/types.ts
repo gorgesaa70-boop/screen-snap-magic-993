@@ -2961,14 +2961,11 @@ export type Database = {
           },
         ]
       }
-      property_assignment_docs: {
-        Row: { created_at: string; id: string; path: string; property_id: string; uploaded_by: string | null }
-        Insert: { created_at?: string; id?: string; path: string; property_id: string; uploaded_by?: string | null }
-        Update: { created_at?: string; id?: string; path?: string; property_id?: string; uploaded_by?: string | null }
-        Relationships: []
-      }
       properties: {
         Row: {
+          activity_id: string | null
+          address: string | null
+          area: string
           asg_contract_price: number | null
           asg_delivery: string | null
           asg_dev_approval: string | null
@@ -2981,10 +2978,6 @@ export type Database = {
           asg_paid: number | null
           asg_project_id: string | null
           asg_remaining: number | null
-          is_assignment: boolean
-          activity_id: string | null
-          address: string | null
-          area: string
           availability: string
           availability_at: string | null
           available_from: string | null
@@ -3015,6 +3008,7 @@ export type Database = {
           images: string[]
           installment_note: string | null
           installment_years: number | null
+          is_assignment: boolean
           is_demo: boolean
           is_featured: boolean
           is_highlight: boolean
@@ -3052,6 +3046,9 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          activity_id?: string | null
+          address?: string | null
+          area: string
           asg_contract_price?: number | null
           asg_delivery?: string | null
           asg_dev_approval?: string | null
@@ -3064,10 +3061,6 @@ export type Database = {
           asg_paid?: number | null
           asg_project_id?: string | null
           asg_remaining?: number | null
-          is_assignment?: boolean
-          activity_id?: string | null
-          address?: string | null
-          area: string
           availability?: string
           availability_at?: string | null
           available_from?: string | null
@@ -3098,6 +3091,7 @@ export type Database = {
           images?: string[]
           installment_note?: string | null
           installment_years?: number | null
+          is_assignment?: boolean
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
@@ -3135,6 +3129,9 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          activity_id?: string | null
+          address?: string | null
+          area?: string
           asg_contract_price?: number | null
           asg_delivery?: string | null
           asg_dev_approval?: string | null
@@ -3147,10 +3144,6 @@ export type Database = {
           asg_paid?: number | null
           asg_project_id?: string | null
           asg_remaining?: number | null
-          is_assignment?: boolean
-          activity_id?: string | null
-          address?: string | null
-          area?: string
           availability?: string
           availability_at?: string | null
           available_from?: string | null
@@ -3181,6 +3174,7 @@ export type Database = {
           images?: string[]
           installment_note?: string | null
           installment_years?: number | null
+          is_assignment?: boolean
           is_demo?: boolean
           is_featured?: boolean
           is_highlight?: boolean
@@ -3226,6 +3220,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "properties_asg_project_id_fkey"
+            columns: ["asg_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "properties_broker_id_fkey"
             columns: ["broker_id"]
             isOneToOne: false
@@ -3262,6 +3263,38 @@ export type Database = {
           },
         ]
       }
+      property_assignment_docs: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          property_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          property_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          property_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_assignment_docs_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_config: {
         Row: {
           id: number
@@ -3293,9 +3326,36 @@ export type Database = {
         Relationships: []
       }
       push_devices: {
-        Row: { app_version: string | null; created_at: string; failed_count: number; id: string; last_used_at: string | null; platform: string; token: string; user_id: string }
-        Insert: { app_version?: string | null; created_at?: string; failed_count?: number; id?: string; last_used_at?: string | null; platform: string; token: string; user_id: string }
-        Update: { app_version?: string | null; created_at?: string; failed_count?: number; id?: string; last_used_at?: string | null; platform?: string; token?: string; user_id?: string }
+        Row: {
+          app_version: string | null
+          created_at: string
+          failed_count: number
+          id: string
+          last_used_at: string | null
+          platform: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          last_used_at?: string | null
+          platform: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          failed_count?: number
+          id?: string
+          last_used_at?: string | null
+          platform?: string
+          token?: string
+          user_id?: string
+        }
         Relationships: []
       }
       push_subscriptions: {
@@ -5728,6 +5788,10 @@ export type Database = {
         Returns: Record<string, unknown>
       }
       refresh_service_plan: { Args: { _provider: string }; Returns: undefined }
+      register_push_device: {
+        Args: { _app_version?: string; _platform: string; _token: string }
+        Returns: string
+      }
       renew_listing: { Args: { _property: string }; Returns: string }
       reply_service_review: {
         Args: { _reply: string; _review: string }
@@ -5897,8 +5961,6 @@ export type Database = {
         Args: { _images: string[]; _mall: string }
         Returns: undefined
       }
-      register_push_device: { Args: { _token: string; _platform: string; _app_version?: string }; Returns: string }
-      unregister_push_device: { Args: { _token: string }; Returns: undefined }
       shared_units_public: {
         Args: never
         Returns: {
@@ -6020,6 +6082,7 @@ export type Database = {
         Args: { _u: Database["public"]["Tables"]["compound_units"]["Row"] }
         Returns: string
       }
+      unregister_push_device: { Args: { _token: string }; Returns: undefined }
       wa_assign_owner: {
         Args: { _phone: string; _property: string }
         Returns: string
