@@ -116,6 +116,7 @@ export type Database = {
           finishing_ratios: Json
           floating_whatsapp: string | null
           id: number
+          ideal_customer: string
           indexnow_sent_at: string | null
           ios_url: string | null
           last_backup_at: string | null
@@ -165,6 +166,7 @@ export type Database = {
           finishing_ratios?: Json
           floating_whatsapp?: string | null
           id?: number
+          ideal_customer?: string
           indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           finishing_ratios?: Json
           floating_whatsapp?: string | null
           id?: number
+          ideal_customer?: string
           indexnow_sent_at?: string | null
           ios_url?: string | null
           last_backup_at?: string | null
@@ -1792,6 +1795,11 @@ export type Database = {
         Row: {
           admin_queue_at: string | null
           admin_queue_reason: string | null
+          ai_score: number | null
+          ai_score_attempts: number
+          ai_scored_at: string | null
+          ai_summary: string | null
+          ai_worth_call: boolean | null
           area: string | null
           asking_price: number | null
           assigned_broker_id: string | null
@@ -1855,6 +1863,11 @@ export type Database = {
         Insert: {
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
+          ai_score?: number | null
+          ai_score_attempts?: number
+          ai_scored_at?: string | null
+          ai_summary?: string | null
+          ai_worth_call?: boolean | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null
@@ -1918,6 +1931,11 @@ export type Database = {
         Update: {
           admin_queue_at?: string | null
           admin_queue_reason?: string | null
+          ai_score?: number | null
+          ai_score_attempts?: number
+          ai_scored_at?: string | null
+          ai_summary?: string | null
+          ai_worth_call?: boolean | null
           area?: string | null
           asking_price?: number | null
           assigned_broker_id?: string | null

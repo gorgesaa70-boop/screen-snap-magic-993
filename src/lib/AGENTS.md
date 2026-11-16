@@ -1,0 +1,1 @@
+- AI lead scoring: `runLeadScoring` (src/lib/lead-score.server.ts) runs in the whatsapp-dispatch cron, scoring unscored leads from the last 7 days against `app_settings.ideal_customer` into leads.ai_score/ai_summary/ai_worth_call (max 3 attempts, stops on 402/403/429). Why: scoring never slows lead creation and stays server-side.
