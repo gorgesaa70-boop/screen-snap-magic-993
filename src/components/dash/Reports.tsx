@@ -10,6 +10,7 @@ import { Stat, Tabs, inputCls, btnOutline } from "@/components/site/ui";
 import { CLOSED_STAGES, LEAD_SOURCES, STAGES, formatPrice } from "@/components/site/data";
 import { displayStatus, remaining } from "@/lib/finance";
 import { formatWorkMinutes, workMinutes } from "@/lib/response-time";
+import { csvCell } from "@/lib/csv";
 
 /**
  * Dashboard home + reports (item 19). Everything is computed from real rows the viewer may see —
@@ -58,7 +59,7 @@ function useReportData(scope: Scope) {
 }
 
 function csv(name: string, head: string[], rows: (string | number)[][]) {
-  const esc = (v: unknown) => { const t = String(v ?? ""); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const esc = csvCell;
   const blob = new Blob(["﻿" + [head, ...rows].map((r) => r.map(esc).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
 }

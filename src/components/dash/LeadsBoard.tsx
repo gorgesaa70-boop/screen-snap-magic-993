@@ -9,6 +9,7 @@ import { Stat, inputCls, btnOutline } from "@/components/site/ui";
 import { DeadlineBadge } from "./Deadline";
 import { LeadsBulkDelete } from "./LeadsBulkDelete";
 import { stageLabel, STAGES, STAGES_WITH_DATA, CLOSED_STAGES, LEAD_KINDS, LEAD_SOURCES, leadNo, formatPrice, formatDate, waLink, type BrokerRow, leadKindLabel } from "@/components/site/data";
+import { csvCell } from "@/lib/csv";
 
 export type LeadWithProp = {
   id: string;
@@ -58,7 +59,7 @@ const toLocalInput = (iso?: string | null) => {
 const isDue = (l: LeadWithProp, now: number) => !!l.follow_up_at && new Date(l.follow_up_at).getTime() <= now && !CLOSED_STAGES.includes(l.stage);
 
 function exportCsv(rows: LeadWithProp[], brokers?: BrokerRow[]) {
-  const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const esc = csvCell;
   const head = ["رقم العميل", "المصدر", "الاسم", "الهاتف", "النوع", "المرحلة", "العقار", "نوع العقار", "المنطقة", "الميزانية", "التفاصيل", "الملاحظات", "موعد المتابعة", "الوسيط", "تاريخ الطلب"];
   const lines = rows.map((l) => [
     leadNo(l.lead_no), LEAD_SOURCES[l.source ?? ""] ?? l.source ?? "", l.name, l.phone, leadKindLabel(l), STAGES[l.stage as keyof typeof STAGES] ?? l.stage,
