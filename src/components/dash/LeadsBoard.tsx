@@ -37,6 +37,9 @@ export type LeadWithProp = {
   source?: string;
   phone_norm?: string | null;
   assigned_member_id?: string | null;
+  ai_score?: number | null;
+  ai_summary?: string | null;
+  ai_worth_call?: boolean | null;
 };
 
 /** How many visible leads share each normalized phone number (duplicate warning, no merging). */
@@ -191,6 +194,12 @@ function LeadCard({ l, onStage, onNotes, onAssign, brokers, onFollowUp, due, dup
         {(l.property_type || l.area || l.budget) && <p>{[l.property_type, l.area, l.budget ? `${formatPrice(Number(l.budget))} ج.م` : null].filter(Boolean).join(" · ")}</p>}
         {l.details && <p className="whitespace-pre-line">{l.details}</p>}
       </div>
+      {l.ai_score != null && (
+        <div className={`mt-3 rounded-xl px-3 py-2 text-xs ${l.ai_worth_call ? "bg-teal/10 text-foreground" : "bg-muted text-muted-foreground"}`}>
+          <p className="font-bold">تقييم الذكاء الاصطناعي: {l.ai_score}/100{l.ai_worth_call ? " · 📞 يستاهل مكالمة" : ""}</p>
+          {l.ai_summary && <p className="mt-1">{l.ai_summary}</p>}
+        </div>
+      )}
       {l.admin_queue_at && <p className="mt-3 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">في طابور الإدارة — {l.admin_queue_reason ?? "محتاج إسناد"}</p>}
       {l.transfer_deadline_at && !l.first_response_at && <div className="mt-3"><DeadlineBadge at={l.transfer_deadline_at} /></div>}
       {!l.first_response_at && l.assigned_broker_id && <div className="mt-2"><ContactOutcome leadId={l.id} onDone={onChanged} /></div>}
