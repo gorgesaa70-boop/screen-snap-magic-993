@@ -16,3 +16,5 @@
 - [x] تفعيل تسجيل الدخول بجوجل في صفحة /auth
 - [x] إضافة قيم واتساب: WHATSAPP_TEMPLATE_NAME=valueaqar_login و WHATSAPP_TEMPLATE_LANG=ar (رقم الهاتف وOTP_PEPPER محفوظون مسبقًا ومتحقق منهم)
 - اختبار إرسال رمز واتساب إلى 01011125243 — بانتظار المستخدم: إضافة الرقم لقائمة المستلمين في Meta API Setup (رقم الاختبار التجريبي)، ثم إعادة الاختبار.
+
+- [ ] AI lead scoring: score new leads vs ideal customer, short summary, flag worth-a-call (waiting: ideal customer definition)
