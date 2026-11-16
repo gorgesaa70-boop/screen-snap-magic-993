@@ -79,6 +79,12 @@ export const Route = createFileRoute("/api/public/notifications/whatsapp-dispatc
           await db.rpc("log_app_error", { _kind: "server", _message: `run_referrals: ${referralsError.message}`.slice(0, 500), _stack: "", _path: "/api/public/notifications/whatsapp-dispatch", _ua: "" });
         }
 
+        try {
+          const { runLeadScoring } = await import("@/lib/lead-score.server");
+          await runLeadScoring(db);
+        } catch (e) {
+          console.error("lead scoring", e);
+        }
         const { data: reminders, error: remindersError } = await db.rpc("run_reminders");
         if (remindersError) console.error("run_reminders", remindersError.message);
 
