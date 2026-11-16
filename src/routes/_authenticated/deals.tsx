@@ -12,6 +12,7 @@ import { Stat, Tabs, inputCls, btnOutline } from "@/components/site/ui";
 import { can } from "@/lib/permissions";
 import { formatPrice, leadNo } from "@/components/site/data";
 import type { DealRow } from "@/lib/finance";
+import { csvCell } from "@/lib/csv";
 
 export const Route = createFileRoute("/_authenticated/deals")({
   validateSearch: (s: Record<string, unknown>): { tab?: "commissions" } => (s["tab"] === "commissions" ? { tab: "commissions" } : {}),
@@ -25,7 +26,7 @@ const value = (d: DealRow) => d.sale_value ?? d.contract_value ?? d.reservation_
 const step = (d: DealRow) => (d.sale_date ? "بيع" : d.contract_date ? "عقد" : d.reservation_date ? "حجز" : "مفتوحة");
 
 function exportCsv(rows: Row[]) {
-  const esc = (v: unknown) => { const t = v == null ? "" : String(v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const esc = csvCell;
   const head = ["رقم الصفقة", "رقم العميل", "العميل", "الشركة", "الوحدة", "تاريخ الحجز", "مبلغ الحجز", "تاريخ العقد", "قيمة العقد", "تاريخ البيع", "قيمة البيع", "حالة المراجعة", "سبب الرفض / الملاحظة"];
   const lines = rows.map((d) => [dealNo(d.deal_no), leadNo(d.leads?.lead_no), d.leads?.name, d.brokers?.name, d.unit_desc, d.reservation_date, d.reservation_amount, d.contract_date, d.contract_value, d.sale_date, d.sale_value, DEAL_STATUS[d.review_status]?.label, d.review_note].map(esc).join(","));
   const blob = new Blob(["﻿" + [head.join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
